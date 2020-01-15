@@ -31,6 +31,9 @@
   (set-face-attribute 'line-number nil
                       :foreground "#cacaca"
                       :weight 'light)
+  ;; enable highlights
+  (set-face-attribute 'highlight nil
+                      :background "#e8eb98")
   ;; hl-line-mode background color
   (with-eval-after-load 'hl-line
     (set-face-attribute 'hl-line nil :background "#fedcba")))

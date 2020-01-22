@@ -310,6 +310,8 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
                   "</script>"))
     ;; syntax highlighting in fenced code blocks
     (setq markdown-fontify-code-blocks-natively t)
+    ;; place header markup only at the beginning of the line
+    (setq markdown-asymmetric-header t)
     (defhydra my-hydra/markdown-mode (:color teal :hint nil)
       "
 Markdown mode

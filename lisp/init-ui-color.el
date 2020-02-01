@@ -13,21 +13,21 @@
   :pin "MELPA"
   :config
   (load-theme 'eink t)
-  ;; make fringe bitmaps visible (default is to make them invisible)
+  ;; visible fringe bitmaps (default is invisible)
   (set-face-attribute 'fringe nil
                       :foreground (face-foreground 'default))
-  ;; make the look of comment delimiters match comment
+  ;; have comment delimiters match comment
   (set-face-attribute 'font-lock-comment-delimiter-face nil
                       :foreground (face-foreground 'font-lock-comment-face)
                       :background (face-background 'font-lock-comment-face)
                       :inherit 'font-lock-comment-face)
-  ;; make inactive mode-line foreground visible
+  ;; visible inactive mode-line foreground
   (set-face-attribute 'mode-line-inactive nil
                       :foreground "#909090")
-  ;; make strings distinct
+  ;; distinct strings
   (set-face-attribute 'font-lock-string-face nil
                       :foreground "#606060")
-  ;; make line numbers less prominent
+  ;; less prominent line numbers
   (set-face-attribute 'line-number nil
                       :foreground "#cacaca"
                       :weight 'light)

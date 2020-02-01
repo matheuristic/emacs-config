@@ -6,16 +6,16 @@
 
 ;; Master file for coordinating Emacs configuration
 
-;; Best possible startup times can be measured using in Linux
+;; Startup times can be measured using in Linux using
 ;; $ emacs -q --eval='(message "%s" (emacs-init-time))'
-;; or in Mac OS X
+;; or in Mac OS X using
 ;; $ open -n /Applications/Emacs.app --args -q --eval='(message "%s" (emacs-init-time))'
 
 ;; Startup time can be optimized using the following steps:
 ;; 1. profile using the `esup' package ("M-x esup")
 ;; 2. defer loading of packages when possible, e.g. use-package's `:defer N'
-;;    with N=1 sec for important packages and N=2 for less important ones
-;; 3. avoid helper functions that cause eager loads
+;;    with N=1 (sec) for important packages and N=2 for less important ones
+;; 3. avoid helper functions that can cause eager loads
 
 ;; ~/.emacs.d/init.el should source this file, e.g.
 
@@ -106,7 +106,7 @@
   (setq use-package-always-ensure t))
 
 ;; copies env vars from shell
-(if (eq system-type 'darwin)  ;; only for Mac OS X GUI mode
+(if (eq system-type 'darwin)  ;; only needed for Mac OS X GUI mode
     (use-package exec-path-from-shell
       :init (if (memq window-system '(mac ns))
                 (exec-path-from-shell-initialize))))
@@ -142,9 +142,6 @@
 ;; filetypes layers
 (require 'init-org)
 (require 'init-lang)
-
-;; zettelkasten layer
-(require 'init-zettel)
 
 ;; revert earlier optimizations for reducing startup time
 (setq gc-cons-threshold (* 2 1000 1000)

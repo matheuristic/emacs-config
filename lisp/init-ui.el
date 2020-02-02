@@ -91,7 +91,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 ;; customize how mode names appear in the mode line
 (use-package delight)
 
-;; framework for temporary or repeatable bindings
+;; framework for temporary or repeatable bindings, also defines default hydras
 (require 'init-ui-hydra)
 
 ;; alternative interface for M-x
@@ -120,8 +120,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-show-numbers t ;; use M-<num> to directly choose completion
-        company-tooltip-align-annotations t)
-  (company-tng-configure-default)) ;; Tab and Go behavior
+        company-tooltip-align-annotations t))
 
 ;; Ediff
 (use-package ediff
@@ -481,11 +480,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   :defer 1
   :delight yas-minor-mode
   :bind (:map yas-minor-mode-map
-         ("C-c s-y s" . my-hydra/yasnippet/body)
-         ("C-S-SPC" . yas-expand)
-         :map yas-keymap
-         ("C-S-SPC" . yas-next-field-or-maybe-expand)
-         ("M-S-SPC" . yas-prev-field))
+         ("C-c s-y s" . my-hydra/yasnippet/body))
   :config
   (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
@@ -502,14 +497,8 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
     ("q" nil "quit"))
   ;; remove default bindings to avoid conflicts with other packages
   ;; removing prefix bindings also removes bindings using them
-  ;; for example, <tab>s and <backtab>s are used by company-tng
   (unbind-key "\C-c&" yas-minor-mode-map)
   (unbind-key "\C-c" yas-minor-mode-map)
-  (dolist (keymap (list yas-minor-mode-map yas-keymap))
-    (unbind-key "<tab>" keymap)
-    (unbind-key "TAB" keymap))
-  (unbind-key "<backtab>" yas-keymap)
-  (unbind-key "S-<tab>" yas-keymap)
   (yas-global-mode 1))
 
 (require 'init-ui-color)

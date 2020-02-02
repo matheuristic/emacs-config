@@ -43,7 +43,8 @@
     :config
     (setq lsp-prefer-flymake nil
           lsp-ui-doc-enable nil
-          lsp-ui-peek-enable nil
+          lsp-ui-peek-always-show t
+          lsp-ui-peek-enable t ;; VSCode alike
           lsp-ui-sideline-enable nil)
     ;; redefine xref-find-definitions and xref-find-references with lsp-mode equivs
     (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)

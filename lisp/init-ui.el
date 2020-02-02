@@ -16,19 +16,19 @@
 (with-eval-after-load 'ibuffer
   (defvar ibuffer-saved-filter-groups
           '(("default"
-             ("Shell" (or (mode . eshell-mode)
-                          (mode . shell-mode)
-                          (mode . term-mode)))
              ("Dired" (mode . dired-mode))
+             ("Emacs" (or (name . "^\\*scratch\\*$")
+                          (name . "^\\*Messages\\*$")))
              ("Org" (or (mode . org-mode)
                         (mode . org-agenda-mode)))
              ("Magit" (or (name . "\*magit.*\\*")
                           (mode . magit-mode)))
-             ("Emacs" (or (name . "^\\*scratch\\*$")
-                          (name . "^\\*Messages\\*$")))
-             ("Help" (or (name . "\*Help\*")
-                         (name . "\*Apropos\*")
-                         (name . "\*info\*")))))))
+             ("Shell" (or (mode . eshell-mode)
+                          (mode . shell-mode)
+                          (mode . term-mode)))
+             ("Help" (or (derived-mode . apropos-mode)
+                         (derived-mode . help-mode)
+                         (derived-mode . Info-mode)))))))
 
 (defun my-yank-from-kill-ring ()
   "Yank from the kill ring into buffer at point or region.
@@ -87,6 +87,9 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   (setq auto-revert-use-notify nil ;; OS X does not support file notifications
         mac-option-modifier 'meta
         mac-right-option-modifier nil))
+
+;; customize how mode names appear in the mode line
+(use-package delight)
 
 ;; framework for temporary or repeatable bindings
 (require 'init-ui-hydra)
@@ -287,26 +290,23 @@ Windows  _L_ : line-wise   _W_ : word-wise
     ("/" ibuffer-filter-disable "disable")
     ("q" my-hydra/ibuffer/body "←" :exit t)))
 
-;; interactively do things with buffers and files, use C-f to escape
-(use-package ido
+;; completion framework
+(use-package icomplete
   :ensure nil ;; built-in
-  :bind ("C-c s-y y" . my-yank-from-kill-ring)
-  :config
-  (setq ido-create-new-buffer 'always
-        ido-default-file-method 'selected-window
-        ido-default-buffer-method 'selected-window
-        ido-enable-flex-matching t
-        ido-enable-tramp-completion nil
-        ido-everywhere t
-        ido-use-filename-at-point 'guess
-        ido-use-virtual-buffers t)
-  (ido-mode t) ;; enable ido-mode globally
-  ;; replace stock completion with ido wherever possible
-  (use-package ido-completing-read+
-    :config (ido-ubiquitous-mode t))
-  ;; use ido for commands using `completing-read-multiple'
-  (use-package crm-custom
-    :config (crm-custom-mode 1)))
+  :bind (("C-c s-y y" . my-yank-from-kill-ring)
+         :map icomplete-minibuffer-map
+         ;; C-s and C-r cycles through completion candidates like in isearch
+         ("C-s" . icomplete-forward-completions)
+         ("C-r" . icomplete-backward-completions)
+         ;; RET selects first match (use <C-return> for RET's default behavior)
+         ("<C-return>" . minibuffer-complete-and-exit)
+         ("RET" . icomplete-force-complete-and-exit))
+  :init (icomplete-mode)
+  :config (setq icomplete-compute-delay 0
+                icomplete-hide-common-prefix nil
+                icomplete-prospects-height 2
+                icomplete-show-matches-on-no-input t
+                icomplete-tidy-shadowed-file-names t))
 
 ;; get a menu list across several buffers
 (use-package imenu-anywhere

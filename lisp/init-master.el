@@ -82,14 +82,14 @@
 (when init-master-regenerate-outdated-bytecode
   (setq load-prefer-newer t))
 
-;; use package.el with given ELPA-compatible package repositories
-(setq package-enable-at-startup nil
-      package-archives '(("GNU"          . "https://elpa.gnu.org/packages/")
-                         ("MELPA Stable" . "https://stable.melpa.org/packages/")
-                         ("MELPA"        . "https://melpa.org/packages/"))
-      package-archive-priorities '(("GNU"          . 10)
-                                   ("MELPA Stable" . 5)
-                                   ("MELPA"        . 0)))
+;; ELPA-compatible package.el repositories
+(setq package-enable-at-startup nil)
+(defvar package-archives '(("GNU"          . "https://elpa.gnu.org/packages/")
+                           ("MELPA Stable" . "https://stable.melpa.org/packages/")
+                           ("MELPA"        . "https://melpa.org/packages/")))
+(defvar package-archive-priorities '(("GNU"          . 10)
+                                     ("MELPA Stable" . 5)
+                                     ("MELPA"        . 0)))
 
 (require 'package)
 (package-initialize)
@@ -99,8 +99,10 @@
   (package-refresh-contents)
   (package-install 'use-package))
 
-;; preload use-package and bind-key
+;; preload use-package and bind-key, and configure imenu support for `require'
+;; and `use-package'
 (eval-when-compile
+  (setq use-package-enable-imenu-support t)
   (require 'use-package)
   (require 'bind-key)
   (setq use-package-always-ensure t))
@@ -111,8 +113,9 @@
       :init (if (memq window-system '(mac ns))
                 (exec-path-from-shell-initialize))))
 
-;; customize how mode names appear in the mode line
-(use-package delight)
+;; load local pre-initialization file ~/.emacs.d/init-pre.el
+(let ((local-f (expand-file-name "init-pre.el" user-emacs-directory)))
+  (if (file-exists-p local-f) (load-file local-f)))
 
 ;; visit large files without loading it entirely
 (use-package vlf
@@ -148,6 +151,10 @@
       gc-cons-percentage 0.1
       file-name-handler-alist tmp-file-name-handler-alist)
 (makunbound 'tmp-file-name-handler-alist) ;; unbind tmp var
+
+;; load local post-initialization file ~/.emacs.d/init-post.el
+(let ((local-f (expand-file-name "init-post.el" user-emacs-directory)))
+  (if (file-exists-p local-f) (load-file local-f)))
 
 ;; load Customize settings
 (load custom-file 'noerror)

@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up version control tooling
+;; Set up version control tooling for...
 ;; * Git
 
 ;;; Code:
@@ -59,9 +59,7 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
     :commands magit-status
     :bind ("C-c s-g s" . magit-status)
     :config
-    (setq auto-revert-check-vc-info t)
-    (with-eval-after-load 'ido-completing-read+
-      (setq magit-completing-read-function 'magit-ido-completing-read)))
+    (setq auto-revert-check-vc-info t))
 
   ;; Browse historic versions of Git-controlled files
   (use-package git-timemachine

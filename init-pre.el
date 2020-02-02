@@ -16,7 +16,7 @@
 ;;                                    ("MELPA"        . 0)))
 
 ;; Example of only loading support for a subset of languages
-;; (setq init-lang-enable-list '("csv" "docker" "json" "markdown" "yaml")
+;; (setq init-lang-enable-list '("csv" "docker" "json" "markdown" "yaml"))
 
 (provide 'init-pre)
 ;;; init-pre.el ends here

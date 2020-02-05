@@ -2,11 +2,42 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/dotfiles
+
 ;;; Commentary:
 
+;; Emacs configuration file.
 ;; Symlink or copy this file to ~/.emacs or ~/.emacs.d/init.el
 
+;; Startup times can be measured using in Linux using
+;; $ emacs -q --eval='(message "%s" (emacs-init-time))'
+;; or in Mac OS X using
+;; $ open -n /Applications/Emacs.app --args -q --eval='(message "%s" (emacs-init-time))'
+
+;; Startup time can be optimized using the following steps:
+;; 1. profile using the `esup' package ("M-x esup")
+;; 2. defer loading of packages when possible, e.g. use-package's `:defer N'
+;;    with N=1 (sec) for important packages and N=2 for less important ones
+;; 3. avoid helper functions that can cause eager loads
+
 ;;; Code:
+
+;; load local pre-initialization file ~/.emacs.d/init-pre.el
+(let ((local-f (expand-file-name "init-pre.el" user-emacs-directory)))
+  (if (file-exists-p local-f) (load-file local-f)))
+
+;; always store Customize settings in a separate file
+;; default to ~/.emacs/custom.el if none is specified
+(when (or (not (boundp 'custom-file))
+          (not custom-file))
+  (setq custom-file (expand-file-name "custom.el" user-emacs-directory)))
+
+;; optimizations for reducing startup time (reverted at the end of file)
+;; * increase garbage collection thresholds
+;; * set file-name-handler-alist to nil as it is scanned when files are loaded
+(defvar tmp-file-name-handler-alist file-name-handler-alist) ;; save to tmp var
+(setq gc-cons-threshold (* 50 1000 1000) ;; in bytes, default is 800k
+      gc-cons-percentage 0.6
+      file-name-handler-alist nil)
 
 ;; user packages in ~/.emacs.d/lisp
 (defvar lisp-dir (expand-file-name "lisp" user-emacs-directory))
@@ -22,33 +53,40 @@
 (dolist (project (directory-files site-lisp-dir t "\\w+"))
   (if (file-directory-p project) (add-to-list 'load-path project)))
 
-;; font list by priority, used in lisp/init-ui-font.el
-(setq init-ui-font-default-list '("IBM Plex Mono"
-                                  "Consolas"
-                                  "Menlo"
-                                  "DejaVu Sans Mono")
-      init-ui-font-variable-pitch-list '("IBM Plex Serif"
-                                         "Alegreya"
-                                         "Constantia"
-                                         "Charter"
-                                         "DejaVu Serif"))
+(require 'init-backup) ;; configure automatic file backups
+(require 'init-package) ;; enable use-package for package management
 
-;; set directory where conda is installed, used in lisp/init-lang-python.el
-(setq conda-anaconda-home "~/miniconda3/")
+;; copy environment variables from shell
+(if (eq system-type 'darwin)  ;; only needed for Mac OS X GUI mode
+    (use-package exec-path-from-shell
+      :init (if (memq window-system '(mac ns))
+                (exec-path-from-shell-initialize))))
 
-;; path to MS Python Language Server binary, used by lisp/init-lang-python.el
-(setq lsp-python-ms-executable "~/.local/bin/Microsoft.Python.LanguageServer")
+; ;; visit large files without loading it entirely
+(use-package vlf
+  :config (require 'vlf-setup))
 
-;; Set default directory for Org files to ~/org
-(setq org-directory (file-name-as-directory (file-truename "~/org/")))
+(require 'init-sensitive)
+(require 'init-ui)
+(require 'init-dired)
+(require 'init-term)
+(require 'init-vc)
+(require 'init-proj)
+(require 'init-org)
+(require 'init-lang)
 
-;; Use top-level Org files in default Org directory for Org agenda files
-(setq org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
+;; revert earlier optimizations for reducing startup time
+(setq gc-cons-threshold (* 2 1000 1000)
+      gc-cons-percentage 0.1
+      file-name-handler-alist tmp-file-name-handler-alist)
+(makunbound 'tmp-file-name-handler-alist) ;; unbind tmp var
 
-;; use multimarkdown for processing markdown files in markdown-mode
-(setq markdown-command "multimarkdown")
+;; load local post-initialization file ~/.emacs.d/init-post.el
+(let ((local-f (expand-file-name "init-post.el" user-emacs-directory)))
+  (if (file-exists-p local-f) (load-file local-f)))
 
-(require 'init-master)
+;; load Customize settings
+(load custom-file 'noerror)
 
 (provide 'init)
 ;;; init.el ends here

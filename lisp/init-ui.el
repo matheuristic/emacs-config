@@ -294,12 +294,13 @@ Windows  _L_ : line-wise   _W_ : word-wise
   :ensure nil ;; built-in
   :bind (("C-c s-y y" . my-yank-from-kill-ring)
          :map icomplete-minibuffer-map
-         ;; C-s and C-r cycles through completion candidates like in isearch
+         ;; C-s and C-r cycles through completion candidates like isearch
          ("C-s" . icomplete-forward-completions)
          ("C-r" . icomplete-backward-completions)
-         ;; RET selects first match (use <C-return> for RET's default behavior)
-         ("<C-return>" . minibuffer-complete-and-exit)
-         ("RET" . icomplete-force-complete-and-exit))
+         ;; RET selects the current completion candidate like ido
+         ;; M-j uses input as is (e.g. to create new files or dirs)
+         ("RET" . icomplete-force-complete-and-exit)
+         ("M-j" . exit-minibuffer))
   :init (icomplete-mode)
   :config (setq icomplete-compute-delay 0
                 icomplete-hide-common-prefix nil

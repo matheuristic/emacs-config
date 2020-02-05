@@ -9,6 +9,7 @@
 ;;; Code:
 
 (require 'init-ui-hydra)
+(require 'init-lang-lsp)
 
 ;; enable evaluation of Python in Org-mode code blocks
 (use-package ob-python

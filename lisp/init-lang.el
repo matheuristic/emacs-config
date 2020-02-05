@@ -21,116 +21,11 @@
   :type '(repeat string)
   :group 'init-lang-el)
 
-;; Language Server Protocol
-(use-package lsp-mode
-  :pin "MELPA"
-  :defer t
-  :hook (prog-mode . (lambda () (require 'lsp-mode)))
-  :bind (:map lsp-mode-map
-         ("C-c s-l" . my-hydra/lsp/body))
-  :config
-  (setq lsp-print-io nil ;; disable logging of packets between emacs and the LS
-        lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
-        lsp-eldoc-enable-signature-help nil ;; display signature help in minibuffer
-        lsp-eldoc-prefer-signature-help nil ;; prefer displaying signature help to hover
-        lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
-        lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
-        lsp-signature-auto-activate nil) ;; don't automatically show signature, use C-S-SPC to peek; see https://github.com/emacs-lsp/lsp-mode/issues/1223
-  ;; user interface modules for lsp-mode
-  (use-package lsp-ui
-    :pin "MELPA"
-    :after lsp-mode
-    :config
-    (setq lsp-prefer-flymake nil
-          lsp-ui-doc-enable nil
-          lsp-ui-peek-always-show t
-          lsp-ui-peek-enable t ;; VSCode alike
-          lsp-ui-sideline-enable nil)
-    ;; redefine xref-find-definitions and xref-find-references with lsp-mode equivs
-    (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-    (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
-  ;; prefer flycheck for syntax checking if loaded, otherwise prefer flymake
-  (if (featurep 'flycheck)
-      (progn
-        (add-hook 'lsp-after-open-hook (lambda () (lsp-ui-flycheck-enable 1)))
-        (setq lsp-prefer-flymake nil))
-    (setq lsp-prefer-flymake t))
-  ;; company backend for LSP-driven completion
-  (use-package company-lsp
-    :pin "MELPA"
-    :commands company-lsp
-    :init (setq company-lsp-cache-candidates t))
-  (defhydra my-hydra/lsp (:color teal :hint nil)
-    "
-Language Server
+;; syntax checking
+(require 'init-lang-syntax)
 
-Server  _R_   : (re)start        _S_   : shutdown         _M-l_ : IO log
-
-Symbol  _o_   : describe         _fd_  : find declaration _fD_  : find defn
-        _fi_  : find implementn  _fr_  : find references  _ft_  : find type defn
-        _h_   : highlight        _M-r_ : rename
-
-Lens    _lm_  : lsp-lens-mode    _ls_  : show lenses      _lh_  : hide lenses
-
-Other   _FB_  : format buffer    _FR_  : format region    _X_   : execute action
-        _O_   : organize imports _M-s_ : describe session
-
-"
-    ;; Server
-    ("R" (condition-case nil (lsp-restart-workspace) (error (lsp))))
-    ("S" lsp-shutdown-workspace)
-    ("M-l" lsp-switch-to-io-log-buffer)
-    ;; Symbol at point
-    ("o" lsp-describe-thing-at-point)
-    ("fd" lsp-find-declaration)
-    ("fD" lsp-find-definition)
-    ("fi" lsp-find-implementation)
-    ("fr" lsp-find-references)
-    ("ft" lsp-find-type-definition)
-    ("h" lsp-document-highlight)
-    ("M-r" lsp-rename)
-    ;; CodeLens (Microsoft Language Servers)
-    ("lm" lsp-lens-mode)
-    ("ls" lsp-lens-show)
-    ("lh" lsp-lens-hide)
-    ;; Other
-    ("FB" lsp-format-buffer)
-    ("FR" lsp-format-region)
-    ("X" lsp-execute-code-action)
-    ("O" lsp-organize-imports)
-    ("M-s" lsp-describe-session)
-    ("q" nil "quit")))
-
-;; front-end for interacting with debug servers
-(use-package dap-mode
-  :pin "MELPA"
-  :commands dap-mode
-  :after lsp-mode
-  :bind (:map dap-mode-map
-         ("C-c s-d b" . my-hydra/dap/body))
-  :init
-  (require 'dap-hydra)
-  (require 'dap-ui)
-  :config
-  (dap-mode 1)
-  (dap-ui-mode 1)
-  (defhydra my-hydra/dap (:color teal :columns 4)
-    "Debug Adapter Protocol"
-    ;; session management
-    ("dd" dap-debug "debug")
-    ("dl" dap-debug-last "debug-last")
-    ("dr" dap-debug-recent "debug-recent")
-    ("A" dap-delete-all-sessions "del-all-sessions")
-    ;; windows
-    ("wo" dap-go-to-output-buffer "output-buf")
-    ("wb" dap-ui-breakpoints "breakpoints")
-    ("wl" dap-ui-locals "locals")
-    ("ws" dap-ui-sessions "sessions")
-    ;; repl
-    ("'" dap-ui-repl "repl")
-    ;; dap-mode operations
-    ("." dap-hydra "dap-hydra")
-    ("q" nil "quit")))
+;; configure tooling for Language Server Protocol and Debug Adaptor Protocol
+(require 'init-lang-lsp)
 
 ;; CSV
 (when (member "csv" init-lang-enable-list)
@@ -234,8 +129,7 @@ Other   _FB_  : format buffer    _FR_  : format region    _X_   : execute action
 (when (member "clojure" init-lang-enable-list)
   (require 'init-lang-clojure))
 
-;; Emacs Speaks Statistics
-;; has built-in flymake support (requires R lintr be installed)
+;; Emacs Speaks Statistics, has Flymake support for R lintr if installed
 (when (or (member "julia" init-lang-enable-list)
           (member "r" init-lang-enable-list))
   (use-package ess

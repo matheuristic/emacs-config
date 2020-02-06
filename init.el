@@ -62,7 +62,7 @@
       :init (if (memq window-system '(mac ns))
                 (exec-path-from-shell-initialize))))
 
-; ;; visit large files without loading it entirely
+;; visit large files without loading it entirely
 (use-package vlf
   :config (require 'vlf-setup))
 

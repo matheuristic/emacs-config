@@ -163,7 +163,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
 ;; increase selected region by semantic units
 (use-package expand-region
   :commands er/expand-region
-  :bind ("C-=" . er/expand/region))
+  :bind ("C-=" . er/expand-region))
 
 ;; manage window configs, default prefix binding is "C-c C-w"
 (use-package eyebrowse

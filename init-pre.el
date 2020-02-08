@@ -19,10 +19,10 @@
 ;; (setq init-lang-enable-list '("csv" "docker" "json" "markdown" "yaml"))
 
 ;; font list by priority, used in lisp/init-ui-font.el
-;; (setq init-ui-font-default-list '("IBM Plex Mono"
-;;                                   "Consolas"
-;;                                   "Menlo"
-;;                                   "DejaVu Sans Mono")
+;; (setq init-ui-font-fixed-pitch-list '("IBM Plex Mono"
+;;                                       "Consolas"
+;;                                       "Menlo"
+;;                                       "DejaVu Sans Mono")
 ;;       init-ui-font-variable-pitch-list '("IBM Plex Serif"
 ;;                                          "Alegreya"
 ;;                                          "Constantia"

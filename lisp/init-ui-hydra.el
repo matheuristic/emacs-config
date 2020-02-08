@@ -178,7 +178,7 @@
     ("l" list-registers "list")
     ("v" view-register "view")
     ("q" nil "quit"))
-  ;; front-end for using ripgrep (faster grep)
+  ;; ripgrep front-end
   (if (executable-find "rg")
     (use-package deadgrep
       :defer t
@@ -248,16 +248,16 @@
     ("d" delete-window "delete")
     ("D" kill-buffer-and-window "delete-buf")
     ("q" nil "quit" :exit t))
-  (global-set-key (kbd "C-c s-b m") 'my-hydra/bookmarks/body)
-  (global-set-key (kbd "C-c s-b f") 'my-hydra/buffer/body)
-  (global-set-key (kbd "C-c s-f") 'my-hydra/frame/body)
-  (global-set-key (kbd "C-c s-h h") 'my-hydra/help/body)
-  (global-set-key (kbd "C-c s-d k") 'my-hydra/desktop/body)
-  (global-set-key (kbd "C-c s-s") 'my-hydra/search/body)
-  (global-set-key (kbd "C-c s-n") 'my-hydra/navigation/body)
-  (global-set-key (kbd "C-c s-r r") 'my-hydra/registers/body)
-  (global-set-key (kbd "C-c s-v i") 'my-hydra/visual/body)
-  (global-set-key (kbd "C-c s-w w") 'my-hydra/window/body))
+  (global-set-key (kbd "C-c C-M-b m") 'my-hydra/bookmarks/body)
+  (global-set-key (kbd "C-c C-M-b f") 'my-hydra/buffer/body)
+  (global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
+  (global-set-key (kbd "C-c C-M-h h") 'my-hydra/help/body)
+  (global-set-key (kbd "C-c C-M-d k") 'my-hydra/desktop/body)
+  (global-set-key (kbd "C-c C-M-s") 'my-hydra/search/body)
+  (global-set-key (kbd "C-c C-M-n") 'my-hydra/navigation/body)
+  (global-set-key (kbd "C-c C-M-r r") 'my-hydra/registers/body)
+  (global-set-key (kbd "C-c C-M-v i") 'my-hydra/visual/body)
+  (global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body))
 
 (provide 'init-ui-hydra)
 

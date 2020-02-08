@@ -32,7 +32,7 @@
   (use-package csv-mode
     :commands csv-mode
     :bind (:map csv-mode-map
-           ("C-c s-m" . my-hydra/csv-mode/body))
+           ("C-c C-M-m" . my-hydra/csv-mode/body))
     :config (defhydra my-hydra/csv-mode (:color teal :columns 4)
               "CSV mode"
               ("s" csv-sort-fields "sort")
@@ -90,7 +90,7 @@
   ;; BibTeX reference manager
   (use-package ebib
     :commands ebib
-    :bind ("C-c s-b e" . ebib)
+    :bind ("C-c C-M-b e" . ebib)
     :config
     (with-eval-after-load 'org
       (require 'org-ebib)
@@ -123,7 +123,7 @@
                          path)
                (format "\\cite{%s}" path))))))
       (org-link-set-parameters "ebib" :export 'my-org-ebib-export)
-      (bind-key "C-c s-b i" 'ebib-insert-citation org-mode-map))))
+      (bind-key "C-c C-M-b i" 'ebib-insert-citation org-mode-map))))
 
 ;; Clojure
 (when (member "clojure" init-lang-enable-list)
@@ -138,7 +138,7 @@
            ("\\.jl$" . julia-mode))
     :commands (R-mode julia-mode ess-switch-to-ESS)
     :bind (:map ess-mode-map
-           ("C-c s-m" . my-hydra/ess/body))
+           ("C-c C-M-m" . my-hydra/ess/body))
     :init (setq ess-eval-visibly 'nowait
                 ess-default-style 'RStudio)
     :config
@@ -196,11 +196,11 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
            ("\\.markdown\\'" . markdown-mode)
            ("\\.Rmd\\'" . markdown-mode)) ; R markdown
     :bind (:map markdown-mode-map
-           ("C-c s-m" . my-hydra/markdown-mode/body)
+           ("C-c C-M-m" . my-hydra/markdown-mode/body)
            :map gfm-mode-map
-           ("C-c s-m" . my-hydra/markdown-mode/body))
+           ("C-c C-M-m" . my-hydra/markdown-mode/body))
     :config
-    ;; Markdown table of contents
+    ;; table of contents
     (use-package markdown-toc
       :pin "MELPA")
     ;; Github-flavored Markdown/Org preview using grip

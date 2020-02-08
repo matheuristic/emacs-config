@@ -12,10 +12,10 @@
   "Font settings."
   :group 'convenience)
 
-(defcustom init-ui-font-default-list '("Consolas"
-                                       "Menlo"
-                                       "DejaVu Sans Mono")
-  "List of fonts, by priority, to use for the default and fixed pitch face."
+(defcustom init-ui-font-fixed-pitch-list '("Consolas"
+                                           "Menlo"
+                                           "DejaVu Sans Mono")
+  "List of fonts, by priority, to use for the fixed pitch face."
   :type '(repeat string)
   :group 'init-ui-font-el)
 
@@ -26,7 +26,13 @@
   :type '(repeat string)
   :group 'init-ui-font-el)
 
-;; GUI fonts
+(defcustom init-ui-font-default 'fixed-pitch
+  "Whether to use the fixed or variable pitch face to use as the default"
+  :type '(choice (const :tag "Fixed pitch" fixed-pitch)
+                 (const :tag "Variable pitch" variable-pitch))
+  :group 'init-ui-font-el)
+
+;; font settings only have effect in graphical Emacs
 (when (display-graphic-p)
   ;; helper functions
   (require 'cl-extra)
@@ -43,21 +49,24 @@
                         :weight (or weight 'normal)
                         :width (or width 'normal)))
 
-  ;; default and fixed pitch font
-  (let* ((my-font-priority-list init-ui-font-default-list)
+  ;; set fixed pitch font
+  (let* ((my-font-priority-list init-ui-font-fixed-pitch-list)
          (my-font (cl-some #'my-font-exists my-font-priority-list))
          (is-darwin (eq system-type 'darwin)))
     (when my-font
-      (my-set-font 'default my-font (if is-darwin 150 110) nil nil)
+      (when (eq 'fixed-pitch init-ui-font-default)
+        (my-set-font 'default my-font (if is-darwin 150 110) nil nil))
       (my-set-font 'fixed-pitch my-font (if is-darwin 150 110) nil nil)
       (my-set-font 'mode-line my-font (if is-darwin 120 90) nil nil)
       (my-set-font 'mode-line-inactive my-font (if is-darwin 120 90) nil nil)))
 
-  ;; variable pitch font
+  ;; set variable pitch font
   (let* ((my-font-priority-list init-ui-font-variable-pitch-list)
          (my-font (cl-some #'my-font-exists my-font-priority-list))
          (is-darwin (eq system-type 'darwin)))
     (when my-font
+      (when (eq 'variable-pitch init-ui-font-default)
+        (my-set-font 'default my-font (if is-darwin 150 110) nil nil))
       (my-set-font 'variable-pitch my-font (if is-darwin 150 110) nil nil)))
 
   ;; enable ligatures, only works on Emacs Mac Port by Mitsuharu

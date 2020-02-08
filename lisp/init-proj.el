@@ -15,8 +15,8 @@
 (use-package projectile
   :delight projectile-mode '(:eval (concat " [" (projectile-project-name) "]"))
   :bind (:map projectile-mode-map
-         ("C-c s-p" . projectile-command-map) ;; prefix binding for projectile cmds
-         ("C-c s-P" . my-hydra/projectile/body))
+         ("C-c C-M-p" . projectile-command-map) ;; prefix binding for projectile cmds
+         ("C-c C-M-P" . my-hydra/projectile/body))
   :init
   (setq projectile-create-missing-test-files t ;; create test files if none is found when toggling btw implementation and test
         projectile-switch-project-action 'projectile-commander

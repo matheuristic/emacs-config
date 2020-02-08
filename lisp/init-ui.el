@@ -103,7 +103,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (use-package artist
   :ensure nil ;; built-in
   :defer t
-  :bind (("C-c s-a" . artist-mode)
+  :bind (("C-c C-M-a" . artist-mode)
          :map artist-mode-map
          ;; "super-click" for the drawing menu (trackpad workaround)
          (([s-mouse-1] . artist-mouse-choose-operation))))
@@ -150,7 +150,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
     ("L" ediff-windows-linewise)
     ("W" ediff-windows-wordwise)
     ("q" nil "quit" :exit t))
-  (global-set-key (kbd "C-c s-e d") 'my-hydra/ediff/body))
+  (global-set-key (kbd "C-c C-M-e d") 'my-hydra/ediff/body))
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
@@ -171,9 +171,9 @@ Windows  _L_ : line-wise   _W_ : word-wise
   :delight eyebrowse-mode
   :commands eyebrowse-mode
   :init
-  (setq eyebrowse-keymap-prefix (kbd "C-c s-w e") ;; change prefix binding to "C-c s-w e"
+  (setq eyebrowse-keymap-prefix (kbd "C-c C-M-w e") ;; change prefix binding to "C-c C-M-w e"
         eyebrowse-new-workspace t)
-  (my-lazy-key-seq global-map (kbd "C-c s-w e") (lambda () (require 'eyebrowse)))
+  (my-lazy-key-seq global-map (kbd "C-c C-M-w e") (lambda () (require 'eyebrowse)))
   :config (eyebrowse-mode t))
 
 ;; highlight line
@@ -192,7 +192,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
                                      (car (car ibuffer-saved-filter-groups)))))))
   :bind (("C-x C-b" . ibuffer)
          :map ibuffer-mode-map
-         ("C-c s-m" . my-hydra/ibuffer/body))
+         ("C-c C-M-m" . my-hydra/ibuffer/body))
   :config
   (setq ibuffer-expert t ;; skip extraneous confirm messages
         ibuffer-show-empty-filter-groups nil)
@@ -292,7 +292,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
 ;; completion framework
 (use-package icomplete
   :ensure nil ;; built-in
-  :bind (("C-c s-y y" . my-yank-from-kill-ring)
+  :bind (("C-c C-M-y y" . my-yank-from-kill-ring)
          :map icomplete-minibuffer-map
          ;; C-s and C-r cycles through completion candidates like isearch
          ("C-s" . icomplete-forward-completions)
@@ -312,12 +312,12 @@ Windows  _L_ : line-wise   _W_ : word-wise
 (use-package imenu-anywhere
   :pin "MELPA"
   :defer t
-  :bind ("C-c s-i m" . imenu-anywhere))
+  :bind ("C-c C-M-i m" . imenu-anywhere))
 
 ;; multiple cursors
 (use-package multiple-cursors
   :commands my-hydra/multiple-cursors/body
-  :bind ("C-c s-c" . my-hydra/multiple-cursors/body)
+  :bind ("C-c C-M-c" . my-hydra/multiple-cursors/body)
   :init (setq mc/always-run-for-all nil
               mc/always-repeat-command nil
               mc/insert-numbers-default 1)
@@ -432,7 +432,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 (use-package recentf
   :ensure nil ;; built-in
   :commands recentf-open-files
-  :bind ("C-c s-r f" . recentf-open-files)
+  :bind ("C-c C-M-r f" . recentf-open-files)
   :init (setq recentf-max-menu-items 10
               recentf-max-saved-items 50)
   :config (recentf-mode t))
@@ -447,7 +447,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 (use-package which-key
   :pin "MELPA"
   :delight which-key-mode
-  :bind ("C-c s-w k" . which-key-show-top-level)
+  :bind ("C-c C-M-w k" . which-key-show-top-level)
   :init
   (setq which-key-allow-multiple-replacements t
         which-key-compute-remaps t
@@ -462,7 +462,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 (use-package whitespace
   :ensure nil ;; built-in
   :commands my-hydra/whitespace/body
-  :bind ("C-c s-w s" . my-hydra/whitespace/body)
+  :bind ("C-c C-M-w s" . my-hydra/whitespace/body)
   :config (defhydra my-hydra/whitespace (:color teal :columns 3)
             "Whitespace"
             ("w" whitespace-mode "show-whitespace" :exit nil)
@@ -471,7 +471,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
             ("r" whitespace-report "report")
             ("q" nil "quit")))
 
-;; traverse window config changes, use C-c <left> to undo / C-c <right> to redo
+;; traverse window config changes, use C-c left/right to undo/redo
 (use-package winner
   :ensure nil ;; built-in
   :hook (after-init . winner-mode))
@@ -481,7 +481,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   :defer 1
   :delight yas-minor-mode
   :bind (:map yas-minor-mode-map
-         ("C-c s-y s" . my-hydra/yasnippet/body))
+         ("C-c C-M-y s" . my-hydra/yasnippet/body))
   :config
   (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
@@ -502,9 +502,9 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   (unbind-key "\C-c" yas-minor-mode-map)
   (yas-global-mode 1))
 
-(require 'init-ui-color)
 (require 'init-ui-font)
 (require 'init-ui-modeline)
+(require 'init-ui-color)
 
 (provide 'init-ui)
 

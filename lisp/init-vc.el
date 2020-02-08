@@ -20,7 +20,7 @@
                          (when (re-search-forward "^<<<<<<< " nil t)
                            (smerge-mode 1)))))
   :bind (:map smerge-mode-map
-         ("C-c s-m" . my-hydra/smerge/body))
+         ("C-c C-M-m" . my-hydra/smerge/body))
   :config (defhydra my-hydra/smerge (:color pink :hint nil :post (smerge-auto-leave))
             "
 Smerge
@@ -57,14 +57,14 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
   ;; Git porcelain
   (use-package magit
     :commands magit-status
-    :bind ("C-c s-g s" . magit-status)
+    :bind ("C-c C-M-g s" . magit-status)
     :config
     (setq auto-revert-check-vc-info t))
 
   ;; Browse historic versions of Git-controlled files
   (use-package git-timemachine
     :commands git-timemachine
-    :bind ("C-c s-g t" . git-timemachine)))
+    :bind ("C-c C-M-g t" . git-timemachine)))
 
 (provide 'init-vc)
 

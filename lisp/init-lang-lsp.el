@@ -14,7 +14,7 @@
   :defer t
   :hook (prog-mode . (lambda () (require 'lsp-mode)))
   :bind (:map lsp-mode-map
-         ("C-c s-l" . my-hydra/lsp/body))
+         ("C-c C-M-l" . my-hydra/lsp/body))
   :config
   (setq lsp-print-io nil ;; disable logging of packets between emacs and the LS
         lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
@@ -125,7 +125,7 @@
   :commands dap-mode
   :after lsp-mode
   :bind (:map dap-mode-map
-         ("C-c s-d b" . my-hydra/dap/body))
+         ("C-c C-M-d b" . my-hydra/dap/body))
   :init
   (require 'dap-hydra)
   (require 'dap-ui)

@@ -14,7 +14,7 @@
 (use-package flymake 
   :ensure nil ;; built-in
   :bind (:map flymake-mode-map
-         ("C-c s-e e" . my-hydra/flymake/body))
+         ("C-c C-M-e e" . my-hydra/flymake/body))
   :hook (emacs-lisp-mode . flymake-mode)
   :config
   (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake) 

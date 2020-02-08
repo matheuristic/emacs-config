@@ -49,7 +49,7 @@
         ("d" conda-env-deactivate "deactivate")
         ("l" conda-env-list "list")
         ("q" nil "quit"))
-      (global-set-key (kbd "C-c s-v e") 'my-hydra/conda/body))
+      (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body))
   (use-package virtualenvwrapper
     :pin "MELPA"
     :config
@@ -75,7 +75,7 @@
       ("g" venv-cdvirtualenv "cd")
       ("c" venv-cpvirtualenv "cp")
       ("q" nil "quit"))
-    (global-set-key (kbd "C-c s-v e") 'my-hydra/virtualenv/body)))
+    (global-set-key (kbd "C-c C-M-v e") 'my-hydra/virtualenv/body)))
 
 (provide 'init-lang-python)
 

@@ -54,11 +54,11 @@
 ;; automatically escape the Org markup on return
 (use-package org
   :hook (org-mode . visual-line-mode)
-  :bind (("C-c s-o" . my-hydra/org-global/body)
+  :bind (("C-c C-M-o" . my-hydra/org-global/body)
          :map org-agenda-mode-map
-         ("C-c s-m" . my-hydra/org-agenda/body)
+         ("C-c C-M-m" . my-hydra/org-agenda/body)
          :map org-mode-map
-         ("C-c s-m" . my-hydra/org-mode/body))
+         ("C-c C-M-m" . my-hydra/org-mode/body))
   :init (defhydra my-hydra/org-global (:color teal)
           "Org"
           ("a" org-agenda "agenda")
@@ -221,31 +221,35 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     ("q" my-hydra/org-mode/body "←"))
   ;; use variable pitch font for Org-mode in graphical Emacs
   (when (display-graphic-p)
-    (with-eval-after-load 'init-ui-font
-      (require 'org-mouse) ;; Org-mode mouse support
-      (add-hook 'org-mode-hook #'variable-pitch-mode) ;; enable var-pitch font
-      (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1)))
-      (set-face-attribute 'org-block nil :inherit 'fixed-pitch :background "#FFFFE0")
-      (set-face-attribute 'org-block-begin-line nil :inherit 'fixed-pitch :foreground "#555555" :background "#E2E1D5")
-      (set-face-attribute 'org-block-end-line nil :inherit 'fixed-pitch :foreground "#555555" :background "#E2E1D5")
-      (set-face-attribute 'org-date nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-document-info nil :height 1.2 :slant 'italic)
-      (set-face-attribute 'org-done nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-code nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-document-info-keyword nil :inherit '(shadow fixed-pitch))
-      (set-face-attribute 'org-document-title nil :height 1.5)
-      (set-face-attribute 'org-latex-and-related nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-link nil :foreground "royal blue" :underline t)
-      (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
-      (set-face-attribute 'org-property-value nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
-      (set-face-attribute 'org-table nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-tag nil :inherit '(shadow fixed-pitch) :weight 'bold :height 0.8)
-      (set-face-attribute 'org-todo nil :inherit 'fixed-pitch)
-      (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))
-      ;; properly indent by using fixed-pitch font
-      (require 'org-indent) ;; make sure org-indent face is defined
-      (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch))))
+    (require 'org-mouse) ;; Org-mode mouse support
+    (add-hook 'org-mode-hook #'variable-pitch-mode) ;; enable var-pitch font
+    (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1))))
+  ;; Org-mode face and color modifications
+  (with-eval-after-load 'init-ui-font
+    ;; if using eink theme, modify the face colors
+    (with-eval-after-load 'init-ui-color
+      (when (member 'eink custom-enabled-themes)
+        (set-face-attribute 'org-block nil :inherit 'fixed-pitch :background "#ffffe0")
+        (set-face-attribute 'org-block-begin-line nil :inherit 'fixed-pitch :foreground "#555555" :background "#e2e1d5")
+        (set-face-attribute 'org-block-end-line nil :inherit 'fixed-pitch :foreground "#555555" :background "#e2e1d5")
+        (set-face-attribute 'org-date nil :inherit 'fixed-pitch)
+        (set-face-attribute 'org-document-info nil :height 1.2 :slant 'italic)
+        (set-face-attribute 'org-done nil :inherit 'fixed-pitch)
+        (set-face-attribute 'org-code nil :inherit 'fixed-pitch)
+        (set-face-attribute 'org-document-info-keyword nil :inherit '(shadow fixed-pitch))
+        (set-face-attribute 'org-document-title nil :height 1.5)
+        (set-face-attribute 'org-latex-and-related nil :inherit 'fixed-pitch)
+        (set-face-attribute 'org-link nil :foreground "royal blue" :underline t)
+        (set-face-attribute 'org-meta-line nil :inherit '(font-lock-comment-face fixed-pitch))
+        (set-face-attribute 'org-property-value nil :inherit 'fixed-pitch)
+        (set-face-attribute 'org-special-keyword nil :inherit '(font-lock-comment-face fixed-pitch))
+        (set-face-attribute 'org-table nil :inherit 'fixed-pitch)
+        (set-face-attribute 'org-tag nil :inherit '(shadow fixed-pitch) :weight 'bold :height 0.8)
+        (set-face-attribute 'org-todo nil :inherit 'fixed-pitch)
+        (set-face-attribute 'org-verbatim nil :inherit '(shadow fixed-pitch))))
+    ;; properly indent by using fixed-pitch font
+    (require 'org-indent) ;; make sure org-indent face is defined
+    (set-face-attribute 'org-indent nil :inherit '(org-hide fixed-pitch)))
   ;; maximize org-capture buffer
   (defun my-org-capture-setup (&rest args)
     "Save window configuration prior to `org-capture'."

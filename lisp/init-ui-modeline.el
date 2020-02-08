@@ -9,18 +9,7 @@
 ;;; Code:
 
 (when (display-graphic-p)
-  ;; ;; fancy mode-line display elements using tabs and ribbons
-  ;; (use-package moody
-  ;;   :config
-  ;;   (setq x-underline-at-descent-line t) ;; needed for proper drawing when using official Emacs for OSX
-  ;;   (moody-replace-mode-line-buffer-identification)
-  ;;   (moody-replace-vc-mode)
-  ;;   ;; modify slant fun to fix colors when using official Emacs for Mac OS X
-  ;;   (if (and (eq system-type 'darwin)
-  ;;            (eq window-system 'ns))
-  ;;       (setq moody-slant-function 'moody-slant-apple-rgb)))
-
-  ;; show full path in the tooltip for mode-line buffer name
+  ;; show full path in mode-line buffer name tooltip
   (setq-default mode-line-buffer-identification
                 (list (propertize
                        "%12b"
@@ -35,7 +24,7 @@
                        'mouse-face 'mode-line-highlight
                        'local-map mode-line-buffer-identification-keymap)))
 
-  ;; hide minor-modes behind a menu, accessible via a right-click or `minions-minor-mode-menu'
+  ;; hide minor-modes in mode-line menu, which is also accessible via `minions-minor-mode-menu'
   (use-package minions
     :init (minions-mode 1)
     :config (setq minions-direct '(overwrite-mode view-mode) ;; modes in minions-direct are always shown

@@ -13,7 +13,7 @@
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
 
-;; kill eshell and term buffers when their sessions end
+;; kill eshell and term buffers on session end
 (defun my-term-handle-exit--term-kill-buffer-on-exit (&rest args)
   "Kill eshell or term buffer on session exit."
   (kill-buffer))
@@ -23,7 +23,7 @@
 (use-package eshell
   :ensure nil ;; built-in
   :commands (eshell eshell-command)
-  :bind ("C-c s-e s" . my-eshell-with-name)
+  :bind ("C-c C-M-e s" . my-eshell-with-name)
   :init
   (setq eshell-review-quick-commands nil
         eshell-smart-space-goes-to-end t
@@ -60,9 +60,9 @@
   :ensure nil ;; built-in
   :commands (ansi-term term)
   :bind (:map term-mode-map
-         ("C-c s-m" . my-hydra/term/body)
+         ("C-c C-M-m" . my-hydra/term/body)
          :map term-raw-map
-         ("C-c s-m" . my-hydra/term/body))
+         ("C-c C-M-m" . my-hydra/term/body))
   :config (defhydra my-hydra/term (:color teal :columns 4)
             "Term"
             ("m" (lambda () (interactive)

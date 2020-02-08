@@ -22,7 +22,7 @@
 (use-package cider
   :after clojure-mode
   :bind (:map clojure-mode-map
-         ("C-c s-m" . my-hydra/cider/body))
+         ("C-c C-M-m" . my-hydra/cider/body))
   :hook ((cider-mode . eldoc-mode)
          (cider-repl-mode . eldoc-mode)
          (cider-repl-mode . paredit-mode)

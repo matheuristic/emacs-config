@@ -13,7 +13,7 @@
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
 
-;; kill eshell and term buffers on session end
+;; kill shell buffers on session end
 (defun my-term-handle-exit--term-kill-buffer-on-exit (&rest args)
   "Kill eshell or term buffer on session exit."
   (kill-buffer))
@@ -25,7 +25,8 @@
   :commands (eshell eshell-command)
   :bind ("C-c C-M-e s" . my-eshell-with-name)
   :init
-  (setq eshell-review-quick-commands nil
+  (setq eshell-history-size 1024
+        eshell-review-quick-commands nil
         eshell-smart-space-goes-to-end t
         eshell-where-to-jump 'begin)
   ;; adapted from https://arte.ebrahimi.org/blog/named-eshell-buffers
@@ -53,7 +54,17 @@
   (dolist (subcmd '(("git" "log" "diff" "show")
                     ("sudo" "vi" "vim")
                     ("vagrant" "ssh")))
-    (add-to-list 'eshell-visual-subcommands subcmd)))
+    (add-to-list 'eshell-visual-subcommands subcmd))
+  ;; history autosuggestions
+  ;; <right> or C-f completes fully, <M-right> or M-f completes partially
+  (use-package esh-autosuggest
+    :after eshell
+    :hook (eshell-mode . esh-autosuggest-mode))
+  ;; extend pcomplete with fish shell
+  (when (executable-find "fish")
+    (use-package fish-completion
+      :after eshell
+      :hook (eshell-mode . fish-completion-mode))))
 
 ;; term
 (use-package term

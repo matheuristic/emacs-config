@@ -22,7 +22,7 @@
         lsp-eldoc-prefer-signature-help nil ;; prefer displaying signature help to hover
         lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
         lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
-        lsp-prefer-flymake t ;; prefer flymake for syntax checking
+        lsp-diagnostic-package :flymake ;; use Flymake for syntax checking
         lsp-signature-auto-activate nil) ;; don't automatically show signature, use C-S-SPC to peek; see https://github.com/emacs-lsp/lsp-mode/issues/1223
   ;; user interface modules for lsp-mode
   (use-package lsp-ui

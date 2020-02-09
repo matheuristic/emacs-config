@@ -21,6 +21,17 @@
 
 ;;; Code:
 
+;; optimizations for reducing startup time (reverted at the end of file)
+;; * set file-name-handler-alist to nil as it is scanned when files are loaded
+(defvar tmp-file-name-handler-alist file-name-handler-alist) ;; save to tmp var
+(setq file-name-handler-alist nil)
+
+;; performance optimizations
+;; * increase garbage collection thresholds
+;; * increase max bytes read from a sub-process in a single op (Emacs 27+)
+(setq gc-cons-threshold (* 100 1000 1000) ;; in bytes, default is 800k
+      read-process-output-max (* 1024 1024)) ;; in bytes, default is 4096 bytes
+
 ;; load local pre-initialization file ~/.emacs.d/init-pre.el
 (let ((local-f (expand-file-name "init-pre.el" user-emacs-directory)))
   (if (file-exists-p local-f) (load-file local-f)))
@@ -30,14 +41,6 @@
 (when (or (not (boundp 'custom-file))
           (not custom-file))
   (setq custom-file (expand-file-name "custom.el" user-emacs-directory)))
-
-;; optimizations for reducing startup time (reverted at the end of file)
-;; * increase garbage collection thresholds
-;; * set file-name-handler-alist to nil as it is scanned when files are loaded
-(defvar tmp-file-name-handler-alist file-name-handler-alist) ;; save to tmp var
-(setq gc-cons-threshold (* 50 1000 1000) ;; in bytes, default is 800k
-      gc-cons-percentage 0.6
-      file-name-handler-alist nil)
 
 ;; user packages in ~/.emacs.d/lisp
 (defvar lisp-dir (expand-file-name "lisp" user-emacs-directory))
@@ -75,18 +78,16 @@
 (require 'init-org)
 (require 'init-lang)
 
-;; revert earlier optimizations for reducing startup time
-(setq gc-cons-threshold (* 2 1000 1000)
-      gc-cons-percentage 0.1
-      file-name-handler-alist tmp-file-name-handler-alist)
-(makunbound 'tmp-file-name-handler-alist) ;; unbind tmp var
-
 ;; load local post-initialization file ~/.emacs.d/init-post.el
 (let ((local-f (expand-file-name "init-post.el" user-emacs-directory)))
   (if (file-exists-p local-f) (load-file local-f)))
 
 ;; load Customize settings
 (load custom-file 'noerror)
+
+;; revert earlier optimizations for reducing startup time
+(setq file-name-handler-alist tmp-file-name-handler-alist)
+(makunbound 'tmp-file-name-handler-alist) ;; unbind tmp var
 
 (provide 'init)
 ;;; init.el ends here

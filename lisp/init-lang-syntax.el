@@ -17,6 +17,8 @@
          ("C-c C-M-e e" . my-hydra/flymake/body))
   :hook (emacs-lisp-mode . flymake-mode)
   :config
+  (setq flymake-no-changes-timeout 0.5 ;; auto-check buffer change wait time
+        flymake-start-on-save-buffer nil) ;; don't do check on save
   (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake) 
   (use-package flymake-quickdef) ;; macro for quick Flymake backend defns
   (use-package flymake-diagnostic-at-point
@@ -47,6 +49,7 @@
     ("p" flymake-goto-prev-error "previous")
     ("n" flymake-goto-next-error "next")
     ("l" my-toggle-flymake-diagnostics "list")
+    ("s" flymake-start "start-check")
     ("q" nil "quit" :exit t))
   (with-eval-after-load 'minions
     (add-to-list 'minions-direct 'flymake-mode)))

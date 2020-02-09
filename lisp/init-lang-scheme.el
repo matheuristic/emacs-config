@@ -8,15 +8,11 @@
 
 ;;; Code:
 
-;; uncomment to use chez by default in geiser
+;; uncomment to use Chez Scheme by default in geiser
 ;; (defvar geiser-active-implementations '(chez))
 
 ;; enable paredit-mode when editing Scheme
 (add-hook 'scheme-mode-hook #'paredit-mode)
-
-;; color delimiters when editing Scheme
-(with-eval-after-load 'rainbow-delimiters
-  (add-hook 'scheme-mode-hook #'rainbow-delimiters-mode))
 
 ;; Scheme interactive development environment for Emacs
 (use-package geiser

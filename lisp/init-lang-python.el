@@ -9,7 +9,6 @@
 ;;; Code:
 
 (require 'init-ui-hydra)
-(require 'init-lang-lsp)
 
 ;; enable evaluation of Python in Org-mode code blocks
 (use-package ob-python
@@ -22,7 +21,7 @@
   :after lsp-mode
   :hook (python-mode . (lambda ()
                          (require 'lsp-python-ms) ;; load package if deferred
-                         (lsp-deferred)))
+                         (lsp)))
   :config (with-eval-after-load 'dap-mode
             (require 'dap-python)))
 

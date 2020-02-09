@@ -14,10 +14,6 @@
 ;; use paredit-mode when editing lisp
 (add-hook 'lisp-mode-hook #'paredit-mode)
 
-;; color delimiters when editing lisp
-(with-eval-after-load 'rainbow-delimiters
-  (add-hook 'lisp-mode-hook #'rainbow-delimiters-mode))
-
 ;; company-mode completion backend for SLIME
 (use-package slime-company
   :defer t

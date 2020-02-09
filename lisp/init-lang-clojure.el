@@ -15,7 +15,6 @@
 (use-package clojure-mode
   :defer t
   :hook ((clojure-mode . paredit-mode)
-         (clojure-mode . rainbow-delimiters-mode)
          (clojure-mode . subword-mode)))
 
 ;; IDE
@@ -25,8 +24,7 @@
          ("C-c C-M-m" . my-hydra/cider/body))
   :hook ((cider-mode . eldoc-mode)
          (cider-repl-mode . eldoc-mode)
-         (cider-repl-mode . paredit-mode)
-         (cider-repl-mode . rainbow-delimiters-mode))
+         (cider-repl-mode . paredit-mode))
   :config
   (setq nrepl-log-messages t)
   ;; hydras, adapted from https://github.com/clojure-emacs/cider-hydra

@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up user interface
+;; Set up user interface and entry points to other user interface config files
 
 ;;; Code:
 
@@ -167,7 +167,6 @@ Windows  _L_ : line-wise   _W_ : word-wise
 
 ;; manage window configs, default prefix binding is "C-c C-w"
 (use-package eyebrowse
-  :defer t
   :delight eyebrowse-mode
   :commands eyebrowse-mode
   :init
@@ -393,7 +392,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 
 ;; paredit
 (use-package paredit
-  :defer
+  :commands paredit-mode
   :hook ((emacs-lisp-mode . paredit-mode)
          (eval-expression-minibuffer-setup . paredit-mode) ;; when in minibuffer via `eval-expression`
          (lisp-interaction-mode . paredit-mode)) ;; *scratch*
@@ -407,10 +406,6 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
     :commands proced
     :bind ("C-x p" . proced)
     :init (setq proced-format 'medium)))
-
-;; rainbow delimiters
-(use-package rainbow-delimiters
-    :defer t)
 
 ;; buffer-local `auto-save-visited-mode'
 ;; example usage: if some directory (e.g. where files in `org-agenda-files' are

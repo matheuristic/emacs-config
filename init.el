@@ -5,15 +5,15 @@
 
 ;;; Commentary:
 
-;; Emacs configuration file.
-;; Symlink or copy this file to ~/.emacs or ~/.emacs.d/init.el
+;; Emacs configuration file
+;; Symlink or copy to ~/.emacs or ~/.emacs.d/init.el
 
-;; Startup times can be measured using in Linux using
+;; Startup times can be measured in Linux using
 ;; $ emacs -q --eval='(message "%s" (emacs-init-time))'
 ;; or in Mac OS X using
 ;; $ open -n /Applications/Emacs.app --args -q --eval='(message "%s" (emacs-init-time))'
 
-;; Startup time can be optimized using the following steps:
+;; Optimizing startup times
 ;; 1. profile using the `esup' package ("M-x esup")
 ;; 2. defer loading of packages when possible, e.g. use-package's `:defer N'
 ;;    with N=1 (sec) for important packages and N=2 for less important ones

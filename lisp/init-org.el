@@ -270,6 +270,45 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
   :hook (org-mode . org-bullets-mode)
   :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
 
+;; take url from clipboard and insert url link with title of page
+(use-package org-cliplink
+  :after org
+  :bind (:map org-mode-map
+         ("C-c C-S-l" . org-cliplink)))
+
+(when (display-graphic-p)
+  (use-package org-download
+    :after org
+    :config
+    (if (memq window-system '(mac ns))
+        (setq org-download-screenshot-method "screencapture -i %s"))
+    ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
+    ;; make drag-and-drop image save in the same name folder as org file
+    ;; with the timestamp in the saved filename
+    ;; example: for `abc.org', test.png saves to `abc/test-20180522.png'
+    (defun my-org-download-method (link)
+      (let* ((original-filename
+              (file-name-nondirectory
+               (car (url-path-and-query
+                     (url-generic-parse-url link)))))
+             (filename (format "%s-%s.%s"
+                               (file-name-sans-extension original-filename)
+                               (format-time-string org-download-timestamp)
+                               (file-name-extension original-filename)))
+             (dirname (file-name-sans-extension (buffer-name))))
+        ;; if directory not exist, create it
+        (unless (file-exists-p dirname)
+          (make-directory dirname))
+        ;; return the path to save the download files
+        (expand-file-name filename dirname)))
+    (setq org-download-method 'my-org-download-method
+          org-download-timestamp "%Y%m%d%H%M%S")
+    (defhydra+ my-hydra/org-mode ()
+      ("d" my-hydra/org-mode/download/body "→ download" :exit t))
+    (defhydra my-hydra/org-mode/download (:color teal)
+      ("s" org-download-screenshot "screenshot")
+      ("y" org-download-yank "yank"))))
+
 ;; Gantt charts via LaTeX
 ;;
 ;; assumes org-gantt package is installed. To install, git clone the repository

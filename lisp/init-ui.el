@@ -301,7 +301,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
          ("RET" . icomplete-force-complete-and-exit)
          ("M-j" . exit-minibuffer))
   :init (icomplete-mode)
-  :config (setq icomplete-compute-delay 0
+  :config (setq icomplete-compute-delay .5
                 icomplete-hide-common-prefix nil
                 icomplete-prospects-height 2
                 icomplete-show-matches-on-no-input t

@@ -39,7 +39,7 @@
 
   (defun my-font-exists (font-name)
     "Returns FONT-NAME if given font exists on the system and `nil` otherwise"
-    (if (x-list-fonts font-name) font-name))
+    (if (member font-name (font-family-list)) font-name))
 
   (defun my-set-font (face family &optional height weight width)
     "Set font for FACE to FAMILY at the given HEIGHT, WEIGHT and WIDTH"

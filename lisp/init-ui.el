@@ -42,15 +42,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
     ;; insert the selected entry from the kill ring
     (insert to_insert)))
 
-(defmacro my-lazy-key-seq (mode-map key-seq &rest fun)
-  "When the KEY-SEQ is pressed when MODE-MAP is active, run FUN, unbind KEY-SEQ and simulate KEY-SEQ again."
-  (declare (indent 1))
-  `(define-key ,mode-map ,key-seq (lambda ()
-                                    (interactive)
-                                    (progn (define-key ,mode-map ,key-seq nil)
-                                           ,fun
-                                           (setq unread-command-events (listify-key-sequence ,key-seq))))))
-
 ;; Configure user interface
 
 ;; basic interface settings
@@ -164,16 +155,6 @@ Windows  _L_ : line-wise   _W_ : word-wise
 (use-package expand-region
   :commands er/expand-region
   :bind ("C-=" . er/expand-region))
-
-;; manage window configs, default prefix binding is "C-c C-w"
-(use-package eyebrowse
-  :delight eyebrowse-mode
-  :commands eyebrowse-mode
-  :init
-  (setq eyebrowse-keymap-prefix (kbd "C-c C-M-w e") ;; change prefix binding to "C-c C-M-w e"
-        eyebrowse-new-workspace t)
-  (my-lazy-key-seq global-map (kbd "C-c C-M-w e") (lambda () (require 'eyebrowse)))
-  :config (eyebrowse-mode t))
 
 ;; highlight line
 (use-package hl-line

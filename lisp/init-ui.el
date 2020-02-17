@@ -444,16 +444,16 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
       (narrow-to-defun)))
   (defvar my-which-func-header-keymap
     (let ((map (make-sparse-keymap)))
-      (define-key map [header-line mouse-1] 'beginning-of-defun)
       (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
       (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
-      (define-key map [header-line mouse-3] 'end-of-defun)
+      (define-key map [header-line wheel-up] 'beginning-of-defun)
+      (define-key map [header-line wheel-down] 'end-of-defun)
       map)
     "Keymap to display on header line which-func.")
   (defvar my-which-func-header-keymap-help-text
-    "mouse-1: toggle rest visibility\n\
-mouse-2: toggle rest visibility\n\
-mouse-3: go to end"
+    "mouse-2 : toggle rest visibility\n\
+wheel-u : go to beginning\n\
+wheel-d : go to end"
     "Help text for `my-which-fun-header-keymap'.")
   (setq my-which-func-header-format
         `("[ "

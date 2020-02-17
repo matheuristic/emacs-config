@@ -263,13 +263,13 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
   (advice-add 'org-capture :before 'my-org-capture-setup)
   (add-hook 'org-capture-mode-hook 'delete-other-windows)
   (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown)
-  ;; display the outline path at point
+  ;; display the outline path at point using which-func
   (with-eval-after-load 'which-func
     (add-to-list 'which-func-modes 'org-mode)
     (defun my-org-which-function-string-shortener (str &optional maxlen)
       "Shortens STR if it is longer than MAXLEN chars."
       (let* ((len (length str))
-             (maxlen (or maxlen 30)) ;; default maxlen of 30
+             (maxlen (or maxlen 40)) ;; default maxlen of 40
              (num-left-chars (/ maxlen 2))
              (num-right-chars (- maxlen num-left-chars 3)))
         (if (> len maxlen)
@@ -285,7 +285,38 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
                        (org-get-outline-path t)
                        " > ")
           (error nil))))
-    (add-to-list 'which-func-functions #'my-org-which-function)))
+    (add-to-list 'which-func-functions #'my-org-which-function)
+    ;; Org-specific which-func header
+    (defun my-org-narrow-to-subtree-toggle ()
+      "Toggle org-narrow-to-subtree."
+      (interactive)
+      (if (buffer-narrowed-p)
+          (widen)
+        (org-narrow-to-subtree)))
+    (defvar my-which-func-header-keymap-org
+      (let ((map (make-sparse-keymap)))
+        (define-key map [header-line mouse-1] 'my-org-narrow-to-subtree-toggle)
+        ;; work around mouse-1 mapping to mouse-2 when cursor is on org bullet
+        (define-key map [header-line mouse-2] 'my-org-narrow-to-subtree-toggle)
+        (define-key map [header-line mouse-3] 'outline-up-heading)
+        (define-key map [header-line wheel-up] 'org-backward-heading-same-level)
+        (define-key map [header-line wheel-down] 'org-forward-heading-same-level)
+        map)
+      "Keymap for header line which-func.")
+    (defvar my-which-func-header-keymap-help-text-org
+      "mouse-1 : toggle rest visibility\n\
+mouse-3 : go up one heading\n\
+wheel-u : next same-level heading\n\
+wheel-d : prev same-level heading"
+      "Help text for `my-which-fun-header-keymap-org'.")
+    (defvar my-which-func-header-format-org
+            `(:propertize which-func-current
+                          local-map ,my-which-func-header-keymap-org
+                          face which-func
+                          mouse-face mode-line-highlight
+                          help-echo my-which-func-header-keymap-help-text-org))
+    ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
+    (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
 
 ;; UTF-8 bullets for org-mode
 (use-package org-bullets

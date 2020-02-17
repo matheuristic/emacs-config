@@ -435,39 +435,49 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   (setq which-func-modes '() ;; use `which-func-mode' only for given modes
         which-func-unknown "n/a")
   (which-function-mode)
-  ;; show current function in header instead of the mode line
+  ;; show current function in header instead of in mode line
   (defun my-narrow-to-defun-toggle ()
     "Toggle narrow to defun."
     (interactive)
     (if (buffer-narrowed-p)
         (widen)
       (narrow-to-defun)))
-  (defvar my-which-func-header-keymap
+  (defvar my-which-func-header-keymap-default
     (let ((map (make-sparse-keymap)))
       (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
       (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
       (define-key map [header-line wheel-up] 'beginning-of-defun)
       (define-key map [header-line wheel-down] 'end-of-defun)
       map)
-    "Keymap to display on header line which-func.")
-  (defvar my-which-func-header-keymap-help-text
+    "Keymap for header line which-func.")
+  (defvar my-which-func-header-keymap-help-text-default
     "mouse-2 : toggle rest visibility\n\
 wheel-u : go to beginning\n\
 wheel-d : go to end"
-    "Help text for `my-which-fun-header-keymap'.")
-  (setq my-which-func-header-format
-        `("[ "
-         (:propertize which-func-current
-                      local-map ,my-which-func-header-keymap
-                      face which-func
-                      mouse-face mode-line-highlight
-                      help-echo my-which-func-header-keymap-help-text)
-         " ]"))
-  (setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info)
-        my-which-func-header-line-format '(which-function-mode (which-func-mode ("" (:eval my-which-func-header-format)))))
+    "Help text for `my-which-fun-header-keymap-default'.")
+  (defvar my-which-func-header-format-default
+          `(:propertize which-func-current
+                        local-map ,my-which-func-header-keymap-default
+                        face which-func
+                        mouse-face mode-line-highlight
+                        help-echo my-which-func-header-keymap-help-text-default))
+  (setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
+  ;; see init-org.el for an example of a mode-specific which-func header for Org mode
+  (defvar my-which-func-header-formats
+    `((nil . ,my-which-func-header-format-default))
+    "Association list for looking up mode-specific which-func header-lines.
+Keys should be major mode symbols and values should unevaluated mode-line constructs, see https://www.gnu.org/software/emacs/manual/html_node/elisp/Mode-Line-Data.html for more info.")
+  (defun my-which-func-get-header-format ()
+    "Gets `header-line-format' associated with the current major mode in `my-which-func-header-formats'."
+    (cdr (or (assoc major-mode my-which-func-header-formats) ;; mode-specific
+             (assoc nil my-which-func-header-formats)))) ;; default
+  ;; advise which-func's file-find hook
   (defadvice which-func-ff-hook (after header-line activate)
     (when (memq major-mode which-func-modes)
-      (add-to-list 'header-line-format my-which-func-header-line-format))))
+      (add-to-list 'header-line-format
+                   '(which-function-mode
+                      (which-func-mode
+                        ("[ " (:eval (my-which-func-get-header-format)) " ]")))))))
 
 ;; display available bindings in popup
 (use-package which-key

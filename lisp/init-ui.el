@@ -61,8 +61,10 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 (when (and (not (display-graphic-p)) (fboundp 'menu-bar-mode)) (menu-bar-mode -1))
 
-;; mouse scrolling
+;; mouse settings
 (when (display-graphic-p)
+  ;; use super-left-click as middle-click (trackpad workaround)
+  ;; (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
   ;; smooth scrolling in GUI (hold SHIFT/CTRL for 5 line/full window increments)
   (setq mouse-wheel-scroll-amount '(1 ((shift) . 5) ((control))))
   ;; horizontal scrolling (hold SHIFT/CTRL for 5 column/full window increments)
@@ -96,7 +98,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   :defer t
   :bind (("C-c C-M-a" . artist-mode)
          :map artist-mode-map
-         ;; "super-click" for the drawing menu (trackpad workaround)
+         ;; "super-click" for the drawing menu
          (([s-mouse-1] . artist-mouse-choose-operation))))
 
 ;; text completion framework
@@ -288,10 +290,17 @@ Windows  _L_ : line-wise   _W_ : word-wise
                 icomplete-show-matches-on-no-input t
                 icomplete-tidy-shadowed-file-names t))
 
-;; get a menu list across several buffers
+;; menu list of major definitions in the file
+(use-package imenu
+  :ensure nil ;; built-in
+  :defer t
+  :config (setq imenu-auto-rescan t))
+
+;; menu list of major definitions across several buffers
 (use-package imenu-anywhere
   :pin "MELPA"
   :defer t
+  :after imenu
   :bind ("C-c C-M-i m" . imenu-anywhere))
 
 ;; multiple cursors
@@ -418,6 +427,47 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   :delight undo-tree-mode
   :init (setq undo-tree-visualizer-relative-timestamps nil)
   :config (global-undo-tree-mode))
+
+;; display function or outline node at point
+(use-package which-func
+  :ensure nil ;; built-in
+  :config
+  (setq which-func-modes '() ;; use `which-func-mode' only for given modes
+        which-func-unknown "n/a")
+  (which-function-mode)
+  ;; show current function in header instead of the mode line
+  (defun my-narrow-to-defun-toggle ()
+    "Toggle narrow to defun."
+    (interactive)
+    (if (buffer-narrowed-p)
+        (widen)
+      (narrow-to-defun)))
+  (defvar my-which-func-header-keymap
+    (let ((map (make-sparse-keymap)))
+      (define-key map [header-line mouse-1] 'beginning-of-defun)
+      (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
+      (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
+      (define-key map [header-line mouse-3] 'end-of-defun)
+      map)
+    "Keymap to display on header line which-func.")
+  (defvar my-which-func-header-keymap-help-text
+    "mouse-1: toggle rest visibility\n\
+mouse-2: toggle rest visibility\n\
+mouse-3: go to end"
+    "Help text for `my-which-fun-header-keymap'.")
+  (setq my-which-func-header-format
+        `("[ "
+         (:propertize which-func-current
+                      local-map ,my-which-func-header-keymap
+                      face which-func
+                      mouse-face mode-line-highlight
+                      help-echo my-which-func-header-keymap-help-text)
+         " ]"))
+  (setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info)
+        my-which-func-header-line-format '(which-function-mode (which-func-mode ("" (:eval my-which-func-header-format)))))
+  (defadvice which-func-ff-hook (after header-line activate)
+    (when (memq major-mode which-func-modes)
+      (add-to-list 'header-line-format my-which-func-header-line-format))))
 
 ;; display available bindings in popup
 (use-package which-key

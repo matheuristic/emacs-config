@@ -91,6 +91,7 @@
         org-src-strip-leading-and-trailing-blank-lines t
         org-src-tab-acts-natively t
         org-src-window-setup 'current-window ;; reuse Org file window for editing source blocks when using "C-c '"
+        org-startup-folded nil
         org-startup-indented nil
         ;; Diagram of possible task state transitions
         ;;     -------------------------
@@ -261,7 +262,30 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
         (set-window-configuration prior-window-configuration))))
   (advice-add 'org-capture :before 'my-org-capture-setup)
   (add-hook 'org-capture-mode-hook 'delete-other-windows)
-  (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown))
+  (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown)
+  ;; display the outline path at point
+  (with-eval-after-load 'which-func
+    (add-to-list 'which-func-modes 'org-mode)
+    (defun my-org-which-function-string-shortener (str &optional maxlen)
+      "Shortens STR if it is longer than MAXLEN chars."
+      (let* ((len (length str))
+             (maxlen (or maxlen 30)) ;; default maxlen of 30
+             (num-left-chars (/ maxlen 2))
+             (num-right-chars (- maxlen num-left-chars 3)))
+        (if (> len maxlen)
+            (concat (substring str 0 num-left-chars)
+                    "..."
+                    (substring str (- len num-right-chars) len))
+          str)))
+    (defun my-org-which-function ()
+      "Returns current outline path."
+      (if (eq major-mode 'org-mode)
+        (condition-case nil
+            (mapconcat #'my-org-which-function-string-shortener
+                       (org-get-outline-path t)
+                       " > ")
+          (error nil))))
+    (add-to-list 'which-func-functions #'my-org-which-function)))
 
 ;; UTF-8 bullets for org-mode
 (use-package org-bullets
@@ -286,7 +310,7 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     (if (memq window-system '(mac ns))
         (setq org-download-screenshot-method "screencapture -i %s"))
     ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
-    ;; save drag-and-drop images in a folder with the same name as org file
+    ;; save drag-and-drop images into folder of the same name as org file
     ;; with filename prefixed by a timestamp of format `org-download-timestamp'
     ;; example: for `abc.org', test.png saves to `abc/20180522183050-test.png'
     (defun my-org-download-method (link)
@@ -296,11 +320,10 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
                                 (car (url-path-and-query
                                        (url-generic-parse-url link))))))
             (dirname (file-name-sans-extension (buffer-name))))
-        ;; if directory not exist, create it
+        ;; create dir if it does not exist
         (unless (file-exists-p dirname)
           (make-directory dirname))
-        ;; return the path to save the download files
-        (expand-file-name filename dirname)))
+        (expand-file-name filename dirname))) ;; download save file path
     (setq org-download-method 'my-org-download-method
           org-download-timestamp "%Y%m%d%H%M%S-")
     (defhydra+ my-hydra/org-mode ()

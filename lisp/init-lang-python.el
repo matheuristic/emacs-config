@@ -10,6 +10,13 @@
 
 (require 'init-ui-hydra)
 
+;; show function at point
+(with-eval-after-load 'which-func
+  (add-to-list 'which-func-modes 'python-mode))
+
+;; also add an imenu "Index" item to the menubar
+(add-hook 'python-mode-hook 'imenu-add-menubar-index)
+
 ;; enable evaluation of Python in Org-mode code blocks
 (use-package ob-python
   :ensure nil ;; built-in

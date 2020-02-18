@@ -29,8 +29,8 @@
 ;; performance optimizations
 ;; * increase garbage collection thresholds
 ;; * increase max bytes read from a sub-process in a single op (Emacs 27+)
-(setq gc-cons-threshold (* 100 1000 1000) ;; in bytes, default is 800k
-      read-process-output-max (* 1024 1024)) ;; in bytes, default is 4096 bytes
+(setq gc-cons-threshold 100000000 ;; in bytes, default is 800k
+      read-process-output-max 1048576) ;; in bytes, default is 4096 bytes
 
 ;; load local pre-initialization file ~/.emacs.d/init-pre.el
 (let ((local-f (expand-file-name "init-pre.el" user-emacs-directory)))
@@ -57,10 +57,10 @@
   (if (file-directory-p project) (add-to-list 'load-path project)))
 
 (require 'init-backup) ;; configure automatic file backups
-(require 'init-package) ;; enable use-package for package management
+(require 'init-package) ;; use-package macro for configuring packages
 
 ;; copy environment variables from shell
-(if (eq system-type 'darwin)  ;; only needed for Mac OS X GUI mode
+(if (eq system-type 'darwin) ;; only needed for Mac OS X GUI mode
     (use-package exec-path-from-shell
       :init (if (memq window-system '(mac ns))
                 (exec-path-from-shell-initialize))))
@@ -77,6 +77,7 @@
 (require 'init-proj)
 (require 'init-org)
 (require 'init-lang)
+(require 'init-http)
 
 ;; load local post-initialization file ~/.emacs.d/init-post.el
 (let ((local-f (expand-file-name "init-post.el" user-emacs-directory)))

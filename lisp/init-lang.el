@@ -180,7 +180,7 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
 ;; JSON
 (when (member "json" init-lang-enable-list)
   (use-package json-mode
-    :commands json-mode))
+    :defer t))
 
 ;; LISP
 (when (member "lisp" init-lang-enable-list)

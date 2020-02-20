@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up programming language support
+;; Set up programming languages support
 
 ;;; Code:
 

@@ -35,15 +35,30 @@
 (defvar org-refile-targets '((nil . (:maxlevel . 9)) ;; current buffer
                              (org-agenda-files . (:maxlevel . 3)))) ;; files for agenda display
 (defvar org-refile-use-outline-path 'file) ;; allows refile to top level
-(defvar org-tag-alist '((:startgroup) ;; tags in the same group are mutually exclusive
-                        ("@home" . ?H) ("@work" . ?W)
+ ;; tags, note that tags in the same group are mutually exclusive
+(defvar org-tag-alist '((:startgroup) ;; difficulty tags
+                        ("easy" . ?1)
+                        ("medium" . ?2)
+                        ("hard" . ?3)
                         (:endgroup)
-                        (:startgroup)
-                        ("easy" . ?e) ("medium" . ?m) ("hard" . ?h)
+                        (:startgroup) ;; location tags
+                        ("@home" . ?H)
+                        ("@work" . ?W)
+                        ("@traveling" . ?V)
+                        ("@phone" . ?P)
+                        ("@email" . ?M)
+                        ("@errands" . ?E)
                         (:endgroup)
-                        ("note" . ?n)
+                        (:startgroup) ;; time-sensitivity tags
                         ("someday" . ?s)
-                        ("urgent" . ?u)))
+                        ("urgent" . ?u)
+                        (:endgroup)
+                        (:startgroup) ;; export tags
+                        ("export" . ?e)
+                        ("noexport" . ?x)
+                        (:endgroup)
+                        ;; ungrouped tags
+                        ("note" . ?n)))
 (defvar org-journal-dir (concat org-directory "journal/")) ;; default directory for org journals
 
 ;; Org-mode
@@ -415,6 +430,59 @@ wheel-d : prev same-level heading"
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily))
+
+;; org-mode presentations
+(use-package org-present
+  :pin "MELPA"
+  :defer t
+  :after org
+  :bind (:map org-present-mode-keymap
+         ;; <left>/<right> = previous/next slide
+         ("b" . org-present-beginning)
+         ("e" . org-present-end)
+         ("n" . org-present-next)
+         ("p" . org-present-prev)
+         ("q" . org-present-quit)
+         ("f" . toggle-frame-fullscreen)
+         ("<up>" . scroll-down-line)
+         ("<down>" . scroll-up-line)
+         ("s-<up>" . beginning-of-buffer)
+         ("s-<down>" . end-of-buffer)
+         ("-" . text-scale-decrease)
+         ("=" . text-scale-increase))
+  :hook ((org-present-mode . (lambda ()
+                               (org-present-big)
+                               (org-display-inline-images)
+                               (org-present-hide-cursor)
+                               (org-present-read-only)
+                               (hide-header-and-mode-lines)))
+         (org-present-mode-quit . (lambda ()
+                                    (org-present-small)
+                                    (org-remove-inline-images)
+                                    (org-present-show-cursor)
+                                    (org-present-read-write)
+                                    (unhide-header-and-mode-lines))))
+  :config
+  (defvar-local org-present-orig-mode-line-format nil
+    "Temporary variable to store original `mode-line-format'.")
+  (defvar-local org-present-orig-header-line-format nil
+    "Temporary variable to store original `header-line-format'.")
+  (defun hide-header-and-mode-lines ()
+    "Hide header and mode lines, and store originals in temporary variables."
+    (when mode-line-format
+        (setq-local org-present-orig-mode-line-format mode-line-format)
+        (setq-local mode-line-format nil))
+    (when header-line-format
+        (setq-local org-present-orig-header-line-format header-line-format)
+        (setq-local header-line-format nil)))
+  (defun unhide-header-and-mode-lines ()
+    "Reset header and mode lines from originals in temporary variables."
+    (when (not mode-line-format)
+      (setq-local mode-line-format org-present-orig-mode-line-format)
+      (setq-local org-present-orig-mode-line-format nil))
+    (when (not header-line-format)
+      (setq-local header-line-format org-present-orig-header-line-format)
+      (setq-local org-present-orig-header-line-format nil))))
 
 ;; export Org documents to reveal.js presentations
 ;; https://gitlab.com/oer/org-re-reveal

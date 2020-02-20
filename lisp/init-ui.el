@@ -502,6 +502,10 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
   :config (defhydra my-hydra/whitespace (:color teal :columns 3)
             "Whitespace"
             ("w" whitespace-mode "show-whitespace" :exit nil)
+            ("t" (lambda () (interactive)
+                   (setq-local show-trailing-whitespace
+                               (not show-trailing-whitespace)))
+             "show-trailing" :exit nil)
             ("n" whitespace-newline-mode "show-newline" :exit nil)
             ("c" whitespace-cleanup "cleanup")
             ("r" whitespace-report "report")

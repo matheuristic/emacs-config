@@ -23,13 +23,12 @@
 ;;                                       "Consolas"
 ;;                                       "Menlo"
 ;;                                       "DejaVu Sans Mono")
-;;       init-ui-font-variable-pitch-list '("IBM Plex Serif"
-;;                                          "Alegreya"
-;;                                          "Constantia"
-;;                                          "Charter"
-;;                                          "DejaVu Serif"))
+;;       init-ui-font-variable-pitch-list '("IBM Plex Sans"
+;;                                          "Calibri"
+;;                                          "Helvetica Neue"
+;;                                          "DejaVu Sans"))
 
-;; set directory where conda is installed, used in lisp/init-lang-python.el
+;; set conda install directory, used in lisp/init-lang-python.el
 ;; (setq conda-anaconda-home "~/miniconda3/")
 
 ;; path to MS Python Language Server binary, used by lisp/init-lang-python.el

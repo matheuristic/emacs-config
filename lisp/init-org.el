@@ -83,7 +83,7 @@
           ("q" nil "quit"))
   :config
   (require 'org-agenda)
-  (setq org-adapt-indentation nil ;; don't auto indent node text when promoting or demoting nodes
+  (setq org-adapt-indentation nil ;; don't auto-indent node text when promoting or demoting nodes
         org-agenda-restore-windows-after-quit t
         org-agenda-start-on-weekday nil
         org-agenda-window-setup 'only-window ;; full-frame Agenda view
@@ -445,7 +445,7 @@ wheel-d : prev same-level heading"
   ;; org-capture helper function from https://github.com/bastibe/org-journal
   (defun my-org-journal-find-location ()
     "Find location of today's Org journal, for use with `org-capture'."
-    ;; Open today's journal, but specify a non-nil prefix argument in order to
+    ;; Open today's journal but specify a non-nil prefix argument in order to
     ;; inhibit inserting the heading; org-capture will insert the heading.
     (org-journal-new-entry t)
     ;; Position point on the journal's top-level heading so that org-capture
@@ -490,14 +490,19 @@ wheel-d : prev same-level heading"
                                     (org-present-show-cursor)
                                     (org-present-read-write)
                                     (unhide-header-and-mode-lines))))
+  :init (defhydra+ my-hydra/org-mode ()
+          ("C-p" (lambda () (interactive)
+                   (let ((in-present-mode (condition-case nil org-present-mode (error nil))))
+                     (if in-present-mode (org-present-quit) (org-present))))
+           "org-present" :exit t)) ;; add hydra command
   :config
-  ;; regenerate inline LaTeX fragment preview on slide transition
+  ;; regenerate LaTeX fragment preview on slide transition
   (when (and (display-graphic-p)
              (executable-find "dvipng"))
     (add-hook 'org-present-after-navigate-functions
               (lambda (&optional name header)
                 (my-org-display-latex-fragments))))
-  ;; hide header- and mode-lines during presentations
+  ;; hide header and mode lines during presentations
   (defvar-local org-present-orig-mode-line-format nil
     "Temporary variable to store original `mode-line-format'.")
   (defvar-local org-present-orig-header-line-format nil

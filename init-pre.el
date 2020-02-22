@@ -43,6 +43,11 @@
 ;; use multimarkdown for processing markdown files in markdown-mode
 ;; (setq markdown-command "multimarkdown")
 
+;; privacy settings
+;; (setq url-cookie-untrusted-urls '(".*")) ;; no cookies
+;; (setq url-privacy-level 'paranoid) ;; more private HTTP requests
+;; (url-setup-privacy-info) ;; apply `url-privacy-level'
+
 (provide 'init-pre)
 ;;; init-pre.el ends here
 

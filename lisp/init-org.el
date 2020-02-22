@@ -125,6 +125,11 @@
         org-treat-S-cursor-todo-selection-as-state-change nil
         org-use-fast-todo-selection t
         org-use-speed-commands t)
+  ;; Scale up LaTeX fragment preview images on OS X
+  (if (and (display-graphic-p)
+           (eq system-type 'darwin)
+           (executable-find "dvipng"))
+      (setq org-format-latex-options (plist-put org-format-latex-options :scale 1.5)))
   ;; add custom agenda commands that only show undated tasks in list view
   (dolist (my-custom-cmd
            '(("N" "Three-day agenda and undated TODO entries"
@@ -240,6 +245,29 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     (require 'org-mouse) ;; Org-mode mouse support
     (add-hook 'org-mode-hook #'variable-pitch-mode) ;; enable var-pitch font
     (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1))))
+  ;; preview LaTeX fragments scaled to font size, requires dvipng from TexLive
+  (when (and (display-graphic-p)
+             (executable-find "dvipng"))
+    (defvar my-org-latex-scale-base (plist-get org-format-latex-options :scale)
+      "Base LaTeX fragment scale.")
+    (defun my-org-display-latex-fragments ()
+      "Previews LaTeX fragments in the buffer scaled to match font size."
+      (interactive)
+      (let* ((curr-text-scale (condition-case nil text-scale-mode-amount (error 0)))
+             (new-latex-scale (+ my-org-latex-scale-base curr-text-scale)))
+        (when (eq major-mode 'org-mode)
+          ;; modify LaTeX scale in a local copy of `org-format-latex-options'
+          (if (not (assoc 'org-format-latex-options (buffer-local-variables)))
+            (setq-local org-format-latex-options
+                        (copy-tree org-format-latex-options)))
+          (setq-local org-format-latex-options
+                      (plist-put org-format-latex-options :scale new-latex-scale))
+          ;; preview LaTeX fragments
+          (org--latex-preview-region (point-min) (point-max)))))
+    ;; preview LaTeX fragments when opening Org documents ...
+    (add-hook 'org-mode-hook (lambda (&optional arg) (my-org-display-latex-fragments)))
+    ;; ... and regenerate after changing font size
+    (advice-add 'text-scale-mode :after (lambda (&optional arg) (my-org-display-latex-fragments))))
   ;; Org-mode face and color modifications
   (with-eval-after-load 'init-ui-font
     ;; if using eink theme, modify the face colors
@@ -449,7 +477,7 @@ wheel-d : prev same-level heading"
          ("s-<up>" . beginning-of-buffer)
          ("s-<down>" . end-of-buffer)
          ("-" . text-scale-decrease)
-         ("=" . text-scale-increase))
+         ("+" . text-scale-increase))
   :hook ((org-present-mode . (lambda ()
                                (org-present-big)
                                (org-display-inline-images)
@@ -463,6 +491,13 @@ wheel-d : prev same-level heading"
                                     (org-present-read-write)
                                     (unhide-header-and-mode-lines))))
   :config
+  ;; regenerate inline LaTeX fragment preview on slide transition
+  (when (and (display-graphic-p)
+             (executable-find "dvipng"))
+    (add-hook 'org-present-after-navigate-functions
+              (lambda (&optional name header)
+                (my-org-display-latex-fragments))))
+  ;; hide header- and mode-lines during presentations
   (defvar-local org-present-orig-mode-line-format nil
     "Temporary variable to store original `mode-line-format'.")
   (defvar-local org-present-orig-header-line-format nil

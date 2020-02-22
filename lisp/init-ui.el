@@ -542,10 +542,10 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
   (unbind-key "\C-c" yas-minor-mode-map)
   (yas-global-mode 1))
 
-(require 'init-ui-font)
+(require 'init-ui-color)
 (require 'init-ui-icons)
 (require 'init-ui-modeline)
-(require 'init-ui-color)
+(require 'init-ui-font)
 
 (provide 'init-ui)
 

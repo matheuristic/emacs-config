@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Configure Clojure tooling
+;; Clojure tooling
 
 ;;; Code:
 
@@ -17,7 +17,7 @@
   :hook ((clojure-mode . paredit-mode)
          (clojure-mode . subword-mode)))
 
-;; IDE
+;; Clojure IDE
 (use-package cider
   :after clojure-mode
   :bind (:map clojure-mode-map
@@ -30,7 +30,7 @@
   ;; hydras, adapted from https://github.com/clojure-emacs/cider-hydra
   (defhydra my-hydra/cider (:color teal :columns 3)
     "CIDER"
-    ;; start a REPL and connect
+    ;; start a REPL and connect to it
     ("j" cider-jack-in-clj "jack-in-clj")
     ("s" cider-jack-in-cljs "jack-in-cljs")
     ("b" cider-jack-in-clj&cljs "jack-in-clj&cljs")
@@ -45,6 +45,9 @@
     "CIDER → Documentation"
     ;; CiderDoc
     ("d" cider-doc "cider-docs")
+    ;; ClojureDocs
+    ("r" cider-clojuredocs "clojure-docs")
+    ("h" cider-clojuredocs-web "clojure-docs-web")
     ;; JavaDoc
     ("j" cider-javadoc "java-docs-web")
     ;; apropos
@@ -52,9 +55,6 @@
     ("s" cider-apropos-select "select-symbols")
     ("A" cider-apropos-documentation "search-docs")
     ("e" cider-apropos-documentation-select "select-docs")
-    ;; ClojureDocs
-    ("r" cider-clojuredocs "clojure-docs")
-    ("h" cider-clojuredocs-web "clojure-docs-web")
     ("q" my-hydra/cider/body "←"))
   (defhydra my-hydra/cider-eval (:color teal :columns 3)
     "CIDER → Eval"
@@ -74,7 +74,7 @@
     (":" cider-read-and-eval "read-and-eval")
     ;; inspect
     ("i" cider-inspect "inspect")
-    ;; macroexpand
+    ;; macro expansion
     ("m" cider-macroexpand-1 "macroexpand-1")
     ("M" cider-macroexpand-all "macroexpand-all")
     ("q" my-hydra/cider/body "←"))
@@ -105,7 +105,7 @@
     ;; output
     ("o" cider-find-and-clear-repl-output "clear-repl-output")
     ("O" (lambda () (interactive) (cider-find-and-clear-repl-output t)) "clear-repl-all")
-    ;; interrupt/quit
+    ;; interrupt or quit REPL
     ("b" cider-interrupt "interrupt")
     ("Q" cider-quit "quit-cider")
     ("q" my-hydra/cider/body "←")))

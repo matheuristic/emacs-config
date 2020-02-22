@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up Python tooling
+;; Python tooling
 
 ;;; Code:
 
@@ -18,7 +18,7 @@
 (with-eval-after-load 'imenu
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
 
-;; enable Python evaluation in Org-mode code blocks
+;; enable Python evaluation in org-mode code blocks
 (use-package ob-python
   :ensure nil ;; built-in
   :defer t)
@@ -40,16 +40,15 @@
       :config
       (conda-env-initialize-interactive-shells)
       (conda-env-initialize-eshell)
-      ;; display current conda env on the mode line
-      (setq-default mode-line-format
-                    (add-to-list 'mode-line-format
-                                 '(:eval (if conda-env-current-name
-                                             (format " «%s»"
-                                                     (truncate-string-to-width
-                                                      conda-env-current-name
-                                                      15 nil nil "…"))
-                                           ""))
-                                 t))
+      ;; display current conda env in the mode line
+      (add-to-list 'mode-line-misc-info
+                   '(:eval (if conda-env-current-name
+                               (format " «%s»"
+                                       (truncate-string-to-width
+                                         conda-env-current-name
+                                         15 nil nil "…"))
+                             ""))
+                   t)
       (defhydra my-hydra/conda (:color teal :columns 4)
         "conda"
         ("a" conda-env-activate "activate")
@@ -62,16 +61,15 @@
     :config
     (venv-initialize-interactive-shells)
     (venv-initialize-eshell)
-    ;; display current virtualenv on the mode line
-    (setq-default mode-line-format
-                  (add-to-list 'mode-line-format
-                               '(:eval (if venv-current-name
-                                           (format " «%s»"
-                                                   (truncate-string-to-width
-                                                    venv-current-name
-                                                    15 nil nil "…"))
-                                         ""))
-                               t))
+    ;; display current venv in the mode line
+    (add-to-list 'mode-line-misc-info
+                 '(:eval (if venv-current-name
+                             (format " «%s»"
+                                     (truncate-string-to-width
+                                       venv-current-name
+                                       15 nil nil "…"))
+                           ""))
+                 t)
     (defhydra my-hydra/virtualenv (:color teal :columns 4)
       "virtualenv"
       ("w" venv-workon "workon")

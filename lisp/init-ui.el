@@ -46,9 +46,9 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 
 ;; basic interface settings
 (setq auto-revert-verbose nil ;; suppress auto-revert minibuffer messages
-      column-number-mode t ;; show column number in modeline
+      column-number-mode t ;; show column number in mode line
       inhibit-startup-message t ;; suppress splash screen
-      ring-bell-function 'ignore ;; turn off audible and visual bells
+      ring-bell-function 'ignore ;; turn off audio and visual bells
       scroll-conservatively 101 ;; scroll a line at a time at window edge
       show-paren-delay 0) ;; no delay in show-paren-mode
 (show-paren-mode t) ;; show matching parentheses
@@ -310,7 +310,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
   :init (setq mc/always-run-for-all nil
               mc/always-repeat-command nil
               mc/insert-numbers-default 1)
-  ;; disable prefix interpretations
+  ;; disable prefix interpretation
   ;; see https://stackoverflow.com/questions/53798055/hydra-disable-interpretation-of-prefix-argument
   :config (defhydra my-hydra/multiple-cursors (:color pink :hint nil
                                                :base-map (make-sparse-keymap)
@@ -543,6 +543,7 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
   (yas-global-mode 1))
 
 (require 'init-ui-font)
+(require 'init-ui-icons)
 (require 'init-ui-modeline)
 (require 'init-ui-color)
 

@@ -1,28 +1,39 @@
-;;; init-ui-modeline.el --- Emacs config UI layer mode-line settings -*- lexical-binding: t -*-
+;;; init-ui-modeline.el --- Emacs config mode line settings -*- lexical-binding: t -*-
 
 ;; Author: matheuristic
 
 ;;; Commentary:
 
-;; Set up mode-line
+;; Set up GUI mode line
 
 ;;; Code:
 
 (when (display-graphic-p)
+  ;; fast and fancy minimalist mode line, requires all-the-icons be installed
+  (use-package doom-modeline
+    :after all-the-icons
+    :config
+    (setq doom-modeline-buffer-file-name-style 'auto
+          doom-modeline-env-version nil
+          doom-modeline-minor-modes t
+          doom-modeline-persp-name nil
+          doom-modeline-unicode-fallback t)
+    (doom-modeline-mode 1))
+
   ;; show full path in mode-line buffer name tooltip
-  (setq-default mode-line-buffer-identification
-                (list (propertize
-                       "%12b"
-                       'face 'mode-line-buffer-id
-                       'help-echo '(format
-                                    (mapconcat 'identity
-                                               '("%s"
-                                                 "mouse-1: Previous buffer"
-                                                 "mouse-3: Next buffer")
-                                               "\n")
-                                    (or (buffer-file-name) (buffer-name)))
-                       'mouse-face 'mode-line-highlight
-                       'local-map mode-line-buffer-identification-keymap)))
+  ;; (setq-default mode-line-buffer-identification
+  ;;               (list (propertize
+  ;;                      "%12b"
+  ;;                      'face 'mode-line-buffer-id
+  ;;                      'help-echo '(format
+  ;;                                   (mapconcat 'identity
+  ;;                                              '("%s"
+  ;;                                                "mouse-1: Previous buffer"
+  ;;                                                "mouse-3: Next buffer")
+  ;;                                              "\n")
+  ;;                                   (or (buffer-file-name) (buffer-name)))
+  ;;                      'mouse-face 'mode-line-highlight
+  ;;                      'local-map mode-line-buffer-identification-keymap)))
 
   ;; hide minor-modes in mode-line menu, which is also accessible via `minions-minor-mode-menu'
   (use-package minions

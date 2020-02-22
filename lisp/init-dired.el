@@ -22,6 +22,7 @@
   :commands dired
   :bind (:map dired-mode-map
          ("C-c C-M-m" . my-hydra/dired/body))
+  :hook (dired-mode . dired-hide-details-mode) ;; hide details, "(" to toggle
   :config
   (require 'dired-x)
   (require 'dired-aux)

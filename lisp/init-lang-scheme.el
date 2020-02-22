@@ -4,17 +4,17 @@
 
 ;;; Commentary:
 
-;; Set up Scheme tooling
+;; Scheme tooling
 
 ;;; Code:
 
-;; uncomment to use Chez Scheme by default in geiser
+;; uncomment the following line to use Chez Scheme by default in geiser
 ;; (defvar geiser-active-implementations '(chez))
 
-;; enable paredit-mode when editing Scheme
+;; use paredit-mode when editing Scheme buffers
 (add-hook 'scheme-mode-hook #'paredit-mode)
 
-;; Scheme interactive development environment for Emacs
+;; Scheme IDE, https://www.nongnu.org/geiser/
 (use-package geiser
   :defer t
   :pin "MELPA")

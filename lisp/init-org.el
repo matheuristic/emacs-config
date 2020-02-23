@@ -35,7 +35,7 @@
 (defvar org-refile-targets '((nil . (:maxlevel . 9)) ;; current buffer
                              (org-agenda-files . (:maxlevel . 3)))) ;; files for agenda display
 (defvar org-refile-use-outline-path 'file) ;; allows refile to top level
- ;; tags, note that tags in the same group are mutually exclusive
+ ;; tags (note that tags in the same group are mutually exclusive)
 (defvar org-tag-alist '((:startgroup) ;; difficulty tags
                         ("easy" . ?1)
                         ("medium" . ?2)
@@ -464,37 +464,24 @@ wheel-d : prev same-level heading"
   :pin "MELPA"
   :defer t
   :after org
-  :bind (:map org-present-mode-keymap
-         ;; <left>/<right> = previous/next slide
-         ("b" . org-present-beginning)
-         ("e" . org-present-end)
-         ("n" . org-present-next)
-         ("p" . org-present-prev)
-         ("q" . org-present-quit)
-         ("f" . toggle-frame-fullscreen)
-         ("<up>" . scroll-down-line)
-         ("<down>" . scroll-up-line)
-         ("s-<up>" . beginning-of-buffer)
-         ("s-<down>" . end-of-buffer)
-         ("-" . text-scale-decrease)
-         ("+" . text-scale-increase))
   :hook ((org-present-mode . (lambda ()
                                (org-present-big)
                                (org-display-inline-images)
-                               (org-present-hide-cursor)
                                (org-present-read-only)
-                               (hide-header-and-mode-lines)))
+                               (my-hide-header-and-mode-lines)))
          (org-present-mode-quit . (lambda ()
                                     (org-present-small)
                                     (org-remove-inline-images)
-                                    (org-present-show-cursor)
                                     (org-present-read-write)
-                                    (unhide-header-and-mode-lines))))
+                                    (my-unhide-header-and-mode-lines))))
   :init (defhydra+ my-hydra/org-mode ()
-          ("C-p" (lambda () (interactive)
-                   (let ((in-present-mode (condition-case nil org-present-mode (error nil))))
+          ("C-p" (lambda ()
+                   (interactive)
+                   (let ((in-present-mode (condition-case nil
+                                              org-present-mode
+                                            (error nil))))
                      (if in-present-mode (org-present-quit) (org-present))))
-           "org-present" :exit t)) ;; add hydra command
+           "org-present" :exit t))
   :config
   ;; regenerate LaTeX fragment preview on slide transition
   (when (and (display-graphic-p)
@@ -502,27 +489,48 @@ wheel-d : prev same-level heading"
     (add-hook 'org-present-after-navigate-functions
               (lambda (&optional name header)
                 (my-org-display-latex-fragments))))
-  ;; hide header and mode lines during presentations
-  (defvar-local org-present-orig-mode-line-format nil
+  ;; functions for hiding header and mode lines during presentations
+  (defvar-local my-orig-mode-line-format nil
     "Temporary variable to store original `mode-line-format'.")
-  (defvar-local org-present-orig-header-line-format nil
+  (defvar-local my-orig-header-line-format nil
     "Temporary variable to store original `header-line-format'.")
-  (defun hide-header-and-mode-lines ()
+  (defun my-hide-header-and-mode-lines ()
     "Hide header and mode lines, and store originals in temporary variables."
+    (interactive)
     (when mode-line-format
-        (setq-local org-present-orig-mode-line-format mode-line-format)
+        (setq-local my-orig-mode-line-format mode-line-format)
         (setq-local mode-line-format nil))
     (when header-line-format
-        (setq-local org-present-orig-header-line-format header-line-format)
+        (setq-local my-orig-header-line-format header-line-format)
         (setq-local header-line-format nil)))
-  (defun unhide-header-and-mode-lines ()
-    "Reset header and mode lines from originals in temporary variables."
+  (defun my-unhide-header-and-mode-lines ()
+    "Reset header and mode lines using originals in temporary variables."
+    (interactive)
     (when (not mode-line-format)
-      (setq-local mode-line-format org-present-orig-mode-line-format)
-      (setq-local org-present-orig-mode-line-format nil))
+      (setq-local mode-line-format my-orig-mode-line-format)
+      (setq-local my-orig-mode-line-format nil))
     (when (not header-line-format)
-      (setq-local header-line-format org-present-orig-header-line-format)
-      (setq-local org-present-orig-header-line-format nil))))
+      (setq-local header-line-format my-orig-header-line-format)
+      (setq-local my-orig-header-line-format nil)))
+  ;; easier nav keys for read-only presentations
+  (define-minor-mode my-org-present-extra-mode
+    "Overlay minor mode on top of org-present-mode with easier nav keys."
+    :keymap (let ((map (make-sparse-keymap)))
+              ;; <left>/<right> = previous/next slide
+              (define-key map (kbd "<up>") 'scroll-down-line)
+              (define-key map (kbd "<down>") 'scroll-up-line)
+              (define-key map (kbd "s-<up>") 'beginning-of-buffer)
+              (define-key map (kbd "s-<down>") 'end-of-buffer)
+              (define-key map (kbd "s-<left>") 'org-present-beginning)
+              (define-key map (kbd "s-<right>") 'org-present-end)
+              (define-key map (kbd "f") 'toggle-frame-fullscreen)
+              (define-key map (kbd "q") 'org-present-quit)
+              (define-key map (kbd "-") 'text-scale-decrease)
+              (define-key map (kbd "+") 'text-scale-increase)
+              map))
+  ;; toggle minor mode after the relevant org-present funcalls
+  (advice-add 'org-present-read-only :after (lambda () (my-org-present-extra-mode 1)))
+  (advice-add 'org-present-read-write :after (lambda () (my-org-present-extra-mode 0))))
 
 ;; export Org documents to reveal.js presentations
 ;; https://gitlab.com/oer/org-re-reveal

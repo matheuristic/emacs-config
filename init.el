@@ -5,8 +5,7 @@
 
 ;;; Commentary:
 
-;; Emacs configuration file
-;; Symlink or copy to ~/.emacs or ~/.emacs.d/init.el
+;; Emacs configuration file, symlink or copy to ~/.emacs or ~/.emacs.d/init.el
 
 ;; Startup times can be measured in Linux using
 ;; $ emacs -q --eval='(message "%s" (emacs-init-time))'
@@ -27,7 +26,7 @@
 (setq file-name-handler-alist nil)
 
 ;; performance optimizations
-;; * increase garbage collection thresholds
+;; * increase garbage collection threshold
 ;; * increase max bytes read from a sub-process in a single op (Emacs 27+)
 (setq gc-cons-threshold 100000000 ;; in bytes, default is 800k
       read-process-output-max 1048576) ;; in bytes, default is 4096 bytes
@@ -59,8 +58,8 @@
 (require 'init-backup) ;; configure automatic file backups
 (require 'init-package) ;; use-package macro for configuring packages
 
-;; copy environment variables from shell
-(if (eq system-type 'darwin) ;; only needed for Mac OS X GUI mode
+;; copy environment variables from shell, OS X GUI mode-only
+(if (eq system-type 'darwin)
     (use-package exec-path-from-shell
       :init (if (memq window-system '(mac ns))
                 (exec-path-from-shell-initialize))))
@@ -78,6 +77,7 @@
 (require 'init-org)
 (require 'init-lang)
 (require 'init-http)
+(require 'init-web)
 
 ;; load local post-initialization file ~/.emacs.d/init-post.el
 (let ((local-f (expand-file-name "init-post.el" user-emacs-directory)))

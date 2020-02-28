@@ -99,6 +99,7 @@
         org-log-into-drawer t
         org-outline-path-complete-in-steps nil
         org-pretty-entities t
+        org-pretty-entities-include-sub-superscripts nil ;; don't render sub/superscripts in-buffer
         org-refile-allow-creating-parent-nodes 'confirm
         org-return-follows-link t
         org-src-fontify-natively t

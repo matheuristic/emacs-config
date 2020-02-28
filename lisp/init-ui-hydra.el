@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up basic transitional bindings using the hydra package
+;; transitional bindings using hydra
 
 ;;; Code:
 
@@ -13,14 +13,14 @@
 ;; helper functions
 
 (defun my-goto-line (&optional line)
-  "Goes to line ARG if there is a prefix and the end of buffer otherwise."
+  "Goes to line number ARG if there is a prefix, and the end of buffer otherwise."
   (interactive "P")
   (if line
       (goto-line line)
     (end-of-buffer)))
 
 (defun my-open-finder (&optional path)
-  "Opens a new Finder window to PATH if provided, or the current buffer file or directory if not. Mac OS X-only."
+  "Opens a new Finder window to PATH if provided, or the current buffer file or directory if not (Mac OS X)."
   (interactive)
   (let* ((my-path (cl-some 'identity (list path (buffer-file-name) default-directory)))
          (my-full-path (expand-file-name my-path))
@@ -60,7 +60,8 @@
     (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
                                     (cons 'top (+ y (cdr cur-pos))))))))
 
-;; framework for temporary and repeatable bindings
+;; framework for defining temporary, repeatable bindings
+;; see https://github.com/abo-abo/hydra
 (use-package hydra
   :pin "MELPA"
   :config
@@ -133,7 +134,16 @@
     ("i" info "info")
     ("s" info-lookup-symbol "info-symbol")
     ("w" where-is "where-is")
-    ("q" nil "quit" :exit t))
+    ("q" nil "quit"))
+  (defhydra my-hydra/kmacros (:color teal :columns 4)
+    "Keyboard Macros"
+    ("(" kmacro-start-macro "start-record")
+    (")" kmacro-end-macro "end-record")
+    ("e" kmacro-end-and-call-macro "call-last")
+    ("r" apply-macro-to-region-lines "call-last-region")
+    ("n" name-last-kbd-macro "name-last")
+    ("i" insert-kbd-macro "call-named")
+    ("q" nil "quit"))
   (defhydra my-hydra/navigation (:color amaranth :columns 4)
     "Navigation"
     ("h" backward-char "left")
@@ -191,7 +201,11 @@
     ("gl" lgrep "lgrep")
     ("gf" grep-find "grep-find")
     ("gz" rzgrep "rzgrep")
-    ("gR" (lambda () (interactive) (if (fboundp 'deadgrep) (call-interactively 'deadgrep) (message "ripgrep not installed"))) "ripgrep")
+    ("gR" (lambda ()
+            (interactive)
+            (if (fboundp 'deadgrep)
+                (call-interactively 'deadgrep)
+              (message "ripgrep not installed"))) "ripgrep")
     ("oo" occur "occur")
     ("om" multi-occur "multi-occur")
     ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
@@ -256,6 +270,7 @@
   (global-set-key (kbd "C-c C-M-d k") 'my-hydra/desktop/body)
   (global-set-key (kbd "C-c C-M-s") 'my-hydra/search/body)
   (global-set-key (kbd "C-c C-M-n") 'my-hydra/navigation/body)
+  (global-set-key (kbd "C-c C-M-k") 'my-hydra/kmacros/body)
   (global-set-key (kbd "C-c C-M-r r") 'my-hydra/registers/body)
   (global-set-key (kbd "C-c C-M-v i") 'my-hydra/visual/body)
   (global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body))

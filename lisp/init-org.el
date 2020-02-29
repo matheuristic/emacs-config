@@ -36,12 +36,12 @@
                              (org-agenda-files . (:maxlevel . 3)))) ;; files for agenda display
 (defvar org-refile-use-outline-path 'file) ;; allows refile to top level
  ;; tags (note that tags in the same group are mutually exclusive)
-(defvar org-tag-alist '((:startgroup) ;; difficulty tags
+(defvar org-tag-alist '((:startgroup) ;; difficulty
                         ("easy" . ?1)
                         ("medium" . ?2)
                         ("hard" . ?3)
                         (:endgroup)
-                        (:startgroup) ;; location tags
+                        (:startgroup) ;; location
                         ("@home" . ?H)
                         ("@work" . ?W)
                         ("@traveling" . ?V)
@@ -49,17 +49,17 @@
                         ("@email" . ?M)
                         ("@errands" . ?E)
                         (:endgroup)
-                        (:startgroup) ;; time-sensitivity tags
+                        (:startgroup) ;; time-sensitivity
                         ("someday" . ?s)
                         ("urgent" . ?u)
                         (:endgroup)
-                        (:startgroup) ;; export tags
+                        (:startgroup) ;; export
                         ("export" . ?e)
                         ("noexport" . ?x)
                         (:endgroup)
-                        ;; ungrouped tags
+                        ;; ungrouped
                         ("note" . ?n)))
-(defvar org-journal-dir (concat org-directory "journal/")) ;; default directory for org journals
+(defvar org-journal-dir (concat org-directory "journal/")) ;; default journal directory
 
 ;; Org-mode
 ;;
@@ -362,21 +362,21 @@ wheel-d : prev same-level heading"
     ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
     (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
 
-;; UTF-8 bullets for org-mode
+;; UTF-8 bullets in Org buffers
 (use-package org-bullets
   :pin "MELPA"
   :after org
   :hook (org-mode . org-bullets-mode)
   :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
 
-;; take url from clipboard and insert url link with title of page
+;; insert url from clipboard as link with title of page
 (when (display-graphic-p)
   (use-package org-cliplink
     :after org
     :bind (:map org-mode-map
            ("C-c C-S-l" . org-cliplink))))
 
-;; drag and drop images into org-mode buffers
+;; drag and drop images into Org buffers
 (when (display-graphic-p)
   (use-package org-download
     :after org
@@ -407,37 +407,6 @@ wheel-d : prev same-level heading"
       ("s" org-download-screenshot "screenshot")
       ("y" org-download-yank "yank"))))
 
-;; Gantt charts via LaTeX
-;;
-;; assumes org-gantt package is installed. To install, git clone the repository
-;; at https://github.com/swillner/org-gantt into ~/.emacs.d/site-lisp
-;;
-;; to create an org-gantt-chart dynamic block in a Org document, select a given
-;; Org subtree using the :ID: property, populate it using "C-c C-x C-u" and
-;; export the document to LaTeX via the export menu ("C-c C-e")
-;;
-;; subtree tasks should have either: A. scheduled ("C-c C-s") and deadline
-;; ("C-c C-d") dates, or B. a scheduled date for the first child task,
-;; :ORDERED: t for parents, and :Effort: <time-string> for task length
-;; and :LINKED-TO: <id_list> to indicate downstream tasks for children
-;;
-;; to hide the subtree for Gantt chart in the LaTeX output, give it a COMMENT
-;; state and make sure the dynamic block appears outside any commented subtree
-;;
-;; note there is a bug in the package converting :Effort: to length of time,
-;; fixable by changing a line in `org-gantt-strings-to-time' in org-gantt.el:
-;; --
-;;              (* 3600 (or hours-per-day (org-gantt-hours-per-day)) (- 7 (length work-free-days)))
-;; --
-;; to:
-;; --
-;;              (* 3600 (or hours-per-day (org-gantt-hours-per-day)) (- 7 (length work-free-days)) (org-gantt-string-to-number weeks-string))
-;; --
-(use-package org-gantt
-  :load-path "site-lisp/org-gantt"
-  :ensure nil
-  :after org)
-
 ;; journaling using Org documents
 (use-package org-journal
   :pin "MELPA"
@@ -460,7 +429,7 @@ wheel-d : prev same-level heading"
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily))
 
-;; org-mode presentations
+;; presentations using Org documents
 (use-package org-present
   :pin "MELPA"
   :defer t
@@ -484,7 +453,7 @@ wheel-d : prev same-level heading"
                      (if in-present-mode (org-present-quit) (org-present))))
            "org-present" :exit t))
   :config
-  ;; regenerate LaTeX fragment preview on slide transition
+  ;; regenerate LaTeX fragment preview images on slide transition
   (when (and (display-graphic-p)
              (executable-find "dvipng"))
     (add-hook 'org-present-after-navigate-functions

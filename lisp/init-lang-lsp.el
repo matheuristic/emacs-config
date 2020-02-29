@@ -4,19 +4,18 @@
 
 ;;; Commentary:
 
-;; Set up Language Server Protocol and Debug Adaptor Protocol tooling
+;; Language Server Protocol (LSP) and Debug Adaptor Protocol (DAP) tooling
 
 ;;; Code:
 
-;; Language Server Protocol
+;; LSP client
 (use-package lsp-mode
   :pin "MELPA"
   :defer t
-  :hook (prog-mode . (lambda () (require 'lsp-mode)))
   :bind (:map lsp-mode-map
          ("C-c C-M-l" . my-hydra/lsp/body))
   :config
-  (setq lsp-print-io nil ;; disable logging of packets between emacs and the LS
+  (setq lsp-print-io nil ;; disable logging packets between Emacs and LS
         lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
         lsp-eldoc-enable-signature-help nil ;; display signature help in minibuffer
         lsp-eldoc-prefer-signature-help nil ;; prefer displaying signature help to hover
@@ -31,7 +30,7 @@
     :config
     (setq lsp-ui-doc-enable nil
           lsp-ui-peek-always-show t
-          lsp-ui-peek-enable t ;; VSCode alike
+          lsp-ui-peek-enable t ;; like VSCode
           lsp-ui-sideline-enable nil)
     ;; redefine xref-find-definitions and xref-find-references with lsp-mode equivs
     (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
@@ -119,7 +118,7 @@
     ("s" lsp-ui-peek-find-workspace-symbol "workspace-symbol")
     ("q" my-hydra/lsp/body "←")))
 
-;; front-end for interacting with debug servers
+;; DAP client
 (use-package dap-mode
   :pin "MELPA"
   :commands dap-mode

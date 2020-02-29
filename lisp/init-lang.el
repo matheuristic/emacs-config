@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up programming languages support
+;; Programming languages tooling
 
 ;;; Code:
 
@@ -21,8 +21,8 @@
   :type '(repeat string)
   :group 'init-lang-el)
 
-;; syntax checking
-(require 'init-lang-syntax)
+;; enable support for code linting
+(require 'init-linter)
 
 ;; configure tooling for Language Server Protocol and Debug Adaptor Protocol
 (require 'init-lang-lsp)
@@ -274,22 +274,22 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
       ("q" nil "quit"))))
 
 ;; Pandoc wrapper for converting between document formats
-;; Use C-c / to access pandoc options and settings
+;; Use "C-c /" to access pandoc options and settings
 (use-package pandoc-mode
   :commands (pandoc-mode pandoc-load-default-settings)
   :hook ((pandoc-mode . pandoc-load-default-settings)
          (markdown-mode . pandoc-mode)))
 
-;; PlantUML
+;; PlantUML support in Org documents
 ;;
 ;; graphviz and java needs to be installed on the system
 ;;
 ;; the plantuml.jar file needs to be downloaded to `plantuml-jar-path' (the
-;; default value is "~/plantuml.jar") which can be done manually or by using
+;; default value is "~/plantuml.jar") either manually or by using
 ;; "M-x plantuml-download-jar"
 ;;
 ;; there is also Org source block support (edit a block with "C-c '" and
-;; evaluate with "C-c C-c"), for example:
+;; evaluate with "C-c C-c"), e.g.
 ;; ---
 ;; ...
 ;; #+BEGIN_SRC plantuml :file diagram.png

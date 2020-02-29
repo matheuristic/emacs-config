@@ -8,10 +8,10 @@
 
 ;;; Code:
 
-;; default to sbcl for Lisp REPL
+;; use sbcl as the default Lisp REPL
 (defvar inferior-lisp-program "sbcl --dynamic-space-size 1024")
 
-;; use paredit-mode when editing Lisp buffers
+;; use Paredit mode when editing Lisp buffers
 (add-hook 'lisp-mode-hook #'paredit-mode)
 
 ;; company-mode completion backend for SLIME

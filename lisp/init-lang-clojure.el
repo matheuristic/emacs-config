@@ -9,7 +9,6 @@
 ;;; Code:
 
 (require 'init-ui-hydra)
-(require 'init-lang-syntax)
 
 ;; basic support
 (use-package clojure-mode
@@ -87,14 +86,15 @@
     ("r" cider-test-rerun-failed-tests "rerun-failed")
     ("s" cider-test-show-report "show-report")
     ("q" my-hydra/cider/body "←"))
-  (defhydra my-hydra/cider-debug (:color teal :columns 4)
+  (defhydra my-hydra/cider-debug (:color teal :columns 3)
     "CIDER → Debug"
     ("x" (lambda () (interactive) (cider-eval-defun-at-point t)) "eval-defun-at-pt")
     ("v" cider-toggle-trace-var "toggle-var-trace")
     ("n" cider-toggle-trace-ns "toggle-ns-trace")
     ("q" my-hydra/cider/body "←"))
-  (defhydra my-hydra/cider-repl (:color teal :columns 4)
+  (defhydra my-hydra/cider-repl (:color teal :columns 3)
     "CIDER → REPL"
+    ;; connection
     ("d" cider-display-connection-info "disp-conn-info")
     ("r" cider-rotate-default-connection "rot-default-conn")
     ;; input
@@ -105,7 +105,7 @@
     ;; output
     ("o" cider-find-and-clear-repl-output "clear-repl-output")
     ("O" (lambda () (interactive) (cider-find-and-clear-repl-output t)) "clear-repl-all")
-    ;; interrupt or quit REPL
+    ;; interrupt or quit connected REPL
     ("b" cider-interrupt "interrupt")
     ("Q" cider-quit "quit-cider")
     ("q" my-hydra/cider/body "←")))

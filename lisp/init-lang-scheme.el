@@ -8,7 +8,7 @@
 
 ;;; Code:
 
-;; having only one active Scheme will skip the selection prompt
+;; having only one active Scheme skips the Geiser startup prompt
 ;; (defvar geiser-active-implementations '(chez))
 
 ;; use Paredit mode when editing Scheme buffers

@@ -18,7 +18,7 @@
 (with-eval-after-load 'imenu
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
 
-;; enable Python evaluation in org-mode code blocks
+;; enable Python evaluation in Org code blocks
 (use-package ob-python
   :ensure nil ;; built-in
   :defer t)
@@ -26,9 +26,12 @@
 ;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
 (use-package lsp-python-ms
   :pin "MELPA"
-  :after lsp-mode
+  :defer t
   :hook (python-mode . (lambda ()
-                         (require 'lsp-python-ms) ;; load package if deferred
+                         ;; load packages if deferred
+                         (require 'lsp-mode)
+                         (require 'lsp-python-ms)
+                         ;; start LSP client
                          (lsp)))
   :config (with-eval-after-load 'dap-mode
             (require 'dap-python)))
@@ -81,6 +84,11 @@
       ("c" venv-cpvirtualenv "cp")
       ("q" nil "quit"))
     (global-set-key (kbd "C-c C-M-v e") 'my-hydra/virtualenv/body)))
+
+;; add security analysis linting using devskim, requires it to be installed
+(if (executable-find "devskim")
+    ;; Flymake mode is loaded by lsp-mode
+    (add-hook 'python-mode-hook 'flymake-devskim-setup))
 
 (provide 'init-lang-python)
 

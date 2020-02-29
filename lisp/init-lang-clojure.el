@@ -111,7 +111,7 @@
     ("q" my-hydra/cider/body "←")))
 
 ;; linting, requires clj-kondo be installed on the system
-;; see https://github.com/borkdude/clj-kondo for installation instructions
+;; see https://github.com/borkdude/clj-kondo for install instructions
 (when (executable-find "clj-kondo")
   ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
   (with-eval-after-load 'flymake-quickdef
@@ -121,25 +121,26 @@
       :write-type 'pipe
       :proc-form (list clj-kondo-exec "--lint" "-")
       :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
-      :prep-diagnostic
-      (let* ((lnum (string-to-number (match-string 1)))
-             (lcol (string-to-number (match-string 2)))
-             (severity (match-string 3))
-             (msg (match-string 4))
-             (pos (flymake-diag-region fmqd-source lnum lcol))
-             (beg (car pos))
-             (end (cdr pos))
-             (type (cond
-                    ((string= severity "error") :error)
-                    ((string= severity "warning") :warning)
-                    ((string= severity "info") :note)
-                    (t :note))))
-        (list fmqd-source beg end type msg)))
+      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
+                              (lcol (string-to-number (match-string 2)))
+                              (severity (match-string 3))
+                              (msg (match-string 4))
+                              (pos (flymake-diag-region fmqd-source lnum lcol))
+                              (beg (car pos))
+                              (end (cdr pos))
+                              (type (cond
+                                      ((string= severity "error") :error)
+                                      ((string= severity "warning") :warning)
+                                      ((string= severity "info") :note)
+                                      (t :note))))
+                         (list fmqd-source beg end type msg)))
     (defun flymake-clj-kondo-setup ()
       "Enable clj-kondo backend for Flymake."
       (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
-    (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
-    (add-hook 'clojure-mode-hook 'flymake-mode)))
+    ;; enable Flymake with clj-kondo backend when editing Clojure
+    (with-eval-after-load 'clojure-mode
+      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
+      (add-hook 'clojure-mode-hook 'flymake-mode))))
 
 (provide 'init-lang-clojure)
 

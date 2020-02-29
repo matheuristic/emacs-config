@@ -8,10 +8,10 @@
 
 ;;; Code:
 
-;; uncomment the following line to use Chez Scheme by default in geiser
+;; having only one active Scheme will skip the selection prompt
 ;; (defvar geiser-active-implementations '(chez))
 
-;; use paredit-mode when editing Scheme buffers
+;; use Paredit mode when editing Scheme buffers
 (add-hook 'scheme-mode-hook #'paredit-mode)
 
 ;; Scheme IDE, https://www.nongnu.org/geiser/

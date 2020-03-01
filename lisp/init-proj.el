@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Configure tools for project interaction
+;; Project interaction tooling
 
 ;;; Code:
 
@@ -16,68 +16,75 @@
   :delight projectile-mode '(:eval (concat " [" (projectile-project-name) "]"))
   :bind (:map projectile-mode-map
          ("C-c C-M-p" . projectile-command-map) ;; prefix binding for projectile cmds
-         ("C-c C-M-P" . my-hydra/projectile/body))
+         ("C-c C-M-S-p" . my-hydra/projectile/body))
   :init
-  (setq projectile-create-missing-test-files t ;; create test files if none is found when toggling btw implementation and test
+  (setq projectile-create-missing-test-files t ;; create test file if none is found when toggling
         projectile-switch-project-action 'projectile-commander
-        projectile-use-git-grep t) ;; use git grep when in a Git project to skip backup, object and other non-tracked files
-  (projectile-mode)
-  :config
-  ;; use ripgrep to grep in projectile, if available
-  (if (executable-find "rg")
-      (progn
-        (use-package projectile-ripgrep)
-        (defalias 'my-projectile-search-fun 'projectile-ripgrep))
-    (defalias 'my-projectile-search-fun 'projectile-grep))
+        projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
+  (projectile-mode) ;; enable Projectile globally
   (defhydra my-hydra/projectile (:color teal :hint nil)
     "
 Projectile: %(projectile-project-root)
 
-Buffer  _bb_  : switch to buffer          _bi_  : ibuffer
-        _bk_  : kill buffers              _bo_  : switch buffer (other window)
+Buffer _←_ : previous proj buf  _→_ : next proj buf      _b_ : switch
+       _I_ : ibuffer            _S_ : save proj bufs     _k_ : kill proj bufs
 
-File    _ff_  : find file                 _fw_  : find file dwim
-        _fd_  : find file in dir          _fp_  : find file in known projects
-        _fof_ : find file (other window)  _fow_ : find file dwim (other window)
-        _fr_  : recent files
+File   _f_ : find (curr proj)   _F_ : find (known projs) _g_ : find (context)
+       _t_ : goto impl/test     _e_ : recent             _E_ : dir-locals-file
 
-Dir     _dd_  : find dir                  _do_  : find dir (other window)
+Dir    _d_ : find dir           _D_ : dired
 
-Search  _sg_  : grep / ripgrep            _so_  : multi-occur
-        _rs_  : replace string            _rr_  : replace regexp
+Search _o_ : multi-occur        _s_ : grep               _r_ : replace string
 
-Cache   _cc_  : cache current file        _cC_  : clear cache
-        _cx_  : remove known project      _cX_  : cleanup known projects
+Tags   _j_ : find tag           _R_ : regenerate tags
+
+Shell  _x_ : eshell             _!_ : run command        _&_ : run command async
+
+Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
+       _P_ : test proj          _z_ : cache curr file    _i_ : clear cache
 
 "
-    ("bb" projectile-switch-to-buffer)
-    ("bi" projectile-ibuffer)
-    ("bk" projectile-kill-buffers)
-    ("bo" projectile-switch-to-buffer-other-window)
-    ("ff" projectile-find-file)
-    ("fw" projectile-find-file-dwim)
-    ("fd" projectile-find-file-in-directory)
-    ("fp" projectile-find-file-in-known-projects)
-    ("fof" projectile-find-file-other-window)
-    ("fow" projectile-find-file-dwim-other-window)
-    ("fr" projectile-recentf)
-    ("dd" projectile-find-dir)
-    ("do" projectile-find-dir-other-window)
-    ("sg" my-projectile-search-fun)
-    ("so" projectile-multi-occur)
-    ("rs" projectile-replace)
-    ("rr" projectile-replace-regexp)
-    ("cc" projectile-cache-current-file)
-    ("cC" projectile-invalidate-cache)
-    ("cx" projectile-remove-known-project)
-    ("cX" projectile-cleanup-known-projects)
-    ("C" projectile-compile-project "compile")
+    ;; buffer
+    ("b" projectile-switch-to-buffer)
+    ("<left>" projectile-previous-project-buffer :exit nil)
+    ("<right>" projectile-next-project-buffer :exit nil)
+    ("I" projectile-ibuffer)
+    ("S" projectile-save-project-buffers)
+    ("k" projectile-kill-buffers)
+    ;; file
+    ("f" projectile-find-file)
+    ("F" projectile-find-file-in-known-projects)
+    ("g" projectile-find-file-dwim)
+    ("t" projectile-toggle-between-implementation-and-test)
+    ("e" projectile-recentf)
+    ("E" projectile-edit-dir-locals)
+    ;; dir
+    ("d" projectile-find-dir)
+    ("D" projectile-dired)
+    ;; search
+    ("o" projectile-multi-occur)
+    ("s" projectile-grep)
+    ("r" projectile-replace)
+    ;; tags
+    ("j" projectile-find-tag)
+    ("R" projectile-regenerate-tags)
+    ;; other
+    ("C" projectile-configure-project)
+    ("c" projectile-compile-project)
+    ("u" projectile-run-project)
+    ("P" projectile-test-project)
+    ("z" projectile-cache-current-file)
+    ("i" projectile-invalidate-cache)
+    ("x" projectile-run-eshell)
+    ("!" projectile-run-shell-command-in-root)
+    ("&" projectile-run-async-shell-command-in-root)
+    ;; misc
+    ("m" projectile-commander "commander")
     ("p" projectile-switch-project "switch project")
     ("q" nil "quit" :exit t)))
 
-;; support org-mode TODOs for projectile projects
-;; project TODOs are reflected in the Org agenda
-;; use org-capture to store TODOs for the current buffer's project
+;; Org TODOs for projectile projects that are also reflected in the Org agenda
+;; use `org-capture' to store TODOs for the current project
 (use-package org-projectile
   :pin "MELPA"
   :after (org projectile)

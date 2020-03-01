@@ -11,20 +11,20 @@
 (require 'init-ui-hydra)
 
 ;; Flymake, "C-h ." shows error at point in minibuffer
-(use-package flymake 
+(use-package flymake
   :ensure nil ;; built-in
   :bind (:map flymake-mode-map
          ("C-c C-M-e e" . my-hydra/flymake/body))
   :hook (emacs-lisp-mode . flymake-mode)
   :config
-  (setq flymake-no-changes-timeout 0.5 ;; auto-check buffer change wait time
-        flymake-start-on-save-buffer nil) ;; don't run checks on save
-  (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake) 
+  (setq flymake-no-changes-timeout 0.5 ;; auto check buffer change wait time
+        flymake-start-on-save-buffer nil) ;; don't run checks when saving
+  (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake)
   (use-package flymake-diagnostic-at-point
     :hook (flymake-mode . flymake-diagnostic-at-point-mode)
     :config (setq flymake-diagnostic-at-point-display-diagnostic-function 'flymake-diagnostic-at-point-display-minibuffer ;; display error msg in minibuffer
                   flymake-diagnostic-at-point-error-prefix "» "))
-  ;; Compress Flymake mode-line name
+  ;; Shorter Flymake mode-line symbol
   (defun my-flymake-modeline-filter (ret)
     "Filter function for `flymake--mode-line-format`."
     (setf (seq-elt (car ret) 1) " FlyM")
@@ -53,12 +53,12 @@
   (with-eval-after-load 'minions
     (add-to-list 'minions-direct 'flymake-mode)))
 
-;; macro for defining Flymake backends with less boilerplate code
+;; Macro for defining Flymake backends with less boilerplate code
 (use-package flymake-quickdef
   :after flymake
   :config
   ;; Code security analysis using devskim, https://github.com/microsoft/DevSkim
-  ;; To use it in Flymake, call `flymake-devskim-setup' and enable Flymake mode, e.g.
+  ;; To use in Flymake, call `flymake-devskim-setup' and enable Flymake mode, e.g.
   ;;   (add-hook 'python-mode-hook 'flymake-devskim-setup)
   ;;   (add-hook 'python-mode-hook 'flymake-mode)
   (flymake-quickdef-backend flymake-devskim-backend

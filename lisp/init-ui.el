@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up user interface and entry points to other user interface config files
+;; Set up user interface
 
 ;;; Code:
 
@@ -15,7 +15,7 @@
 
 (with-eval-after-load 'ibuffer
   (defvar ibuffer-saved-filter-groups
-          ;; files are grouped by the first matching filter-group in the list
+          ;; files are grouped by the first matching filter group in the list
           '(("default"
              ("Emacs" (or (name . "^\\*scratch\\*$")
                           (name . "^\\*Messages\\*$")))
@@ -99,7 +99,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (use-package anzu
   :bind (([remap query-replace] . anzu-query-replace)
          ([remap query-replace-regexp] . anzu-query-replace-regexp))
-  :config (global-anzu-mode))
+  :init (global-anzu-mode))
 
 ;; draw diagrams with the mouse; use `picture-mode' to draw with the keyboard
 (use-package artist
@@ -163,7 +163,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
 
-;; Eldoc
+;; show useful information about object-at-point in minibuffer
 (use-package eldoc
   :ensure nil ;; built-in
   :delight eldoc-mode)
@@ -300,7 +300,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
                 icomplete-show-matches-on-no-input t
                 icomplete-tidy-shadowed-file-names t))
 
-;; menu list of major definitions in the file
+;; menu list of major definitions in the buffer
 (use-package imenu
   :ensure nil ;; built-in
   :defer t

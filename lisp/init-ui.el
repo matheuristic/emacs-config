@@ -15,17 +15,20 @@
 
 (with-eval-after-load 'ibuffer
   (defvar ibuffer-saved-filter-groups
+          ;; files are grouped by the first matching filter-group in the list
           '(("default"
-             ("Dired" (mode . dired-mode))
              ("Emacs" (or (name . "^\\*scratch\\*$")
                           (name . "^\\*Messages\\*$")))
+             ("Shell" (or (mode . eshell-mode)
+                          (mode . shell-mode)
+                          (mode . term-mode)))
+             ("Programming" (derived-mode . prog-mode))
+             ("Web Browsing" (mode . eww-mode))
              ("Org" (or (mode . org-mode)
                         (mode . org-agenda-mode)))
              ("Magit" (or (name . "\*magit.*\\*")
                           (mode . magit-mode)))
-             ("Shell" (or (mode . eshell-mode)
-                          (mode . shell-mode)
-                          (mode . term-mode)))
+             ("Dired" (mode . dired-mode))
              ("Help" (or (derived-mode . apropos-mode)
                          (derived-mode . help-mode)
                          (derived-mode . Info-mode)))))))
@@ -36,7 +39,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   (interactive)
   (let ((to_insert (completing-read
                     "Yank : " (cl-delete-duplicates kill-ring :test #'equal))))
-    ;; delete selected buffer region if applicable
+    ;; delete selected buffer region if any
     (if (and to_insert (region-active-p))
       (delete-region (region-beginning) (region-end)))
     ;; insert the selected entry from the kill ring
@@ -53,10 +56,10 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
       show-paren-delay 0) ;; no delay in show-paren-mode
 (show-paren-mode t) ;; show matching parentheses
 
-;; indent with soft tabs. Use C-q <TAB> for real tabs
+;; indent with soft tabs; use C-q <TAB> for real tabs
 (setq-default indent-tabs-mode nil)
 
-;; remove unused interface elements
+;; remove unused UI elements
 (when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
 (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 (when (and (not (display-graphic-p)) (fboundp 'menu-bar-mode)) (menu-bar-mode -1))
@@ -65,9 +68,9 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (when (display-graphic-p)
   ;; use super-left-click as middle-click (trackpad workaround)
   ;; (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
-  ;; smooth scrolling in GUI (hold SHIFT/CTRL for 5 line/full window increments)
+  ;; smooth scrolling in GUI, hold SHIFT/CTRL for 5 line/full window increments
   (setq mouse-wheel-scroll-amount '(1 ((shift) . 5) ((control))))
-  ;; horizontal scrolling (hold SHIFT/CTRL for 5 column/full window increments)
+  ;; horizontal scrolling, hold SHIFT/CTRL for 5 column/full window increments
   (global-set-key [wheel-right] (lambda () (interactive) (scroll-left 1)))
   (global-set-key [wheel-left] (lambda () (interactive) (scroll-right 1)))
   (global-set-key [S-wheel-right] (lambda () (interactive) (scroll-left 5)))
@@ -81,7 +84,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
         mac-option-modifier 'meta
         mac-right-option-modifier 'left))
 
-;; customize how mode names appear in the mode line
+;; enable customization of mode names in the mode line
 (use-package delight)
 
 ;; framework for temporary or repeatable bindings, also defines default hydras
@@ -92,13 +95,20 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   :bind ("M-X" . amx-major-mode-commands)
   :init (amx-mode))
 
+;; show current and total search matches, and preview query replace results
+(use-package anzu
+  :bind (([remap query-replace] . anzu-query-replace)
+         ([remap query-replace-regexp] . anzu-query-replace-regexp))
+  :config (global-anzu-mode))
+
 ;; draw diagrams with the mouse; use `picture-mode' to draw with the keyboard
 (use-package artist
+  :if (display-graphic-p)
   :ensure nil ;; built-in
   :defer t
   :bind (("C-c C-M-a" . artist-mode)
          :map artist-mode-map
-         ;; "super-click" for the drawing menu
+         ;; "super-click" for a context menu
          (([s-mouse-1] . artist-mouse-choose-operation))))
 
 ;; text completion framework
@@ -114,6 +124,11 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
         company-selection-wrap-around t
         company-show-numbers t ;; use M-<num> to directly choose completion
         company-tooltip-align-annotations t))
+
+;; typing text replaces the active (i.e. selected) region, if any
+(use-package delsel
+  :ensure nil ;; built-in
+  :config (delete-selection-mode))
 
 ;; Ediff
 (use-package ediff
@@ -153,15 +168,10 @@ Windows  _L_ : line-wise   _W_ : word-wise
   :ensure nil ;; built-in
   :delight eldoc-mode)
 
-;; increase selected region by semantic units
+;; expand selected region by semantic units
 (use-package expand-region
   :commands er/expand-region
   :bind ("C-=" . er/expand-region))
-
-;; highlight line
-(use-package hl-line
-  :ensure nil ;; built-in
-  :commands hl-line-mode)
 
 ;; advanced buffer menu
 (use-package ibuffer
@@ -380,7 +390,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
     ("m" outline-minor-mode :exit nil)
     ("q" nil "quit")))
 
-;; paredit
+;; Paredit
 (use-package paredit
   :commands paredit-mode
   :hook ((emacs-lisp-mode . paredit-mode)
@@ -422,7 +432,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
               recentf-max-saved-items 50)
   :config (recentf-mode t))
 
-;; traverse undo history as a tree, default binding is C-x u
+;; traverse undo history as a tree, default binding is "C-x u"
 (use-package undo-tree
   :delight undo-tree-mode
   :init (setq undo-tree-visualizer-relative-timestamps nil)
@@ -462,7 +472,7 @@ wheel-d : go to end"
                         mouse-face mode-line-highlight
                         help-echo my-which-func-header-keymap-help-text-default))
   (setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
-  ;; see init-org.el for an example of a mode-specific which-func header for Org mode
+  ;; see init-org.el for an example of a mode-specific which-func header for Org-mode
   (defvar my-which-func-header-formats
     `((nil . ,my-which-func-header-format-default))
     "Association list for looking up mode-specific which-func header-lines.
@@ -537,7 +547,7 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
     ("?" (message "Current auto-yasnippet:\n%s" aya-current) "current-auto") ;; show temp snippet
     ("q" nil "quit"))
   ;; remove default bindings to avoid conflicts with other packages
-  ;; removing prefix bindings also removes bindings using them
+  ;; removing prefix bindings also removes bindings that use them
   (unbind-key "\C-c&" yas-minor-mode-map)
   (unbind-key "\C-c" yas-minor-mode-map)
   (yas-global-mode 1))

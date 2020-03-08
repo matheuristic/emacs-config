@@ -8,7 +8,7 @@
 
 ;; The fonts from https://github.com/domtronn/all-the-icons.el have to be
 ;; installed on the system, either by downloading and manually installing them
-;; (e.g. with the Font Book app on OS X) or by running
+;; (e.g. using the Font Book app on OS X) or by running
 ;; "M-x all-the-icons-install-fonts"
 
 ;;; Code:
@@ -21,7 +21,9 @@
   ;; use font icons in Dired
   (use-package all-the-icons-dired
     :after (all-the-icons dired)
-    :hook (dired-mode . (lambda () (all-the-icons-dired-mode 1))))
+    :hook (dired-mode . all-the-icons-dired-mode)
+    :config (set-face-attribute 'all-the-icons-dired-dir-face nil
+                                :weight 'normal))
 
   ;; use font icons in Gnus
   (use-package all-the-icons-gnus

@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up Org-mode
+;; Org mode https://orgmode.org/
 
 ;;; Code:
 
@@ -429,7 +429,7 @@ wheel-d : prev same-level heading"
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily))
 
-;; presentations using Org documents
+;; in-editor presentations using Org documents
 (use-package org-present
   :pin "MELPA"
   :defer t
@@ -502,7 +502,7 @@ wheel-d : prev same-level heading"
   (advice-add 'org-present-read-only :after (lambda () (my-org-present-extra-mode 1)))
   (advice-add 'org-present-read-write :after (lambda () (my-org-present-extra-mode 0))))
 
-;; export Org documents to reveal.js presentations
+;; export to reveal.js presentations
 ;; https://gitlab.com/oer/org-re-reveal
 (use-package org-re-reveal
   :pin "MELPA"
@@ -510,10 +510,14 @@ wheel-d : prev same-level heading"
   :init (setq org-re-reveal-note-key-char nil
               org-re-reveal-root "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.8.0/"))
 
-;; export Org documents to Markdown
+;; export to Markdown
 (use-package ox-md
   :ensure nil
   :after org) ;; built-in to Org
+
+;; export to Tufte-LaTeX
+;; requires https://github.com/tsdye/tufte-org-mode
+(require 'init-org-tufte)
 
 (provide 'init-org)
 

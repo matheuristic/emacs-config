@@ -25,7 +25,6 @@
 
 ;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
 (use-package lsp-python-ms
-  :pin "MELPA"
   :defer t
   :hook (python-mode . (lambda ()
                          ;; load packages if deferred
@@ -39,7 +38,6 @@
 ;; manage python envs, prefer conda to virtualenvwrapper
 (if (executable-find "conda")
     (use-package conda
-      :pin "MELPA"
       :config
       (conda-env-initialize-interactive-shells)
       (conda-env-initialize-eshell)
@@ -60,7 +58,6 @@
         ("q" nil "quit"))
       (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body))
   (use-package virtualenvwrapper
-    :pin "MELPA"
     :config
     (venv-initialize-interactive-shells)
     (venv-initialize-eshell)
@@ -85,7 +82,7 @@
       ("q" nil "quit"))
     (global-set-key (kbd "C-c C-M-v e") 'my-hydra/virtualenv/body)))
 
-;; add security analysis linting using devskim, requires it to be installed
+;; add security analysis linting using devskim (requires it to be installed)
 (if (executable-find "devskim")
     ;; Flymake mode is loaded by lsp-mode
     (add-hook 'python-mode-hook 'flymake-devskim-setup))

@@ -4,16 +4,15 @@
 
 ;;; Commentary:
 
-;; Configure color themes
+;; Configure color theme
 
 ;;; Code:
 
 ;; emulate reading on e-ink devices
 (use-package eink-theme
-  :pin "MELPA"
   :config
   (load-theme 'eink t)
-  ;; visible fringe bitmaps (they are invisible in the theme)
+  ;; visible fringe bitmaps (invisible in the theme by default)
   (set-face-attribute 'fringe nil
                       :foreground (face-foreground 'default))
   ;; have comment delimiters match comments
@@ -24,7 +23,7 @@
   ;; make inactive mode-line foreground visible
   (set-face-attribute 'mode-line-inactive nil
                       :foreground "#909090")
-  ;; distinctive strings
+  ;; more distinctive strings
   (set-face-attribute 'font-lock-string-face nil
                       :foreground "#606060")
   ;; less prominent line numbers
@@ -37,7 +36,7 @@
   ;; underline links
   (set-face-attribute 'link nil
                       :underline t)
-  ;; hl-line-mode background color
+  ;; have highlighted lines be visible
   (with-eval-after-load 'hl-line
     (set-face-attribute 'hl-line nil :background "#fedcba")))
 

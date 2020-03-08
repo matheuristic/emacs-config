@@ -308,7 +308,6 @@ Windows  _L_ : line-wise   _W_ : word-wise
 
 ;; menu list of major definitions across several buffers
 (use-package imenu-anywhere
-  :pin "MELPA"
   :defer t
   :after imenu
   :bind ("C-c C-M-i m" . imenu-anywhere))
@@ -419,7 +418,6 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 ;;          (eval . (real-auto-save-mode 1))))) ;; buffer-local auto-save
 ;; --
 (use-package real-auto-save
-  :pin "MELPA"
   :defer t
   :config (setq real-auto-save-interval 10)) ;; save interval, in seconds
 
@@ -491,7 +489,6 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
 
 ;; display available bindings in popup
 (use-package which-key
-  :pin "MELPA"
   :delight which-key-mode
   :bind ("C-c C-M-w k" . which-key-show-top-level)
   :init

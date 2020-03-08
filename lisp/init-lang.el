@@ -56,12 +56,12 @@
 ;; xelatex and biber, so they will need to be installed on the system
 ;;
 ;; Org documents should include the LaTeX headers for bibliographies via
-;; "#+LATEX_HEADER:" structural markup elements and "\printbibliography"
-;; should be added at the desired location for the bibliography (typically
+;; "#+LATEX_HEADER:" structural markup elements, and "\printbibliography"
+;; should be added at the desired location for the bibliography (usually
 ;; at the end of an article or book chapter or before the index)
 ;;
 ;; Org references to bibliography entries can be inserted by pressing `i' when
-;; on an entry in ebib or by calling `ebib-insert-citation' in org-mode
+;; on an entry in ebib or by calling `ebib-insert-citation' within org-mode
 ;;
 ;; to export references from Org to LaTeX, ebib needs to be opened with the
 ;; bibliographies for the references that appear in the document
@@ -133,7 +133,6 @@
 (when (or (member "julia" init-lang-enable-list)
           (member "r" init-lang-enable-list))
   (use-package ess
-    :pin "MELPA"
     :mode (("\\.R$" . R-mode)
            ("\\.jl$" . julia-mode))
     :commands (R-mode julia-mode ess-switch-to-ESS)
@@ -189,7 +188,6 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
 ;; Markdown
 (when (member "markdown" init-lang-enable-list)
   (use-package markdown-mode
-    :pin "MELPA"
     :commands (markdown-mode gfm-mode)
     :mode (("README\\.md\\'" . gfm-mode)
            ("\\.md\\'" . markdown-mode)
@@ -201,8 +199,7 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
            ("C-c C-M-m" . my-hydra/markdown-mode/body))
     :config
     ;; table of contents
-    (use-package markdown-toc
-      :pin "MELPA")
+    (use-package markdown-toc)
     ;; Github-flavored Markdown/Org preview using grip
     ;; requires Python grip package be installed
     (use-package grip-mode

@@ -5,27 +5,25 @@
 ;;; Commentary:
 
 ;; Language Server Protocol (LSP) and Debug Adaptor Protocol (DAP) tooling
+;; For LSP info, see https://langserver.org/
+;; For DAP info, see https://microsoft.github.io/debug-adapter-protocol/
 
 ;;; Code:
 
 ;; LSP client
 (use-package lsp-mode
-  :pin "MELPA"
   :defer t
   :bind (:map lsp-mode-map
          ("C-c C-M-l" . my-hydra/lsp/body))
   :config
   (setq lsp-print-io nil ;; disable logging packets between Emacs and LS
         lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
-        lsp-eldoc-enable-signature-help nil ;; display signature help in minibuffer
-        lsp-eldoc-prefer-signature-help nil ;; prefer displaying signature help to hover
         lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
         lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
         lsp-diagnostic-package :flymake ;; use Flymake for syntax checking
         lsp-signature-auto-activate nil) ;; don't automatically show signature, use C-S-SPC to peek; see https://github.com/emacs-lsp/lsp-mode/issues/1223
   ;; user interface modules for lsp-mode
   (use-package lsp-ui
-    :pin "MELPA"
     :after lsp-mode
     :config
     (setq lsp-ui-doc-enable nil
@@ -37,7 +35,6 @@
     (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
   ;; company backend for LSP-driven completion
   (use-package company-lsp
-    :pin "MELPA"
     :commands company-lsp
     :init (setq company-lsp-cache-candidates t))
   ;; hydras adapted from lsp-mode's default command map, see lsp-command-map in
@@ -85,6 +82,7 @@
     ("q" my-hydra/lsp/body "←" :exit t))
   (defhydra my-hydra/lsp-goto (:color teal :columns 3)
     "Language Server → Goto"
+    ("I" lsp-ui-imenu "imenu")
     ("g" lsp-find-definition "definition")
     ("r" lsp-find-references "references")
     ("i" lsp-find-implementation "implementation")
@@ -120,7 +118,6 @@
 
 ;; DAP client
 (use-package dap-mode
-  :pin "MELPA"
   :commands dap-mode
   :after lsp-mode
   :bind (:map dap-mode-map

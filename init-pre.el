@@ -9,10 +9,14 @@
 
 ;;; Code:
 
-;; use GNU and MELPA repositories for package.el
+;; use GNU, Org, MELPA Stable and MELPA repositories for package.el
 ;; (setq package-archives '(("GNU"          . "https://elpa.gnu.org/packages/")
+;;                          ("Org"          . "https://orgmode.org/elpa/")
+;;                          ("MELPA Stable" . "https://stable.melpa.org/packages/")
 ;;                          ("MELPA"        . "https://melpa.org/packages/"))
 ;;       package-archive-priorities '(("GNU"          . 10)
+;;                                    ("Org"          . 8)
+;;                                    ("MELPA Stable" . 5)
 ;;                                    ("MELPA"        . 0)))
 
 ;; only load support for a subset of languages

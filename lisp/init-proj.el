@@ -15,13 +15,13 @@
 (use-package projectile
   :delight projectile-mode '(:eval (concat " [" (projectile-project-name) "]"))
   :bind (:map projectile-mode-map
-         ("C-c C-M-p" . projectile-command-map) ;; prefix binding for projectile cmds
+         ("C-c C-M-p" . projectile-command-map) ;; prefix binding for projectile commands
          ("C-c C-M-S-p" . my-hydra/projectile/body))
   :init
-  (setq projectile-create-missing-test-files t ;; create test file if none is found when toggling
+  (setq projectile-create-missing-test-files t ;; create a test file if none is found when toggling
         projectile-switch-project-action 'projectile-commander
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
-  (projectile-mode) ;; enable Projectile globally
+  (projectile-mode) ;; enable mode globally
   (defhydra my-hydra/projectile (:color teal :hint nil)
     "
 Projectile: %(projectile-project-root)
@@ -83,10 +83,9 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
     ("p" projectile-switch-project "switch project")
     ("q" nil "quit" :exit t)))
 
-;; Org TODOs for projectile projects that are also reflected in the Org agenda
+;; Org TODOs for projectile projects which are reflected in the Org agenda
 ;; use `org-capture' to store TODOs for the current project
 (use-package org-projectile
-  :pin "MELPA"
   :after (org projectile)
   :config
   (setq org-projectile-projects-file "~/org/projects.org"

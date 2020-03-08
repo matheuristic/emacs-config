@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Org mode https://orgmode.org/
+;; Org mode, https://orgmode.org/
 
 ;;; Code:
 
@@ -231,6 +231,7 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     ("<" org-insert-structure-template "structure" :exit t)
     ("'" org-edit-special "edit-special" :exit t)
     ("e" my-hydra/org-mode-emphasize/body "→ emphasize" :exit t)
+    ("x" my-hydra/org-mode-extras/body "→ extras" :exit t)
     ("q" nil "quit" :exit t))
   (defhydra my-hydra/org-mode-emphasize (:color teal :columns 4)
     "Org-mode → emphasize"
@@ -241,7 +242,11 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     ("c" (org-emphasize ?~) "code")
     ("v" (org-emphasize ?=) "verbatim")
     ("q" my-hydra/org-mode/body "←"))
-  ;; use variable pitch font for Org-mode in graphical Emacs
+  ;; use defhydra+ to add extra hydra entries here
+  (defhydra my-hydra/org-mode-extras (:color teal :columns 4)
+    "Org-mode → extras"
+    ("q" my-hydra/org-mode/body "←"))
+  ;; use variable pitch font for Org-mode in GUI Emacs
   (when (display-graphic-p)
     (require 'org-mouse) ;; Org-mode mouse support
     (add-hook 'org-mode-hook #'variable-pitch-mode) ;; enable var-pitch font
@@ -364,7 +369,6 @@ wheel-d : prev same-level heading"
 
 ;; UTF-8 bullets in Org buffers
 (use-package org-bullets
-  :pin "MELPA"
   :after org
   :hook (org-mode . org-bullets-mode)
   :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
@@ -401,7 +405,7 @@ wheel-d : prev same-level heading"
         (expand-file-name filename dirname))) ;; download save file path
     (setq org-download-method 'my-org-download-method
           org-download-timestamp "%Y%m%d%H%M%S-")
-    (defhydra+ my-hydra/org-mode ()
+    (defhydra+ my-hydra/org-mode-extras ()
       ("d" my-hydra/org-mode/download/body "→ download" :exit t))
     (defhydra my-hydra/org-mode/download (:color teal)
       ("s" org-download-screenshot "screenshot")
@@ -409,7 +413,6 @@ wheel-d : prev same-level heading"
 
 ;; journaling using Org documents
 (use-package org-journal
-  :pin "MELPA"
   :after org
   :init
   ;; org-capture helper function from https://github.com/bastibe/org-journal
@@ -431,7 +434,6 @@ wheel-d : prev same-level heading"
 
 ;; in-editor presentations using Org documents
 (use-package org-present
-  :pin "MELPA"
   :defer t
   :after org
   :hook ((org-present-mode . (lambda ()
@@ -444,8 +446,8 @@ wheel-d : prev same-level heading"
                                     (org-remove-inline-images)
                                     (org-present-read-write)
                                     (my-unhide-header-and-mode-lines))))
-  :init (defhydra+ my-hydra/org-mode ()
-          ("C-p" (lambda ()
+  :init (defhydra+ my-hydra/org-mode-extras ()
+          ("p" (lambda ()
                    (interactive)
                    (let ((in-present-mode (condition-case nil
                                               org-present-mode
@@ -459,7 +461,7 @@ wheel-d : prev same-level heading"
     (add-hook 'org-present-after-navigate-functions
               (lambda (&optional name header)
                 (my-org-display-latex-fragments))))
-  ;; functions for hiding header and mode lines during presentations
+  ;; functions for hiding header and mode lines when in a presentation
   (defvar-local my-orig-mode-line-format nil
     "Temporary variable to store original `mode-line-format'.")
   (defvar-local my-orig-header-line-format nil
@@ -502,22 +504,23 @@ wheel-d : prev same-level heading"
   (advice-add 'org-present-read-only :after (lambda () (my-org-present-extra-mode 1)))
   (advice-add 'org-present-read-write :after (lambda () (my-org-present-extra-mode 0))))
 
-;; export to reveal.js presentations
-;; https://gitlab.com/oer/org-re-reveal
+;; export to reveal.js presentations, https://gitlab.com/oer/org-re-reveal
 (use-package org-re-reveal
-  :pin "MELPA"
   :after org
   :init (setq org-re-reveal-note-key-char nil
               org-re-reveal-root "https://cdnjs.cloudflare.com/ajax/libs/reveal.js/3.8.0/"))
 
 ;; export to Markdown
 (use-package ox-md
-  :ensure nil
-  :after org) ;; built-in to Org
+  :ensure nil ;; built-in to Org
+  :after org)
 
-;; export to Tufte-LaTeX
-;; requires https://github.com/tsdye/tufte-org-mode
-(require 'init-org-tufte)
+;; export to Tufte-LaTeX, requires https://github.com/tsdye/tufte-org-mode
+(use-package org-tufte-latex
+  :ensure nil ;; local package
+  :after org
+  :init (defhydra+ my-hydra/org-mode-extras ()
+          ("T" org-tufte-latex-minor-mode "org-tufte-latex" :exit t)))
 
 (provide 'init-org)
 

@@ -13,12 +13,10 @@
 
 ;; ELPA-compatible package.el repositories
 (defvar package-archives '(("GNU"          . "https://elpa.gnu.org/packages/")
-                           ("MELPA Stable" . "https://stable.melpa.org/packages/")
                            ("MELPA"        . "https://melpa.org/packages/")))
 
 ;; Priority levels for the ELPA-compatible repositories
 (defvar package-archive-priorities '(("GNU"          . 10)
-                                     ("MELPA Stable" . 5)
                                      ("MELPA"        . 0)))
 
 ;; initialize package.el
@@ -31,8 +29,8 @@
   (package-refresh-contents)
   (package-install 'use-package))
 
-;; preload use-package and bind-key, and configure imenu support for `require'
-;; and `use-package'
+;; preload use-package and bind-key packages
+;; configure imenu support for the `require' and `use-package' keywords
 (eval-when-compile
   (setq use-package-enable-imenu-support t)
   (require 'use-package)

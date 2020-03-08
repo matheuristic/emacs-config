@@ -63,7 +63,6 @@
 ;; framework for defining temporary, repeatable bindings
 ;; see https://github.com/abo-abo/hydra
 (use-package hydra
-  :pin "MELPA"
   :config
   (defhydra my-hydra/bookmarks (:color teal :columns 3)
     "Bookmarks"

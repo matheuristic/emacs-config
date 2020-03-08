@@ -8,6 +8,7 @@
 
 ;;; Code:
 
+;; configure Scheme implementations Geiser is allowed to use
 ;; having only one active Scheme skips the Geiser startup prompt
 ;; (defvar geiser-active-implementations '(chez))
 
@@ -16,8 +17,7 @@
 
 ;; Scheme IDE, https://www.nongnu.org/geiser/
 (use-package geiser
-  :defer t
-  :pin "MELPA")
+  :defer t)
 
 (provide 'init-lang-scheme)
 

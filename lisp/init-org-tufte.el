@@ -192,9 +192,9 @@ See `org-link-parameters' for details about PATH, DESC and FORMAT."
   (defun org-tufte-make-copyright-page (copyrightdate rightholder publisher website printordinal printdate)
     """Creates a Tufte-LaTeX book copyright page.
 It will have the COPYRIGHTDATE, RIGHTHOLDER, PUBLISHER, WEBSITE,
-the PRINTORDINAL (e.g. \"First edition, second printing\") and
-the PRINTDATE. Typically used within an emacs-lisp source block.
-Example usage in an Org document:
+PRINTORDINAL (e.g. \"First edition, second printing\") and
+the PRINTDATE. Typically it is used within an emacs-lisp source block.
+Example usage within an Org document:
 #+begin_export latex
 (org-tufte-make-copyright-page \"1970\"
                                \"Author Or Right Holder Name\"
@@ -202,7 +202,7 @@ Example usage in an Org document:
                                \"http://this.is.not.a.real.site\"
                                \"First edition, second printing\"
                                \"January 1970\")
-#+end_export latex
+#+end_export
 """
     (format "
 #+begin_export LATEX

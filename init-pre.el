@@ -11,13 +11,13 @@
 
 ;; use GNU, Org, MELPA Stable and MELPA repositories for package.el
 ;; (setq package-archives '(("GNU"          . "https://elpa.gnu.org/packages/")
-;;                          ("Org"          . "https://orgmode.org/elpa/")
 ;;                          ("MELPA Stable" . "https://stable.melpa.org/packages/")
-;;                          ("MELPA"        . "https://melpa.org/packages/"))
-;;       package-archive-priorities '(("GNU"          . 10)
-;;                                    ("Org"          . 8)
-;;                                    ("MELPA Stable" . 5)
-;;                                    ("MELPA"        . 0)))
+;;                          ("MELPA"        . "https://melpa.org/packages/")
+;;                          ("Org"          . "https://orgmode.org/elpa/"))
+;;       package-archive-priorities '(("GNU"          . 2)
+;;                                    ("MELPA Stable" . 4)
+;;                                    ("MELPA"        . 6)
+;;                                    ("Org"          . 8)))
 
 ;; only load support for a subset of languages
 ;; (setq init-lang-enable-list '("csv" "docker" "json" "markdown" "yaml"))

@@ -233,7 +233,11 @@
     ("+" text-scale-increase "zoom-in")
     ("-" text-scale-decrease "zoom-out")
     ("0" (text-scale-adjust 0) "zoom-reset")
+    ("x" my-hydra/visual-extras/body "→ Extras" :exit t)
     ("q" nil "quit" :exit t))
+  (defhydra my-hydra/visual-extras (:color teal :columns 4)
+    "Visual → Extras"
+    ("q" my-hydra/visual/body "←"))
   (defhydra my-hydra/window (:color amaranth :columns 3)
     "Window"
     ("u" winner-undo "winner-undo")

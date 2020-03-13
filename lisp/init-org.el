@@ -35,7 +35,7 @@
 (defvar org-refile-targets '((nil . (:maxlevel . 9)) ;; current buffer
                              (org-agenda-files . (:maxlevel . 3)))) ;; files for agenda display
 (defvar org-refile-use-outline-path 'file) ;; allows refile to top level
- ;; tags (note that tags in the same group are mutually exclusive)
+ ;; tags (note that tags within the same group are mutually exclusive)
 (defvar org-tag-alist '((:startgroup) ;; difficulty
                         ("easy" . ?1)
                         ("medium" . ?2)
@@ -63,10 +63,10 @@
 
 ;; Org-mode
 ;;
-;; see http://doc.norang.ca/org-mode.html for a good example config
+;; see http://doc.norang.ca/org-mode.html for an example config
 ;;
-;; using "C-c '" to edit Org source blocks in a separate buffer will
-;; automatically escape the Org markup on return
+;; using "C-c '" to edit Org source blocks in a separate buffer
+;; automatically escapes the Org markup on return
 (use-package org
   :hook (org-mode . visual-line-mode)
   :bind (("C-c C-M-o" . my-hydra/org-global/body)
@@ -93,7 +93,7 @@
         org-fontify-done-headline t
         org-fontify-quote-and-verse-blocks t
         org-fontify-whole-heading-line t
-        org-hide-emphasis-markers t
+        org-hide-emphasis-markers nil
         org-hide-leading-stars t
         org-highlight-latex-and-related '(latex script entities) ;; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
         org-log-into-drawer t
@@ -126,7 +126,7 @@
         org-treat-S-cursor-todo-selection-as-state-change nil
         org-use-fast-todo-selection t
         org-use-speed-commands t)
-  ;; Scale up LaTeX fragment preview images on OS X
+  ;; scale up LaTeX fragment preview images on OS X
   (if (and (display-graphic-p)
            (eq system-type 'darwin)
            (executable-find "dvipng"))
@@ -230,11 +230,11 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     ("a" org-archive-subtree-default "archive" :exit t)
     ("<" org-insert-structure-template "structure" :exit t)
     ("'" org-edit-special "edit-special" :exit t)
-    ("e" my-hydra/org-mode-emphasize/body "→ emphasize" :exit t)
-    ("x" my-hydra/org-mode-extras/body "→ extras" :exit t)
+    ("e" my-hydra/org-mode-emphasize/body "→ Emphasize" :exit t)
+    ("x" my-hydra/org-mode-extras/body "→ Extras" :exit t)
     ("q" nil "quit" :exit t))
   (defhydra my-hydra/org-mode-emphasize (:color teal :columns 4)
-    "Org-mode → emphasize"
+    "Org-mode → Emphasize"
     ("b" (org-emphasize ?*) "bold")
     ("i" (org-emphasize ?/) "italic")
     ("u" (org-emphasize ?_) "underline")
@@ -242,9 +242,9 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     ("c" (org-emphasize ?~) "code")
     ("v" (org-emphasize ?=) "verbatim")
     ("q" my-hydra/org-mode/body "←"))
-  ;; use defhydra+ to add extra hydra entries here
+  ;; use defhydra+ to add more hydra entries
   (defhydra my-hydra/org-mode-extras (:color teal :columns 4)
-    "Org-mode → extras"
+    "Org-mode → Extras"
     ("q" my-hydra/org-mode/body "←"))
   ;; use variable pitch font for Org-mode in GUI Emacs
   (when (display-graphic-p)
@@ -385,14 +385,15 @@ wheel-d : prev same-level heading"
   (use-package org-download
     :after org
     :config
-    ;; set Mac screenshot command
+    ;; Mac screenshot command
     (if (memq window-system '(mac ns))
         (setq org-download-screenshot-method "screencapture -i %s"))
     ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
-    ;; save drag-and-drop images into folder of the same name as org file
+    ;; save drag-and-drop images into folder of the same name as Org file
     ;; with filename prefixed by a timestamp of format `org-download-timestamp'
-    ;; example: for `abc.org', test.png saves to `abc/20180522183050-test.png'
+    ;; e.g. dragging test.png to abc.org saves it to abc/20180522183050-test.png
     (defun my-org-download-method (link)
+      """Returns download save path for LINK, for use with `org-download'"""
       (let ((filename (format "%s%s"
                               (format-time-string org-download-timestamp)
                               (file-name-nondirectory
@@ -402,14 +403,17 @@ wheel-d : prev same-level heading"
         ;; create dir if it does not exist
         (unless (file-exists-p dirname)
           (make-directory dirname))
-        (expand-file-name filename dirname))) ;; download save file path
+        ;; save path
+        (expand-file-name filename dirname)))
     (setq org-download-method 'my-org-download-method
           org-download-timestamp "%Y%m%d%H%M%S-")
     (defhydra+ my-hydra/org-mode-extras ()
-      ("d" my-hydra/org-mode/download/body "→ download" :exit t))
+      ("d" my-hydra/org-mode/download/body "→ Download" :exit t))
     (defhydra my-hydra/org-mode/download (:color teal)
+      "Org-mode → Extras → Download"
       ("s" org-download-screenshot "screenshot")
-      ("y" org-download-yank "yank"))))
+      ("y" org-download-yank "yank")
+      ("q" my-hydra/org-mode-extras/body "←"))))
 
 ;; journaling using Org documents
 (use-package org-journal

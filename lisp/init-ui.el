@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up user interface
+;; Configure user interface
 
 ;;; Code:
 
@@ -58,11 +58,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 
 ;; indent with soft tabs; use C-q <TAB> for real tabs
 (setq-default indent-tabs-mode nil)
-
-;; remove unused UI elements
-(when (fboundp 'scroll-bar-mode) (scroll-bar-mode -1))
-(when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
-(when (and (not (display-graphic-p)) (fboundp 'menu-bar-mode)) (menu-bar-mode -1))
 
 ;; mouse settings
 (when (display-graphic-p)
@@ -195,7 +190,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
            ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
   ;; adapted from https://github.com/abo-abo/hydra/wiki/Ibuffer
   (defhydra my-hydra/ibuffer (:color amaranth :columns 3)
-    "ibuffer"
+    "Ibuffer"
     ;; navigation
     ("n" ibuffer-forward-line "next")
     ("p" ibuffer-backward-line "prev")
@@ -206,21 +201,21 @@ Windows  _L_ : line-wise   _W_ : word-wise
     ;; mark
     ("m" ibuffer-mark-forward "mark")
     ("u" ibuffer-unmark-forward "unmark")
-    ("*" my-hydra/ibuffer-mark/body "→ mark" :exit t)
+    ("*" my-hydra/ibuffer-mark/body "→ Mark" :exit t)
     ;; actions
     ("S" ibuffer-do-save "save")
     ("D" ibuffer-do-delete "delete")
-    ("a" my-hydra/ibuffer-action/body "→ action" :exit t)
+    ("a" my-hydra/ibuffer-action/body "→ Action" :exit t)
     ;; view
     ("g" ibuffer-update "refresh")
-    ("s" my-hydra/ibuffer-sort/body "→ sort" :exit t)
-    ("/" my-hydra/ibuffer-filter/body "→ filter" :exit t)
+    ("s" my-hydra/ibuffer-sort/body "→ Sort" :exit t)
+    ("/" my-hydra/ibuffer-filter/body "→ Filter" :exit t)
     ;; other
     ("o" ibuffer-visit-buffer-other-window "open-other" :exit t)
     ("q" nil "quit" :exit t))
   (defhydra my-hydra/ibuffer-mark (:color teal :columns 5
                                    :after-exit (my-hydra/ibuffer/body))
-    "ibuffer → mark"
+    "Ibuffer → Mark"
     ("*" ibuffer-unmark-all "unmark all")
     ("M" ibuffer-mark-by-mode "mode")
     ("m" ibuffer-mark-modified-buffers "modified")
@@ -235,7 +230,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
   (defhydra my-hydra/ibuffer-action (:color teal :columns 3
                                      :after-exit (if (eq major-mode 'ibuffer-mode)
                                                    (my-hydra/ibuffer/body)))
-    "ibuffer → action"
+    "Ibuffer → Action"
     ("A" ibuffer-do-view "view")
     ("E" ibuffer-do-eval "eval")
     ("F" ibuffer-do-shell-command-file "shell-command-file")
@@ -254,7 +249,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
     ("X" ibuffer-do-shell-command-pipe "shell-command-pipe")
     ("q" nil "←"))
   (defhydra my-hydra/ibuffer-sort (:color amaranth :columns 5)
-    "ibuffer → sort"
+    "Ibuffer → Sort"
     ("a" ibuffer-do-sort-by-alphabetic "alphabetic")
     ("f" ibuffer-do-sort-by-filename/process "filename")
     ("m" ibuffer-do-sort-by-major-mode "mode")
@@ -263,7 +258,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
     ("i" ibuffer-invert-sorting "invert")
     ("q" my-hydra/ibuffer/body "←" :exit t))
   (defhydra my-hydra/ibuffer-filter (:color amaranth :columns 5)
-    "ibuffer → filter"
+    "Ibuffer → Filter"
     ("a" ibuffer-add-saved-filters "add-saved")
     ("c" ibuffer-filter-by-content "content")
     ("e" ibuffer-filter-by-predicate "predicate")
@@ -351,7 +346,7 @@ Misc    _C-{_: number   _C-}_: letter                 _C-g_: quit
             ("C-g" nil :exit t)))
 
 ;; support code folding
-(use-package outline-minor-mode
+(use-package outline
   :ensure nil ;; built-in
   :defer
   :after hydra
@@ -361,11 +356,12 @@ Misc    _C-{_: number   _C-}_: letter                 _C-g_: quit
     (if outline-minor-mode
         "yes"
       "no"))
-  (defhydra+ my-hydra/visual ()
-    ("o" my-hydra/visual/outline/body "→ outline" :exit t))
-  (defhydra my-hydra/visual/outline (:color teal :hint nil)
+  (defhydra+ my-hydra/visual-extras ()
+    ("o" my-hydra/visual-extras/outline/body "→ Outline" :exit t))
+  (defhydra my-hydra/visual-extras/outline (:color teal :hint nil
+                                            :pre (require 'outline))
     "
-Visual → outline (minor-mode-enabled=%s(my-outline-status-string))
+Visual → Extras → Outline (minor-mode-enabled=%s(my-outline-status-string))
 
 Mode    _m_ : toggle
 
@@ -387,7 +383,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
     ("s" outline-show-subtree)
     ("a" outline-show-all)
     ("m" outline-minor-mode :exit nil)
-    ("q" nil "quit")))
+    ("q" my-hydra/visual-extras/body "←")))
 
 ;; Paredit
 (use-package paredit
@@ -395,8 +391,45 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   :hook ((emacs-lisp-mode . paredit-mode)
          (eval-expression-minibuffer-setup . paredit-mode) ;; when in minibuffer via `eval-expression`
          (lisp-interaction-mode . paredit-mode)) ;; *scratch*
-  :config (with-eval-after-load 'minions
-             (add-to-list 'minions-direct 'paredit-mode)))
+  :config
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'paredit-mode))
+  ;; make delete-selection-mode work within paredit-mode
+  (with-eval-after-load 'delsel
+    (put 'paredit-forward-delete 'delete-selection 'supersede)
+    (put 'paredit-backward-delete 'delete-selection 'supersede)
+    (put 'paredit-open-round 'delete-selection t)
+    (put 'paredit-open-square 'delete-selection t)
+    (put 'paredit-doublequote 'delete-selection t)
+    (put 'paredit-newline 'delete-selection t))
+  )
+
+;; color code by depth
+(use-package prism
+  :commands (prism-mode prism-whitespace-mode)
+  :init
+  (defhydra my-hydra/visual-extras-prism (:color teal :columns 4)
+    "Visual → Extras → Prism"
+    ("p" prism-mode "lisp-c")
+    ("w" prism-whitespace-mode "whitespace")
+    ("q" my-hydra/visual-extras/body "←"))
+  (defhydra+ my-hydra/visual-extras ()
+    ("p" my-hydra/visual-extras-prism/body "prism"))
+  :config (prism-set-colors :num 16
+                            :desaturations (cl-loop for i from 0 below 16
+                                                    collect (* i 2.5))
+                            :lightens (cl-loop for i from 0 below 16
+                                               collect (* i 2.5))
+                            :colors (list "saddle brown" "midnight blue" "dark green")
+
+                            :comments-fn
+                            (lambda (color)
+                              (prism-blend color
+                                           (face-attribute 'font-lock-comment-face :foreground) 0.25))
+
+                            :strings-fn
+                            (lambda (color)
+                              (prism-blend color "white" 0.5))))
 
 ;; manage system processes in Linux
 (when (eq system-type 'gnu/linux)

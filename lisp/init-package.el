@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up package management built around use-package
+;; Package management tooling
 
 ;;; Code:
 
@@ -12,12 +12,12 @@
 (defvar load-prefer-newer nil)
 
 ;; ELPA-compatible package.el repositories
-(defvar package-archives '(("GNU"          . "https://elpa.gnu.org/packages/")
-                           ("MELPA"        . "https://melpa.org/packages/")))
+(defvar package-archives '(("GNU"   . "https://elpa.gnu.org/packages/")
+                           ("MELPA" . "https://melpa.org/packages/")))
 
 ;; Priority levels for the ELPA-compatible repositories
-(defvar package-archive-priorities '(("GNU"          . 10)
-                                     ("MELPA"        . 0)))
+(defvar package-archive-priorities '(("GNU"   . 2)
+                                     ("MELPA" . 6)))
 
 ;; initialize package.el
 (setq package-enable-at-startup nil)
@@ -25,6 +25,7 @@
 (package-initialize)
 
 ;; bootstrap use-package, provides configuration macros
+;; for info, see https://github.com/jwiegley/use-package
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))

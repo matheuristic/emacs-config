@@ -54,7 +54,7 @@
     ("RET" (progn (dired-find-file) (when (eq major-mode 'dired-mode) (my-hydra/dired/body))) "open" :exit t)
     ("{" find-name-dired "find-name" :exit t)
     ("}" find-grep-dired "find-grep" :exit t)
-    ("/" my-hydra/dired-filter/body "→ filter" :exit t)
+    ("/" my-hydra/dired-filter/body "→ Filter" :exit t)
     ("(" dired-hide-details-mode "toggle-details")
     (")" dired-omit-mode "toggle-omit")
     ("+" dired-create-directory "mkdir")
@@ -89,7 +89,7 @@
     ("Z" dired-do-compress "compress")
     ("q" nil "quit" :exit t))
   (defhydra my-hydra/dired-filter (:color pink :columns 4)
-    "Dired → filter"
+    "Dired → Filter"
     ("n" dired-filter-by-name "by-name")
     ("r" dired-filter-by-regex "by-regex")
     ("." dired-filter-by-extension "by-ext")
@@ -113,7 +113,7 @@
     ("D" dired-filter-delete-saved-filters "del")
     ("A" dired-filter-add-saved-filters "add")
     ("L" dired-filter-load-saved-filters "load")
-    ("q" nil "quit" :exit t)))
+    ("q" my-hydra/dired/body "←" :exit t)))
 
 (provide 'init-dired)
 

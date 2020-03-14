@@ -4,16 +4,15 @@
 
 ;;; Commentary:
 
-;; Sets up minor mode `org-tufte-latex-minor-mode' to support exporting Org
-;; files to Tufte-LaTeX
+;; Minor mode `org-tufte-latex-minor-mode', supports Org export to Tufte-LaTeX
 
-;; This loads ox-tufte-latex.el that adds a new Tufte-LaTeX Org export backend
-;; as well as sets up helper functions and some buffer-local LaTeX defaults,
-;; e.g., the default LaTeX class while `org-tufte-latex-minor-mode' is active
-;; is "tufte-handout" and macros are created for Tufte-LaTeX specific commands
+;; This loads ox-tufte-latex.el that adds a Tufte-LaTeX Org export backend,
+;; and additionally sets up helper functions and buffer-local LaTeX defaults,
+;; i.e. activating `org-tufte-latex-minor-mode' sets the default LaTeX class
+;; to "tufte-handout" and defines macros for some Tufte-LaTeX specific commands
 ;; like \newthought, \sidenote and \marginnote
 
-;; Additionally, there is ebib citation support, setting up a link type
+;; Additionally, this mode configures an additional ebib citation link type
 ;; "tufte-ebib" for `ebib-insert-citation' that on exports to LaTeX expands
 ;; "[[tufte-ebib:key][Preamble text::Pre-note::Post-note]]" to
 ;; "Preamble text\autocite[Pre-note][Post-note]{key}"
@@ -21,29 +20,29 @@
 ;; Enable with `org-tufte-latex-minor-mode' or add the following to an Org file:
 ;; =====
 ;; * Local variables :noexport:
-;;   #+begin_src org
-;;   Local Variables:
-;;   eval: (org-tufte-latex-minor-mode 1)
-;;   End:
-;;   #+end_src
+;; #+begin_src org
+;; Local Variables:
+;; eval: (org-tufte-latex-minor-mode 1)
+;; End:
+;; #+end_src
 ;; =====
 
-;; Requires ox-extra.el (in the org-plus-contrib ELPA package) and
-;; ox-tufte-latex.el (download from https://github.com/tsdye/tufte-org-mode)
+;; Requires two Emacs packages be loadable:
+;; - ox-extra.el from the org-plus-contrib ELPA package, and
+;; - ox-tufte-latex.el from https://github.com/tsdye/tufte-org-mode
 
-;; Also requires these CTAN packages be installed (e.g. via tlmgr):
-;;   changepage fancyhdr geometry hyperref natbib
-;;   paralist placeins ragged2e setspace textcase
-;;   titlesec xcolor xifthen bera psnfss oberdiek
-;;   iftex microtype mathpazo soul etex etexcmds
-;;   biblatex booktabs graphics hyphenat marginfix
-;;   amsmath morefloats l3packages xpatch hycolor
-;;   pdfescape letltxmacro ltxcmds kvsetkeys
-;;   kvdefinekeys bigintcalc intcalc atbegshi
-;;   atveryend bitset rerunfilecheck epstopdf-pkg
-;;   uniquecounter refcount gettitlestring
-;;   hardwrap xltxtra realscripts
-;;   imakeidx fbb tufte-latex
+;; The following CTAN packages also need to be installed (e.g. via tlmgr):
+;; =====
+;; amsmath atbegshi atveryend bera biblatex bigintcalc bitset
+;; booktabs changepage epstopdf-pkg etex etexcmds fancyhdr
+;; fbb geometry gettitlestring graphics hardwrap hycolor
+;; hyperref hyphenat iftex imakeidx intcalc kvdefinekeys
+;; kvsetkeys l3packages letltxmacro ltxcmds marginfix
+;; mathpazo microtype morefloats natbib oberdiek paralist
+;; pdfescape placeins psnfss ragged2e realscripts refcount
+;; rerunfilecheck setspace soul textcase titlesec tufte-latex
+;; uniquecounter xcolor xifthen xltxtra xpatch
+;; =====
 
 ;;; Code:
 
@@ -53,9 +52,10 @@
 
 (require 'org)
 
-;; nodes with :ignore: tag are skipped but not their children when exporting
-(require 'ox-extra)
-(ox-extras-activate '(latex-header-blocks ignore-headlines))
+;; skip headlines with :ignore: tag but not their children when exporting
+;; this capability is enabled only when the ox-extra feature is available
+(when (require 'ox-extra nil t)
+  (ox-extras-activate '(latex-header-blocks ignore-headlines)))
 
 (defun tufte-latex-org-kwds ()
   "Parse the buffer and return a cons list of (property . value)
@@ -69,7 +69,7 @@ from lines like: #+PROPERTY: value"
   (or (cdr (assoc KEYWORD (tufte-latex-org-kwds))) ""))
 
 (defun insert-tufte-ebib-org-mode-cite-command (lst)
-  "Check if LST is an `org-mode' cite command list,
+  "Check if LST is an org-mode cite command list,
 and if so returns a modified list with the tufte-ebib cite command."
   (if (eq 'org-mode (car lst))
       (cons (car lst)
@@ -198,7 +198,7 @@ See `org-link-parameters' for details about PATH, DESC and FORMAT."
   nil
   ;; mode line indicator
   " OrgTL"
-  ;; minor mode bindings
+  ;; mode bindings
   nil
   ;; startup code
   (if (symbol-value org-tufte-latex-minor-mode)
@@ -213,11 +213,11 @@ the PRINTDATE. Typically it is used within an emacs-lisp source block.
 Example usage within an Org document:
 #+begin_export latex
 (org-tufte-latex-make-copyright-page \"1970\"
-                               \"Author Or Right Holder Name\"
-                               \"Some Publisher Group\"
-                               \"http://this.is.not.a.real.site\"
-                               \"First edition, second printing\"
-                               \"January 1970\")
+                                     \"Author Or Right Holder Name\"
+                                     \"Some Publisher Group\"
+                                     \"http://this.is.not.a.real.site\"
+                                     \"First edition, second printing\"
+                                     \"January 1970\")
 #+end_export"
     (format "
 #+begin_export LATEX

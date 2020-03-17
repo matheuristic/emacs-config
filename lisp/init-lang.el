@@ -136,8 +136,6 @@
     :mode (("\\.R$" . R-mode)
            ("\\.jl$" . julia-mode))
     :commands (R-mode julia-mode ess-switch-to-ESS)
-    :bind (:map ess-mode-map
-           ("C-c C-M-m" . my-hydra/ess/body))
     :init (setq ess-eval-visibly 'nowait
                 ess-default-style 'RStudio)
     :config
@@ -174,7 +172,27 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
       ("h" ess-display-help-on-object)
       ("H" ess-display-help-in-browser)
       ("A" ess-display-help-apropos)
-      ("q" nil "quit"))))
+      ("q" nil "quit"))
+    ;; adapted from https://emacs.stackexchange.com/questions/8041/how-to-implement-the-piping-operator-in-ess-mode
+    (defun my-insert-R-pipe-operator ()
+      "Insert R magrittr pipe operator '%>%'."
+      (interactive)
+      (just-one-space 1)
+      (insert "%>%")
+      (reindent-then-newline-and-indent))
+    (defun my-insert-R-assignment-operator ()
+      "Insert R assigment operator '<-'."
+      (interactive)
+      (just-one-space 1)
+      (insert "<- "))
+    ;; add keybindings for hydra and inserting assignment and pipe operators
+    (with-eval-after-load 'ess-mode
+      (define-key ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+      (define-key ess-mode-map (kbd "C-S-m") #'my-insert-R-pipe-operator)
+      (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess/body))
+    (with-eval-after-load 'ess-inf
+      (define-key inferior-ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+      (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-pipe-operator))))
 
 ;; JSON
 (when (member "json" init-lang-enable-list)

@@ -28,7 +28,7 @@
 ;;; Code:
 
 (deftheme ereader
-  "Theme mostly emulating an eReader device with some splashes of color.")
+  "Theme emulating an eReader device, with some splashes of color.")
 
 (let ((fg "#111111")
       (fg-table "#222291")
@@ -78,7 +78,7 @@
    `(ido-subdir ((t (:foreground ,fg))))
    `(isearch ((t (:background "#eeeee8" :foreground ,fg))))
    `(line-number ((t (:foreground "#cacaca" :weight light))))
-   `(link ((t (:foreground ,fg :underline))))
+   `(link ((t (:foreground ,fg :underline t))))
    `(minibuffer-prompt ((t (:foreground ,fg :weight bold))))
    `(mode-line ((t (:background ,bg-light :foreground ,fg))))
    `(mode-line-buffer ((t (:foreground ,fg :weight bold))))
@@ -97,7 +97,7 @@
    `(org-block ((t (:foreground ,fg :background "#ffffe0"))))
    `(org-block-begin-line ((t (:foreground "#555555" :background "#e2e1d5" :height 0.8))))
    `(org-block-end-line ((t (:foreground "#555555" :background "#e2e1d5" :height 0.8))))
-   `(org-date ((t (:foreground ,fg :underline))))
+   `(org-date ((t (:foreground ,fg :underline t))))
    `(org-document-info ((t (:foreground "midnight blue" :slant italic :height 1.3))))
    `(org-document-title ((t (:foreground "midnight blue" :weight bold :height 1.8))))
    `(org-done ((t (:foreground ,fg-light))))
@@ -110,7 +110,7 @@
    `(org-level-4 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
    `(org-level-5 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
    `(org-level-6 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
-   `(org-link ((t (:foreground "royal blue" :underline))))
+   `(org-link ((t (:foreground "royal blue" :underline t))))
    `(org-meta-line ((t (:inherit org-document-info-keyword))))
    `(org-quote ((t (:foreground ,fg :slant italic :inherit org-block))))
    `(org-scheduled ((t (:foreground ,fg))))

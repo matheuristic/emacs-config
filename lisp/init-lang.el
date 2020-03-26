@@ -67,7 +67,7 @@
 ;; bibliographies for the references that appear in the document
 ;;
 ;; use "::" in the Org link description to separate the preamble text,
-;; pre-note and post-note elements (all optional) for export to LaTeX,
+;; pre-note, and post-note elements (all optional) for export to LaTeX,
 ;; i.e. "[[ebib:key][Preamble text::Pre-note::Post-note]]"
 ;; will export to "Preamble text\cite[Pre-note][Post-note]{key}"
 ;;
@@ -227,7 +227,7 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
           (concat "<script type=\"text/x-mathjax-config\">"
                   "MathJax.Hub.Config({"
                   "  tex2jax: {"
-                  "    inlineMath: [ ['$','$'], [\"\\(\",\"\\)\"] ],"
+                  "    inlineMath: [ ['$','$'], [\"\\\\(\",\"\\\\)\"] ],"
                   "    processEscapes: true"
                   "  }"
                   "});"
@@ -238,7 +238,7 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
                   "</script>"))
     ;; syntax highlighting in fenced code blocks
     (setq markdown-fontify-code-blocks-natively t)
-    ;; place header markup only at the beginning of the line
+    ;; place header markup only at the start of a line
     (setq markdown-asymmetric-header t)
     (defhydra my-hydra/markdown-mode (:color teal :hint nil)
       "

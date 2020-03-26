@@ -22,7 +22,7 @@
 
 ;;; Commentary:
 
-;; Minimalistic color theme mostly emulating eReader devices,
+;; Minimalistic color theme mostly emulating eReader devices
 ;; forked from eink-theme.el at https://github.com/maio/eink-emacs
 
 ;;; Code:
@@ -84,7 +84,7 @@
    `(mode-line-buffer ((t (:foreground ,fg :weight bold))))
    `(mode-line-inactive ((t (:background ,bg-light :foreground "#909090"))))
    `(mode-line-minor-mode ((t (:weight ultra-light))))
-   `(query-replace ((t (:strike-through))))
+   `(query-replace ((t (:strike-through t))))
    `(region ((t (:background "#eeeee8" :foreground ,fg))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))

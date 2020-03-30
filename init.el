@@ -23,6 +23,7 @@
 ;; backwards-compatibility code for Emacs versions <27
 (when (version<= emacs-version "26.3")
   ;; load early-initialization file ~/.emacs.d/early-init.el
+  ;; in Emacs 27+, this file is autoloaded before rendering UI elements
   (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
     (if (file-exists-p local-f) (load-file local-f))))
 
@@ -30,12 +31,12 @@
 (use-package vlf
   :config (require 'vlf-setup))
 
+;; load custom Emacs configuration components
 (require 'init-backup)
 (require 'init-sensitive)
 (require 'init-ui)
 (require 'init-dired)
 (require 'init-term)
-(require 'init-vc)
 (require 'init-proj)
 (require 'init-org)
 (require 'init-lang)

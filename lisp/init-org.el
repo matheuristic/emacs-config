@@ -14,7 +14,7 @@
 
 (defvar my-org-agenda-inbox (concat org-directory "inbox.org"))
 (defvar org-agenda-files (cons my-org-agenda-inbox
-                               (mapcar '(lambda (x) (concat org-directory x))
+                               (mapcar #'(lambda (x) (concat org-directory x))
                                        '("gtd.org"
                                          "tickler.org"))))
 (defvar org-capture-templates '(("t" "Todo" entry (file my-org-agenda-inbox)
@@ -65,7 +65,7 @@
 ;;
 ;; see http://doc.norang.ca/org-mode.html for an example config
 ;;
-;; using "C-c '" to edit Org source blocks in a separate buffer
+;; using "C-c '" to edit Org source blocks in a side buffer
 ;; automatically escapes the Org markup on return
 (use-package org
   :hook (org-mode . visual-line-mode)
@@ -403,8 +403,8 @@ wheel-d : prev same-level heading"
     (setq org-download-method 'my-org-download-method
           org-download-timestamp "%Y%m%d%H%M%S-")
     (defhydra+ my-hydra/org-mode-extras ()
-      ("d" my-hydra/org-mode/download/body "→ Download" :exit t))
-    (defhydra my-hydra/org-mode/download (:color teal)
+      ("d" my-hydra/org-mode-extras/download/body "→ Download" :exit t))
+    (defhydra my-hydra/org-mode-extras/download (:color teal)
       "Org-mode → Extras → Download"
       ("s" org-download-screenshot "screenshot")
       ("y" org-download-yank "yank")
@@ -433,7 +433,6 @@ wheel-d : prev same-level heading"
 
 ;; in-editor presentations using Org documents
 (use-package org-present
-  :defer t
   :after org
   :hook ((org-present-mode . (lambda ()
                                (org-present-big)
@@ -445,14 +444,6 @@ wheel-d : prev same-level heading"
                                     (org-remove-inline-images)
                                     (org-present-read-write)
                                     (my-unhide-header-and-mode-lines))))
-  :init (defhydra+ my-hydra/org-mode-extras ()
-          ("p" (lambda ()
-                   (interactive)
-                   (let ((in-present-mode (condition-case nil
-                                              org-present-mode
-                                            (error nil))))
-                     (if in-present-mode (org-present-quit) (org-present))))
-           "org-present" :exit t))
   :config
   ;; regenerate LaTeX fragment preview images on slide transition
   (when (and (display-graphic-p)
@@ -501,7 +492,15 @@ wheel-d : prev same-level heading"
               map))
   ;; toggle minor mode after the relevant org-present funcalls
   (advice-add 'org-present-read-only :after (lambda () (my-org-present-extra-mode 1)))
-  (advice-add 'org-present-read-write :after (lambda () (my-org-present-extra-mode 0))))
+  (advice-add 'org-present-read-write :after (lambda () (my-org-present-extra-mode 0)))
+  (defhydra+ my-hydra/org-mode-extras ()
+          ("p" (lambda ()
+                   (interactive)
+                   (let ((in-present-mode (condition-case nil
+                                              org-present-mode
+                                            (error nil))))
+                     (if in-present-mode (org-present-quit) (org-present))))
+           "org-present" :exit t)))
 
 ;; export to reveal.js presentations, https://gitlab.com/oer/org-re-reveal
 (use-package org-re-reveal
@@ -518,8 +517,8 @@ wheel-d : prev same-level heading"
 (use-package org-tufte-latex
   :ensure nil ;; local package
   :after org
-  :init (defhydra+ my-hydra/org-mode-extras ()
-          ("T" org-tufte-latex-minor-mode "org-tufte-latex" :exit t)))
+  :config (defhydra+ my-hydra/org-mode-extras ()
+            ("T" org-tufte-latex-minor-mode "org-tufte-latex" :exit t)))
 
 (provide 'init-org)
 

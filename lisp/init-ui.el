@@ -51,6 +51,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (setq auto-revert-verbose nil ;; suppress auto-revert minibuffer messages
       column-number-mode t ;; show column number in mode line
       inhibit-startup-message t ;; suppress splash screen
+      initial-major-mode 'fundamental-mode ;; set minimal *scratch* buffer major-mode
       ring-bell-function 'ignore ;; turn off audio and visual bells
       scroll-conservatively 101 ;; scroll a line at a time at window edge
       show-paren-delay 0) ;; no delay in show-paren-mode

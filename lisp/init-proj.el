@@ -92,6 +92,81 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
         org-agenda-files (append org-agenda-files (org-projectile-todo-files)))
   (push (org-projectile-project-todo-entry) org-capture-templates))
 
+;; lightweight alternative to emerge/ediff
+(use-package smerge-mode
+  :ensure nil
+  :hook (find-file . (lambda ()
+                       (save-excursion
+                         (goto-char (point-min))
+                         (when (re-search-forward "^<<<<<<< " nil t)
+                           (smerge-mode 1)))))
+  :bind (:map smerge-mode-map
+         ("C-c C-M-m" . my-hydra/smerge/body))
+  :config (defhydra my-hydra/smerge (:color pink :hint nil :post (smerge-auto-leave))
+            "
+Smerge
+
+Move   _n_   : next          _p_ : prev
+
+Keep   _b_   : base          _u_   : upper         _l_   : lower
+       _a_   : all           _RET_ : current
+
+Diff   _<_   : upper/base    _=_   : upper/lower   _>_   : base/lower
+       _R_   : refine        _E_   : ediff
+
+Other  _C_   : combine       _r_   : resolve       _k_   : kill current
+
+"
+            ("n" smerge-next)
+            ("p" smerge-prev)
+            ("b" smerge-keep-base)
+            ("u" smerge-keep-upper)
+            ("l" smerge-keep-lower)
+            ("a" smerge-keep-all)
+            ("RET" smerge-keep-current)
+            ("<" smerge-diff-base-upper)
+            ("=" smerge-diff-upper-lower)
+            (">" smerge-diff-base-lower)
+            ("R" smerge-refine)
+            ("E" smerge-ediff)
+            ("C" smerge-combine-with-next)
+            ("r" smerge-resolve)
+            ("k" smerge-kill-current)
+            ("q" nil "quit" :exit t)))
+
+(when (executable-find "git")
+  ;; Git porcelain
+  (use-package magit
+    :commands magit-status
+    :bind (("C-c C-M-g s" . magit-status)
+           :map ibuffer-mode-map
+           ("G" . my-ibuffer-magit-status-at-pt))
+    :config
+    (setq auto-revert-check-vc-info t)
+    ;; "G" in Ibuffer calls `magit-status' for file at point using `ibuffer-vc'
+    ;; adapted from https://www.manueluberti.eu/emacs/2019/08/06/ibuffer-magit/
+    (defun my-ibuffer-magit-status-at-pt ()
+      "Call `magit-status' for the buffer at point while in Ibuffer."
+      (interactive)
+      (condition-case nil
+          (progn
+            (require 'ibuffer-vc)
+            (let ((buf (ibuffer-current-buffer t)))
+              (magit-status (cdr (ibuffer-vc-root buf)))))
+        (message "requires the `ibuffer-vc' package be installed."))))
+
+  ;; Browse historic versions of Git-controlled files
+  (use-package git-timemachine
+    :commands git-timemachine
+    :bind ("C-c C-M-g t" . git-timemachine))
+
+  ;; "I" in Magit opens an interface to manage git identity
+  (use-package git-identity
+    :after magit
+    :bind (:map magit-status-mode-map
+           ("I" . git-identity-info))
+    :config (git-identity-magit-mode 1)))
+
 (provide 'init-proj)
 
 ;;; init-proj.el ends here

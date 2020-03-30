@@ -129,7 +129,7 @@
 (when (member "clojure" init-lang-enable-list)
   (require 'init-lang-clojure))
 
-;; Emacs Speaks Statistics, has Flymake support for R lintr if installed
+;; Emacs Speaks Statistics, it has Flymake support for R lintr if installed
 (when (or (member "julia" init-lang-enable-list)
           (member "r" init-lang-enable-list))
   (use-package ess
@@ -222,7 +222,7 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
     ;; requires Python grip package be installed
     (use-package grip-mode
       :bind (:map markdown-mode-command-map ("g" . grip-mode)))
-    ;; render mathematical expressions in HTML preview
+    ;; render mathematical expressions in HTML previews
     (setq markdown-xhtml-header-content
           (concat "<script type=\"text/x-mathjax-config\">"
                   "MathJax.Hub.Config({"

@@ -59,6 +59,7 @@
                         (:endgroup)
                         ;; ungrouped
                         ("note" . ?n)))
+
 (defvar org-journal-dir (concat org-directory "journal/")) ;; default journal directory
 
 ;; Org-mode

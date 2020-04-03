@@ -82,10 +82,11 @@
       ("q" nil "quit"))
     (global-set-key (kbd "C-c C-M-v e") 'my-hydra/virtualenv/body)))
 
-;; add security analysis linting using devskim (requires it to be installed)
-(if (executable-find "devskim")
-    ;; Flymake mode is loaded by lsp-mode
-    (add-hook 'python-mode-hook 'flymake-devskim-setup))
+;; add security analysis linting using devskim (requires it be installed)
+(with-eval-after-load 'flymake
+  (if (executable-find "devskim")
+      ;; Flymake mode is loaded by lsp-mode
+      (add-hook 'python-mode-hook 'flymake-devskim-setup)))
 
 (provide 'init-lang-python)
 

@@ -214,8 +214,8 @@
    `(rpm-spec-section-face ((t (:inherit default :weight bold))))
 
    ;; linum / nlinum-relative
-   `(nlinum-relative-current-face ((t (:inherit normal :weight bold))))
-   `(linum ((t (:inherit normal :weight bold))))
+   `(nlinum-relative-current-face ((t (:inherit shadow :weight bold))))
+   `(linum ((t (:inherit shadow :weight bold))))
 
    ;; web-mode
    `(web-mode-current-element-highlight-face ((t (:inherit normal :weight bold :foreground ,fg))))

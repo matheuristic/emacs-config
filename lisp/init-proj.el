@@ -83,13 +83,14 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
     ("p" projectile-switch-project "switch project")
     ("q" nil "quit" :exit t)))
 
-;; Org TODOs for projectile projects which are reflected in the Org agenda
-;; use `org-capture' to store TODOs for the current project
+;; Org TODOs for projectile projects
+;; use `org-capture' to capture and store TODOs for the current project
+;; in `org-projectile-per-project-filepath' at the project's root directory
 (use-package org-projectile
   :after (org projectile)
   :config
-  (setq org-projectile-projects-file "~/org/projects.org"
-        org-agenda-files (append org-agenda-files (org-projectile-todo-files)))
+  (org-projectile-per-project)
+  (setq org-projectile-per-project-filepath "TODO.org")
   (push (org-projectile-project-todo-entry) org-capture-templates))
 
 ;; lightweight alternative to emerge/ediff

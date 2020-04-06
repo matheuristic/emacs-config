@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; transitional bindings using hydra
+;; Transitional bindings with visual hints
 
 ;;; Code:
 

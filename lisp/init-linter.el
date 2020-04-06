@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Code linting using Flymake
+;; Lint code using Flymake
 
 ;;; Code:
 
@@ -14,7 +14,10 @@
 (use-package flymake
   :ensure nil ;; built-in
   :bind (:map flymake-mode-map
-         ("C-c C-M-e e" . my-hydra/flymake/body))
+         ("C-c C-M-e e" . my-hydra/flymake/body)
+         ("C-c ! n" . flymake-goto-next-error)
+         ("C-c ! p" . flymake-goto-prev-error)
+         ("C-c ! l" . my-toggle-flymake-diagnostics))
   :hook (emacs-lisp-mode . flymake-mode)
   :config
   (setq flymake-no-changes-timeout 0.5 ;; auto check buffer change wait time
@@ -22,8 +25,8 @@
   (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake)
   (use-package flymake-diagnostic-at-point
     :hook (flymake-mode . flymake-diagnostic-at-point-mode)
-    :config (setq flymake-diagnostic-at-point-display-diagnostic-function 'flymake-diagnostic-at-point-display-minibuffer ;; display error msg in minibuffer
-                  flymake-diagnostic-at-point-error-prefix "» "))
+    :config (setq flymake-diagnostic-at-point-display-diagnostic-function 'flymake-diagnostic-at-point-display-minibuffer ;; show error msg in minibuffer
+                  flymake-diagnostic-at-point-error-prefix ""))
   ;; Shorter Flymake mode-line symbol
   (defun my-flymake-modeline-filter (ret)
     "Filter function for `flymake--mode-line-format`."
@@ -44,9 +47,9 @@
               (dolist (wind flymake-winds) (quit-window nil wind))
             (flymake-show-diagnostics-buffer)))))
   (defhydra my-hydra/flymake (:color amaranth)
-    "Error"
-    ("p" flymake-goto-prev-error "previous")
-    ("n" flymake-goto-next-error "next")
+    "Flymake"
+    ("p" flymake-goto-prev-error "prev-err")
+    ("n" flymake-goto-next-error "next-err")
     ("l" my-toggle-flymake-diagnostics "list")
     ("s" flymake-start "start-check")
     ("q" nil "quit" :exit t))

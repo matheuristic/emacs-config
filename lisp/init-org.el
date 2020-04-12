@@ -278,7 +278,7 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1)))
     (with-eval-after-load 'init-ui-font
       ;; ... but keep some faces fixed-pitch
-      (require 'org-indent) ;; make sure org-indent face is defined
+      (require 'org-indent) ;; ensure `org-indent' face is defined
       (let ((fixed-pitch-family (face-attribute 'fixed-pitch :family nil 'default)))
         (dolist (curr-face '(org-block
                              org-block-begin-line
@@ -369,7 +369,7 @@ wheel-d : prev same-level heading"
   :hook (org-mode . org-bullets-mode)
   :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
 
-;; insert url from clipboard as link with title of page
+;; insert urls from clipboard as links with title of page
 (when (display-graphic-p)
   (use-package org-cliplink
     :after org

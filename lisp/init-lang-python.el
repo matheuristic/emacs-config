@@ -18,6 +18,34 @@
 (with-eval-after-load 'imenu
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
 
+(use-package python
+  :ensure nil ;; built-in
+  :defer t
+  :bind (:map python-mode-map
+         ("C-c C-M-m" . my-hydra/python/body))
+  :config
+  (defhydra my-hydra/python (:color teal :columns 4)
+    "Python"
+    ;; python repl
+    ("p" run-python "run-python")
+    ("s" python-shell-send-string "send-str")
+    ("e" python-shell-send-statement "send-stmt")
+    ("r" python-shell-send-region "send-rgn")
+    ("x" python-shell-send-defun "send-def")
+    ("c" python-shell-send-buffer "send-buf")
+    ("l" python-shell-send-file "send-file")
+    ("z" python-shell-switch-to-shell "switch-to-sh")
+    ;; indentation
+    ("<" python-indent-shift-left "indent-l")
+    (">" python-indent-shift-right "indent-r")
+    ;; utilities
+    ("v" python-check "check-err")
+    ("f" python-eldoc-at-point "eldoc-at-pt")
+    ("d" python-describe-at-point "descr-at-pt")
+    ;; other
+    ("j" imenu "imenu")
+    ("q" nil "quit")))
+
 ;; enable Python evaluation in Org code blocks
 (use-package ob-python
   :ensure nil ;; built-in

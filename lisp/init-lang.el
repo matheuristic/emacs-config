@@ -15,16 +15,16 @@
   :group 'convenience)
 
 (defcustom init-lang-enable-list '("bibtex" "clojure" "csv" "docker" "json"
-                                   "julia" "lisp" "markdown" "plantuml"
-                                   "python" "r" "scheme" "yaml")
+                                   "lisp" "markdown" "plantuml" "python" "r"
+                                   "scheme" "yaml")
   "List of languages for which to enable support."
   :type '(repeat string)
   :group 'init-lang-el)
 
-;; enable support for code linting
+;; support for code linting
 (require 'init-linter)
 
-;; configure tooling for Language Server Protocol and Debug Adaptor Protocol
+;; tooling for Language Server Protocol and Debug Adaptor Protocol
 (require 'init-lang-lsp)
 
 ;; CSV
@@ -61,7 +61,7 @@
 ;; at the end of an article or book chapter or before the index)
 ;;
 ;; Org references to bibliography entries can be inserted by pressing `i' when
-;; on an entry in ebib or by calling `ebib-insert-citation' within org-mode
+;; on an entry in ebib or by calling `ebib-insert-citation' within Org mode
 ;;
 ;; to export references from Org to LaTeX, ebib needs to be opened with the
 ;; bibliographies for the references that appear in the document
@@ -129,16 +129,20 @@
 (when (member "clojure" init-lang-enable-list)
   (require 'init-lang-clojure))
 
-;; Emacs Speaks Statistics, it has Flymake support for R lintr if installed
-(when (or (member "julia" init-lang-enable-list)
-          (member "r" init-lang-enable-list))
+;; Emacs Speaks Statistics, has Flymake support for R lintr if installed
+(when (member "r" init-lang-enable-list)
   (use-package ess
-    :mode (("\\.R$" . R-mode)
-           ("\\.jl$" . julia-mode))
-    :commands (R-mode julia-mode ess-switch-to-ESS)
+    :mode ("\\.R$" . R-mode)
+    :commands (R-mode ess-switch-to-ESS)
     :init (setq ess-eval-visibly 'nowait
                 ess-default-style 'RStudio)
     :config
+    ;; open inferior processes in new frames, not split windows, in GUI Emacs
+    (when (display-graphic-p)
+      (add-to-list 'display-buffer-alist
+                   '("*R"
+                     (display-buffer-reuse-window display-buffer-pop-up-frame)
+                     (reusable-frames . 0))))
     (defhydra my-hydra/ess (:color teal :hint nil)
       "
 Emacs Speaks Statistics
@@ -185,11 +189,12 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
       (interactive)
       (just-one-space 1)
       (insert "<- "))
-    ;; add keybindings for hydra and inserting assignment and pipe operators
+    ;; keybindings for hydra
     (with-eval-after-load 'ess-mode
       (define-key ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
       (define-key ess-mode-map (kbd "C-S-m") #'my-insert-R-pipe-operator)
       (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess/body))
+    ;; keybindings for inserting assignment and pipe operators
     (with-eval-after-load 'ess-inf
       (define-key inferior-ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
       (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-pipe-operator))))
@@ -218,10 +223,6 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
     :config
     ;; table of contents
     (use-package markdown-toc)
-    ;; Github-flavored Markdown/Org preview using grip
-    ;; requires Python grip package be installed
-    (use-package grip-mode
-      :bind (:map markdown-mode-command-map ("g" . grip-mode)))
     ;; render mathematical expressions in HTML previews
     (setq markdown-xhtml-header-content
           (concat "<script type=\"text/x-mathjax-config\">"
@@ -255,7 +256,7 @@ Toggle      _E_ : math      _F_ : code-font _I_ : images    _L_ : url
             _M_ : markup
 
 Other       _d_ : do        _o_ : follow    _'_ : edit code block
-            _t_/_C-t_ : insert/remove table of contents
+            _t_/_C-t_ : insert-or-refresh/remove table of contents
 
 "
       ;; keymaps
@@ -287,13 +288,6 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
       ("C-t" markdown-toc-delete-toc)
       ;; quit
       ("q" nil "quit"))))
-
-;; Pandoc wrapper for converting between document formats
-;; Use "C-c /" to access pandoc options and settings
-(use-package pandoc-mode
-  :commands (pandoc-mode pandoc-load-default-settings)
-  :hook ((pandoc-mode . pandoc-load-default-settings)
-         (markdown-mode . pandoc-mode)))
 
 ;; PlantUML support in Org documents
 ;;

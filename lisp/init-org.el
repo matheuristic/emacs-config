@@ -85,6 +85,7 @@
   :config
   (require 'org-agenda)
   (setq org-adapt-indentation nil ;; don't auto-indent node text when promoting or demoting nodes
+        org-agenda-follow-indirect t ;; narrow to subtree in org-agenda-follow-mode ("F" in agenda)
         org-agenda-restore-windows-after-quit t
         org-agenda-start-on-weekday nil
         org-agenda-window-setup 'only-window ;; full-frame Agenda view

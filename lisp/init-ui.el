@@ -583,6 +583,55 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
   (unbind-key "\C-c" yas-minor-mode-map)
   (yas-global-mode 1))
 
+;; view and compare directory trees, like Beyond Compare
+(use-package ztree
+  :bind (("C-c C-M-z" . my-hydra/ztree/body)
+         :map ztree-mode-map
+         ("n" . ztree-next-line)
+         ("p" . ztree-previous-line)
+         :map ztreedir-mode-map
+         ("C-c C-M-m" . my-hydra/ztree-dir/body)
+         :map ztreediff-mode-map
+         ("C-c C-M-m" . my-hydra/ztree-diff/body))
+  :config
+  (setq ztree-dir-move-focus t ;; RET in ztree-dir also moves focus
+        ztree-draw-unicode-lines t ;; unicode lines
+        ztree-show-number-of-children t) ;; show number of files in subdir tree
+  (defhydra my-hydra/ztree  (:color teal)
+    "ztree"
+    ("D" ztree-diff "diff")
+    ("d" ztree-dir "dir")
+    ("q" nil "quit"))
+  (defhydra my-hydra/ztree-dir (:color pink :columns 3)
+    "ztree-dir"
+    ("RET" ztree-perform-action "toggle/open-other" :exit t)
+    ("SPC" ztree-perform-soft-action "toggle/open" :exit t)
+    ("x" ztree-toggle-expand-subtree "toggle" :exit t)
+    ("g" ztree-refresh-buffer "refresh" :exit t)
+    ("DEL" ztree-move-up-in-tree "goto-parent" :exit t)
+    ("H" ztree-dir-toggle-show-filtered-files "show-filtered" :exit t)
+    (">" ztree-dir-narrow-to-dir "narrow" :exit t)
+    ("<" ztree-dir-widen-to-parent "widen" :exit t)
+    ("d" ztree-dir-open-dired-at-point "dired" :exit t)
+    ("q" nil "quit"))
+  (defhydra my-hydra/ztree-diff (:color pink :columns 3)
+    "ztree-diff"
+    ("RET" ztree-perform-action "toggle/ediff" :exit t)
+    ("SPC" ztree-perform-soft-action "toggle/diff" :exit t)
+    ("TAB" ztree-jump-side "jump-side" :exit t)
+    ("x" ztree-toggle-expand-subtree "toggle" :exit t)
+    ("g" ztree-refresh-buffer "refresh" :exit t)
+    ("DEL" ztree-move-up-in-tree "goto-parent" :exit t)
+    ("h" ztree-diff-toggle-show-equal-files "show-equal" :exit t)
+    ("H" ztree-diff-toggle-show-filtered-files "show-filtered" :exit t)
+    ("d" ztree-diff-simple-diff-files "diff-files" :exit t)
+    ("v" ztree-diff-view-file "view" :exit t)
+    ("C" ztree-diff-copy "copy" :exit t)
+    ("D" ztree-diff-delete-file "delete" :exit t)
+    ("r" ztree-diff-partial-rescan "rescan-part" :exit t)
+    ("R" ztree-diff-full-rescan "rescan-full" :exit t)
+    ("q" nil "quit")))
+
 (require 'init-ui-color)
 (require 'init-ui-icons)
 (require 'init-ui-modeline)

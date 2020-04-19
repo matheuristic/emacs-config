@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up Dired
+;; Configure Dired (directory editor)
 
 ;;; Code:
 

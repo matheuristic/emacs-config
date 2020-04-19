@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Package management tooling
+;; Package management config and tooling
 
 ;;; Code:
 

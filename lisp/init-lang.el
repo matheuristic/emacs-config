@@ -237,10 +237,8 @@ Help        _h_   : object  _H_   : browser _A_   : apropos
                   "        src=\"https://cdnjs.cloudflare.com/ajax/libs/"
                   "mathjax/2.7.5/MathJax.js?config=TeX-MML-AM_CHTML\">"
                   "</script>"))
-    ;; syntax highlighting in fenced code blocks
-    (setq markdown-fontify-code-blocks-natively t)
-    ;; place header markup only at the start of a line
-    (setq markdown-asymmetric-header t)
+    (setq markdown-asymmetric-header t ;; place header markup only at the start of a line
+          markdown-fontify-code-blocks-natively t) ;; syntax highlighting in fenced code blocks
     (defhydra my-hydra/markdown-mode (:color teal :hint nil)
       "
 Markdown mode

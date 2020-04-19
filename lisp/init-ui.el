@@ -306,7 +306,20 @@ Windows  _L_ : line-wise   _W_ : word-wise
 (use-package imenu-anywhere
   :defer t
   :after imenu
-  :bind ("C-c C-M-i m" . imenu-anywhere))
+  :bind ("C-c C-M-j" . imenu-anywhere))
+
+;; show imenu as a list in a side buffer
+(use-package imenu-list
+  :defer t
+  :after imenu
+  :bind ("C-c C-M-'" . imenu-list-smart-toggle)
+  :config
+  (setq imenu-list-focus-after-activation t)
+  ;; pulse target after selecting
+  (add-hook 'imenu-list-after-jump-hook
+            (lambda () (pulse-momentary-highlight-one-line (point))))
+  ;; close imenu list after going to entry
+  (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
 
 ;; multiple cursors
 (use-package multiple-cursors

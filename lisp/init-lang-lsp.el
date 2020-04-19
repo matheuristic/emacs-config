@@ -82,7 +82,11 @@
     ("q" my-hydra/lsp/body "←" :exit t))
   (defhydra my-hydra/lsp-goto (:color teal :columns 3)
     "Language Server → Goto"
-    ("I" lsp-ui-imenu "imenu")
+    ("j" (lambda ()
+           (interactive)
+           (if (fboundp 'imenu-list-smart-toggle)
+                 (imenu-list-smart-toggle)
+               (lsp-ui-imenu))) "imenu") ;; prefer imenu-list to lsp-ui-imenu
     ("g" lsp-find-definition "definition")
     ("r" lsp-find-references "references")
     ("i" lsp-find-implementation "implementation")

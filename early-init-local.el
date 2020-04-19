@@ -1,11 +1,11 @@
-;;; init-pre.el --- Sample Emacs local pre-initialization config file -*- lexical-binding: t; -*-
+;;; early-init-local.el --- Sample Emacs local early init config file -*- lexical-binding: t; -*-
 
 ;; Author: matheuristic
 
 ;;; Commentary:
 
-;; Pre-initialization code goes here
-;; Symlink or copy this file to ~/.emacs.d/init-pre.el
+;; Local early initialization config code goes here (e.g. package repos)
+;; Symlink or copy this file to ~/.emacs.d/early-init-local.el
 
 ;;; Code:
 
@@ -23,11 +23,13 @@
 ;; (setq init-lang-enable-list '("csv" "docker" "json" "markdown" "yaml"))
 
 ;; font list by priority, used in lisp/init-ui-font.el
-;; (setq init-ui-font-fixed-pitch-list '("IBM Plex Mono"
+;; (setq init-ui-font-fixed-pitch-list '("Iosevka Fixed SS08",
+;;                                       "IBM Plex Mono"
 ;;                                       "Consolas"
 ;;                                       "Menlo"
 ;;                                       "DejaVu Sans Mono")
-;;       init-ui-font-variable-pitch-list '("IBM Plex Sans"
+;;       init-ui-font-variable-pitch-list '("IBM Plex Sans Condensed"
+;;                                          "IBM Plex Sans"
 ;;                                          "Calibri"
 ;;                                          "Helvetica Neue"
 ;;                                          "DejaVu Sans"))
@@ -44,16 +46,8 @@
 ;; use top-level Org files in default Org directory for Org agenda files
 ;; (setq org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
 
-;; use multimarkdown for processing markdown files in markdown-mode
-;; (setq markdown-command "multimarkdown")
-
-;; privacy settings
-;; (setq url-cookie-untrusted-urls '(".*")) ;; no cookies
-;; (setq url-privacy-level 'paranoid) ;; more private HTTP requests
-;; (url-setup-privacy-info) ;; apply `url-privacy-level'
-
-(provide 'init-pre)
-;;; init-pre.el ends here
+(provide 'early-init-local)
+;;; early-init-local.el ends here
 
 ;; suppress byte-compiler warnings about assignments to free variables
 ;; and calls to functions not known or not defined at runtime

@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Set up automatic file backups
+;; Configure automatic file backups
 
 ;;; Code:
 

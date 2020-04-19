@@ -5,7 +5,7 @@
 
 ;;; Commentary:
 
-;; Emacs pre-GUI config file, symlink or copy to ~/.emacs.d/early-init.el
+;; Early initialization config, symlink or copy to ~/.emacs.d/early-init.el
 
 ;; In Emacs 27+, the sequence of initialization is
 ;; 1. early-init.el
@@ -33,8 +33,8 @@
 (when (fboundp 'tool-bar-mode) (tool-bar-mode -1))
 (when (and (not (display-graphic-p)) (fboundp 'menu-bar-mode)) (menu-bar-mode -1))
 
-;; load local pre-initialization file ~/.emacs.d/init-pre.el
-(let ((local-f (expand-file-name "init-pre.el" user-emacs-directory)))
+;; load local pre-initialization file ~/.emacs.d/early-init-local.el
+(let ((local-f (expand-file-name "early-init-local.el" user-emacs-directory)))
   (if (file-exists-p local-f) (load-file local-f)))
 
 ;; always store Customize settings in a separate file

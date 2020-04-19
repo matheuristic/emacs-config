@@ -4,7 +4,7 @@
 
 ;;; Commentary:
 
-;; Configure color theme
+;; Configure custom color theme
 
 ;;; Code:
 

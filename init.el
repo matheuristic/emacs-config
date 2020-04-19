@@ -23,7 +23,7 @@
 ;; backwards-compatibility code for Emacs versions <27
 (when (version<= emacs-version "26.3")
   ;; load early-initialization file ~/.emacs.d/early-init.el
-  ;; in Emacs 27+, this file is autoloaded before rendering UI elements
+  ;; Emacs 27+ automatically loads this file before rendering UI elements
   (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
     (if (file-exists-p local-f) (load-file local-f))))
 
@@ -43,8 +43,8 @@
 (require 'init-http)
 (require 'init-web)
 
-;; load local post-initialization file ~/.emacs.d/init-post.el
-(let ((local-f (expand-file-name "init-post.el" user-emacs-directory)))
+;; load local post initialization file ~/.emacs.d/init-local.el
+(let ((local-f (expand-file-name "init-local.el" user-emacs-directory)))
   (if (file-exists-p local-f) (load-file local-f)))
 
 ;; load Customize settings

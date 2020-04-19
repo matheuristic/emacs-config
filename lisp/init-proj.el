@@ -18,7 +18,7 @@
          ("C-c C-M-p" . projectile-command-map) ;; prefix binding for projectile commands
          ("C-c C-M-S-p" . my-hydra/projectile/body))
   :init
-  (setq projectile-create-missing-test-files t ;; create a test file if none is found when toggling
+  (setq projectile-create-missing-test-files t ;; create test file if none is found when toggling
         projectile-switch-project-action 'projectile-commander
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
   (projectile-mode) ;; enable mode globally
@@ -156,12 +156,12 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
               (magit-status (cdr (ibuffer-vc-root buf)))))
         (message "requires the `ibuffer-vc' package be installed."))))
 
-  ;; Browse historic versions of Git-controlled files
+  ;; Browse older versions of Git-controlled files
   (use-package git-timemachine
     :commands git-timemachine
     :bind ("C-c C-M-g t" . git-timemachine))
 
-  ;; "I" in Magit opens an interface to manage git identity
+  ;; use "I" in Magit to open an interface to manage git identity
   (use-package git-identity
     :after magit
     :bind (:map magit-status-mode-map

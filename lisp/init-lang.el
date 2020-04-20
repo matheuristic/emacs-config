@@ -33,16 +33,29 @@
     :commands csv-mode
     :bind (:map csv-mode-map
            ("C-c C-M-m" . my-hydra/csv-mode/body))
-    :config (defhydra my-hydra/csv-mode (:color teal :columns 4)
-              "CSV mode"
-              ("s" csv-sort-fields "sort")
-              ("r" csv-sort-numeric-fields "numsort")
-              ("k" csv-kill-fields "cut")
-              ("y" csv-yank-fields "copy")
-              ("a" csv-align-fields "align")
-              ("u" csv-unalign-fields "unalign")
-              ("t" csv-transpose "transpose")
-              ("q" nil "quit"))))
+    :config
+    (setq csv-align-style 'auto) ;; `csv-align-fields' left/right-aligns text/numbers
+    (defun csv-align-visible-fields ()
+      "Align visible lines in `csv-mode'. Useful for large CSV files where
+`csv-align-fields' can take a very long time to run."
+      (interactive)
+      (csv-align-fields nil (window-start) (window-end)))
+    (defhydra my-hydra/csv-mode (:color teal :columns 4)
+      "CSV"
+      ("s" csv-sort-fields "sort")
+      ("n" csv-sort-numeric-fields "numsort")
+      ("r" csv-reverse-region "reverse")
+      ("d" csv-toggle-descending "toggle-desc-sort" :exit nil)
+      ("t" csv-transpose "transpose")
+      ("k" csv-kill-fields "cut")
+      ("y" csv-yank-fields "paste")
+      ("z" csv-yank-as-new-table "paste-as-new-tab")
+      ("A" csv-align-visible-fields "align-visible" :exit nil)
+      ("a" csv-align-fields "align" :exit nil)
+      ("u" csv-unalign-fields "unalign" :exit nil)
+      ("h" csv-header-line "toggle-header" :exit nil)
+      ("v" csv-toggle-invisibility "toggle-invis-sep" :exit nil)
+      ("q" nil "quit"))))
 
 ;; Dockerfile
 (when (member "docker" init-lang-enable-list)
@@ -272,7 +285,7 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
       ;; shift region
       ("<" markdown-outdent-region :color red)
       (">" markdown-indent-region :color red)
-      ;; toggle user interface
+      ;; user interface
       ("E" markdown-toggle-math)
       ("F" markdown-toggle-fontify-code-blocks-natively)
       ("I" markdown-toggle-inline-images)
@@ -292,7 +305,7 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
 ;; graphviz and java needs to be installed on the system
 ;;
 ;; the plantuml.jar file needs to be downloaded to `plantuml-jar-path' (the
-;; default value is "~/plantuml.jar") either manually or by using
+;; default value is "~/plantuml.jar") either manually or using
 ;; "M-x plantuml-download-jar"
 ;;
 ;; there is also Org source block support (edit a block with "C-c '" and

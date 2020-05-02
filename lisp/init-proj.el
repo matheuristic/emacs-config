@@ -143,7 +143,10 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
            :map ibuffer-mode-map
            ("G" . my-ibuffer-magit-status-at-pt))
     :config
-    (setq auto-revert-check-vc-info t)
+    ;; Uncomment below to check VC info on file auto-revert at the cost of
+    ;; increased I/O load
+    ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
+    ;; (setq auto-revert-check-vc-info t)
     ;; "G" in Ibuffer calls `magit-status' for file at point using `ibuffer-vc'
     ;; adapted from https://www.manueluberti.eu/emacs/2019/08/06/ibuffer-magit/
     (defun my-ibuffer-magit-status-at-pt ()

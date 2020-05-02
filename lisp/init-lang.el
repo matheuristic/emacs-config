@@ -150,12 +150,6 @@
     :init (setq ess-eval-visibly 'nowait
                 ess-default-style 'RStudio)
     :config
-    ;; open inferior processes in new frames, not split windows, in GUI Emacs
-    (when (display-graphic-p)
-      (add-to-list 'display-buffer-alist
-                   '("*R"
-                     (display-buffer-reuse-window display-buffer-pop-up-frame)
-                     (reusable-frames . 0))))
     (defhydra my-hydra/ess (:color teal :hint nil)
       "
 Emacs Speaks Statistics

@@ -273,30 +273,29 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     (advice-add 'text-scale-mode :after (lambda (&optional arg) (my-org-display-latex-fragments))))
   ;; graphical mode Org UI configuration
   (when (display-graphic-p)
-    (require 'org-mouse) ;; Org-mode mouse support
-    ;; use variable pitch fonts in Org mode ...
+    (require 'org-mouse) ;; mouse support
+    ;; use variable pitch fonts ...
     (add-hook 'org-mode-hook #'variable-pitch-mode)
     (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1)))
-    (with-eval-after-load 'init-ui-font
-      ;; ... but keep some faces fixed-pitch
-      (require 'org-indent) ;; ensure `org-indent' face is defined
-      (let ((fixed-pitch-family (face-attribute 'fixed-pitch :family nil 'default)))
-        (dolist (curr-face '(org-block
-                             org-block-begin-line
-                             org-block-end-line
-                             org-code
-                             org-date
-                             org-document-info-keyword
-                             org-done
-                             org-indent ;; properly align indentation
-                             org-latex-and-related
-                             org-meta-line
-                             org-property-value
-                             org-special-keyword
-                             org-table
-                             org-todo
-                             org-verbatim))
-          (set-face-attribute curr-face nil :family fixed-pitch-family)))))
+    ;; ... but keep some faces fixed-pitch
+    (require 'org-indent) ;; ensure `org-indent' face is defined
+    (let ((fixed-pitch-family (face-attribute 'fixed-pitch :family nil 'default)))
+      (dolist (curr-face '(org-block
+                           org-block-begin-line
+                           org-block-end-line
+                           org-code
+                           org-date
+                           org-document-info-keyword
+                           org-done
+                           org-indent ;; properly align indentation
+                           org-latex-and-related
+                           org-meta-line
+                           org-property-value
+                           org-special-keyword
+                           org-table
+                           org-todo
+                           org-verbatim))
+        (set-face-attribute curr-face nil :family fixed-pitch-family))))
   ;; maximize org-capture buffer
   (defun my-org-capture-setup (&rest args)
     "Save window configuration prior to `org-capture'."

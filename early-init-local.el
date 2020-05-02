@@ -22,17 +22,27 @@
 ;; only load support for a subset of languages
 ;; (setq init-lang-enable-list '("csv" "docker" "json" "markdown" "yaml"))
 
-;; font list by priority, used in lisp/init-ui-font.el
-;; (setq init-ui-font-fixed-pitch-list '("Iosevka Fixed SS08",
-;;                                       "IBM Plex Mono"
-;;                                       "Consolas"
-;;                                       "Menlo"
-;;                                       "DejaVu Sans Mono")
-;;       init-ui-font-variable-pitch-list '("IBM Plex Sans Condensed"
-;;                                          "IBM Plex Sans"
-;;                                          "Calibri"
-;;                                          "Helvetica Neue"
-;;                                          "DejaVu Sans"))
+;; use local eReader theme from ~/.emacs.d/lisp/ereader-theme.el
+;; (let ((local-f (expand-file-name "lisp/ereader-theme.el" user-emacs-directory)))
+;;   (when (file-exists-p local-f)
+;;     (load-file local-f)
+;;     (load-theme 'ereader t)))
+
+;; set graphical Emacs fonts
+;; (when (display-graphic-p)
+;;   ;; main fonts -> default, fixed and variable pitch, mode line
+;;   (set-face-attribute 'default nil :family "DinaRemaster"
+;;                       :height 160 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'fixed-pitch nil :family "DinaRemaster"
+;;                       :height 160 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'variable-pitch nil :family "Pixel Operator"
+;;                       :height 160 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'mode-line nil :family "DinaRemaster"
+;;                       :height 120 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'mode-line-inactive nil :family "DinaRemaster"
+;;                       :height 120 :weight 'normal :width 'normal)
+;;   ;; fallback font when display face does not have a unicode character glyph
+;;   (set-fontset-font "fontset-default" 'unicode "Greybeard"))
 
 ;; set conda install directory, used in lisp/init-lang-python.el
 ;; (setq conda-anaconda-home "~/miniconda3/")

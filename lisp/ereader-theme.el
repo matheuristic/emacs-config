@@ -22,8 +22,8 @@
 
 ;;; Commentary:
 
-;; Minimalistic color theme mostly emulating eReader devices
-;; forked from eink-theme.el at https://github.com/maio/eink-emacs
+;; Minimalistic color theme emulating eReader devices with a dash of color,
+;; forked and modified from eink-theme.el at https://github.com/maio/eink-emacs
 
 ;;; Code:
 
@@ -90,26 +90,26 @@
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))
 
    ;; org
-   `(org-agenda-date ((t (:foreground ,fg :height 1.2))))
-   `(org-agenda-date-today ((t (:foreground ,fg :weight bold :height 1.4))))
-   `(org-agenda-date-weekend ((t (:foreground ,fg :height 1.2))))
+   `(org-agenda-date ((t (:foreground ,fg))))
+   `(org-agenda-date-today ((t (:foreground ,fg :weight bold :underline t))))
+   `(org-agenda-date-weekend ((t (:foreground ,fg))))
    `(org-agenda-structure ((t (:foreground ,fg :weight bold))))
    `(org-block ((t (:foreground ,fg :background "#ffffe0"))))
-   `(org-block-begin-line ((t (:foreground "#555555" :background "#e2e1d5" :height 0.8))))
-   `(org-block-end-line ((t (:foreground "#555555" :background "#e2e1d5" :height 0.8))))
+   `(org-block-begin-line ((t (:foreground "#555555" :background "#e2e1d5"))))
+   `(org-block-end-line ((t (:foreground "#555555" :background "#e2e1d5"))))
    `(org-date ((t (:foreground ,fg :underline t))))
-   `(org-document-info ((t (:foreground "midnight blue" :slant italic :height 1.3))))
-   `(org-document-title ((t (:foreground "midnight blue" :weight bold :height 1.8))))
+   `(org-document-info ((t (:foreground "midnight blue" :slant italic))))
+   `(org-document-title ((t (:foreground "midnight blue" :weight bold))))
    `(org-done ((t (:foreground ,fg-light))))
    `(org-hide ((t (:foreground ,bg))))
    `(org-indent ((t (:inherit org-hide))))
    ;; use :overline to give headings more top margin
-   `(org-level-1 ((t (:foreground ,fg :weight semi-bold :height 1.3 :overline ,bg))))
-   `(org-level-2 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
-   `(org-level-3 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
-   `(org-level-4 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
-   `(org-level-5 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
-   `(org-level-6 ((t (:foreground ,fg :weight semi-bold :height 1.1 :overline ,bg))))
+   `(org-level-1 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
+   `(org-level-2 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
+   `(org-level-3 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
+   `(org-level-4 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
+   `(org-level-5 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
+   `(org-level-6 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
    `(org-link ((t (:foreground "royal blue" :underline t))))
    `(org-meta-line ((t (:inherit org-document-info-keyword))))
    `(org-quote ((t (:foreground ,fg :slant italic :inherit org-block))))
@@ -117,7 +117,7 @@
    `(org-sexp-date ((t (:foreground ,fg))))
    `(org-special-keyword ((t (:foreground ,fg))))
    `(org-table ((t (:foreground ,fg-table))))
-   `(org-tag ((t (:inherit shadow :weight bold :height 0.8))))
+   `(org-tag ((t (:inherit shadow :weight bold))))
    `(org-todo ((t (:foreground ,fg))))
    `(org-verbatim ((t (:foreground ,fg :weight semi-bold))))
    `(org-verse ((t (:inherit org-block :slant italic))))

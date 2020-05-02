@@ -645,10 +645,8 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
     ("R" ztree-diff-full-rescan "rescan-full" :exit t)
     ("q" nil "quit")))
 
-(require 'init-ui-color)
 (require 'init-ui-icons)
 (require 'init-ui-modeline)
-(require 'init-ui-font)
 
 (provide 'init-ui)
 

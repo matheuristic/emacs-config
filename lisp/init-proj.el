@@ -143,8 +143,7 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
            :map ibuffer-mode-map
            ("G" . my-ibuffer-magit-status-at-pt))
     :config
-    ;; Uncomment below to check VC info on file auto-revert at the cost of
-    ;; increased I/O load
+    ;; Uncomment to check VC info on file auto-revert (increases I/O load)
     ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
     ;; (setq auto-revert-check-vc-info t)
     ;; "G" in Ibuffer calls `magit-status' for file at point using `ibuffer-vc'
@@ -157,19 +156,21 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
             (require 'ibuffer-vc)
             (let ((buf (ibuffer-current-buffer t)))
               (magit-status (cdr (ibuffer-vc-root buf)))))
-        (message "requires the `ibuffer-vc' package be installed."))))
+        (message "requires `ibuffer-vc' package be installed."))))
 
   ;; Browse older versions of Git-controlled files
   (use-package git-timemachine
     :commands git-timemachine
     :bind ("C-c C-M-g t" . git-timemachine))
 
-  ;; use "I" in Magit to open an interface to manage git identity
+  ;; "I" in Magit opens git identity management interface
   (use-package git-identity
     :after magit
     :bind (:map magit-status-mode-map
            ("I" . git-identity-info))
-    :config (git-identity-magit-mode 1)))
+    :config
+    (require 'git-identity-magit)
+    (git-identity-magit-mode 1)))
 
 (provide 'init-proj)
 

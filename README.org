@@ -1,0 +1,47 @@
+#+title: Emacs config
+Emacs configuration files.
+* Usage
+To use, copy to the =~/.emacs.d= directory.
+Emacs versions ~27~ and newer also support [[https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html][XDG Base Directory Specification]], so it is possible to use =~/.config/emacs= as an alternative.
+* Font smoothing in Emacs for Mac OS X
+To control anti-aliasing/font smoothing in [[https://emacsformacosx.com/][Emacs for Mac OS X]], run the following (replace ~VALUE~ with an integer):
+#+begin_src sh
+$ defaults write org.gnu.Emacs AppleFontSmoothing -int VALUE
+#+end_src
+
+The supported values run from ~0~ to ~3~:
+- ~0~: disabled (no sub-pixel rendering)
+- ~1~: light
+- ~2~: medium (default)
+- ~3~: heavy
+
+The default value can still smooth fonts too heavily and make them blurry, especially with bitmap fonts.
+It is recommended to reduce ~AppleFontSmoothing~ to ~1~, i.e.
+#+begin_src sh
+$ defaults write org.gnu.Emacs AppleFontSmoothing -int 1
+#+end_src
+
+To restore the setting to the default ones, do
+#+begin_src sh
+$ defaults delete org.gnu.Emacs AppleFontSmoothing
+#+end_src
+
+For more information, see this [[https://github.com/kevinSuttle/macOS-Defaults/issues/17#issuecomment-266622810][link]].
+* Python projects
+** Flymake and Pylint
+To use [[https://www.pylint.org/][Pylint]] with [[https://elpa.gnu.org/packages/flymake.html][Flymake]], it needs to be configured as a checker.
+A Flymake backend can be defined and added to the list of the backends using [[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]].
+** Project-specific pylint configuration
+To specify a project-specific pylintrc file, create (or modify) a ~pylintrc~ file in the Python project root directory and add the following ~init-hook~ to the master section:
+#+begin_src
+[MASTER]
+
+init-hook="from pylint.config import find_pylintrc; import os, sys; sys.path.append(os.path.dirname(find_pylintrc()))"
+#+end_src
+You may also need to create (or modify) a ~.dir-locals.el~ file.
+For instance, if using [[https://www.flycheck.org/en/latest/][Flycheck]] put the following contents in a ~.dir-locals.el~ file in the project root directory to ensure FlyCheck uses the project-specific ~pylintrc~ file in Emacs:
+#+begin_src emacs-lisp
+;; project-specific Emacs settings
+((nil . ((flycheck-pylintrc . "pylintrc"))))
+#+end_src
+Flymake does not require explicit specification of a ~pylintrc~ file (it should search recursively upward in containing directories until it finds one).

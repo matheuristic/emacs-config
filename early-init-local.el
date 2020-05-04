@@ -32,11 +32,11 @@
 ;; (when (display-graphic-p)
 ;;   ;; main fonts -> default, fixed and variable pitch, mode line
 ;;   (set-face-attribute 'default nil :family "DinaRemaster"
-;;                       :height 160 :weight 'normal :width 'normal)
+;;                       :height 150 :weight 'normal :width 'normal)
 ;;   (set-face-attribute 'fixed-pitch nil :family "DinaRemaster"
-;;                       :height 160 :weight 'normal :width 'normal)
+;;                       :height 150 :weight 'normal :width 'normal)
 ;;   (set-face-attribute 'variable-pitch nil :family "Pixel Operator"
-;;                       :height 160 :weight 'normal :width 'normal)
+;;                       :height 150 :weight 'normal :width 'normal)
 ;;   (set-face-attribute 'mode-line nil :family "DinaRemaster"
 ;;                       :height 120 :weight 'normal :width 'normal)
 ;;   (set-face-attribute 'mode-line-inactive nil :family "DinaRemaster"

@@ -48,13 +48,15 @@
   :config
   (require 'em-term)
   (require 'em-smart)
-  ;; run visual commands in term sessions
-  (dolist (cmd '("htop" "lftp" "ssh" "tail" "watch" "vim"))
+  ;; run visual commands and subcommands in term sessions
+  (dolist (cmd '("htop" "lftp" "ssh" "vi" "vim" "watch"))
     (add-to-list 'eshell-visual-commands cmd))
-  (dolist (subcmd '(("git" "log" "diff" "show")
+  (dolist (subcmd '(("tail" "-f" "-F")
                     ("sudo" "vi" "vim")
                     ("vagrant" "ssh")))
     (add-to-list 'eshell-visual-subcommands subcmd))
+  ;; ensure Git does not launch a pager for easier usage with eshell
+  (setenv "GIT_PAGER" "")
   ;; history autosuggestions
   ;; <right> or C-f completes fully, <M-right> or M-f completes partially
   (use-package esh-autosuggest

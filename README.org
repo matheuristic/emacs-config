@@ -4,33 +4,29 @@ Emacs configuration files.
 To use, copy to the =~/.emacs.d= directory.
 Emacs versions ~27~ and newer also support [[https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html][XDG Base Directory Specification]], so it is possible to use =~/.config/emacs= as an alternative.
 * Font smoothing in Emacs for Mac OS X
-To control anti-aliasing/font smoothing in [[https://emacsformacosx.com/][Emacs for Mac OS X]], run the following (replace ~VALUE~ with an integer):
+To control font smoothing in [[https://emacsformacosx.com/][Emacs for Mac OS X]], run the following (replace ~VALUE~ with an integer):
 #+begin_src sh
 $ defaults write org.gnu.Emacs AppleFontSmoothing -int VALUE
 #+end_src
-
-The supported values run from ~0~ to ~3~:
+The supported values range from ~0~ to ~3~:
 - ~0~: disabled (no sub-pixel rendering)
 - ~1~: light
 - ~2~: medium (default)
 - ~3~: heavy
-
-The default value can still smooth fonts too heavily and make them blurry, especially with bitmap fonts.
-It is recommended to reduce ~AppleFontSmoothing~ to ~1~, i.e.
+When using bitmap fonts it is better to reduce ~AppleFontSmoothing~ to ~1~ (to smooth lightly) or ~0~ (to turn it off), e.g. run
 #+begin_src sh
 $ defaults write org.gnu.Emacs AppleFontSmoothing -int 1
 #+end_src
-
-To restore the setting to the default ones, do
+To restore the default font smoothing setting, run
 #+begin_src sh
 $ defaults delete org.gnu.Emacs AppleFontSmoothing
 #+end_src
-
 For more information, see this [[https://github.com/kevinSuttle/macOS-Defaults/issues/17#issuecomment-266622810][link]].
 * Python projects
-** Flymake and Pylint
-To use [[https://www.pylint.org/][Pylint]] with [[https://elpa.gnu.org/packages/flymake.html][Flymake]], it needs to be configured as a checker.
-A Flymake backend can be defined and added to the list of the backends using [[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]].
+** Configuring [[https://elpa.gnu.org/packages/flymake.html][Flymake]] to use [[https://www.pylint.org/][Pylint]]
+1. Use [[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]] to create a new Pylint backend for Flymake.
+2. Create a function that adds the new backend to the list of Flymake backends.
+3. Add that function to the ~python-mode-hook~.
 ** Project-specific pylint configuration
 To specify a project-specific pylintrc file, create (or modify) a ~pylintrc~ file in the Python project root directory and add the following ~init-hook~ to the master section:
 #+begin_src

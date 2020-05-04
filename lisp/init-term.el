@@ -13,11 +13,17 @@
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
 
-;; kill shell buffers on session end
-(defun my-term-handle-exit--term-kill-buffer-on-exit (&rest args)
-  "Kill eshell or term buffer on session exit."
-  (kill-buffer))
-(advice-add 'term-handle-exit :after #'my-term-handle-exit--term-kill-buffer-on-exit)
+;; kill term buffers with 'q' after session end
+(defun term-handle-exit--close-buffer-on-cmd (&rest args)
+  "Kill term buffer with 'q' after session exit."
+   (when (null (get-buffer-process (current-buffer)))
+     (use-local-map (let ((map (make-sparse-keymap)))
+                      (define-key map (kbd "q")
+                        (lambda ()
+                          (interactive)
+                          (kill-buffer (current-buffer))))
+                      map))))
+(advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 
 ;; Eshell
 (use-package eshell

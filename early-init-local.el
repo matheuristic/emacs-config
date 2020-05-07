@@ -30,19 +30,41 @@
 
 ;; set graphical Emacs fonts
 ;; (when (display-graphic-p)
-;;   ;; main fonts -> default, fixed and variable pitch, mode line
-;;   (set-face-attribute 'default nil :family "DinaRemaster"
-;;                       :height 150 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'fixed-pitch nil :family "DinaRemaster"
-;;                       :height 150 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'variable-pitch nil :family "Pixel Operator"
-;;                       :height 150 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'mode-line nil :family "DinaRemaster"
-;;                       :height 120 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'mode-line-inactive nil :family "DinaRemaster"
-;;                       :height 120 :weight 'normal :width 'normal)
-;;   ;; fallback font when display face does not have a unicode character glyph
-;;   (set-fontset-font "fontset-default" 'unicode "Greybeard"))
+;;   ;; change how characters are displayed
+;;   ;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Active-Display-Table.html#Active-Display-Table
+;;   ;; the following displays '0' as '\ue007' (B612 font slashed zero)
+;;   ;; (setq standard-display-table (make-display-table))
+;;   ;; (aset standard-display-table ?0 [?])
+;;
+;;   ;; main fonts -> default, fixed-pitch, variable-pitch and mode-line
+;;   ;; fallback font -> for when the display face does not have a character glyph
+;;
+;;   ;; 1. bitmap fonts, better for low DPI screens
+;;   ;; (set-face-attribute 'default nil :family "DinaRemaster"
+;;   ;;                     :height 150 :weight 'normal :width 'normal)
+;;   ;; (set-face-attribute 'fixed-pitch nil :family "DinaRemaster"
+;;   ;;                     :height 150 :weight 'normal :width 'normal)
+;;   ;; (set-face-attribute 'variable-pitch nil :family "Pixel Operator"
+;;   ;;                     :height 150 :weight 'normal :width 'normal)
+;;   ;; (set-face-attribute 'mode-line nil :family "DinaRemaster"
+;;   ;;                     :height 120 :weight 'normal :width 'normal)
+;;   ;; (set-face-attribute 'mode-line-inactive nil :family "DinaRemaster"
+;;   ;;                     :height 120 :weight 'normal :width 'normal)
+;;   ;; (set-fontset-font "fontset-default" 'unicode "Greybeard")
+;;
+;;   ;; 2. outline fonts, better for high DPI screens
+;;   (set-face-attribute 'default nil :family "Input Mono Narrow"
+;;                       :height 140 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'fixed-pitch nil :family "Input Mono Narrow"
+;;                       :height 140 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'variable-pitch nil :family "Input Sans Compressed"
+;;                       :height 140 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'mode-line nil :family "Input Mono Narrow"
+;;                       :height 110 :weight 'normal :width 'normal)
+;;   (set-face-attribute 'mode-line-inactive nil :family "Input Mono Narrow"
+;;                       :height 110 :weight 'normal :width 'normal)
+;;   (set-fontset-font "fontset-default" 'unicode "Menlo"))
+
 
 ;; set conda install directory, used in lisp/init-lang-python.el
 ;; (setq conda-anaconda-home "~/miniconda3/")

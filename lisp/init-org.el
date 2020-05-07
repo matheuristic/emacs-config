@@ -248,6 +248,15 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
   (defhydra my-hydra/org-mode-extras (:color teal :columns 4)
     "Org-mode → Extras"
     ("q" my-hydra/org-mode/body "←"))
+  ;; compile LaTeX documents with xelatex and biber
+  (when (executable-find "xelatex")
+    (setq org-latex-pdf-process
+          '("xelatex -interaction nonstopmode -output-directory %o %f"
+            "xelatex -interaction nonstopmode -output-directory %o %f"))
+    (if (executable-find "biber")
+        (push "biber %b" org-latex-pdf-process))
+    (push "xelatex -interaction nonstopmode -output-directory %o %f"
+          org-latex-pdf-process))
   ;; preview LaTeX fragments scaled to font size, requires dvipng from TexLive
   (when (and (display-graphic-p)
              (executable-find "dvipng"))

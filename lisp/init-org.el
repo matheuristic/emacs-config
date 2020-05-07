@@ -257,6 +257,17 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
         (push "biber %b" org-latex-pdf-process))
     (push "xelatex -interaction nonstopmode -output-directory %o %f"
           org-latex-pdf-process))
+  ;; use lualatex for LaTeX previews using dvipng
+  (when (executable-find "lualatex")
+    (add-to-list 'org-preview-latex-process-alist
+                 '(dvipng :programs ("lualatex" "dvipng")
+                          :description "dvi > png"
+                          :message "you need to install the programs: lualatex and dvipng."
+                          :image-input-type "dvi"
+                          :image-output-type "png"
+                          :image-size-adjust (1.0 . 1.0)
+                          :latex-compiler ("lualatex -output-format dvi -interaction nonstopmode -output-directory %o %f")
+                          :image-converter ("dvipng -D %D -T tight -o %O %f"))))
   ;; preview LaTeX fragments scaled to font size, requires dvipng from TexLive
   (when (and (display-graphic-p)
              (executable-find "dvipng"))

@@ -32,13 +32,13 @@
 ;; (when (display-graphic-p)
 ;;   ;; change how characters are displayed
 ;;   ;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Active-Display-Table.html#Active-Display-Table
-;;   ;; the following displays '0' as '\ue007' (B612 font slashed zero)
+;;   ;; the following displays '0' as '\ue007' (slashed zero in B612 font)
 ;;   ;; (setq standard-display-table (make-display-table))
 ;;   ;; (aset standard-display-table ?0 [?])
-;;
+
 ;;   ;; main fonts -> default, fixed-pitch, variable-pitch and mode-line
 ;;   ;; fallback font -> for when the display face does not have a character glyph
-;;
+
 ;;   ;; 1. bitmap fonts, better for low DPI screens
 ;;   ;; (set-face-attribute 'default nil :family "DinaRemaster"
 ;;   ;;                     :height 150 :weight 'normal :width 'normal)
@@ -50,20 +50,20 @@
 ;;   ;;                     :height 120 :weight 'normal :width 'normal)
 ;;   ;; (set-face-attribute 'mode-line-inactive nil :family "DinaRemaster"
 ;;   ;;                     :height 120 :weight 'normal :width 'normal)
-;;   ;; (set-fontset-font "fontset-default" 'unicode "Greybeard")
-;;
+;;   ;; (set-fontset-font "fontset-default" 'unicode "Unifont")
+
 ;;   ;; 2. outline fonts, better for high DPI screens
-;;   (set-face-attribute 'default nil :family "Input Mono Narrow"
+;;   (set-face-attribute 'default nil :family "Iosevka"
+;;                       :height 140 :weight 'normal :width 'expanded)
+;;   (set-face-attribute 'fixed-pitch nil :family "Iosevka"
+;;                       :height 140 :weight 'normal :width 'expanded)
+;;   (set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
 ;;                       :height 140 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'fixed-pitch nil :family "Input Mono Narrow"
-;;                       :height 140 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'variable-pitch nil :family "Input Sans Compressed"
-;;                       :height 140 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'mode-line nil :family "Input Mono Narrow"
+;;   (set-face-attribute 'mode-line nil :family "Iosevka"
 ;;                       :height 110 :weight 'normal :width 'normal)
-;;   (set-face-attribute 'mode-line-inactive nil :family "Input Mono Narrow"
+;;   (set-face-attribute 'mode-line-inactive nil :family "Iosevka"
 ;;                       :height 110 :weight 'normal :width 'normal)
-;;   (set-fontset-font "fontset-default" 'unicode "Menlo"))
+;;   (set-fontset-font "fontset-default" 'unicode "Unifont"))
 
 
 ;; set conda install directory, used in lisp/init-lang-python.el

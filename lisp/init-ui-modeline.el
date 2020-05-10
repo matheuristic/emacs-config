@@ -8,14 +8,15 @@
 
 ;;; Code:
 
-;; GUI only
+;; set custom mode line in graphical Emacs
 (when (display-graphic-p)
-  ;; fast and fancy minimalist mode line (requires all-the-icons be installed)
+  ;; fast and fancy minimalist mode line, requires all-the-icons be installed
   (use-package doom-modeline
     :after all-the-icons
     :config
     (setq doom-modeline-buffer-file-name-style 'auto
           doom-modeline-env-version nil
+          doom-modeline-height 23 ;; change this based on mode-line face height
           doom-modeline-minor-modes t
           doom-modeline-persp-name nil
           doom-modeline-unicode-fallback t)

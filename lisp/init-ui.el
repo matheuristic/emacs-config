@@ -64,15 +64,19 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (when (display-graphic-p)
   ;; use super-left-click as middle-click (trackpad workaround)
   ;; (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
-  ;; smooth scrolling in GUI, hold SHIFT/CTRL for 5 line/full window increments
-  (setq mouse-wheel-scroll-amount '(1 ((shift) . 5) ((control))))
-  ;; horizontal scrolling, hold SHIFT/CTRL for 5 column/full window increments
+  ;; smooth scrolling in GUI, hold SHIFT/META for 5 line/full window increments
+  ;; scrolling while holding CTRL changes the text size
+  (setq mouse-wheel-scroll-amount '(1
+                                    ((shift) . 5)
+                                    ((meta))
+                                    ((control) . text-scale)))
+  ;; horizontal scrolling, hold SHIFT/META for 5 column/full window increments
   (global-set-key [wheel-right] (lambda () (interactive) (scroll-left 1)))
   (global-set-key [wheel-left] (lambda () (interactive) (scroll-right 1)))
   (global-set-key [S-wheel-right] (lambda () (interactive) (scroll-left 5)))
   (global-set-key [S-wheel-left] (lambda () (interactive) (scroll-right 5)))
-  (global-set-key [C-wheel-right] (lambda () (interactive) (scroll-left (window-total-width))))
-  (global-set-key [C-wheel-left] (lambda () (interactive) (scroll-right (window-total-width)))))
+  (global-set-key [M-wheel-right] (lambda () (interactive) (scroll-left (window-total-width))))
+  (global-set-key [M-wheel-left] (lambda () (interactive) (scroll-right (window-total-width)))))
 
 ;; on Mac OS X, use Option keys as Meta and file polling for auto-revert
 (when (eq system-type 'darwin)
@@ -121,7 +125,52 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
         company-show-numbers t ;; use M-<num> to directly choose completion
         company-tooltip-align-annotations t))
 
-;; typing text replaces the active (i.e. selected) region, if any
+;; Emacs debugger
+(use-package debug
+  :ensure nil ;; built-in
+  :bind (("C-c C-M-e d" . my-hydra/debugger-settings/body)
+         :map debugger-mode-map
+         ("C-c C-M-m" . my-hydra/debugger/body))
+  :config
+  (defhydra my-hydra/debugger-settings (:color teal :hint nil)
+    "
+Emacs debugger settings
+
+Toggle    _1_ : debug-on-error (currently: %`debug-on-error)
+          _2_ : debug-on-quit  (currently: %`debug-on-quit)
+
+Functions _fl_ : list functions to invoke debugger on entry
+          _fa_ : add debugger invocation to function
+          _fc_ : cancel debugger invocation from function
+
+Variables _vl_ : list variables to invoke debugger on change
+          _va_ : add debugger invocation to variable on change
+          _vc_ : cancel debugger invocation from variable on change
+"
+    ("1" toggle-debug-on-error :exit nil)
+    ("2" toggle-debug-on-quit :exit nil)
+    ("fl" debugger-list-functions)
+    ("fa" debug-on-entry)
+    ("fc" cancel-debug-on-entry)
+    ("vl" (lambda () (interactive) (prin1 (debug--variable-list))))
+    ("va" debug-on-variable-change)
+    ("vc" cancel-debug-on-variable-change))
+  (defhydra my-hydra/debugger (:color teal :columns 4)
+    "Emacs debugger"
+    ("c" debugger-continue "continue")
+    ("d" debugger-step-through "step")
+    ("b" debugger-frame "frame")
+    ("u" debugger-frame-clear "no-frame")
+    ("j" debugger-jump "jump")
+    ("e" debugger-eval-expression "eval-expr")
+    ("R" debugger-record-expression "record-expr")
+    ("q" top-level "quit-to-top")
+    ("r" debugger-return-value "return-val")
+    ("l" debugger-list-functions "list-funs")
+    ("v" debugger-toggle-locals "list-vars")
+    ("h" describe-mode "help")))
+
+;; typing text replaces the active (i.e. selected) region, if any is selected
 (use-package delsel
   :ensure nil ;; built-in
   :config (delete-selection-mode))
@@ -130,9 +179,9 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (use-package ediff
   :ensure nil ;; built-in
   :commands ediff-setup-keymap
-  :init
-  (defhydra my-hydra/ediff (:color teal :hint nil)
-     "
+  :bind ("C-c C-M-d f" . my-hydra/ediff/body)
+  :init (defhydra my-hydra/ediff (:color teal :hint nil)
+           "
 Ediff
 
 Buffer   _b_ : 2-way       _B_ : 3-way
@@ -144,17 +193,16 @@ Region   _l_ : line-wise   _w_ : word-wise
 Windows  _L_ : line-wise   _W_ : word-wise
 
 "
-    ("b" ediff-buffers)
-    ("B" ediff-buffers3)
-    ("f" ediff-files)
-    ("F" ediff-files3)
-    ("c" ediff-current-file)
-    ("l" ediff-regions-linewise)
-    ("w" ediff-regions-wordwise)
-    ("L" ediff-windows-linewise)
-    ("W" ediff-windows-wordwise)
-    ("q" nil "quit" :exit t))
-  (global-set-key (kbd "C-c C-M-e d") 'my-hydra/ediff/body))
+          ("b" ediff-buffers)
+          ("B" ediff-buffers3)
+          ("f" ediff-files)
+          ("F" ediff-files3)
+          ("c" ediff-current-file)
+          ("l" ediff-regions-linewise)
+          ("w" ediff-regions-wordwise)
+          ("L" ediff-windows-linewise)
+          ("W" ediff-windows-wordwise)
+          ("q" nil "quit" :exit t)))
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
@@ -280,21 +328,27 @@ Windows  _L_ : line-wise   _W_ : word-wise
 ;; completion framework
 (use-package icomplete
   :ensure nil ;; built-in
-  :bind (("C-c C-M-y y" . my-yank-from-kill-ring)
-         :map icomplete-minibuffer-map
-         ;; C-s and C-r cycles through completion candidates like isearch
-         ("C-s" . icomplete-forward-completions)
-         ("C-r" . icomplete-backward-completions)
-         ;; RET selects the current completion candidate like ido
-         ;; M-j uses input as is (e.g. to create new files or dirs)
-         ("RET" . icomplete-force-complete-and-exit)
-         ("M-j" . exit-minibuffer))
-  :init (icomplete-mode)
-  :config (setq icomplete-compute-delay .5
-                icomplete-hide-common-prefix nil
-                icomplete-prospects-height 2
-                icomplete-show-matches-on-no-input t
-                icomplete-tidy-shadowed-file-names t))
+  :bind ("C-c C-M-y y" . my-yank-from-kill-ring)
+  ;; use `fido-mode' to emulate `ido-mode'
+  :init (if (version<= emacs-version "26.3")
+            ;; no `fido-mode' on older Emacs versions
+            (progn
+              (setq completion-category-defaults nil
+                    icomplete-compute-delay .3
+                    icomplete-hide-common-prefix nil
+                    icomplete-prospects-height 2
+                    icomplete-show-matches-on-no-input t
+                    icomplete-tidy-shadowed-file-names t)
+              (icomplete-mode)
+              ;; C-s and C-r cycles through completion candidates like isearch
+              (define-key icomplete-minibuffer-map (kbd "C-s") #'icomplete-forward-completions)
+              (define-key icomplete-minibuffer-map (kbd "C-r") #'icomplete-backward-completions)
+              ;; RET selects current completion candidate like ido
+              ;; M-j uses input as is, e.g. to create new files or new dirs
+              (define-key icomplete-minibuffer-map (kbd "RET") #'icomplete-force-complete-and-exit)
+              (define-key icomplete-minibuffer-map (kbd "M-j") #'exit-minibuffer))
+          ;; enable `fido-mode'
+          (fido-mode)))
 
 ;; menu list of major definitions in the buffer
 (use-package imenu
@@ -474,7 +528,10 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   :commands recentf-open-files
   :bind ("C-c C-M-r f" . recentf-open-files)
   :init (setq recentf-max-menu-items 10
-              recentf-max-saved-items 50)
+              recentf-max-saved-items 50
+              ;; don't spam Tramp with stat calls
+              ;; https://www.emacswiki.org/emacs/RecentFiles#toc12
+              recentf-auto-cleanup 'never)
   :config (recentf-mode t))
 
 ;; traverse undo history as a tree, default binding is "C-x u"
@@ -598,7 +655,8 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
 
 ;; view and compare directory trees, like Beyond Compare
 (use-package ztree
-  :bind (("C-c C-M-z" . my-hydra/ztree/body)
+  :bind (("C-c C-M-d z" . ztree-diff)
+         ("C-c C-M-d t" . ztree-dir)
          :map ztree-mode-map
          ("n" . ztree-next-line)
          ("p" . ztree-previous-line)
@@ -610,11 +668,6 @@ Keys should be major mode symbols and values should unevaluated mode-line constr
   (setq ztree-dir-move-focus t ;; RET in ztree-dir also moves focus
         ztree-draw-unicode-lines t ;; unicode lines
         ztree-show-number-of-children t) ;; show number of files in subdir tree
-  (defhydra my-hydra/ztree  (:color teal)
-    "ztree"
-    ("D" ztree-diff "diff")
-    ("d" ztree-dir "dir")
-    ("q" nil "quit"))
   (defhydra my-hydra/ztree-dir (:color pink :columns 3)
     "ztree-dir"
     ("RET" ztree-perform-action "toggle/open-other" :exit t)

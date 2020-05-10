@@ -138,7 +138,7 @@
     ("dd" dap-debug "debug")
     ("dl" dap-debug-last "debug-last")
     ("dr" dap-debug-recent "debug-recent")
-    ("A" dap-delete-all-sessions "del-all-sessions")
+    ("A" dap-delete-all-sessions "del-all-sess")
     ;; windows
     ("wo" dap-go-to-output-buffer "output-buf")
     ("wb" dap-ui-breakpoints "breakpoints")

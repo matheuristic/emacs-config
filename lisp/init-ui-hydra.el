@@ -270,7 +270,7 @@
   (global-set-key (kbd "C-c C-M-b f") 'my-hydra/buffer/body)
   (global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
   (global-set-key (kbd "C-c C-M-h h") 'my-hydra/help/body)
-  (global-set-key (kbd "C-c C-M-d k") 'my-hydra/desktop/body)
+  (global-set-key (kbd "C-c C-M-e k") 'my-hydra/desktop/body)
   (global-set-key (kbd "C-c C-M-s") 'my-hydra/search/body)
   (global-set-key (kbd "C-c C-M-n") 'my-hydra/navigation/body)
   (global-set-key (kbd "C-c C-M-k") 'my-hydra/kmacros/body)

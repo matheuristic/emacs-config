@@ -5,7 +5,7 @@
 
 ;;; Commentary:
 
-;; Emacs configuration file, symlink or copy to ~/.emacs or ~/.emacs.d/init.el
+;; Emacs configuration file, symlink/copy to ~/.emacs or ~/.emacs.d/init.el
 
 ;; Startup times can be measured in Linux using
 ;; $ emacs -q --eval='(message "%s" (emacs-init-time))'
@@ -27,6 +27,42 @@
   (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
     (if (file-exists-p local-f) (load-file local-f))))
 
+;; Whether to regenerate outdated bytecode
+(defvar load-prefer-newer nil)
+
+;; ELPA-compatible package.el repositories
+(defvar package-archives '(("GNU"   . "https://elpa.gnu.org/packages/")
+                           ("MELPA" . "https://melpa.org/packages/")))
+
+;; Priority levels for the ELPA-compatible repositories
+(defvar package-archive-priorities '(("GNU"   . 2)
+                                     ("MELPA" . 6)))
+
+;; initialize package.el
+(setq package-enable-at-startup nil)
+(require 'package)
+(package-initialize)
+
+;; bootstrap use-package, provides configuration macros
+;; for info, see https://github.com/jwiegley/use-package
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+;; preload use-package and bind-key packages
+;; configure imenu support for the `require' and `use-package' keywords
+(eval-when-compile
+  (setq use-package-enable-imenu-support t)
+  (require 'use-package)
+  (require 'bind-key)
+  (setq use-package-always-ensure t))
+
+;; copy environment variables from shell, OS X GUI mode-only
+(if (eq system-type 'darwin)
+    (use-package exec-path-from-shell
+      :init (if (memq window-system '(mac ns))
+                (exec-path-from-shell-initialize))))
+
 ;; visit large files without loading it entirely
 (use-package vlf
   :config (require 'vlf-setup))
@@ -43,9 +79,18 @@
 (require 'init-http)
 (require 'init-web)
 
-;; load local post initialization file ~/.emacs.d/init-local.el
-(let ((local-f (expand-file-name "init-local.el" user-emacs-directory)))
-  (if (file-exists-p local-f) (load-file local-f)))
+;; local machine-specific settings
+;; automatically break lines that get too long
+;; (add-hook 'text-mode-hook (lambda ()
+;;                             (turn-on-auto-fill)
+;;                             (setq adaptive-fill-mode t)))
+;; use multimarkdown for processing markdown files in markdown-mode
+(if (executable-find "multimarkdown")
+  (setq markdown-command "multimarkdown"))
+;; HTTP requests privacy settings
+(setq url-cookie-untrusted-urls '(".*")) ;; no cookies
+(setq url-privacy-level 'paranoid) ;; more private HTTP requests
+(url-setup-privacy-info) ;; apply `url-privacy-level'
 
 ;; load Customize settings
 (load custom-file 'noerror)

@@ -13,9 +13,9 @@ The supported values range from ~0~ to ~3~:
 - ~1~: light
 - ~2~: medium (default)
 - ~3~: heavy
-When using bitmap fonts it is better to reduce ~AppleFontSmoothing~ to ~1~ (to smooth lightly) or ~0~ (to turn it off), e.g. run
+Generally it is better to reduce ~AppleFontSmoothing~ to ~1~ for light smoothing or ~0~ for no smoothing (especially for bitmap fonts), e.g. run
 #+begin_src sh
-$ defaults write org.gnu.Emacs AppleFontSmoothing -int 1
+$ defaults write org.gnu.Emacs AppleFontSmoothing -int 0
 #+end_src
 To restore the default font smoothing setting, run
 #+begin_src sh
@@ -41,3 +41,9 @@ For instance, if using [[https://www.flycheck.org/en/latest/][Flycheck]] put the
 ((nil . ((flycheck-pylintrc . "pylintrc"))))
 #+end_src
 Flymake does not require explicit specification of a ~pylintrc~ file (it should search recursively upward in containing directories until it finds one).
+* Flymake and TRAMP
+[[https://elpa.gnu.org/packages/flymake.html][Flymake]] sometimes has issues with remote files edited over [[https://www.gnu.org/software/tramp/][TRAMP]].
+For some problematic file, the easiest solution is to add an Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html][file variable]] to the first line of the file to turn off Flymake (see following code for a Python file example).
+#+begin_src python
+# -*- eval:(flymake-mode-off) -*-
+#+end_src

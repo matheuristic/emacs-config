@@ -1,11 +1,141 @@
-;;; init.el --- Emacs init file -*- lexical-binding: t; -*-
+#+title: Emacs configuration
+#+options: h:4 num:t toc:t
+#+property: header-args:emacs-lisp :exports code
 
+* Notes
+
+** Generating the Emacs Lisp config files
+
+The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/][Emacs Lisp]] (Elisp) config files for Emacs can be generated with
+~M-x org-babel-tangle~ or ~C-c C-v C-t~ while in this file's buffer.
+Two config files will be created in the same directory:
+- ~early-init.el~: Early initialization file (Emacs 27+).
+- ~init.el~: Main configuration file.
+
+** Measuring startup times
+
+Startup times can be measured in Linux using
+#+begin_example
+$ emacs -q --eval='(message "%s" (emacs-init-time))'
+#+end_example
+or in Mac OS X using
+#+begin_example
+$ open -n /Applications/Emacs.app \
+      --args -q --eval='(message "%s" (emacs-init-time))'
+#+end_example
+
+** Optimizing startup times
+
+1. Profile using the ~esup~ package (~M-x esup~).
+2. Defer loading of packages when possible, for example use-package's
+   ~:defer N~ with ~N~ set to ~1~ (second) for higher priority packages and
+   ~2~ for lower priority ones.
+3. Avoid helper functions that can cause eager loads.
+
+** What to do when Emacs hangs and C-g does not work
+
+Copied from this StackOverflow [[https://emacs.stackexchange.com/questions/21643/what-do-i-do-when-emacs-is-frozen][question]].
+
+When Emacs stalls, usually ~C-g~ will quit the current activity and
+make Emacs responsive again.
+
+If that does not work, one solution is to try sending Emacs a
+~SIGUSR2~ signal which tells Emacs to turn on ~debug-on-quit~.
+
+After Emacs recovers, it can be turned back off using
+~M-x toggle-debug-on-quit~.
+
+#+begin_example
+$ pkill -SIGUSR2 -i emacs
+#+end_example
+
+If using ~emacsclient~, an additional command can be sent right
+after the signal is sent to turn off ~debug-on-quit~.
+
+#+begin_example
+$ pkill -SIGUSR2 -i emacs ; emacsclient -e '(setq debug-on-quit nil)'
+#+end_example
+
+For more information, see the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Misc-Events.html#Misc-Events][official]] [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Debugging.html#Error-Debugging][documentation]] (specifically on
+the ~debug-on-event~ user option).
+
+** Useful Emacs Lisp references
+
+- [[https://www.gnu.org/software/emacs/manual/html_node/elisp/index.html][GNU Emacs Lisp Reference Manual]]
+- [[http://www.wilfred.me.uk/blog/2017/03/19/pattern-matching-in-emacs-lisp/][Pattern Matching in Emacs Lisp]]
+- [[https://github.com/alphapapa/emacs-package-dev-handbook][GitHub - alphapapa/emacs-package-dev-handbook: An Emacs package development handbook]]
+
+** Tags
+
+- ~early~: Configuration code (not boilerplate comments) that should
+  be loaded in ~early-init.el~ to optimize startup time.
+- ~elpa~: Uses a package from GNU ELPA.
+- ~external~: Configuration code in the section uses external tools
+  that are not typically packaged with the default userland on Linux
+  and BSD systems (including Mac OS X), and which need to be installed
+  at the system-level outside of Emacs packaging.
+- ~hydra~: Configuration code that enables, creates or modifies
+  [[Hydra][hydras]].
+- ~melpa~: Uses a package from MELPA.
+
+* Front matter
+
+** Header and lexical binding
+
+File header comment indicating the filename, along with declaring any file-specific variables.
+One file-specific variable that should generally be set is enabling ~lexical-binding~ ([[https://nullprogram.com/blog/2016/12/22/][link]]), which has the following benefits:
+- Closures.
+- Better performance.
+- Less bugs.
+
+#+name: generate-header
+#+begin_src emacs-lisp
+(concat ";;; " feature ".el --- " summary " -*- lexical-binding: t; -*-")
+#+end_src
+
+** File generation timestamp
+
+Tangled initialization files are timestamped to track when they were last generated.
+
+#+name: generate-timestamp
+#+begin_src emacs-lisp
+(concat ";; Generated: " (current-time-string))
+#+end_src
+
+** Author info
+
+Author information and where to get the newest version of this configuration.
+
+#+name: author-info
+#+begin_src emacs-lisp
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun May 24 17:13:19 2020
+#+end_src
 
-;;; Commentary:
+** File commentary
 
+File descriptions.
+
+*** early-init
+
+#+name: file-commentary-early-init
+#+begin_src emacs-lisp
+;; Emacas early initialization configuration file, symlink or copy to
+;; ~/.emacs.d/early-init.el or $XDG_CONFIG_HOME/.emacs.d/early-init.el
+
+;; In Emacs 27+, the sequence of initialization is
+;; 1. early-init.el
+;; 2. package.el
+;; 3. init.el
+
+;; early-init.el is run before UI elements are rendered,
+;; so it is best to configure UI elements here rather than init.el
+#+end_src
+
+*** init
+
+#+name: file-commentary-init
+#+begin_src emacs-lisp
 ;; Emacs initialization configuration file, symlink or copy to
 ;; ~/.emacs.d/init.el or $XDG_CONFIG_HOME/.emacs.d/init.el
 
@@ -13,37 +143,177 @@
 ;; 1. early-init.el
 ;; 2. package.el
 ;; 3. init.el
+#+end_src
 
-;;; Code:
+* Backward compatibility
 
-;; Backward compatibility
+In Emacs versions before 27, we should load the ~early-init.el~ file explicitly in ~init.el~.
 
+#+name: early-init-pre-27
+#+begin_src emacs-lisp
 ;; backwards-compatibility code for Emacs versions <27
 (when (version<= emacs-version "26.3")
   ;; load early-initialization file ~/.emacs.d/early-init.el
   ;; Emacs 27+ automatically loads this file before rendering UI elements
   (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
     (when (file-exists-p local-f) (load-file local-f))))
+#+end_src
 
-;; Customize file
+* Optimizations
 
+** Startup optimizations                                              :early:
+
+Optimizations for improving startup time:
+- Increase garbage collection threshold from the default (~800~ kb) to
+  ~128~ MB and revert it after initialization.
+- Set ~file-name-handler-alist~ to ~nil~ as it is always scanned
+  whenever files are loaded and revert it after initialization.
+  This specifies special I/O handlers for files based on file name.
+  Startup files are always local ~*.el~ files, so no special handlers
+  are needed for them.
+- Don't load installed packages automatically.
+  Load them manually in the config.
+  (*TODO* double check this works properly in Emacs 27.)
+
+#+name: startup-optimizations
+#+begin_src emacs-lisp
+;; optimizations for reducing startup time (reverted later)
+;; * file-name-handler-alist -> nil as it is scanned when files are loaded
+;; * increase garbage collection threshold
+;; * increase max bytes read from a sub-process in a single op (Emacs 27+)
+(setq file-name-handler-alist-orig file-name-handler-alist
+      gc-cons-threshold-orig gc-cons-threshold
+      file-name-handler-alist nil ;; no special file handling during init
+      gc-cons-threshold 134217728) ;; 128MB in bytes, default is 800k
+
+;; revert optimizations after initialization
+(add-hook 'after-init-hook
+          (lambda ()
+            (setq file-name-handler-alist file-name-handler-alist-orig)
+            (setq gc-cons-threshold gc-cons-threshold-orig))
+          t)
+
+;; disable automatic activation of installed packages
+(setq package-enable-at-startup nil)
+#+end_src
+
+** I/O optimizations                                                  :early:
+
+Increase the maximum bytes read from a sub-process in a single file
+operation from the default (~4096~ bytes) to ~1~ MB ([[https://github.com/emacs-mirror/emacs/blob/master/etc/NEWS.27#L3212-L3217][Emacs 27+]]).
+
+#+name: io-optimizations
+#+begin_src emacs-lisp
+;; optimizations for improving I/O performance
+;; * increase max bytes read from a sub-process in a single op (Emacs 27+)
+(when (boundp 'read-process-output-max)
+  (setq read-process-output-max 1048576)) ;; 1MB in bytes, default 4096 bytes
+#+end_src
+
+* Customize file
+
+Emacs has a text GUI interface for customizing the editor, and
+settings configured with this interface are saved in ~custom-file~.
+To avoid the ~M-x customize~ settings clobbering the tangled
+initialization files (which it does by default), set ~custom-file~ to
+to something that is not the Emacs init file.
+
+#+name: custom-file
+#+begin_src emacs-lisp
 ;; store Customize settings in a separate file, custom.el
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (add-hook 'after-init-hook
           (load custom-file 'noerror))
+#+end_src
 
-;; Package management
+* Package management
 
+** Local packages                                                     :early:
+
+Add the ~lisp/~ and ~site-lisp/~ directories in the user Emacs
+directory to the load path to facilitate loading of user maintained
+and local copies of third-party packages.
+
+This can be done in ~early-init.el~ so that locally maintained
+decoration and theming code can be loaded there.
+
+#+name: add-dirs-to-load-path
+#+begin_src emacs-lisp
+;; add user packages in lisp/ to load path
+(defvar lisp-dir (expand-file-name "lisp" user-emacs-directory))
+(unless (file-exists-p lisp-dir) (make-directory lisp-dir))
+(add-to-list 'load-path lisp-dir)
+(dolist (project (directory-files lisp-dir t "\\w+"))
+  (when (file-directory-p project) (add-to-list 'load-path project)))
+
+;; add third-party packages in site-lisp/ and its subdirs to load path
+(defvar site-lisp-dir (expand-file-name "site-lisp" user-emacs-directory))
+(unless (file-exists-p site-lisp-dir) (make-directory site-lisp-dir))
+(add-to-list 'load-path site-lisp-dir)
+(dolist (project (directory-files site-lisp-dir t "\\w+"))
+  (when (file-directory-p project) (add-to-list 'load-path project)))
+#+end_src
+
+** ELPA-compatible package repositories
+
+Set ELPA-compatible repositories to fetch and install packages from,
+and their priorities.
+When the packages with the same name exist on multiple repositories,
+the version on the repository with the highest priority is preferred.
+
+The following package repositories are the most well-known:
+- [[https://elpa.gnu.org/][GNU Emacs Lisp Package Archive]] (ELPA).
+  This is the default package repository for Emacs.
+- [[https://melpa.org/][Milkypostman’s Emacs Lisp Package Archive]] (MELPA).
+  This is an unofficial package repository containing a large
+  selection of packages.
+  Packages in this repository are vetted at time of initial inclusion,
+  which are automatically rebuilt on source updates.
+  Does not contain some packages from [[https://www.emacswiki.org/][EmacsWiki]] due to [[https://github.com/melpa/melpa/pull/5008][security risks]]
+  (some are in MELPA because they were mirrored on Github)
+- [[https://stable.melpa.org/][Milkypostman’s Emacs Lisp Package Archive Stable]] (MELPA Stable).
+  This is a version of MELPA that only builds tagged releases.
+  Has less packages compared to MELPA.
+- [[https://orgmode.org/elpa.html][Org Emacs Lisp Package Archive]] (Org).
+  This is the official [[https://orgmode.org/][Org]] package repository that contains the newest
+  version of ~org~ (also in ELPA), along with ~org-plus-contrib~ that
+  contains all contributed files (not in ELPA).
+
+Only ELPA and MELPA are used here so the latest package versions are
+installed, and because there isn't generally a need for all the
+contributed files for Org.
+
+#+name: elpa-repositories
+#+begin_src emacs-lisp
 ;; set ELPA-compatible package repositories and their priorities
 (setq package-archives '(("GNU"   . "https://elpa.gnu.org/packages/")
                          ("MELPA" . "https://melpa.org/packages/"))
       package-archive-priorities '(("GNU"   . 1)
                                    ("MELPA" . 2)))
+#+end_src
 
+** Package initialization
+
+Initialize package loading support.
+Disable auto-package loading and load packages explicitly for faster initialization times.
+
+#+name: package-init
+#+begin_src emacs-lisp
 ;; initialize package.el
 (require 'package)
 (package-initialize)
+#+end_src
 
+** use-package                                                        :melpa:
+
+Download the [[https://github.com/jwiegley/use-package][use-package]] if not already on the system.
+Load it, which will provide configuration macros for installing,
+loading and configuring packages.
+Also load its subpackage [[https://github.com/jwiegley/use-package/blob/master/bind-key.el][bind-key]], which provides macros for key
+bindings.
+
+#+name: use-package
+#+begin_src emacs-lisp
 ;; bootstrap use-package, provides configuration macros
 ;; for info, see https://github.com/jwiegley/use-package
 (unless (package-installed-p 'use-package)
@@ -57,17 +327,32 @@
   (require 'use-package)
   (require 'bind-key)
   (setq use-package-always-ensure t)) ;; default to ":ensure t"
+#+end_src
 
-;; Environment variables
+* Environment variables                                               :melpa:
 
+On Mac OS X, copy the environment variables over from the login shell.
+
+#+name: environment-variables
+#+begin_src emacs-lisp
 ;; copy environment variables from shell, OS X GUI mode-only
 (if (eq system-type 'darwin)
     (use-package exec-path-from-shell
       :init (if (memq window-system '(mac ns))
                 (exec-path-from-shell-initialize))))
+#+end_src
 
-;; Backend and frontend frameworks for building user interfaces
+* Backend and frontend frameworks for building user interfaces
 
+** Minibuffer completion with Icomplete
+
+Use [[https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el][Icomplete]] as the completion backend, emulating [[https://www.gnu.org/software/emacs/manual/html_mono/ido.html][Ido]] where possible.
+In Emacs 27+, there is a ~fido-mode~ that very close emulates Ido.
+In prior versions, we configure Icomplete behavior directly (though
+not as thoroughly as ~fido-mode~).
+
+#+name: icomplete
+#+begin_src emacs-lisp
 ;; use Icomplete as the completion backend
 ;; emulate ido behavior where possible
 (if (version<= emacs-version "26.3")
@@ -93,12 +378,62 @@
         #'exit-minibuffer))
   ;; enable `fido-mode'
   (fido-mode))
+#+end_src
 
+** Hydra                                                        :melpa:hydra:
+
+[[https://github.com/abo-abo/hydra][Hydra]] is a framework for surfacing temporary bindings with visual
+help.
+
+Temporary bindings are defined using ~defhydra~.
+They are not bound by default on creation, and need to be explicitly
+given a binding (for example, using ~define-key~) for easy invocation.
+
+Hydra bindings and definitions in this configuration adhere to the
+following conventions:
+- Globally-accessible hydras are always bound to a key sequence
+  prefixed by ~C-c C-M-~ (like ~C-c C-M-b~ for the basic buffer
+  management hydra).
+- Major mode-specific hydras are always bound to ~C-c C-M-m~.
+- A hydra always has a ~q~ head that quits the hydra, except when the
+  user is expected to type normally while the hydra is active
+  (for example, the [[Multiple cursors hydra][multiple cursors hydra]]).
+
+For ease of reference, hydra colors are mapped to the following
+behavior (copied from [[https://github.com/abo-abo/hydra/wiki/Hydra-Colors][here]]):
+
+| Body color | Head color | Executing NON-HEADS   | Executing HEADS |
+|------------+------------+-----------------------+-----------------|
+| amaranth   | red        | Disallow and Continue | Continue        |
+| teal       | blue       | Disallow and Continue | Quit            |
+| pink       | red        | Allow and Continue    | Continue        |
+| red        | red        | Allow and Quit        | Continue        |
+| blue       | blue       | Allow and Quit        | Quit            |
+
+The ~:demand t~ keyword is used to make sure the package is loaded and
+the ~defhydra~ macro immediately available when the block is
+processed.
+
+#+name: hydra
+#+begin_src emacs-lisp
 ;; framework for defining temporary, repeatable bindings
 ;; see https://github.com/abo-abo/hydra
 (use-package hydra
   :demand t)
+#+end_src
 
+** Text completion with Company                                       :melpa:
+
+[[https://company-mode.github.io/][Company]] is a text completion framework for Emacs that supports
+pluggable back-ends and front-ends for retrieving and displaying
+completion candidates.
+Many other Emacs packages support this.
+
+This can get in the way for non-programming modes, so it is
+enabled by default only in programming modes.
+
+#+name: company
+#+begin_src emacs-lisp
 ;; text completion framework
 (use-package company
   :defer t
@@ -111,111 +446,26 @@
         company-selection-wrap-around t
         company-show-numbers t ;; use M-<num> to directly choose completion
         company-tooltip-align-annotations t))
+#+end_src
 
+** Edit-indirect                                                      :melpa:
+
+Backend package that allows editing regions in a separate buffer, much like
+how ~C-c '~ works in Org source blocks.
+This is used by other packages, like ~markdown-mode~.
+
+#+name: edit-indirect
+#+begin_src emacs-lisp
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
+#+end_src
 
-;; Visual (part 1)
+* Backups
 
-;; font icons
-(when (display-graphic-p)
-  (use-package all-the-icons
-    :config (setq all-the-icons-color-icons nil)))
+Backup files to the =~/.backup/= directory, keeping only the newest three versions.
 
-;; set custom mode line in graphical Emacs
-(when (display-graphic-p)
-  ;; fast and fancy minimalist mode line, requires all-the-icons be installed
-  (use-package doom-modeline
-    :after all-the-icons
-    :config
-    (setq doom-modeline-buffer-file-name-style 'auto
-          doom-modeline-env-version nil
-          doom-modeline-height 23 ;; change this based on mode-line face height
-          doom-modeline-minor-modes t
-          doom-modeline-persp-name nil
-          doom-modeline-unicode-fallback t)
-    (doom-modeline-mode 1)))
-
-(if (display-graphic-p)
-    ;; hide minor modes in a menu, access with mouse or `minions-minor-mode-menu'
-    (use-package minions
-      :init
-      ;; modes in minions-direct are always shown
-      ;; use UTF-8 mode line lighter
-      (setq minions-direct '(overwrite-mode view-mode)
-            minions-mode-line-lighter "☰")
-      (minions-mode 1)))
-
-;; display function or outline node at point
-(setq which-func-modes '() ;; use `which-func-mode' only for given modes
-      which-func-unknown "n/a")
-
-;; enable minor mode
-(which-function-mode)
-
-;; modify to show current function in header instead of in mode line
-
-(defun my-narrow-to-defun-toggle ()
-  "Toggle narrow to defun."
-  (interactive)
-  (if (buffer-narrowed-p)
-      (widen)
-    (narrow-to-defun)))
-
-(defvar my-which-func-header-keymap-default
-  (let ((map (make-sparse-keymap)))
-    (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
-    (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
-    (define-key map [header-line wheel-up] 'beginning-of-defun)
-    (define-key map [header-line wheel-down] 'end-of-defun)
-    map)
-  "Keymap for header line which-func.")
-
-(defvar my-which-func-header-keymap-help-text-default
-  "mouse-2 : toggle rest visibility\n\
-wheel-u : go to beginning\n\
-wheel-d : go to end"
-  "Help text for `my-which-fun-header-keymap-default'.")
-
-(defvar my-which-func-header-format-default
-  `(:propertize which-func-current
-                local-map ,my-which-func-header-keymap-default
-                face which-func
-                mouse-face mode-line-highlight
-                help-echo my-which-func-header-keymap-help-text-default)
-  "Default header format for which-func part.")
-
-;; remove which-func part from the mode line
-(setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
-
-;; see Org mode section for a mode-specific example for Org-mode
-(defvar my-which-func-header-formats
-  `((nil . ,my-which-func-header-format-default))
-  "Association list for looking up mode-specific which-func header-lines.
-Keys should be major mode symbols and values should unevaluated
-mode-line constructs, see
-https://www.gnu.org/software/emacs/manual/html_node/elisp/Mode-Line-Data.html
-for more info.")
-
-(defun my-which-func-get-header-format ()
-  "Gets `header-line-format' associated with the current major mode in `my-which-func-header-formats'."
-  (cdr (or (assoc major-mode my-which-func-header-formats) ;; mode-specific
-           (assoc nil my-which-func-header-formats)))) ;; default
-
-(defun which-func-ff-hook--add-which-func-to-header-line ()
-  "Add which-func part to header line for major modes in `which-func-modes'."
-  (when (memq major-mode which-func-modes)
-    (add-to-list 'header-line-format
-                 '(which-function-mode
-                   (which-func-mode
-                    ("[ " (:eval (my-which-func-get-header-format)) " ]"))))))
-
-;; run `which-func-ff-hook--add-which-func-to-header-line' after `which-func-ff-hook'
-(advice-add 'which-func-ff-hook
-            :after #'which-func-ff-hook--add-which-func-to-header-line)
-
-;; Backups
-
+#+name: backup-files-directory
+#+begin_src emacs-lisp
 ;; backup files to ~/.backup/
 (let ((backup-dir (expand-file-name "~/.backup/")))
   (when (not (file-directory-p backup-dir))
@@ -226,9 +476,16 @@ for more info.")
         kept-old-versions 0 ;; number of oldest versions to keep
         delete-old-versions t ;; don't ask before deleting old backups
         backup-by-copying t)) ;; backup by copying instead of renaming
+#+end_src
 
-;; Bookmarks and history
+* Bookmarks and history
 
+** Bookmarks hydra                                                    :hydra:
+
+Hydra for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Bookmarks.html][bookmark]] manipulation and usage.
+
+#+name: bookmarks-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/bookmarks (:color teal :columns 3)
   "
 Bookmarks (_q_: quit)"
@@ -242,12 +499,32 @@ Bookmarks (_q_: quit)"
   ("L" bookmark-load "load")
   ("W" bookmark-write "write"))
 (global-set-key (kbd "C-c C-M-b m") 'my-hydra/bookmarks/body)
+#+end_src
 
+** Minibuffer commands                                                :melpa:
+
+Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~.
+
+It is compatible with most completion systems and provides the
+following enhancements:
+- Prioritizing most-used commands.
+- Showing keyboard shortcuts.
+
+#+name: amx
+#+begin_src emacs-lisp
 ;; alternative interface for M-x
 (use-package amx
   :bind ("M-X" . amx-major-mode-commands)
   :init (amx-mode))
+#+end_src
 
+** Recent files
+
+The built in [[https://github.com/emacs-mirror/emacs/blob/master/lisp/recentf.el][recentf]] provides functionality to track and list recently
+opened files.
+
+#+name: recentf
+#+begin_src emacs-lisp
 ;; recently opened files
 (setq recentf-max-menu-items 10
       recentf-max-saved-items 50
@@ -257,14 +534,45 @@ Bookmarks (_q_: quit)"
 ;; exclude files opened as the superuser with su or sudo
 (add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
 (global-set-key (kbd "C-c C-M-r f") #'recentf-open-files)
+#+end_src
 
+** Save location in file
+
+Enable [[https://www.emacswiki.org/emacs/SavePlace][saveplace]] to automatically save location in file,
+so that the next time the file is visited the point will
+automatically go to the last place it was at during the
+previous visit.
+
+#+name: saveplace
+#+begin_src emacs-lisp
 (save-place-mode 1)
+#+end_src
 
+** Save minibuffer history
+
+Enable [[https://github.com/emacs-mirror/emacs/blob/master/lisp/savehist.el][savehist]] to automatically save minibuffer command history,
+which can be leverage by different completion packages.
+The default history file location is ~history~ in the
+~user-emacs-directory~ directory, and can be changed by setting
+the ~savehist-file~ variable.
+The number of items saved is determined by the ~history-length~
+variable.
+
+#+name: savehist
+#+begin_src emacs-lisp
 (setq history-length 10000)
 (savehist-mode 1)
+#+end_src
 
-;; Buffer management
+* Buffer management
 
+** Bury scratch and message buffer instead of killing them
+
+Make ~*scratch*~ and ~*Message*~ buffers unkillable, burying the
+buffers instead when the user tries to delete them.
+
+#+name: bury-not-kill-buffers
+#+begin_src emacs-lisp
 ;; bury these buffers on kill command instead of killing them
 (setq my-unkillable-buffers '("*scratch*"
                               "*Messages*"))
@@ -276,7 +584,14 @@ Bookmarks (_q_: quit)"
         nil)
     t))
 (add-hook 'kill-buffer-query-functions #'my-bury-unkillable-buffers)
+#+end_src
 
+** Buffer manipulation hydra                                          :hydra:
+
+Hydra for basic [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Buffers.html][buffer]] manipulation.
+
+#+name: buffer-hydra
+#+begin_src emacs-lisp
 ;; hydra for basic buffer management
 (defhydra my-hydra/buffer (:color amaranth :columns 5)
   "
@@ -293,7 +608,14 @@ Buffer (_q_: quit)"
   ("K" kill-matching-buffers "kill-match")
   ("b" switch-to-buffer "switch" :exit t))
 (global-set-key (kbd "C-c C-M-b f") 'my-hydra/buffer/body)
+#+end_src
 
+** Advanced buffer management with Ibuffer
+
+Use [[https://www.emacswiki.org/emacs/IbufferMode][Ibuffer]] to manage buffers.
+
+#+name: ibuffer
+#+begin_src emacs-lisp
 ;; advanced buffer management with Ibuffer
 (add-hook 'ibuffer-mode-hook
           (lambda ()
@@ -306,7 +628,14 @@ Buffer (_q_: quit)"
 (setq ibuffer-expert t ;; skip extraneous confirm messages
       ibuffer-show-empty-filter-groups nil)
 (global-set-key (kbd "C-x C-b") #'ibuffer)
+#+end_src
 
+*** Ibuffer filter groups
+
+Set default rules for grouping files in Ibuffer.
+
+#+name: ibuffer-filter-groups
+#+begin_src emacs-lisp
 ;; configure Ibuffer filter groups
 (with-eval-after-load 'ibuffer
   (setq ibuffer-saved-filter-groups
@@ -327,13 +656,27 @@ Buffer (_q_: quit)"
            ("Help" (or (derived-mode . apropos-mode)
                        (derived-mode . help-mode)
                        (derived-mode . Info-mode)))))))
+#+end_src
 
+*** Group by version-controlled project in Ibuffer                    :melpa:
+
+Add support for grouping files by version-controlled project ([[https://github.com/purcell/ibuffer-vc][link]]).
+
+#+name: ibuffer-vc
+#+begin_src emacs-lisp
 ;; build VC project ibuffer filter groups
 (use-package ibuffer-vc
   :after ibuffer
   :bind (:map ibuffer-mode-map
          ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
+#+end_src
 
+*** Ibuffer hydra                                                     :hydra:
+
+Major mode-specific hydra for Ibuffer.
+
+#+name: ibuffer-hydra
+#+begin_src emacs-lisp
 ;; hydras for Ibuffer commands
 ;; adapted from https://github.com/abo-abo/hydra/wiki/Ibuffer
 (defhydra my-hydra/ibuffer-mode (:color amaranth :columns 3)
@@ -430,21 +773,65 @@ Ibuffer → Filter (_q_: ←)"
   ("/" ibuffer-filter-disable "disable"))
 (with-eval-after-load 'ibuffer
   (define-key ibuffer-mode-map (kbd "C-c C-M-m") #'my-hydra/ibuffer-mode/body))
+#+end_src
 
+*** Ibuffer icons                                                     :melpa:
+
+Add file icons next to the file names.
+Uses file icon API exposed by the ~all-the-icons~ package.
+
+#+name: all-the-icons-ibuffer
+#+begin_src emacs-lisp
 ;; use font icons in Ibuffer
 (when (display-graphic-p)
   (use-package all-the-icons-ibuffer
     :after (all-the-icons ibuffer)
     :config (all-the-icons-ibuffer-mode 1)))
+#+end_src
 
-;; Command-line interaction
+* Command-line interaction
 
+** Eshell
+
+[[https://www.gnu.org/software/emacs/manual/html_mono/eshell.html][Eshell]] is an Elisp shell-like command interpreter that can be used in place of ~term-mode~ and ~bash~.
+[[https://www.masteringemacs.org/article/complete-guide-mastering-eshell][More information]] on Eshell usage.
+
+*Customizations*:
+_ Increase the size of the history input ring from ~128~ to ~1024~.
+- Don't review quick commands (those that have no output and returns a
+  ~0~ exit code indicating success).
+- Have space go to the end of the buffer when it is visible.
+- Have point jump to the beginning of the last command after each
+  command.
+- Load [[https://github.com/emacs-mirror/emacs/blob/master/lisp/eshell/em-smart.el][em-smart]] which adds some quality of life improvements.
+
+*Usage note*:
+- When searching history using the beginning of a command,
+  ~eshell-previous-matching-input-from-input~ (~UP~), ~M-p~ or ~C-c
+  M-r~ is much friendlier than ~eshell-previous-matching-input~
+  (~M-r~).
+  Type the first few characters of the command, and press
+  the ~UP~ or ~M-p~ key repeatedly to cycle only through the matching
+  commands in the history.
+  Copied from StackOverflow answer [[https://stackoverflow.com/questions/13009908/eshell-search-history][here]].
+
+#+name: eshell
+#+begin_src emacs-lisp
 (setq eshell-history-size 1024
       eshell-review-quick-commands nil
       eshell-smart-space-goes-to-end t
       eshell-where-to-jump 'begin)
 (require 'em-smart)
+#+end_src
 
+*** Run visual commands in a separate term buffers
+
+Some "visual" commands present and update a full-screen interface
+instead of streaming output to stdout.
+Run these commands inside a separate term buffer instead.
+
+#+name: eshell-visual-commands
+#+begin_src emacs-lisp
 ;; enable Eshell to spawn visual commands inside
 (require 'em-term)
 ;; run visual commands and subcommands in term sessions
@@ -454,10 +841,25 @@ Ibuffer → Filter (_q_: ←)"
                   ("sudo" "vi" "vim")
                   ("vagrant" "ssh")))
   (add-to-list 'eshell-visual-subcommands subcmd))
+#+end_src
 
+*** Disabling Git pagers so Git can be used in Eshell
+
+#+name: eshell-disable-git-pager
+#+begin_src emacs-lisp
 ;; ensure Git does not launch a pager for easier usage with eshell
 (setenv "GIT_PAGER" "")
+#+end_src
 
+*** Named Eshell buffers for easier management of multiple Eshell buffers
+
+Provide a binding to a wrapper function that spawns or switches to a
+named Eshell buffer.
+This allows for easier access to and management of multiple Eshell
+buffers.
+
+#+name: eshell-named-buffers
+#+begin_src emacs-lisp
 ;; adapted from https://arte.ebrahimi.org/blog/named-eshell-buffers
 (defun my-eshell-with-name ()
   "Open new or switch to existing named eshell buffer."
@@ -476,22 +878,59 @@ Ibuffer → Filter (_q_: ←)"
         (rename-buffer (concat "*eshell*<" my-es-buf-name ">"))))))
 ;; binding for spawning or switching to a named Eshell buffer
 (global-set-key (kbd "C-c C-M-e s") #'my-eshell-with-name)
+#+end_src
 
+*** Eshell fish-like history autosuggestions                          :melpa:
+
+[[https://github.com/dieggsy/esh-autosuggest][esh-autosuggest]] provides [[https://fishshell.com/][fish]]-like history autosuggestions in Eshell.
+
+When an autosuggestion is displayed, press ~<right>~ or ~C-f~ to fully
+autocomplete, or ~M-<right>~ or ~M-f~ to autocomplete just the next word.
+
+#+name: esh-autosuggest
+#+begin_src emacs-lisp
 ;; history autosuggestions
 ;; <right> or C-f completes fully, <M-right> or M-f completes partially
 (use-package esh-autosuggest
   :after eshell
   :hook (eshell-mode . esh-autosuggest-mode))
+#+end_src
 
+*** Extend pcomplete with fish-like completions              :external:melpa:
+
+The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] ([[https://www.masteringemacs.org/article/pcomplete-context-sensitive-completion-emacs][more info]])
+to power Eshell command-line completions using [[https://fishshell.com/][fish]].
+
+This package requires that ~fish~ be installed on the system and
+be on the system path.
+
+#+name: fish-completion
+#+begin_src emacs-lisp
 ;; extend pcomplete with fish shell
 (when (executable-find "fish")
   (use-package fish-completion
     :after eshell
     :hook (eshell-mode . fish-completion-mode)))
+#+end_src
 
+** Command interpreters for other shells
+
+*** Make command interpreter prompts read-only
+
+Make the command interpreter (comint) prompts read-only.
+
+#+name: comint-prompt-read-only
+#+begin_src emacs-lisp
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
+#+end_src
 
+*** Kill term buffers using "q" after session end
+
+Kill term buffers after session end on a "q" keypress.
+
+#+name: kill-term-buffers-with-q-after-end
+#+begin_src emacs-lisp
 ;; kill term buffers with 'q' after session end
 (defun term-handle-exit--close-buffer-on-cmd (&rest args)
   "Kill term buffer with 'q' after session exit."
@@ -503,7 +942,16 @@ Ibuffer → Filter (_q_: ←)"
                           (kill-buffer (current-buffer))))
                       map))))
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
+#+end_src
 
+*** Term hydra
+
+Major mode-specific hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Terminal-emulator.html][term-mode]] for toggling between char mode
+(mostly similar to a regular terminal emulator) and line mode (which
+acts like [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#Shell-Mode][Shell mode]]).
+
+#+name: term-hydra
+#+begin_src emacs-lisp
 ;; hydra for term-mode for toggling between char and line modes
 (defhydra my-hydra/term-mode (:color amaranth :columns 4)
   "
@@ -517,9 +965,17 @@ Term (_q_: quit)"
 (with-eval-after-load 'term
   (define-key term-mode-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body)
   (define-key term-raw-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body))
+#+end_src
 
-;; Comparison tools
+* Comparison tools
 
+** Ediff hydra                                                        :hydra:
+
+Hydra for the built-in [[https://www.gnu.org/software/emacs/manual/html_mono/ediff.html][Ediff]], which visualizes the standard Unix [[https://en.wikipedia.org/wiki/Diff][diff]]
+and [[https://en.wikipedia.org/wiki/Patch_(Unix)][patch]] programs.
+
+#+name: ediff-hydra
+#+begin_src emacs-lisp
 ;; hydra for Ediff
 (defhydra my-hydra/ediff (:color teal :hint nil)
   "
@@ -542,7 +998,15 @@ Windows  _L_ : line-wise   _W_ : word-wise
 
 ;; binding for Ediff hydra
 (global-set-key (kbd "C-c C-M-d f") #'my-hydra/ediff/body)
+#+end_src
 
+** Smerge hydra
+
+Major mode-specific hydra for [[https://github.com/emacs-mirror/emacs/blob/master/lisp/vc/smerge-mode.el][Smerge]], a lightweight alternative to Ediff.
+It is the default merge tool called by [[Magit][Magit]] to resolve merge conflicts.
+
+#+name: smerge-hydra
+#+begin_src emacs-lisp
 ;; hydra for smerge-mode
 (defhydra my-hydra/smerge-mode (:color pink :hint nil)
   "
@@ -573,7 +1037,15 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
 ;; binding
 (with-eval-after-load 'smerge-mode
   (define-key smerge-mode-map (kbd "C-c C-M-m") #'my-hydra/smerge-mode/body))
+#+end_src
 
+** View and compare directory trees using Ztree                       :melpa:
+
+The [[https://github.com/fourier/ztree][Ztree]] package provides a directory tree viewer and directory tree
+comparison functionality similar to [[https://www.scootersoftware.com/][Beyond Compare]] or [[https://www.araxis.com/merge/index.en][Araxis Merge]].
+
+#+name: ztree
+#+begin_src emacs-lisp
 ;; view and compare directory trees, like Beyond Compare
 (use-package ztree
   :bind (("C-c C-M-d z" . ztree-diff)
@@ -587,7 +1059,14 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
 (with-eval-after-load 'ztree-view
   (define-key ztree-mode-map (kbd "n") #'ztree-next-line)
   (define-key ztree-mode-map (kbd "p") #'ztree-previous-line))
+#+end_src
 
+*** Ztree directory tree hydra                                        :hydra:
+
+Major mode-specific hydra for ~ztreedir-mode~.
+
+#+name: ztree-dir-hydra
+#+begin_src emacs-lisp
 ;; mode-specific hydra for ztreedir-mode
 (defhydra my-hydra/ztreedir-mode (:color pink :columns 3)
   "
@@ -604,7 +1083,14 @@ ztree-dir (_q_: quit)"
   ("d" ztree-dir-open-dired-at-point "dired" :exit t))
 (with-eval-after-load 'ztree-dir
   (define-key ztreedir-mode-map (kbd "C-c C-M-m") #'my-hydra/ztreedir-mode/body))
+#+end_src
 
+*** Ztree directory tree comparison hydra                             :hydra:
+
+Major mode-specific hydra for ~ztreediff-mode~.
+
+#+name: ztree-diff-hydra
+#+begin_src emacs-lisp
 ;; mode-specific hydra for ztreediff-mode
 (defhydra my-hydra/ztreediff-mode (:color pink :columns 3)
   "
@@ -626,9 +1112,15 @@ ztree-diff (_q_: quit)"
   ("R" ztree-diff-full-rescan "rescan-full" :exit t))
 (with-eval-after-load 'ztree-diff
   (define-key ztreediff-mode-map (kbd "C-c C-M-m") #'my-hydra/ztreediff-mode/body))
+#+end_src
 
-;; Dired
+* Dired
 
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Dired.html][Dired]] is a built-in directory editor for Emacs.n
+
+#+name: dired
+#+begin_src emacs-lisp
 (require 'dired-x) ;; extra features
 (require 'dired-aux) ;; even more extra features
 (setq dired-dwim-target t ;; use neighboring dired buffer as default target dir
@@ -637,7 +1129,14 @@ ztree-diff (_q_: quit)"
       dired-recursive-copies 'always ;; always copy recursively
       dired-recursive-deletes 'always) ;; always delete recursively
 (add-hook 'dired-mode-hook 'auto-revert-mode) ;; auto-refresh on file change
+#+end_src
 
+** Dired hydra                                                        :hydra:
+
+Hydra for Dired, one of the heads uses [[dired-filter extension to add Ibuffer-like filters to Dired][dired-filter]].
+
+#+name: dired-hydra
+#+begin_src emacs-lisp
 ;; hydras for Dired
 (defhydra my-hydra/dired-mode (:color pink :columns 4)
   "
@@ -686,7 +1185,15 @@ Dired (_q_: quit)"
 ;; binding for dired hydra
 (with-eval-after-load 'dired
   (define-key dired-mode-map (kbd "C-c C-M-m") #'my-hydra/dired-mode/body))
+#+end_src
 
+*** Helper functions for Dired hydra
+
+Helper functions for Dired hydra:
+- Kill a Dired directory buffer and jump to its parent.
+
+#+name: dired-hydra-helper-functions
+#+begin_src emacs-lisp
 ;; adapted from https://www.reddit.com/r/emacs/comments/jh1me/keeping_large_dired_buffers_tidy/
 (defun my-dired-kill-and-next-subdir ()
   "Kill current subdir in dired, and jump back to its parent dir."
@@ -699,13 +1206,28 @@ Dired (_q_: quit)"
     (dired-kill-subdir)
     (dired-goto-subdir parent-dir)
     (search-forward search-term)))
+#+end_src
 
+** dired-filter extension to add Ibuffer-like filters to Dired        :melpa:
+
+~dired-filter~ from the [[https://github.com/Fuco1/dired-hacks][dired-hacks]] collection adds filtering capability like that of [[Advanced buffer management with Ibuffer][Ibuffer]] to Dired.
+
+#+name: dired-filter
+#+begin_src emacs-lisp
 (use-package dired-filter
   :bind (:map dired-mode-map
          ("/" . dired-filter-map))
   :hook (dired-mode . dired-filter-mode)
   :init (setq-default dired-filter-stack nil))
+#+end_src
 
+*** dired-filter hydra                                                :hydra:
+
+Hydra for ~dired-filter~.
+Entrypoint is through the [[Dired hydra]].
+
+#+name: dired-filter-hydra
+#+begin_src emacs-lisp
 ;; add dired-filter hydra
 (defhydra my-hydra/dired-mode/filter (:color pink :columns 4)
   "
@@ -737,19 +1259,47 @@ Dired → Filter (_q_: ←)"
 ;; add entrypoint for dired-filter hydra in my-hydra/dired-mode
 (defhydra+ my-hydra/dired-mode nil
   ("/" my-hydra/dired-mode/filter/body "→ Filter" :exit t))
+#+end_src
 
+** Dired icons using all-the-icons-dired                              :melpa:
+
+Add font icons from ~all-the-icons~ to Dired using [[https://github.com/jtbm37/all-the-icons-dired][all-the-icons-dired]].
+Requires the ~all-the-icons~ package be loaded.
+
+#+name: all-the-icons-dired
+#+begin_src emacs-lisp
 ;; use font icons in Dired
 (use-package all-the-icons-dired
   :after (all-the-icons dired)
   :hook (dired-mode . all-the-icons-dired-mode)
   :config (set-face-attribute 'all-the-icons-dired-dir-face nil
                               :weight 'normal))
+#+end_src
 
-;; Editing text
+* Editing text
 
+** Indent with soft tabs
+
+Use spaces (soft tabs) to indent by default instead of actual tab
+characters (hard tabs).
+
+Use ~C-q TAB~ to input hard tabs if necessary.
+
+#+name: indent-with-soft-tabs
+#+begin_src emacs-lisp
 ;; indent with soft tabs; use C-q <TAB> for real tabs
 (setq-default indent-tabs-mode nil)
+#+end_src
 
+** Completion-enabled yanking from kill-ring
+
+Add a convenience function for yanking (pasting) from the kill-ring
+with completion.
+Completion support is provided through ~completing-read~, which is
+shadowed by completion frameworks like Icomplete, Ido, Ivy, etc.
+
+#+name: completing-yank
+#+begin_src emacs-lisp
 (defun my-yank-from-kill-ring ()
   "Yank from the kill ring into buffer at point or region.
 Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
@@ -764,18 +1314,51 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 
 ;; yank with completion key binding
 (global-set-key (kbd "C-c C-M-y y") #'my-yank-from-kill-ring)
+#+end_src
 
+** Delete selected region on delete or character input
+
+Use the built-in [[https://github.com/emacs-mirror/emacs/blob/master/lisp/delsel.el][delsel]] package to support deleting the selected
+region on delete or some character input, which is the behavior in
+line with typical user interface conventions.
+
+#+name: delsel
+#+begin_src emacs-lisp
 ;; typing text replaces the active (i.e. selected) region, if any is selected
 (delete-selection-mode)
+#+end_src
 
+** Single spacing after sentences.
+
+Single spacing after sentences.
+For abbreviations, use non-breaking spaces that can be input with
+~\\{}nbsp~ in Org documents, or with ~C-x 8 SPC~ for the UTF-8
+non-breaking space character.
+
+#+name: sentence-end-single-space
+#+begin_src emacs-lisp
 ;; use single spaces after sentences
 (setq sentence-end-double-space nil)
+#+end_src
 
-;; *commented* currently do not edit GPG files much
-;; ;; enable transparent editing of GPG files
-;; (require 'epa-file)
-;; (epa-file-enable)
+** Transparent editing of GPG files
 
+[[https://www.gnu.org/software/emacs/manual/html_mono/epa.html][EasyPG Assistant]] is a [[https://gnupg.org/][GnuPG]] interface for Emacs.
+
+#+name: epa-file
+#+begin_src emacs-lisp
+;; enable transparent editing of GPG files
+(require 'epa-file)
+(epa-file-enable)
+#+end_src
+
+** Keyboard macros hydra                                              :hydra:
+
+Hydra for manipulating and using Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Keyboard-Macros.html][keyboard macros]].
+For an example, see the writeup on [[https://www.emacswiki.org/emacs/KeyboardMacros][EmacsWiki]].
+
+#+name: kmacros-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/kmacros (:color teal :columns 3)
   "
 Keyboard Macros (_q_: quit)"
@@ -801,7 +1384,14 @@ Keyboard Macros (_q_: quit)"
   ;; other
   ("i" insert-kbd-macro "insert-named"))
 (global-set-key (kbd "C-c C-M-k") 'my-hydra/kmacros/body)
+#+end_src
 
+** Registers hydra                                                    :hydra:
+
+Hydra for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Registers.html][register]] manipulation and usage.
+
+#+name: registers-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/registers (:color teal :columns 4)
   "
 Registers (_q_: quit)"
@@ -818,7 +1408,16 @@ Registers (_q_: quit)"
   ("l" list-registers "list")
   ("v" view-register "view"))
 (global-set-key (kbd "C-c C-M-r r") 'my-hydra/registers/body)
+#+end_src
 
+** Display available bindings in a popup                              :melpa:
+
+[[https://github.com/justbur/emacs-which-key][which-key]] shows the available bindings in the minibuffer.
+Modify the configuration from the default to only manually using ~C-h~
+in the middle of a key sequence.
+
+#+name: which-key
+#+begin_src emacs-lisp
 ;; display available bindings in popup
 (use-package which-key
   :bind ("C-c C-M-w k" . which-key-show-top-level)
@@ -831,19 +1430,43 @@ Registers (_q_: quit)"
         which-key-idle-secondary-delay 0.05
         which-key-show-early-on-C-h t)
   (which-key-mode 1))
+#+end_src
 
+** Expanding selected regions by semantic units                       :melpa:
+
+Use the [[https://github.com/magnars/expand-region.el][expand-region]] package to support expanding selected regions by semantic units.
+Examples include character to word, word to sentence, etc.
+
+#+name: expand-region
+#+begin_src emacs-lisp
 ;; expand selected region by semantic units
 (use-package expand-region
   :commands er/expand-region
   :bind ("C-=" . er/expand-region))
+#+end_src
 
+** Multiple cursors                                                   :melpa:
+
+[[https://github.com/magnars/multiple-cursors.el][multiple-cursors.el]] is package that enables the creation of multiple cursors in Emacs that all do the same thing simultaneously.
+
+#+name: multiple-cursors
+#+begin_src emacs-lisp
 ;; multiple cursors
 (use-package multiple-cursors
   :defer t
   :init (setq mc/always-run-for-all nil
               mc/always-repeat-command nil
               mc/insert-numbers-default 1))
+#+end_src
 
+*** Multiple cursors hydra                                            :hydra:
+
+Hydra providing usage hints for ~multiple-cursor-mode~.
+It enables ~multiple-cursors-mode~ automatically on entrance and
+disables ~multiple-cursors-mode~ on exit.
+
+#+name: multiple-cursors-hydra
+#+begin_src emacs-lisp
 ;; hydra helper for multiple-cursors-mode
 ;; disable prefix interpretation when multiple-cursors-mode is active
 ;; see https://stackoverflow.com/questions/53798055
@@ -875,7 +1498,24 @@ Misc    _C-{_: number   _C-}_: letter
   ("C-}" mc/insert-letters)
   ("C-|" mc/edit-lines))
 (global-set-key (kbd "C-c C-M-c") #'my-hydra/multiple-cursors/body)
+#+end_src
 
+** Snippet expansion using YASnippet                                  :melpa:
+
+[[https://github.com/joaotavora/yasnippet/tree/5b1217ab085fab4abeb1118dccb260691b446703][YASnippet]] is a snippet expansion package for Emacs, which supports
+expanding abbreviations into templates.
+
+Two additional supporting packages are also loaded:
+- The YASnippet official snippet collections package, which contains
+  snippet definitions for multiple file types and languages.
+- The [[https://github.com/abo-abo/auto-yasnippet][Auto-YASnippet]] package, which enables temporary snippet
+  definitions that can optionally be persisted.
+  Persisted snippets are saved to ~aya-persist-snippet-dir~
+  (defaults to ~snippets~ in ~user-emacs-directory~) in a subfolder
+  corresponding to the major mode.
+
+#+name: yasnippet
+#+begin_src emacs-lisp
 ;; expandable snippet template system
 (use-package yasnippet
   :defer 1 ;; load asynchronously after startup
@@ -887,7 +1527,15 @@ Misc    _C-{_: number   _C-}_: letter
   (unbind-key "\C-c&" yas-minor-mode-map)
   (unbind-key "\C-c" yas-minor-mode-map)
   (yas-global-mode 1))
+#+end_src
 
+*** YASnippet hydra                                                   :hydra:
+
+Hydra for ~yas-minor-mode~ YASnippet commands and YASnippet supporting
+packages.
+
+#+name: yasnippet-hydra
+#+begin_src emacs-lisp
 ;; hydra for YASnippet commands
 (defhydra my-hydra/yas-minor-mode (:color teal :columns 4)
   "
@@ -905,7 +1553,17 @@ YASnippet (_q_: quit)"
    "current-auto")) ;; show temp snippet
 (with-eval-after-load 'yasnippet
   (define-key yas-minor-mode-map (kbd "C-c C-M-y s") #'my-hydra/yas-minor-mode/body))
+#+end_src
 
+** Structured editing using Paredit                                   :melpa:
+
+[[https://www.emacswiki.org/emacs/ParEdit][Paredit]] provides a minor mode for structured editing S-expression data.
+Enable it for editing Emacs Lisp buffers and the minibuffer.
+Also configure it so its commands integrate appropriately with
+~delete-selection-mode~.
+
+#+name: paredit
+#+begin_src emacs-lisp
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
   :commands paredit-mode
@@ -925,14 +1583,319 @@ YASnippet (_q_: quit)"
     (put 'paredit-open-square 'delete-selection t)
     (put 'paredit-doublequote 'delete-selection t)
     (put 'paredit-newline 'delete-selection t)))
+#+end_src
 
+** Traverse undo history as a tree                                     :elpa:
+
+The [[http://www.dr-qubit.org/undo-tree.html][undo-tree]] package allows the traversal of the undo history as a
+tree, which makes utilizing Emacs rather flexible undo/redo
+capabilities much easier.
+Default bindings are ~C-/~ to undo, ~C-S-/~ to redo, and ~C-x u~ to
+open a new window whose buffer where the undo history is presented as
+a tree and can be navigated using the regular movement keys.
+
+#+name: undo-tree
+#+begin_src emacs-lisp
 ;; traverse undo history as a tree, default binding is "C-x u"
 (use-package undo-tree
   :init (setq undo-tree-visualizer-relative-timestamps nil)
   :config (global-undo-tree-mode))
+#+end_src
 
-;; Email
+* Email
 
+This section describes the following email setup to sync and read mail:
+- [[https://github.com/gauteh/lieer][Lieer]] is used for syncing with a Gmail source (which requires XOAUTH2).
+  - ~gmi pull~ pulls changes from source like new email or tag changes.
+  - ~gmi push~ pushes changes to the source like tag changes.
+  - ~gmi send~ sends an email via the Gmail API.
+- Index emails using [[https://notmuchmail.org/][notmuch]].
+- Read and tag email via notmuch using Emacs.
+- Send email via lieer using Emacs.
+
+#+begin_example
+  ------- push tags with lieer      (gmi push) <------------
+  |                                                        |
+  v                                                        |
+Gmail --> pull mail/tags with lieer (gmi pull) --> notmuch (index) <--> Emacs
+  ^                                                                       |
+  |                                                                       |
+  ------- send mail with lieer      (gmi send) <---------------------------
+#+end_example
+
+** Setting up lieer and notmuch                                    :external:
+
+~pip install -e .~ or ~setup.py install -e~ installs lieer in editable
+mode (setuptools "develop mode").
+
+#+begin_example
+$ sudo port install notmuch
+$ notmuch
+#+end_example
+
+Create the mail directory at =/Users/myusername/Mail=.
+
+Edit =~/.notmuch-config= and modify the ~[new]~ section as follows:
+
+#+begin_example
+[new]
+tags=
+ignore=/.*[.](json|lock|bak)$/
+#+end_example
+
+Next create a virtual environment for ~lieer~ and activate it.
+
+#+begin_example
+$ conda create -n lieer python=3.7
+$ conda activate lieer
+#+end_example
+
+Create a build directory (say =~/build=, change as needed).
+
+#+begin_example
+$ mkdir -p ~/build
+#+end_example
+
+Install the Python bindings for ~notmuch~.
+If possible, ~git checkout~ the commit or tag corresponding to the
+version of ~notmuch~ installed for maximum compatibility before
+installing the binding via ~pip~.
+
+#+begin_example
+$ cd ~/build
+$ git clone git://git.notmuchmail.org/git/notmuch
+$ cd notmuch/bindings/python
+$ pip install .
+#+end_example
+
+Install ~lieer~.
+
+#+begin_example
+$ cd ~/build
+$ git clone https://github.com/gauteh/lieer.git
+$ cd lieer
+$ pip install .
+#+end_example
+
+*Note*: After doing the above, lieer can run using a command ~gmi~.
+Because ~notmuch~ was installed with MacPorts and lieer within its own
+environment, ~gmi~ needs to be called from within the virtual
+environment container and with ~DYLD_FALLBACK_LIBRARY_PATH~ set to
+MacPort's library directory at =/opt/local/lib= so it can find the
+~notmuch~ libraries, for example:
+
+#+begin_example
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/lieer/bin/gmi
+#+end_example
+
+To avoid having to specify this every time ~gmi~ needs to be called,
+a wrapper script can be used (change the paths as appropriate).
+
+#+begin_example
+#!/bin/sh
+
+# Wrapper script for running gmi
+
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/lieer/bin/gmi "$@"
+#+end_example
+
+Run the following to create such a file in a directory on the system
+path (say =~/.local/bin=), after which calling ~gmi~ directly should
+work as expected.
+
+#+begin_example
+$ cat > ~/.local/bin/gmi <<EOF
+#!/bin/sh
+
+# Wrapper script for running gmi
+
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/lieer/bin/gmi "$@"
+EOF
+$ chmod +x ~/.local/bin/gmi
+#+end_example
+
+Deactivate the virtual environment and build the ~notmuch~ database.
+
+#+begin_example
+$ conda deactivate lieer
+$ cd ~/Mail
+$ notmuch new
+#+end_example
+
+Initialize the ~notmuch~ database.
+
+#+begin_example
+$ cd ~
+$ mkdir Mail
+$ notmuch new
+#+end_example
+
+Create a local mail directory for the account (replace
+=username@emailserver.com= with the actual email address).
+
+#+begin_example
+$ cd Mail
+$ mkdir username@emailserver.com
+$ cd username@emailserver.com
+#+end_example
+
+Two options for setting up and authenticating the email account in lieer:
+
+1. Run ~gmi init username@emailserver.com~ which uses the developer's
+   client ID.
+2. Create a Google dev OAuth client ID, download its secrets file, and
+   run ~gmi init -c your-client-secrets.json username@emailserver.com~
+   to use the client secrets file.
+
+Option 2 is typically better due to the higher likelihood of running
+up against potential usage limits on the shared client ID key, so that
+is covered here.
+
+- Go to [[https://console.developers.google.com/flows/enableapi?apiid=gmail][this link]] to create a new Gmail project and API credentials for it.
+- Agree to the terms and conditions.
+- Continue and navigate to the project. Click the *Credentials* entry
+  on the sidebar.
+- /Which API are you using?/ \to Gmail API
+- /Where will you be calling from?/ \to Other UI (e.g. Windows, CLI tool)
+- /What data will you be accessing?/ \to User data
+- Click *What credentials do I need?*.
+- Click *SET UP CONSENT SCREEN* which opens an /OAuth consent screen/
+  tab.
+- Select *Internal* if a GSuite user, otherwise *External*.
+- In the next screen, fill in the application name (like ~my-email-app~)
+  and click *Save*.
+- Close the tab and return to the previous one on the /Credentials/ page.
+- Refresh the page or click again on *Credentials* and the page
+  layout should now be a different one.
+# - Click *+ CREATE CREDENTIALS* followed by *API KEY*.
+# - Note down the API key.
+# - Make sure to edit the API key settings to restrict it to only Gmail APIs.
+- Click *+ CREATE CREDENTIALS* followed by *OAuth client ID*.
+  Set application type to *Desktop app* and name the application
+  (like ~my-email-app~).
+- After setting it up, click the download button to download that
+  OAuth client ID secret as a JSON file.
+
+When done, move the client secret file (replace ~CLIENT_ID~ with the
+actual client id) to the local mailbox directory and use it to
+authenticate.
+If there's a need to change client IDs in the future, it is possible to
+use something like ~gmi auth -f -c client_secrets.json~ (untested).
+
+#+begin_example
+$ mv ~/Downloads/client_secret_CLIENTID.json 
+$ gmi init -c client_secret_CLIENTID.json username@emailserver.com
+#+end_example
+
+Now retrieve email using ~gmi~.
+
+#+begin_example
+$ gmi pull
+#+end_example
+
+*Aside*
+
+By default the custom tags in ~new.tags~ in the notmuch configuration
+that are populated for all new emails are also pushed to the remote.
+
+As an example, suppose notmuch is configured to add the ~new~ tag
+to any new email pulled per the following section in =~/.notmuch-config=:
+
+#+begin_example
+[new]
+tags=new
+ignore=/.*[.](json|lock|bak)$/
+#+end_example
+
+Lieer can be configured to not push the custom tag ~new~ when syncing
+for each specific email source (so that the source does not get
+populated with extraneous tags) by running the following in the email
+source directory.
+
+#+begin_example
+$ gmi set --ignore-tags-local new
+#+end_example
+
+*Back from aside*
+
+Next, configure a hook that runs ~gmi pull~ when ~notmuch new~ is called.
+
+First, make a ~hooks~ directory in the notmuch database.
+
+#+begin_example
+$ mkdir -p ~/Mail/.notmuch/hooks
+#+end_example
+
+Next create the file =~/Mail/.notmuch/hooks/pre-new= with the following contents
+(change the local mailbox directory name and ~gmi~ path as relevant).
+
+#+begin_example
+#/bin/sh
+cd ~/Mail/username@emailserver.com
+~/.local/bin/gmi sync
+#+end_example
+
+Modify its permissions so it is executable.
+
+#+begin_example
+$ chmod +x ~/Mail/.notmuch/hook/pre-new
+#+end_example
+
+After setting this up, running ~notmuch new~ will sync new mail to the database.
+
+(Adapted from [[http://www.johnborwick.com/2019/02/09/notmuch-gmailieer.html][this blog post]] and the lieer [[https://github.com/gauteh/lieer/blob/master/docs/index.md][documentation]].)
+
+** Lieer and notmuch usage notes
+
+*** Changing local or remote ignored tags in lieer Gmail synchronization
+
+When changing local or remote ignored tags (for example using commands
+~gmi set --ignore-tags-remote~ or ~gmi set --ignore-tags-local~), it
+is best to do a full push or push (doing a dry run first to make sure
+the changes are the ones that are desired).
+
+The reason is that if the ignored tags were changed after the initial
+sync, this will not update already synced messages.
+
+Before changing anything, make sure the local and remote respositories
+are fully synchronized.
+
+After ~gmi set --ignore-tags-remote~ or editing the JSON config to the
+same effect:
+
+#+begin_example
+$ gmi pull -f --dry-run
+$ gmi pull -f
+#+end_example
+
+And after ~gmi set --ignore-tags-local~ or editing the JSON config to
+the same effect:
+
+#+begin_example
+$ gmi push -f --dry-run
+$ gmi push -f
+#+end_example
+
+Also, most importantly make sure to *only change one at a time* (don't
+change both local and remote ignored tags at the same time).
+
+A full push or pull is also a heavy handed fix when tags end up not
+synchronizing in general.
+
+** Reading email using notmuch.el                            :external:melpa:
+
+Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
+
+*Configuration*:
+- Prompt for which account to use when sending email.
+- When archiving, remove the ~inbox~ tag.
+- Show 10 most recent searches in the hello screen.
+- Use ~,~ as the thousands separator character.
+- Sort search results by date descending (default is date ascending).
+- Don't show notmuch logo.
+
+#+name: notmuch
+#+begin_src emacs-lisp
 ;; configure Notmuch email client
 (when (executable-find "notmuch")
   (use-package notmuch
@@ -957,7 +1920,24 @@ YASnippet (_q_: quit)"
       "Go to inbox search view from the Notmuch hello screen."
       (interactive)
       (notmuch-hello-search "tag:inbox"))))
+#+end_src
 
+** Toggling visibility of search tags in the notmuch search results list
+
+Add ability to toggle search tags in the notmuch search results.
+If this is turned on, the search results will not show tags that
+are part of the search query, the rationale being the user knows
+what they searched for.
+
+This is like what Gmail does with labels in search results, hiding
+the labels that are part of the search query.
+
+*Configuration*:
+- Turned on by default.
+- ~C-t~ in a search results buffer toggles search tag visibility.
+
+#+name: notmuch-toggle-search-tags-in-results
+#+begin_src emacs-lisp
 (with-eval-after-load 'notmuch
   ;; advises the search listings field insertion function to remove
   ;; tags in the search query from the displayed tags
@@ -1009,7 +1989,58 @@ original arguments passed to it."
   ;; bindings to toggle visibility of search tags in the results
   (define-key notmuch-search-mode-map (kbd "C-t")
     #'notmuch-search--toggle-search-tag-visibility))
+#+end_src
 
+** Sending mail with notmuch.el using Lieer as the sendmail program :external:
+
+Lieer can be used to send outgoing mail through the Gmail account
+([[https://github.com/gauteh/lieer/wiki/GNU-Emacs-and-Lieer][instructions]]).
+
+This can be configured by creating a =notmuch-config.el= file in the
+~user-emacs-directory~ with the following contents, but changing the
+paths to the mailbox =~/Mail/username@emailserver.com= and the ~gmi~
+executable path =~/.local/bin/gmi= as appropriate.
+
+In most instances the filepath for the notmuch init file is the
+=~/.emacs.d/notmuch-config.el=.
+
+#+begin_example
+;;; notmuch-config.el --- Notmuch config file -*- lexical-binding: t -*-
+
+;;; Commentary:
+
+;; Notmuch configuration file, helpful for avoiding clutter in the
+;; regular config files due to machine-specific notmuch settings.
+;; This file is loaded when notmuch starts up in Emacs.
+
+;;; Code:
+
+;; configure sendmail to use lieer to send email
+(setq sendmail-program (expand-file-name "~/.local/bin/gmi"))
+(setq message-sendmail-extra-arguments
+      `("send" "--quiet" "-t"
+        "-C" ,(expand-file-name "~/Mail/username@emailserver.com")))
+
+;; don't save outgoing mail locally, as sent mails are saved in Gmail
+;; automatically
+(setq notmuch-fcc-dirs nil)
+
+;; kill message composition buffers after sending
+(setq message-kill-buffer-on-exit t)
+
+(provide 'notmuch-config)
+
+;;; notmuch-config.el ends here
+#+end_example
+
+** OrgMsg for composing HTML emails
+
+[[https://github.com/jeremy-compostella/org-msg][OrgMsg]] provides HTML email composition capability.
+Calling ~org-msg-mode~ toggles whether to use HTML composition for emails
+by (by default, it is off).
+
+#+name: org-msg
+#+begin_src emacs-lisp
 ;; provides HTML email composition using Org-mode
 ;; set `org-msg-greeting-fmt' to "\nHi *%s*,\n\n" for auto greeting
 (use-package org-msg
@@ -1046,12 +2077,27 @@ original arguments passed to it."
   (defalias 'org-msg-edit-kill-buffer-notmuch 'message-kill-buffer)
   ;; -- END --
   )
+#+end_src
 
-;; Frame and window management
+* Frame and window management
 
+** Traverse window configuration history using Winner mode
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Window-Convenience.html][Winner mode]] allows the traversal of window configuration history using
+~C-c <left>~ (undo) and ~C-c <right>~ (redo).
+
+#+name: winner-mode
+#+begin_src emacs-lisp
 ;; traverse window config changes, use C-c left/right to undo/redo
 (add-hook 'after-init-hook #'winner-mode)
+#+end_src
 
+** Window manipulation hydra                                          :hydra:
+
+Hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Windows.html][window]] (panes) manipulation.
+
+#+name: window-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/window (:color amaranth :columns 3)
   "
 Window (_q_: quit)"
@@ -1082,7 +2128,14 @@ Window (_q_: quit)"
   ("d" delete-window "delete")
   ("D" kill-buffer-and-window "delete-buf"))
 (global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body)
+#+end_src
 
+*** Window manipulation helper functions
+
+Helper functions for the frame manipulation hydra.
+
+#+name: window-hydra-helper-functions
+#+begin_src emacs-lisp
 (defun my-transpose-windows (selector)
   "Call SELECTOR and transpose buffers between current and selected windows."
   (let ((from-win (selected-window))
@@ -1090,7 +2143,14 @@ Window (_q_: quit)"
     (funcall selector)
     (set-window-buffer from-win (window-buffer))
     (set-window-buffer (selected-window) from-buf)))
+#+end_src
 
+** Frame manipulation hydra                                           :hydra:
+
+Hydra for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Frames.html][frame]] (application window) manipulation.
+
+#+name: frame-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/frame (:color amaranth :columns 4)
   "
 Frame (_q_: quit)"
@@ -1112,7 +2172,14 @@ Frame (_q_: quit)"
   ("d" delete-frame "delete")
   ("o" delete-other-frames "only"))
 (global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
+#+end_src
 
+*** Frame manipulation helper functions
+
+Helper functions for the frame manipulation hydra.
+
+#+name: frame-hydra-helper-functions
+#+begin_src emacs-lisp
 (defun my-enlarge-frame (w h)
   "Enlarge width, height of selected frame by W, H lines (shrink if negative)."
   (let ((this-frame (selected-frame)))
@@ -1135,9 +2202,20 @@ Frame (_q_: quit)"
   (let ((cur-pos (frame-position)))
     (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
                                     (cons 'top (+ y (cdr cur-pos))))))))
+#+end_src
 
-;; Non-programming files
+* Non-programming files
 
+** csv-mode for comma-delimited and tab-delimited files (CSV, TSV)     :elpa:
+
+[[https://elpa.gnu.org/packages/csv-mode.html][csv-mode]] provides a major mode for editing comma and tab delimited
+(CSV and TSV) files.
+
+To extend it to separator characters other the default comma and tab,
+add or modify the ~csv-separators~ list.
+
+#+name: csv-mode
+#+begin_src emacs-lisp
 (use-package csv-mode
     :commands csv-mode
     :bind (:map csv-mode-map
@@ -1150,7 +2228,14 @@ Frame (_q_: quit)"
 `csv-align-fields' can take a very long time to run."
       (interactive)
       (csv-align-fields nil (window-start) (window-end))))
+#+end_src
 
+*** csv-mode hydra                                                    :hydra:
+
+Hydra for ~csv-mode~.
+
+#+name: csv-mode-hydra
+#+begin_src emacs-lisp
 ;; major mode-specific hydra for csv-mode
 (defhydra my-hydra/csv-mode (:color teal :columns 4)
   "
@@ -1173,11 +2258,34 @@ CSV (_q_: quit)"
 ;; binding for csv-mode hydra
 (with-eval-after-load 'csv-mode
   (define-key csv-mode-map (kbd "C-c C-M-m") #'my-hydra/csv-mode/body))
+#+end_src
 
+** dockerfile-mode for Dockerfiles                                    :melpa:
+
+[[https://github.com/spotify/dockerfile-mode][dockerfile-mode]] provides a major mode for editing Docker files.
+
+#+name: dockerfile-mode
+#+begin_src emacs-lisp
 (use-package dockerfile-mode
   :commands dockerfile-mode
   :config (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
+#+end_src
 
+** ebib for Bibtex support                                            :melpa:
+
+[[http://joostkremers.github.io/ebib/][ebib]] provides support for managing BibTeX bibliographic databases
+(=.bib= files).
+
+*Configuration*:
+- Add new Org link type supporting ebib key lookup and preamble,
+  pre-note and post-note text for the reference, with the format being
+  =[[ebib:key][Preamble text::Pre-note::Post-note]]= where
+  ~key~ should be a valid key in the =.bib= file currently open in ebib.
+- ~C-c C-M-b e~ calls ~ebib~ globally.
+- ~C-c C-M-b i~ calls ~ebib-insert-citation~ in Org-mode buffers.
+
+#+name: ebib
+#+begin_src emacs-lisp
 ;; manager for BibTeX bibliographic databases
 ;;
 ;; this setup supports exporting Org to PDF with BibTeX bibliographies via
@@ -1247,11 +2355,33 @@ CSV (_q_: quit)"
                       path)
             (format "\\cite{%s}" path))))))
     (org-link-set-parameters "ebib" :export 'my-org-ebib-export)))
+#+end_src
 
+** json-mode for JSON files                                           :melpa:
+
+[[https://github.com/joshwnj/json-mode][json-mode]] provides a major mode for editing [[https://www.json.org/json-en.html][JSON]] files.
+
+#+name: json-mode
+#+begin_src emacs-lisp
 ;; provides a major mode for editing JSON files
 (use-package json-mode
   :defer t)
+#+end_src
 
+** markdown-mode for Markdown files                                   :melpa:
+
+[[https://jblevins.org/projects/markdown-mode/][markdown-mode]] provdes a major mode for editing Markdown files.
+
+*Configuration*:
+- Enable ~markdown-mode~ automatically for the common suffixes, except
+  for =README.md= where ~gfm-mode~ is enabled instead for editing
+  Github-flavored Markdown.
+- Load the [[https://www.mathjax.org/][MathJax]] Javascript library in HTML output to render [[http://tug.org/][TeX]],
+  [[https://www.w3.org/Math/][MathML]] and [[http://asciimath.org/][AsciiMath]] expressions, target HTML+CSS (the loaded
+  configuration can be modified if targeting SVG or MathML instead).
+
+#+name: markdown-mode
+#+begin_src emacs-lisp
 ;; major mode for editing Markdown files
 (use-package markdown-mode
   :commands (markdown-mode gfm-mode)
@@ -1278,7 +2408,14 @@ CSV (_q_: quit)"
                 "        src=\"https://cdnjs.cloudflare.com/ajax/libs/"
                 "mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML\">"
                 "</script>")))
+#+end_src
 
+*** markdown-mode hydra                                               :hydra:
+
+Major mode-specific hydra for ~markdown-mode~.
+
+#+name: markdown-mode-hydra
+#+begin_src emacs-lisp
 ;; major mode-specific hydra for markdown-mode
 (defhydra my-hydra/markdown-mode (:color teal :hint nil)
   "
@@ -1322,24 +2459,61 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
 (with-eval-after-load 'markdown-mode
   (define-key gfm-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body)
   (define-key markdown-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body))
+#+end_src
 
+*** markdown-toc for creating tables of content in Markdown buffers   :melpa:
+
+#+name: markdown-toc
+#+begin_src emacs-lisp
 (use-package markdown-toc
   :after markdown-mode)
+#+end_src
 
+**** Add heads to create or remove Markdown TOCs to markdown-mode hydra :hydra:
+
+#+name: add-markdown-toc-to-markdown-mode-hydra
+#+begin_src emacs-lisp
 ;; add heads to create, update and delete tables of contents in
 ;; markdown-mode buffers
 (with-eval-after-load 'markdown-toc
   (defhydra+ my-hydra/markdown-mode nil
     ("t" markdown-toc-generate-or-refresh-toc "insert-or-refresh-toc")
     ("C-t" markdown-toc-delete-toc "delete-toc")))
+#+end_src
 
+** YAML
+
+[[https://github.com/yoshiki/yaml-mode][yaml-mode]] provides a major mode for editing [[https://yaml.org/][YAML]] files.
+
+#+name: yaml-mode
+#+begin_src emacs-lisp
 ;; provides a major mode for editing YAML files
 (use-package yaml-mode
   :commands yaml-mode
   :mode ("\\.ya?ml\\'" . yaml-mode))
+#+end_src
 
-;; Org-mode
+* Org-mode
 
+[[https://orgmode.org/][Org-mode]] is a major mode for document editing, formatting and
+organizing, designed to help with taking notes, planning and authoring
+in Emacs.
+Org files typically have filenames with the ~.org~ suffix.
+
+*Note*: The version of Org packaged with a given Emacs version is
+typically adequate, but it is often better to install the newest
+version of ~org~ from ELPA or the Org repository through
+~list-packages~.
+
+Examples of good configurations include [[http://doc.norang.ca/org-mode.html][this]].
+
+*Customizations*:
+- Use =~/org/= as the main Org directory.
+- Set =inbox.org= in ~org-directory~ as the default filing location to
+  be utilized later.
+
+#+name: org
+#+begin_src emacs-lisp
 ;; set Org directory and inbox file
 (setq org-directory (file-name-as-directory (file-truename "~/org"))
       my-org-agenda-inbox (concat org-directory "inbox.org"))
@@ -1370,7 +2544,20 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
       org-treat-S-cursor-todo-selection-as-state-change nil
       org-use-fast-todo-selection t
       org-use-speed-commands nil)
+#+end_src
 
+** Org TODO keywords and task states
+
+Possible Org task states:
+- *TODO*: Pending inactive task.
+- *NEXT*: Active task.
+- *DONE*: Completed task.
+- *HOLD*: Paused inactive task.
+- *WAIT*: Paused active task, waiting for external action before continuation.
+- *CANX*: Canceled task.
+
+#+name: org-todo-keywords
+#+begin_src emacs-lisp
 ;; Set possible Org task states
 ;; Diagram of possible task state transitions
 ;;     -------------------------
@@ -1386,9 +2573,19 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
 ;;     (note records why it was cancelled)
 (setq org-todo-keywords '((sequence "NEXT(n)" "TODO(t)" "|" "DONE(d!)")
                           (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANX(c@/!)")))
+#+end_src
 
+** Automatic text wrapping in Org-mode documents
+
+#+name: org-visual-line-mode
+#+begin_src emacs-lisp
 (add-hook 'org-mode-hook #'visual-line-mode)
+#+end_src
 
+** Org basic capture templates
+
+#+name: org-capture-templates
+#+begin_src emacs-lisp
 ;; Org capture templates
 (setq org-capture-templates '(("t" "Todo" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
@@ -1405,7 +2602,15 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
                                "* %a%?\n%U")
                               ("y" "Paste" entry (file my-org-agenda-inbox)
                                "* %?\n%U\n%c")))
+#+end_src
 
+** Maximize Org capture buffers
+
+Have Org capture buffers always be maximized.
+Restore the window configuration after capturing the task.
+
+#+name: org-maximize-capture-buffers
+#+begin_src emacs-lisp
 (with-eval-after-load 'org
   ;; maximize org-capture buffer
   (defun my-org-capture-setup (&rest args)
@@ -1424,7 +2629,12 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
   (advice-add 'org-capture :before 'my-org-capture-setup)
   (add-hook 'org-capture-mode-hook 'delete-other-windows)
   (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown))
+#+end_src
 
+** Org tags
+
+#+name: org-tags
+#+begin_src emacs-lisp
 ;; tags (note that tags within the same group are mutually exclusive)
 (setq org-tag-alist '((:startgroup) ;; difficulty
                       ("easy" . ?1)
@@ -1449,7 +2659,14 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
                       (:endgroup)
                       ;; ungrouped
                       ("note" . ?n)))
+#+end_src
 
+** Org-mode hydra                                                     :hydra:
+
+Major mode-specific hydra for ~org-mode~.
+
+#+name: org-mode-hydra
+#+begin_src emacs-lisp
 ;; hydra for org-mode
 (defhydra my-hydra/org-mode (:color amaranth :columns 3)
   "
@@ -1510,7 +2727,19 @@ Org-mode → Emphasize (_q_: ←)"
 ;; binding for org-mode hydra
 (with-eval-after-load 'org
   (define-key org-mode-map (kbd "C-c C-M-m") #'my-hydra/org-mode/body))
+#+end_src
 
+** Org Agenda
+
+Org-mode provides [[https://orgmode.org/manual/Agenda-Views.html][agenda views]] that give an overview of open action
+items or events with specific scheduled or deadline dates in Org files
+specified by ~org-agenda-files~.
+
+A number of customizations are done here, including defining
+a view that displays 3-day agenda and undated ~TODO~ entries.
+
+#+name: org-agenda
+#+begin_src emacs-lisp
 ;; org-agenda settings:
 ;; - narrow to subtree in org-agenda-follow-mode ("F" in agenda)
 ;; - full-frame Agenda view
@@ -1532,7 +2761,14 @@ Org-mode → Emphasize (_q_: ←)"
               (alltodo "" ((org-agenda-todo-ignore-with-date t)
                            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up category-keep alpha-up)))))))
     (add-to-list 'org-agenda-custom-commands my-custom-cmd)))
+#+end_src
 
+** Org Agenda hydra                                                   :hydra:
+
+Major mode-specific hydra for ~org-agenda-mode~.
+
+#+name: org-agenda-hydra
+#+begin_src emacs-lisp
 ;; mode-specific hydra for org-agenda-mode
 (defhydra my-hydra/org-agenda-mode (:color amaranth :hint nil)
   "
@@ -1591,7 +2827,12 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
 ;; bind org-agenda-mode hydra
 (with-eval-after-load 'org-agenda
   (define-key org-agenda-mode-map (kbd "C-c C-M-m") #'my-hydra/org-agenda-mode/body))
+#+end_src
 
+** Org refiling of tasks and subtrees
+
+#+name: org-refile
+#+begin_src emacs-lisp
 ;; allow refiling up to 9 levels deep in the current buffer
 ;; and 3 levels deep in Org agenda files
 ;; allow refiling to the top level
@@ -1599,7 +2840,14 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
                            (org-agenda-files . (:maxlevel . 3)))
       org-refile-use-outline-path 'file
       org-refile-allow-creating-parent-nodes 'confirm)
+#+end_src
 
+** Org entrypoint hydra                                               :hydra:
+
+Hydra providing entrypoints to multiple Org-mode functions.
+
+#+name: org-entrypoints-hydra
+#+begin_src emacs-lisp
 ;; hydra for Org entrypoints
 (defhydra my-hydra/org-entrypoints (:color teal :columns 4)
   "
@@ -1612,7 +2860,22 @@ Org (_q_: quit)"
 
 ;; bind Org entrypoints hydra
 (global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
+#+end_src
 
+** Compile Org documents to PDF with LaTeX                         :external:
+
+*TODO*: change to LuaTeX
+
+Org-mode supports an Org \to LaTeX \to PDF build chain for compiling Org
+documents to PDF files.
+By default, this build process utilizes the base ~latex~ compiler and
+does not handle [[http://tug.org/bibtex/][BibTeX]] bibliography database files (~.bib~ files).
+It is better change to this to a more modern compiler ~xelatex~ for
+better font and unicode support, and to add a BibTex compiler like
+[[http://biblatex-biber.sourceforge.net/][Biber]] to the build chain.
+
+#+name: org-latex-pdf-process
+#+begin_src emacs-lisp
 ;; compile Org documents to PDF with xelatex and biber
 (when (executable-find "xelatex")
   (with-eval-after-load 'org
@@ -1623,7 +2886,21 @@ Org (_q_: quit)"
         (push "biber %b" org-latex-pdf-process))
     (push "xelatex -interaction nonstopmode -output-directory %o %f"
           org-latex-pdf-process)))
+#+end_src
 
+** Use LuaTeX to generate LaTeX fragments previews in Org-mode     :external:
+
+Use [[http://www.luatex.org/][LuaTeX]] to generate previews of [[https://orgmode.org/manual/LaTeX-fragments.html][LaTeX fragments]] as images in
+~org-mode~.
+
+The build chain converts LaTeX \to DVI \to PNG, so besides ~lualatex~ from
+LuaTeX ~dvipng~ (which should come installed with most TeX
+distributions) is also needed.
+
+For more information on LaTeX fragment previews, see [[https://orgmode.org/manual/Previewing-LaTeX-fragments.html#Previewing-LaTeX-fragments][here]].
+
+#+name: org-preview-latex-process
+#+begin_src emacs-lisp
 ;; use LuaTeX for previewing LaTeX math formula as images
 (when (and (executable-find "lualatex")
            (executable-find "dvipng"))
@@ -1640,7 +2917,15 @@ Org (_q_: quit)"
                                   " -interaction nonstopmode"
                                   " -output-directory %o %f")
                           :image-converter ("dvipng -D %D -T tight -o %O %f")))))
+#+end_src
 
+** Automatically preview LaTeX fragments and resize them with text scaling :external:
+
+Automatically preview LaTeX fragments and also scale them according
+the current text scale (font size modifier).
+
+#+name: org-preview-and-scale-latex-fragments
+#+begin_src emacs-lisp
 ;; preview LaTeX fragments scaled to font size, requires dvipng from TexLive
 (when (and (display-graphic-p)
            (executable-find "dvipng"))
@@ -1669,7 +2954,17 @@ Org (_q_: quit)"
     ;; ... and regenerate after changing font size
     (advice-add 'text-scale-mode :after (lambda (&optional arg)
                                           (my-org-display-latex-fragments)))))
+#+end_src
 
+** Mouse support and variable pitch fonts in graphical Emacs Org-mode
+
+When using graphical emacs, enable mouse support (like clicking on the
+header stars to cycle visibility of the subtree) and use variable
+pitch fonts with a little extra line spacing except for certain parts of
+Org documents like code and tables.
+
+#+name: org-graphical-customizations
+#+begin_src emacs-lisp
 ;; add mouse support and use variable pitch fonts in graphical Emacs org-mode
 (when (display-graphic-p)
   (with-eval-after-load 'org
@@ -1696,7 +2991,19 @@ Org (_q_: quit)"
                            org-todo
                            org-verbatim))
         (set-face-attribute curr-face nil :family fixed-pitch-family)))))
+#+end_src
 
+** Display the outline path at point in Org-mode using which-func
+
+Use ~which-func~ to display the outline path where the point is within
+the Org-mode document.
+
+This depends on some of the ~which-func~ customization set up in
+\S[[Display function or outline node at point using which-func]]
+so make sure the code there is loaded first.
+
+#+name: org-which-func
+#+begin_src emacs-lisp
 (with-eval-after-load 'org
   ;; display the outline path at point using which-func
   (with-eval-after-load 'which-func
@@ -1752,20 +3059,48 @@ wheel-d : prev same-level heading"
                           help-echo my-which-func-header-keymap-help-text-org))
     ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
     (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
+#+end_src
 
+** org-bullets for nicer header bullets in Org-mode                   :melpa:
+
+*TODO*: migrate to [[https://github.com/integral-dw/org-superstar-mode][org-superstar]].
+
+[[https://github.com/integral-dw/org-bullets][org-bullets]] mode replaces header stars in Org-mode with UTF-8
+characters that can be customized to differ by header leve.
+
+#+name: org-bullets
+#+begin_src emacs-lisp
 ;; UTF-8 bullets in Org buffers
 (use-package org-bullets
   :after org
   :hook (org-mode . org-bullets-mode)
   :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
+#+end_src
 
+** org-cliplink for inserting URLs from the clipboard as Org-mode links :melpa:
+
+[[https://github.com/rexim/org-cliplink][org-cliplink]] provides support for inserting URLs from the clipboard as
+links in Org-mode documents with the URL page titles as link
+descriptions.
+
+#+name: org-cliplink
+#+begin_src emacs-lisp
 ;; insert urls from clipboard as links with title of page
 (when (display-graphic-p)
   (use-package org-cliplink
     :after org
     :bind (:map org-mode-map
            ("C-c C-S-l" . org-cliplink))))
+#+end_src
 
+** org-download for dragging and dropping images into Org-mode        :melpa:
+
+[[https://github.com/abo-abo/org-download][org-download]] enables support for downloading images to Org-mode
+documents, either by running an external command to capture a
+screenshot or by dragging and dropping an image onto the document.
+
+#+name: org-download
+#+begin_src emacs-lisp
 ;; drag and drop images into Org buffers
 (when (display-graphic-p)
   (use-package org-download
@@ -1793,7 +3128,15 @@ wheel-d : prev same-level heading"
         (expand-file-name filename dirname)))
     (setq org-download-method 'my-org-download-method
           org-download-timestamp "%Y%m%d%H%M%S-")))
+#+end_src
 
+*** org-download hydra                                                :hydra:
+
+Hydra for ~org-download~.
+Add an entrypoint for the hydra to the org-mode hydra.
+
+#+name: org-download-hydra
+#+begin_src emacs-lisp
 (when (display-graphic-p)
   ;; hydra for org-download
   (defhydra my-hydra/org-mode/download (:color teal :columns 3)
@@ -1806,7 +3149,14 @@ Org-mode → Download (_q_: ←)"
   ;; add entrypoint to download hydra to the org-mode hydra
   (defhydra+ my-hydra/org-mode nil
     ("d" my-hydra/org-mode/download/body "→ Download" :exit t)))
+#+end_src
 
+** org-journal for journaling using Org-mode                          :melpa:
+
+[[https://github.com/bastibe/org-journal][org-journal]] extends journaling capabilities to Org-mode.
+
+#+name: org-journal
+#+begin_src emacs-lisp
 ;; journaling using Org documents
 (use-package org-journal
   :after org
@@ -1829,7 +3179,30 @@ Org-mode → Download (_q_: ←)"
         org-journal-file-type 'daily
         ;; use ORG-DIRECTORY/journal/ as the default journal directory
         org-journal-dir (concat org-directory "journal/")))
+#+end_src
 
+** org-present for minimalist presentations within Emacs              :melpa:
+
+[[https://github.com/rlister/org-present][org-present]] extends org-mode so that it can be used for minimalist
+presentations within Emacs.
+
+Each top-level heading will correspond to a presentation slide.
+=LEFT= and =RIGHT= will move forward and backward through the
+slides, and =C-c C-q= will quit the presentation.
+
+*Customizations*:
+- Hide header and mode lines when presentation is active.
+- Additional keybindings during presentation
+  - =UP=/=DOWN=: Scroll up/down.
+  - =SHIFT-UP=/=SHIFT-DOWN=: Go to top/bottom of slide.
+  - =SHIFT-LEFT=/=SHIFT-RIGHT=: Go to first/last slide.
+  - =f=: Toggle fullscreen.
+  - =q=: Quit presentation (like =C-c C-q=).
+  - =-=: Decrease text scale.
+  - =+=: Increase text scale.
+
+#+name: org-present
+#+begin_src emacs-lisp
 ;; in-editor presentations using Org documents
 (use-package org-present
   :after org
@@ -1894,7 +3267,15 @@ Org-mode → Download (_q_: ←)"
               :after (lambda () (my-org-present-extra-mode 1)))
   (advice-add 'org-present-read-write
               :after (lambda () (my-org-present-extra-mode 0))))
+#+end_src
 
+*** Add Org-mode presentation head to org-mode hydra                  :hydra:
+
+Add head for initializing an ~org-present~ presentation to org-mode
+hydra.
+
+#+name: add-org-present-to-org-mode-hydra
+#+begin_src emacs-lisp
 ;; add org-present present head to org-mode hydra
 (defhydra+ my-hydra/org-mode nil
   ("C-p" (lambda ()
@@ -1904,7 +3285,19 @@ Org-mode → Download (_q_: ←)"
                                     (error nil))))
              (if in-present-mode (org-present-quit) (org-present))))
    "org-present" :exit t))
+#+end_src
 
+** org-projectile for Projectile project Org TODOs                    :melpa:
+
+[[https://github.com/IvanMalison/org-projectile][org-projectile]] provides functions for creating Org TODOs for [[Projectile][Projectile]] projects.
+It can be set up to use one file for all projects (the default), or one file per
+project.
+Configure it to use one file per project, specifically a ~TODO.org~ file at the
+root directory of the project.
+Also add a corresponding entry type to ~org-capture-templates~.
+
+#+name: org-projectile
+#+begin_src emacs-lisp
 ;; Org TODOs for projectile projects
 ;; use `org-capture' to capture and store TODOs for the current project
 ;; in `org-projectile-per-project-filepath' at the project's root directory
@@ -1914,21 +3307,55 @@ Org-mode → Download (_q_: ←)"
   (org-projectile-per-project)
   (setq org-projectile-per-project-filepath "TODO.org")
   (push (org-projectile-project-todo-entry) org-capture-templates))
+#+end_src
 
+** ox-md for Org export backend to Markdown
+
+Load the [[https://github.com/emacsmirror/org/blob/master/lisp/ox-md.el][built-in Org backend]] for exporting Org documents to Markdown.
+
+#+name: ox-md
+#+begin_src emacs-lisp
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
   (require 'ox-md))
+#+end_src
 
-;; Outlines
+* Outlines
 
+** Imenu
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Imenu.html][Imenu]] allows jumping to major definitions in a file by name.
+Have Imenu automatically rescan whenever the content changes.
+
+#+name: imenu-auto-rescan
+#+begin_src emacs-lisp
 (setq imenu-auto-rescan t)
+#+end_src
 
+** Imenu extension to all open buffers using imenu-anywhere    :melpa:
+
+[[https://github.com/vspinu/imenu-anywhere][imenu-anywhere]] provides an Imenu extension that lists major
+definitions across all open buffers.
+
+#+name: imenu-anywhere
+#+begin_src emacs-lisp
 ;; menu list of major definitions across several buffers
 (use-package imenu-anywhere
   :defer t
   :after imenu
   :bind ("C-c C-M-j" . imenu-anywhere))
+#+end_src
 
+** Imenu extension to list headings in a side buffer                  :melpa:
+
+[[https://github.com/bmag/imenu-list][imenu-list]] is an Imenu extension that opens up a side buffer
+listing the major definitions and headings in the current buffer.
+This configuration customizes it such that on jumping to a
+definition or heading, it pulses the destination line once
+and automatically closes the imenu-list.
+
+#+name: imenu-list
+#+begin_src emacs-lisp
 ;; show imenu as a list in a side buffer
 (use-package imenu-list
   :defer t
@@ -1941,9 +3368,24 @@ Org-mode → Download (_q_: ←)"
             (lambda () (pulse-momentary-highlight-one-line (point))))
   ;; close imenu list after going to entry
   (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
+#+end_src
 
-;; Programming / Flymake syntax checker
+* Programming
 
+** Flymake syntax checker
+
+[[https://elpa.gnu.org/packages/flymake.html][Flymake]] is a built-in on-the-fly syntax checker, with updated versions
+available from the GNU ELPA repository.
+
+To display the error message at point in the minibuffer, do ~C-h .~
+while the point is over an error.
+
+To define new Flymake backend, refer to the docstring of
+~flymake-diagnostic-functions~, the [[https://www.gnu.org/software/emacs/manual/html_node/flymake/index.html][Flymake manual]] or the code of
+existing backends.
+
+#+name: flymake
+#+begin_src emacs-lisp
 ;; basic Flymake customizations
 (setq flymake-no-changes-timeout 0.5 ;; auto check buffer change wait time
       flymake-start-on-save-buffer nil) ;; don't run checks when saving
@@ -1981,7 +3423,14 @@ Org-mode → Download (_q_: ←)"
 
 ;; enable Flymake when editing Emacs Lisp buffers
 (add-hook 'emacs-lisp-mode-hook #'flymake-mode)
+#+end_src
 
+*** Flymake hydra                                                     :hydra:
+
+Hydra for Flymake.
+
+#+name: flymake-hydra
+#+begin_src emacs-lisp
 ;; hydra for Flymake
 (defhydra my-hydra/flymake (:color amaranth :columns 4)
   "
@@ -1995,12 +3444,38 @@ Flymake (_q_: quit)"
 ;; binding for Flymake hydra
 (with-eval-after-load 'flymake
   (define-key flymake-mode-map (kbd "C-c C-M-e e") #'my-hydra/flymake/body))
+#+end_src
 
+*** flymake-quickdef for defining Flymake backends                    :melpa:
+
+[[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]] provides a macro for quickly defining Flymake backends.
+See the [[https://github.com/karlotness/flymake-quickdef/blob/master/flymake-quickdef.el#L56-L158][documentation]] for how to use this macro.
+
+#+name: flymake-quickdef
+#+begin_src emacs-lisp
 (use-package flymake-quickdef
   :demand t)
+#+end_src
 
-;; Programming / DevSkim and FlyMake
+** Security linting using DevSkim and Flymake                      :external:
 
+[[https://github.com/Microsoft/DevSkim/][DevSkim]] is a collection of static analyzers that does code security analysis.
+
+If it is installed on the system, Flymake backend can be defined to
+use it to provide security linting.
+
+Flymake-Quickdef (see above) can be used for defining this backend.
+
+To use this backend in for specific programming language, call the
+custom setup function ~flymake-devskim-setup~ before ~flymake-mode~
+is enabled.
+
+One way to ensure the order is to add ~flymake-mode~ to a programming
+mode's hook by appending instead of pushing, for example by doing
+~(add-hook 'python-mode-hook #'flymake-mode t)~.
+
+#+name: devskim-flymake
+#+begin_src emacs-lisp
 ;; Code security analysis using devskim, https://github.com/microsoft/DevSkim
 ;; A Flymake backend for it is defined here, and can be used by calling
 ;; `flymake-devskim-setup' before `flymake-mode' in a given mode's hook, e.g.
@@ -2039,9 +3514,24 @@ Flymake (_q_: quit)"
   (defun flymake-devskim-setup ()
     "Enable devskim backend for Flymake."
     (add-hook 'flymake-diagnostic-functions #'flymake-devskim-backend nil t)))
+#+end_src
 
-;; Programming / Conda package and environment manager
+** Conda package and environment manager                              :melpa:
 
+[[https://docs.conda.io/][Conda]] is a cross-platform package and environment manager, enabling
+easy creation, saving, loading and switching of environments.
+
+It was initially created to target Python development, but has
+expanded beyond just that and now includes R and other software
+packages.
+
+*Customizations*:
+- Set the conda home directory to =~/miniconda3/=.
+- Support Eshell and term-mode buffers.
+- Show current conda environment in the mode line.
+
+#+name: conda
+#+begin_src emacs-lisp
 (when (executable-find "conda")
   (use-package conda
     :init (setq conda-anaconda-home (expand-file-name "~/miniconda3/"))
@@ -2057,7 +3547,14 @@ Flymake (_q_: quit)"
                                       15 nil nil "…"))
                            ""))
                  t))
+#+end_src
 
+*** Conda hydra                                                       :hydra:
+
+Hydra for conda.
+
+#+name: conda-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/conda (:color teal :columns 4)
   "
 conda (_q_: quit)"
@@ -2067,9 +3564,18 @@ conda (_q_: quit)"
   ("l" conda-env-list "list"))
 (with-eval-after-load 'conda
   (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body)))
+#+end_src
 
-;; Programming / Eglot Language Server Protocol client
+** Eglot Language Server Protocol client                              :melpa:
 
+[[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglot) is an Emacs Language Server Protocol client.
+It is a lighter weight than [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]], though also with less features.
+
+A useful customization is to have display the diagnostic error message
+under the point when there is a Flymake error ([[https://github.com/joaotavora/eglot/issues/8#issuecomment-414149077][link]]).
+
+#+name: eglot
+#+begin_src emacs-lisp
 (use-package eglot
   :commands eglot
   :config
@@ -2082,7 +3588,14 @@ conda (_q_: quit)"
               (lambda (oldfun)
                 (let ((help (help-at-pt-kbd-string)))
                   (if help (message "%s" help) (funcall oldfun))))))
+#+end_src
 
+*** Eglot hydra                                                       :hydra:
+
+Hydra for Eglot.
+
+#+name: eglot-hydra
+#+begin_src emacs-lisp
 ;; hydra for Eglot
 (defhydra my-hydra/eglot-mode (:color teal :columns 4)
   "
@@ -2105,9 +3618,18 @@ Eglot [active=%(if (boundp 'eglot--managed-mode) eglot--managed-mode nil)] (_q_:
 (defun eglot--setup-hydra-bindings (mode-map)
   "Sets up 'C-c C-M-l' binding to Eglot hydra in given MODE-MAP."
   (define-key mode-map (kbd "C-c C-M-l") #'my-hydra/eglot-mode/body))
+#+end_src
 
-;; Programming / Emacs Lisp
+** Emacs Lisp
 
+*** Emacs Lisp debugger hydra                                         :hydra:
+
+Hydras for [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Debugging.html][debugging]] Emacs Lisp.
+One is for changing when the debugger is invoked.
+The other is a mode-specific hydra.
+
+#+name: debugger-hydra
+#+begin_src emacs-lisp
 ;; hydra for built-in Emacs Lisp debugger
 (defhydra my-hydra/debugger (:color teal :hint nil)
   "
@@ -2133,7 +3655,10 @@ Variables _vl_ : list variables to invoke debugger on change
 
 ;; binding for debugger-settings hydra
 (global-set-key (kbd "C-c C-M-d e") 'my-hydra/debugger/body)
+#+end_src
 
+#+name: debugger-mode-hydra
+#+begin_src emacs-lisp
 ;; mode-specific hydra for debugger
 (defhydra my-hydra/debugger-mode (:color teal :columns 4)
     "
@@ -2155,7 +3680,14 @@ Emacs debugger (_q_: quit)"
 ;; binding for debugger hydra
 (with-eval-after-load 'debug
  (define-key debugger-mode-map (kbd "C-c C-M-m") #'my-hydra/debugger-mode/body))
+#+end_src
 
+*** Emacs Lisp profiler hydra                                         :hydra:
+
+Hydra for built in Emacs [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Profiling.html][profiler]].
+
+#+name: profiler-hydra
+#+begin_src emacs-lisp
 ;; hydra for built-in Emacs Lisp profiler
 (defhydra my-hydra/profiler (:color teal :columns 3
                              :pre (require 'profiler))
@@ -2168,10 +3700,28 @@ Emacs profiler [CPU=%(profiler-running-p) MEM=%(profiler-memory-running-p)] (_q_
 
 ;; binding for profiler hydra
 (global-set-key (kbd "C-c C-M-e p") 'my-hydra/profiler/body)
+#+end_src
 
+*** el-patch                                                          :melpa:
+
+[[https://github.com/raxod502/el-patch][el-patch]] provides a way to customize Emacs Lisp functions.
+
+#+name: el-patch
+#+begin_src emacs-lisp
 (use-package el-patch
   :demand t)
+#+end_src
 
+**** Modify lisp-indent-function to handle property list indentation
+
+Modify ~lisp-indent-function~ so that it indents property lists in
+Emacs Lisp (and other Lisps) in the expected manner (like in Clojure).
+
+Uses functions from the ~el-patch~ package, so make sure that package
+is loaded before this code block.
+
+#+name: modify-lisp-indent-function
+#+begin_src emacs-lisp
 ;; Modifies lisp indentation to handle property lists used as
 ;; data structures
 ;; --- DEFAULT BEHAVIOR
@@ -2194,13 +3744,13 @@ STATE is the `parse-partial-sexp' state for that position.
 If the current line is in a call to a Lisp function that has a non-nil
 property `lisp-indent-function' (or the deprecated `lisp-indent-hook'),
 it specifies how to indent.  The property value can be:
-* `defun', meaning indent `defun'-style
+,* `defun', meaning indent `defun'-style
   (this is also the case if there is no property and the function
   has a name that begins with \"def\", and three or more arguments);
-* an integer N, meaning indent the first N arguments specially
+,* an integer N, meaning indent the first N arguments specially
   (like ordinary function arguments), and then indent any further
   arguments like a body;
-* a function to call that returns the indentation (or nil).
+,* a function to call that returns the indentation (or nil).
   `lisp-indent-function' calls this function with the same two arguments
   that it itself received.
 This function returns either the indentation to use, or nil if the
@@ -2262,11 +3812,54 @@ Lisp function does not specify a special indentation."
               (goto-char (+ 2 (elt state 1)))
               (current-column)))
            (t $else)))))))
+#+end_src
 
-;; Programming / Clojure
+** Python
 
-;; Programming / Python
+*** Developing
 
+#+begin_example
+$ pip install -e .
+#+end_example
+
+or
+
+#+begin_example
+$ python setup.py --editable
+#+end_example
+
+*** Debugging
+
+The intrusive way to debug Python programs is to create a debugging
+breakpoint by adding a ~import pdb; pdb.set_trace()~ statement to the
+desired breakpoint location.
+Running the Python program normally will stop the program at the
+breakpoint and bring up the ~pdb~ interface.
+
+The non-intrusive way to debug is to run ~pdb~ as a module using
+~python -m pdb some_script.py~ which starts debugging from the
+beginning of the code.
+
+Emacs provides a way to start the debugging session from the buffer:
+run ~M-x pdb~ which opens ~pdb~ using Emacs' [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Debuggers.html][Grand Unified Debugger]]
+(GUD) which provides some additional user interface around ~pdb~.
+
+*Note*: For autocompletion in ~pdb~, create a =~/.pdbrc= file with the
+following contents.
+
+#+begin_example
+import rlcompleter
+import pdb
+
+pdb.Pdb.complete=rlcompleter.Completer(locals()).complete
+#+end_example
+
+*** Python hydra                                                      :hydra:
+
+Mode-specific Hydra for Python mode.
+
+#+name: python-hydra
+#+begin_src emacs-lisp
 ;; mode-specific hydra for Python mode
 (defhydra my-hydra/python-mode (:color teal :columns 4)
   "
@@ -2295,9 +3888,24 @@ Python (_q_: quit)"
 ;; binding for Python hydra
 (with-eval-after-load 'python
   (define-key python-mode-map (kbd "C-c C-M-m") #'my-hydra/python-mode/body))
+#+end_src
 
+*** Enable Flymake mode when editing Python backends
+
+Enable Flymake mode as the last function in the Python mode hook.
+
+#+name: python-flymake
+#+begin_src emacs-lisp
 (add-hook 'python-mode-hook #'flymake-mode t)
+#+end_src
 
+*** Enable which-func and Imenu menubar entry in Python buffers
+
+When editing Python buffers, enable which-func and add an Imenu
+entry to the menubar.
+
+#+name: python-which-func-imenu
+#+begin_src emacs-lisp
 ;; show function at point
 (with-eval-after-load 'which-func
   (add-to-list 'which-func-modes 'python-mode))
@@ -2305,11 +3913,36 @@ Python (_q_: quit)"
 ;; add Imenu index to menubar
 (with-eval-after-load 'imenu
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
+#+end_src
 
+*** Enable Flymake DevSkim backend when editing Python buffers     :external:
+
+Enable the Flymake DevSkim back when editing Python buffers (see
+\S[[Security linting using DevSkim and Flymake]]).
+
+#+name: python-devskim-flymake
+#+begin_src emacs-lisp
 (when (executable-find "devskim")
   (with-eval-after-load 'flymake-quickdef
     (add-hook 'python-mode-hook #'flymake-devskim-setup)))
+#+end_src
 
+*** Microsoft Python Language Server support using eglot           :external:
+
+Use ~eglot~ as a client for the Microsoft Python Language Server. 
+
+Uses functions from the ~el-patch~ package, so make sure that package
+is loaded before this code block.
+
+*Installing the Microsoft Python Language Server*:
+- Building from source
+
+*Configuration*:
+- Assumes the binary for the Microsoft Python Language Server is at
+  =~/.local/bin/Microsoft.Python.LanguageServer=.
+
+#+name: python-eglot
+#+begin_src emacs-lisp
 ;; set path to Microsoft Python Language Server binary
 (setq mspyls-path (expand-file-name "~/.local/bin/Microsoft.Python.LanguageServer"))
 
@@ -2377,16 +4010,80 @@ Python (_q_: quit)"
 
 ;; setup binding to Eglot hydra in Python mode
 (eglot--setup-hydra-bindings python-mode-map)
+#+end_src
 
-;; Programming / R
+*Note*: The correct flags to feed into Microsoft's Python Language
+Server can be a moving target, and the [[https://github.com/emacs-lsp/lsp-python-ms][lsp-python-ms]] issues page can
+give good insights into how to adjust accordingly. (~lsp-python-ms~ is
+a package for extending ~lsp-mode~, an alternative to Eglot, to
+support the Microsoft Python Language Server.)
 
+**** Installing the Microsoft Python Language Server               :external:
+
+The easiest way is to use the ~get-mspyls-nupkg.py~ script in this
+folder to download the newest binary.
+This ~nupkg~ file can be unzipped using ~unzip~ to the desired
+directory and the binary needed by the Language Server Protocol
+client is =Microsoft.Python.LanguageServer=.
+
+Make sure the latest release of [[https://dotnet.microsoft.com/][.NET]] is installed.
+To do this, download a *SDK binary release* of [[https://dotnet.microsoft.com/download/dotnet-core][.NET Core]],
+extract it to some directory and add the directory containing
+the ~dotnet~ binary to the system path.
+
+Go to a target directory within which to build the source.
+
+#+begin_example
+$ git clone https://github.com/Microsoft/python-language-server.git
+$ cd python-language-server/src/LanguageServer/Impl
+$ dotnet publish -c Release -r osx-x64
+$ cd ../../../output/bin/Release/osx-x64/publish
+$ chmod a+x Microsoft.Python.LanguageServer
+#+end_example
+
+The binary is installed at
+=/path/to/python-language-server/output/bin/Release/osx-x64/publish/Microsoft.Python.LanguageServer=
+where =/path/to/= is directory from where the above commands were
+begun.
+
+Additionally, a softlink to ~Microsoft.Python.LanguageServer~ can be
+created in a directory on the system path for easier access.
+
+** R
+
+*** Emacs Speaks Statistics
+
+R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]], more commonly known by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
+
+#+name: ess
+#+begin_src emacs-lisp
 ;; support for R language using Emacs Speaks Statistics
 (use-package ess
   :mode ("\\.R$" . R-mode)
   :commands (R-mode ess-switch-to-ESS)
   :init (setq ess-eval-visibly 'nowait
               ess-default-style 'RStudio))
+#+end_src
 
+*** Shortcuts for commonly used R operators
+
+The assignment operator ~<-~ is used a lot, so it makes sense to create a shortcut for that operator that is quicker to input.
+
+Besides that, another good candidate is the forward pipe operator
+~%>%~.
+This operator is from the [[https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html][magrittr]] package (one of the [[https://www.tidyverse.org/][tidyverse]]
+packages), which introduces the forward pipe operator ~%>%~, then
+exposition pipe operator ~%$%~, the tee pipe operator ~%T>%~ and the
+compound assignment pipe operator ~%<>%~.
+Of these, the forward pipe operator ~%>%~ is most common in usage.
+
+*Configuration*:
+- ~M--~ inserts ~<-~ in ~ess-mode~ and ~inferior-ess-mode~.
+- ~C-S-m~ inserts ~%>%~ followed by a new line in ~ess-mode~ and
+  ~inferior-ess-mode~.
+
+#+name: ess-pipe-operators
+#+begin_src emacs-lisp
 ;; forward pipe and assignment R operator shortcuts, adapted from
 ;; https://emacs.stackexchange.com/questions/8041/how-to-implement-the-piping-operator-in-ess-mode
 (defun my-insert-R-forward-pipe-operator ()
@@ -2408,7 +4105,14 @@ Python (_q_: quit)"
 (with-eval-after-load 'ess-inf
   (define-key inferior-ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
   (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
+#+end_src
 
+*** ess-mode hydra
+
+Hydra for ~ess-mode~.
+
+#+name: ess-mode-hydra
+#+begin_src emacs-lisp
 ;; major mode-specific hydra for ess-mode
 (defhydra my-hydra/ess-mode (:color teal :hint nil)
   "
@@ -2443,9 +4147,23 @@ Help          _h_ : object    _H_ : browser   _A_ : apropos
 ;; binding for ess-mode hydra
 (with-eval-after-load 'ess-mode
   (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess-mode/body))
+#+end_src
 
-;; Project interaction
+* Project interaction
 
+** Projectile                                                         :melpa:
+
+[[https://github.com/bbatsov/projectile][Projectile]] is a project interaction library for Emacs, providing many
+convenience functions to navigate, search and build projects.
+
+*Customizations*:
+- Create test file if missing when toggling to it using ~projectile-toggle-between-implementation-and-test~.
+- Run ~projectile-commander~ instead of ~projectile-find-file~ when switching projects using ~projectile-switch-project~.
+- Use ~git grep~ when searching within the project.
+- Enable globally.
+
+#+name: projectile
+#+begin_src emacs-lisp
 ;; project interaction library
 (use-package projectile
   :demand t
@@ -2454,7 +4172,14 @@ Help          _h_ : object    _H_ : browser   _A_ : apropos
         projectile-switch-project-action 'projectile-commander
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
   (projectile-mode)) ;; enable mode globally
+#+end_src
 
+*** Projectile hydra                                                  :hydra:
+
+Major mode-specific hydra for interfacing with Projectile commands.
+
+#+name: projectile-hydra
+#+begin_src emacs-lisp
 ;; hydra for Projectile
 (defhydra my-hydra/projectile-mode (:color teal :hint nil)
   "
@@ -2511,7 +4236,20 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 ;; binding
 (with-eval-after-load 'projectile
   (define-key projectile-mode-map (kbd "C-c C-M-p") #'my-hydra/projectile-mode/body))
+#+end_src
 
+*** Projectile project TODO files                                     :melpa:
+
+See \S[[org-projectile for Projectile project Org TODOs]].
+
+** Magit                                                     :external:melpa:
+
+[[https://github.com/magit/magit][Magit]] is a [[https://git-scm.com/][Git]] porcelain.
+In other words, it is an high-level interface to the ~git~
+command-line program on the system.
+
+#+name: magit
+#+begin_src emacs-lisp
 ;; binding for calling Magit
 (use-package magit
     :commands magit-status
@@ -2520,7 +4258,20 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
 ;; (setq auto-revert-check-vc-info t)
+#+end_src
 
+*** Magit integration with Ibuffer
+
+Integrate Magit with Ibuffer, so that ~magit-status~ can be called on
+the file at point in Ibuffer.
+
+This uses the ~ibuffer-vc~ package, which is used to retrieve the
+root directory of the file's project.
+
+Adapted from [[https://www.manueluberti.eu/emacs/2019/08/06/ibuffer-magit/][here]].
+
+#+name: magit-ibuffer-integration
+#+begin_src emacs-lisp
 ;; call `magit-status' for file at point in Ibuffer, uses `ibuffer-vc'
 ;; adapted from https://www.manueluberti.eu/emacs/2019/08/06/ibuffer-magit/
 (defun my-ibuffer-magit-status-at-pt ()
@@ -2536,7 +4287,18 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 ;; bind the above function to the "G" key in Ibuffer
 (with-eval-after-load 'ibuffer
   (define-key ibuffer-mode-map (kbd "G") #'my-ibuffer-magit-status-at-pt))
+#+end_src
 
+** Git identity management                                            :melpa:
+
+[[https://github.com/akirak/git-identity.el][git-identity.el]] is a frontend in Emacs for managing Git identities.
+This is useful when multiple Git identities need to handled on the
+same machine.
+
+It has integration with Magit.
+
+#+name: git-identity
+#+begin_src emacs-lisp
 ;; the "I" key in Magit opens a Git identity management interface
 (use-package git-identity
   :after magit
@@ -2545,14 +4307,29 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
   :config
   (require 'git-identity-magit)
   (git-identity-magit-mode 1))
+#+end_src
 
+** Viewing historical versions of Git-controlled files
+
+[[https://gitlab.com/pidu/git-timemachine][git-timemachine]] provides an easy way to view and step through
+historical versions of Git-controlled files.
+
+#+name: git-timemachine
+#+begin_src emacs-lisp
 ;; Browse older versions of Git-controlled files
 (use-package git-timemachine
   :commands git-timemachine
   :bind ("C-c C-M-g t" . git-timemachine))
+#+end_src
 
-;; Search and navigation
+* Search and navigation
 
+** Search hydra                                                       :hydra:
+
+Hydra for easier access to Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Search.html][search]] functionality.
+
+#+name: search-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/search (:color teal :columns 3)
   "
 Search (_q_: quit)"
@@ -2570,7 +4347,17 @@ Search (_q_: quit)"
   ("rr" query-replace-regexp "replace regexp")
   ("kg" kill-grep "kill-grep"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
+#+end_src
 
+** Ripgrep support                                           :hydra:external:
+
+Support for [[https://github.com/BurntSushi/ripgrep][ripgrep]], an alternative for the grep search tool that is
+extremely fast.
+Besides having its own binding, also add a hydra head for calling it
+to the [[Search hydra]].
+
+#+name: ripgrep-support
+#+begin_src emacs-lisp
 ;; support for ripgrep if installed on the system
 (when (executable-find "rg")
   (use-package deadgrep
@@ -2578,19 +4365,52 @@ Search (_q_: quit)"
     :bind ("<f5>" . deadgrep))
   (defhydra+ my-hydra/search nil
     ("gR" deadgrep "ripgrep" :exit t)))
+#+end_src
 
+** Show match counts with Anzu                                        :melpa:
+
+[[https://github.com/emacsorphanage/anzu][anzu.el]] provides a minor mode that shows the total number of matches
+when searching and the current match number.
+
+*Warning*:
+This can be pretty slow in large buffers.
+Consider turning off this mode for the buffer in those cases.
+
+#+name: anzu
+#+begin_src emacs-lisp
 ;; show current and total search matches, and preview query replace results
 (use-package anzu
   :bind (([remap query-replace] . anzu-query-replace)
          ([remap query-replace-regexp] . anzu-query-replace-regexp))
   :init (global-anzu-mode))
+#+end_src
 
+** dumb-jump                                                          :melpa:
+
+[[https://github.com/jacktasia/dumb-jump][dumb-jump]] provides jump to definition capability based on fast
+searching using [[https://github.com/ggreer/the_silver_searcher][ag]], [[https://github.com/BurntSushi/ripgrep][rg]] or grep to find potential definitions of the
+function or variable under point and filtering based on heuristics.
+
+It provides a minor mode ~dumb-jump-mode~ which enables three bindings:
+- ~C-M-g~ to jump to the definition of the thing under point.
+- ~C-M-p~ to jump backwards.
+- ~C-M-q~ to show definition of the thing under point in a tooltip.
+
+#+name: dumb-jump
+#+begin_src emacs-lisp
 ;; jump to definition using ag or rg and applying heuristics
 (use-package dumb-jump
   :config (setq dumb-jump-aggressive nil
                 dumb-jump-default-project "./"
                 dumb-jump-selector 'completing-read))
+#+end_src
 
+*** dumb-jump hydra                                                   :hydra:
+
+Hydra for ~dumb-jump~.
+
+#+name: dumb-jump-hydra
+#+begin_src emacs-lisp
 ;; hydra for dumb-jump
 ;; adapted from https://github.com/jacktasia/dumb-jump/blob/master/README.md
 (defhydra my-hydra/search/dumb-jump (:color teal :columns 3
@@ -2610,9 +4430,16 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 ;; add entrypoint for dumb-jump hydra in my-hydra/search
 (defhydra+ my-hydra/search nil
   ("j" my-hydra/search/dumb-jump/body "dumb-jump"))
+#+end_src
 
-;; Session management
+* Session management
 
+** Desktop hydra                                                      :hydra:
+
+Hydra for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Saving-Emacs-Sessions.html][Emacs desktop]] (session) manipulation and usage.
+
+#+name: desktop-hydra
+#+begin_src emacs-lisp
 (defhydra my-hydra/desktop (:color teal :columns 5)
   "
 Desktop (_q_: quit)"
@@ -2623,9 +4450,23 @@ Desktop (_q_: quit)"
   ("R" desktop-revert "revert")
   ("d" desktop-change-dir "dir"))
 (global-set-key (kbd "C-c C-M-e k") 'my-hydra/desktop/body)
+#+end_src
 
-;; Web
+* Web
 
+** Browsing
+
+*** Emacs Web Wowser
+
+[[https://www.gnu.org/software/emacs/manual/html_mono/eww.html][Emacs Web Wowser]] (~eww~) is a built-in Emacs web browser.
+It supports text and images, but not webfonts or Javascript.
+
+*Customizations*:
+- Use the lightweight version of [[https://duckduckgo.com/][DuckDuckGo]] for web searches by default.
+- Don't render images by default.
+
+#+name: eww
+#+begin_src emacs-lisp
 ;; built-in Emacs text web browser
 (use-package eww
   :ensure nil ;; built-in
@@ -2635,7 +4476,14 @@ Desktop (_q_: quit)"
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
   ;; don't render images in HTML pages by default
   :config (setq-default shr-inhibit-images t))
+#+end_src
 
+*** Emacs Web Wowser hydra
+
+Major mode-specific hydra for Emacs Web Wowser (~eww~).
+
+#+name: eww-hydra
+#+begin_src emacs-lisp
 ;; hydra for Emacs Web Wowser
 (defhydra my-hydra/eww-mode (:color teal :columns 3)
   "
@@ -2665,7 +4513,15 @@ Emacs Web Wowser (_q_: quit)"
 ;; binding
 (with-eval-after-load 'eww
   (define-key eww-mode-map (kbd "C-c C-M-m") #'my-hydra/eww-mode/body))
+#+end_src
 
+**** Helper functions for Emacs Web Wowser hydra
+
+Helper functions for ~eww~:
+- Toggle images in ~eww-mode~.
+
+#+name: eww-hydra-helper-functions
+#+begin_src emacs-lisp
 ;; helper function for toggling images in Emacs Web Wowser
 (defun my-eww-toggle-images ()
   "Toggle displaying of images when rendering HTML."
@@ -2673,7 +4529,23 @@ Emacs Web Wowser (_q_: quit)"
   (setq-local shr-inhibit-images (not shr-inhibit-images))
   (eww-reload)
   (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+#+end_src
 
+** REST development tools
+
+*** restclient.el                                                     :melpa:
+
+[[https://github.com/pashky/restclient.el][restclient.el]] provides a major mode for interacting with HTTP queries
+stored in text files, in particular editing and sending them.
+
+*Customizations*:
+- Load the major mode automatically when opening files with a ~.http~ suffix.
+- When the response to a sent HTTP query is received, the request is
+  pulsed once in the buffer to give visual feedback on which query the
+  response is for (adapted from [[https://github.com/jordonbiondo/.emacs.d/blob/master/init.el][here]]).
+
+#+name: restclient
+#+begin_src emacs-lisp
 (use-package restclient
   :defer t
   ;; assume request source files have ".http" suffix
@@ -2687,7 +4559,16 @@ Emacs Web Wowser (_q_: quit)"
       (goto-char (point-min))
       (pulse-momentary-highlight-region (point-min) (point-max))))
   (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
+#+end_src
 
+*** restclient.el hydra                                               :hydra:
+
+Major mode-specific hydra for ~restclient-mode~.
+The head for pretty printing the JSON response requires the
+~json-mode~ package be installed.
+
+#+name: restclient-hydra
+#+begin_src emacs-lisp
 ;; hydra for restclient
 (defhydra my-hydra/restclient-mode (:color teal :columns 3)
   "
@@ -2719,20 +4600,267 @@ REST client (_q_: quit)"
 ;; binding for restclient hydra
 (with-eval-after-load 'restclient
   (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
+#+end_src
 
+** Network security
+
+Increased network security settings.
+
+#+name: network-security
+#+begin_src emacs-lisp
 ;; increase network security settings
 (setq gnutls-verify-error t)
 (setq gnutls-min-prime-bits 1024)
 (setq network-security-level 'high)
 (setq nsm-save-host-names t)
+#+end_src
 
+** HTTP requests privacy
+
+More private HTTP requests.
+
+#+name: http-requests-privacy
+#+begin_src emacs-lisp
 ;; HTTP requests privacy settings
 (setq url-cookie-untrusted-urls '(".*")) ;; no cookies
 (setq url-privacy-level 'paranoid) ;; more private HTTP requests
 (url-setup-privacy-info) ;; apply `url-privacy-level'
+#+end_src
 
-;; Visual (part 2)
+* Visual
 
+** Decorations                                                        :early:
+
+Remove toolbar and menu to maximize space usage.
+
+#+name: remove-decorations
+#+begin_src emacs-lisp
+;; remove unused UI elements
+(if (fboundp 'scroll-bar-mode)
+    (scroll-bar-mode -1))
+(if (fboundp 'tool-bar-mode)
+    (tool-bar-mode -1))
+(if (and (not (display-graphic-p))
+         (fboundp 'menu-bar-mode))
+    (menu-bar-mode -1))
+#+end_src
+
+** Color theme                                                        :early:
+
+Use custom ~ereader~ theme in ~lisp/ereader-theme.el~.
+
+#+name: load-custom-theme
+#+begin_src emacs-lisp
+;; use local eReader theme from ~/.emacs.d/lisp/ereader-theme.el
+(require 'ereader-theme)
+(load-theme 'ereader t)
+#+end_src
+
+** Display face fonts                                                 :early:
+
+Set the fonts used for display faces.
+
+There are a few main display faces many other faces inherit from:
+- ~default~: The main display face, everything inherits from this directly or
+  indirectly unless otherwise specified.
+- ~fixed-pitch~: For specific cases where a fixed-pitch
+  (i.e. monospace) font is expected.
+- ~variable-pitch~: For specific cases where a variable-pitch
+  (i.e. proportional) font is expected.
+- ~mode-line~: Mode line face for active buffers.
+- ~mode-line-inactive~: Mode line face for inactive buffers.
+
+Also set a fallback font for filling gaps in character coverage in the
+display face fonts using ~set-fontset-font~,
+which has the function signature
+~(set-fontset-font NAME TARGET FONT-SPEC &optional FRAME ADD)~.
+The key observations here are that:
+- When ~NAME~ is ~t~, this is applied to the default fontset.
+- When ~TARGET~ is ~nil~, ~FONT-SPEC~ is used for missing characters
+  (if it has that character).
+- When ~ADD~ is ~append~, then this font is added to the end of the
+  fontset which means it will be searched for a matching character
+  glyph after all other fonts in the set.
+
+For a list of good free or open-source fonts, see this [[https://github.com/matheuristic/dotfiles/blob/master/font_notes.org][link]].
+For more information about fonts and fontsets in Emacs, see this [[https://idiocy.org/emacs-fonts-and-fontsets.html][link]].
+
+#+name: set-display-face-fonts
+#+begin_src emacs-lisp
+;; set typefaces for graphical Emacs
+;; main fonts
+(set-face-attribute 'default nil :family "Iosevka Fixed SS08"
+                    :height 150 :weight 'normal :width 'normal)
+(set-face-attribute 'fixed-pitch nil :family "Iosevka Fixed SS08"
+                    :height 150 :weight 'normal :width 'normal)
+(set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
+                    :height 150 :weight 'normal :width 'normal)
+(set-face-attribute 'mode-line nil :family "Iosevka Fixed SS08"
+                    :height 120 :weight 'normal :width 'normal)
+(set-face-attribute 'mode-line-inactive nil :family "Iosevka Fixed SS08"
+                    :height 120 :weight 'normal :width 'normal)
+;; fallback font
+(set-fontset-font t nil "Symbola" nil 'append)
+#+end_src
+
+For some fonts, an alternative character may be preferable to the
+standard character show for some symbol code.
+In those instances, the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Active-Display-Table.html#Active-Display-Table][standard display table]] can be modified to
+display replace characters of a given code with characters of a
+different one.
+An example is shown below.
+
+#+begin_example
+;; the following displays '0' using '\ue007' (private slashed zero in B612 font)
+(setq standard-display-table (make-display-table))
+(aset standard-display-table ?0 [?])
+#+end_example
+
+** Icon fonts using all-the-icons                            :external:melpa:
+
+Icon fonts can be enabled using the [[https://github.com/domtronn/all-the-icons.el][all-the-icons]] package.
+These are useful for a few scenarios:
+- Fitting more information in the mode line by converting descriptor words into icons.
+- Making the interface more visually information and/or appealing (subjective).
+
+Package functionality requires that specific icon fonts be installed on the system.
+This can be done automatically by running ~M-x all-the-icons-install-fonts~,
+or manually by installing the TTF fonts from [[https://github.com/domtronn/all-the-icons.el/tree/master/fonts][here]] using the system font manager (for example the Font Book app in Mac OS X).
+
+#+name: all-the-icons
+#+begin_src emacs-lisp
+;; font icons
+(when (display-graphic-p)
+  (use-package all-the-icons
+    :config (setq all-the-icons-color-icons nil)))
+#+end_src
+
+** Fancy mode line using doom-modeline                                :melpa:
+
+Use [[https://github.com/seagle0128/doom-modeline][doom-modeline]] when not using via a TTY.
+Requires the ~all-the-icons~ package.
+
+#+name: doom-modeline
+#+begin_src emacs-lisp
+;; set custom mode line in graphical Emacs
+(when (display-graphic-p)
+  ;; fast and fancy minimalist mode line, requires all-the-icons be installed
+  (use-package doom-modeline
+    :after all-the-icons
+    :config
+    (setq doom-modeline-buffer-file-name-style 'auto
+          doom-modeline-env-version nil
+          doom-modeline-height 23 ;; change this based on mode-line face height
+          doom-modeline-minor-modes t
+          doom-modeline-persp-name nil
+          doom-modeline-unicode-fallback t)
+    (doom-modeline-mode 1)))
+#+end_src
+
+** Hiding minor modes                                                 :melpa:
+
+Hide minor modes by default using the [[https://github.com/tarsius/minions][minions]] package behind a pop-up menu, only displaying the most important ones.
+
+#+name: minions
+#+begin_src emacs-lisp
+(if (display-graphic-p)
+    ;; hide minor modes in a menu, access with mouse or `minions-minor-mode-menu'
+    (use-package minions
+      :init
+      ;; modes in minions-direct are always shown
+      ;; use UTF-8 mode line lighter
+      (setq minions-direct '(overwrite-mode view-mode)
+            minions-mode-line-lighter "☰")
+      (minions-mode 1)))
+#+end_src
+
+** Display function or outline node at point using which-func
+
+Display current function or outline node at point using [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Which-Function.html][Which Function mode]].
+The mode is customized from its defaults as follows:
+- The current function or outline node is displayed in the header line
+  instead of the mode line.
+- Mouse mappings for the which func part in the header line are
+  modified to better support trackpads and support narrowing to the
+  current definition or outline node.
+
+#+name: which-func
+#+begin_src emacs-lisp
+;; display function or outline node at point
+(setq which-func-modes '() ;; use `which-func-mode' only for given modes
+      which-func-unknown "n/a")
+
+;; enable minor mode
+(which-function-mode)
+
+;; modify to show current function in header instead of in mode line
+
+(defun my-narrow-to-defun-toggle ()
+  "Toggle narrow to defun."
+  (interactive)
+  (if (buffer-narrowed-p)
+      (widen)
+    (narrow-to-defun)))
+
+(defvar my-which-func-header-keymap-default
+  (let ((map (make-sparse-keymap)))
+    (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
+    (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
+    (define-key map [header-line wheel-up] 'beginning-of-defun)
+    (define-key map [header-line wheel-down] 'end-of-defun)
+    map)
+  "Keymap for header line which-func.")
+
+(defvar my-which-func-header-keymap-help-text-default
+  "mouse-2 : toggle rest visibility\n\
+wheel-u : go to beginning\n\
+wheel-d : go to end"
+  "Help text for `my-which-fun-header-keymap-default'.")
+
+(defvar my-which-func-header-format-default
+  `(:propertize which-func-current
+                local-map ,my-which-func-header-keymap-default
+                face which-func
+                mouse-face mode-line-highlight
+                help-echo my-which-func-header-keymap-help-text-default)
+  "Default header format for which-func part.")
+
+;; remove which-func part from the mode line
+(setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
+
+;; see Org mode section for a mode-specific example for Org-mode
+(defvar my-which-func-header-formats
+  `((nil . ,my-which-func-header-format-default))
+  "Association list for looking up mode-specific which-func header-lines.
+Keys should be major mode symbols and values should unevaluated
+mode-line constructs, see
+https://www.gnu.org/software/emacs/manual/html_node/elisp/Mode-Line-Data.html
+for more info.")
+
+(defun my-which-func-get-header-format ()
+  "Gets `header-line-format' associated with the current major mode in `my-which-func-header-formats'."
+  (cdr (or (assoc major-mode my-which-func-header-formats) ;; mode-specific
+           (assoc nil my-which-func-header-formats)))) ;; default
+
+(defun which-func-ff-hook--add-which-func-to-header-line ()
+  "Add which-func part to header line for major modes in `which-func-modes'."
+  (when (memq major-mode which-func-modes)
+    (add-to-list 'header-line-format
+                 '(which-function-mode
+                   (which-func-mode
+                    ("[ " (:eval (my-which-func-get-header-format)) " ]"))))))
+
+;; run `which-func-ff-hook--add-which-func-to-header-line' after `which-func-ff-hook'
+(advice-add 'which-func-ff-hook
+            :after #'which-func-ff-hook--add-which-func-to-header-line)
+#+end_src
+
+** Visual hydra                                                       :hydra:
+
+Hydra for manipulating various visual settings.
+
+#+name: visual-hydra
+#+begin_src emacs-lisp
 ;; hydra for visual settings
 (defhydra my-hydra/visual (:color amaranth :hint nil
                                   :pre (progn
@@ -2773,7 +4901,17 @@ _+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 
 
 ;; bind visual hydra
 (global-set-key (kbd "C-c C-M-v i") 'my-hydra/visual/body)
+#+end_src
 
+** Color coding by depth using prism                                  :melpa:
+
+[[https://github.com/alphapapa/prism.el][prism.el]] disperses Lisp and other forms in different colors by depth.
+There are two modes:
+- ~prism-mode~ for Lisp forms.
+- ~prism-whitespace-mode~ for languages where whitespace has semantic meaning.
+
+#+name: prism
+#+begin_src emacs-lisp
 ;; color code by depth
 (use-package prism
   :commands (prism-mode prism-whitespace-mode)
@@ -2795,7 +4933,15 @@ _+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 
                     :strings-fn
                     (lambda (color)
                       (prism-blend color "white" 0.5))))
+#+end_src
 
+*** Prism hydra                                                       :hydra:
+
+Hydra for toggling ~prism-mode~ and ~prism-whitespace-mode~.
+Entry-point into this hydra is via the [[Visual hydra][visual hydra]].
+
+#+name: prism-hydra
+#+begin_src emacs-lisp
 ;; prism-mode and prism-whitespace-mode hydra
 (defhydra my-hydra/visual/prism-mode (:color amaranth :hint nil
                                       :pre (require 'prism))
@@ -2809,13 +4955,37 @@ _p_ : lisp-c-like [% 3`prism-mode]  _SPC_ : whitespace  [% 3`prism-whitespace-mo
 ;; add entrypoint to prism hydra from visual hydra
 (defhydra+ my-hydra/visual nil
   ("P" my-hydra/visual/prism-mode/body "prism" :exit t))
+#+end_src
 
+** Semantic highlighting using color-identifiers-mode                 :melpa:
+
+[[https://github.com/ankurdave/color-identifiers-mode][Color identifiers mode]] provides semantic highlighting, coloring each
+source code identifier based on its name (specifically, a symbol or
+variable name has the same color wherever it appears in the text).
+
+The configuration below is the default, but two of the main parameters
+users can modify are ~color-identifiers-coloring-method~ which
+controls how words are mapped to colors and
+~color-identifiers:num-colors~ which controls the cardinality of the
+colorspace words are mapped to (more is not better since many of the
+colors could end up very similar).
+
+#+name: color-identifiers-mode
+#+begin_src emacs-lisp
 ;; provides semantic coloring where same keywords are also colored the same
 (use-package color-identifiers-mode
   :defer t
   :config (setq color-identifiers-coloring-method 'sequential
                 color-identifiers:num-colors 10))
+#+end_src
 
+*** color-identifiers-mode hydra                                      :hydra:
+
+Hydra for toggling ~color-identifiers-mode~.
+Entry-point into this hydra is via the [[Visual hydra][visual hydra]].
+
+#+name: color-identifiers-mode-hydra
+#+begin_src emacs-lisp
 ;; color-identifiers-mode hydra
 (defhydra my-hydra/visual/color-identifiers-mode (:color amaranth :hint nil
                                                   :pre (require 'color-identifiers-mode))
@@ -2828,7 +4998,27 @@ _SPC_ : color-identifiers [% 3`color-identifiers-mode]"
 ;; add entrypoint to color-identifiers-mode hydra from visual hydra
 (defhydra+ my-hydra/visual nil
   ("c" my-hydra/visual/color-identifiers-mode/body "color-identifiers" :exit t))
+#+end_src
 
+** Outline minor mode hydra                                           :hydra:
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Outline-Mode.html][Outline mode]] is a mode for visualizing and editing the outline structure
+of documents.
+It provides commands to navigate the outline structure and to hide
+text that are not heading lines (i.e. folding code).
+The navigation commands are:
+- ~C-c C-n~ and ~C-c C-p~ navigate to the next and previous visible
+  headings.
+- ~C-c C-f~ and ~C-c C-b~ navigate to the next and previous visible
+  headings of the same level.
+- ~C-c C-u~ navigates to the parent heading of the current one.
+
+Outline mode can be enabled as a major mode or a minor mode.
+The minor mode is typically the more useful of the two, so define a
+hydra to access its visualization commands in a user friendly manner.
+
+#+name: outline-hydra
+#+begin_src emacs-lisp
 ;; hydra for toggling outline-minor-mode and running its commands
 (defhydra my-hydra/visual/outline (:color amaranth :hint nil
                                    :pre (require 'outline))
@@ -2856,7 +5046,12 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 ;; add entry-point into outline hydra from visual hydra
 (defhydra+ my-hydra/visual nil
   ("o" my-hydra/visual/outline/body "→ Outline" :exit t))
+#+end_src
 
+** Whitespace visualization and cleanup hydra                         :hydra:
+
+#+name: whitespace-hydra
+#+begin_src emacs-lisp
 ;; hydra for whitespace visualization and cleanup
 (defhydra my-hydra/whitespace (:color teal :columns 3)
   "
@@ -2871,27 +5066,90 @@ Whitespace (_q_: quit)"
   ("c" whitespace-cleanup "cleanup")
   ("r" whitespace-report "report"))
 (global-set-key (kbd "C-c C-M-w s") #'my-hydra/whitespace/body)
+#+end_src
 
+** Show pointer location column number in the mode line
+
+Show the column number of the pointer location in the mode line.
+
+#+name: show-column-number
+#+begin_src emacs-lisp
 ;; show pointer location column number in mode line
 (setq column-number-mode t)
+#+end_src
 
+** Show matching parentheses immediately
+
+Show matching parentheses while editing without delay.
+
+#+name: show-matching-parentheses
+#+begin_src emacs-lisp
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
+#+end_src
 
-;; Other
+* Other
 
-;; *commented* currently do not store secrets using Emacs mechanisms
-;; ;; Auth Sources, https://www.gnu.org/software/emacs/manual/auth.html
-;; (if (file-exists-p "~/.authinfo.gpg")
-;;     (setq auth-sources '((:source "~/.authinfo.gpg" :host t :protocol t)))
-;;   (setq auth-sources '((:source "~/.authinfo" :host t :protocol t))))
+** Auth sources
 
+The auth-source package provides a API for secure storage and access
+of user secrets.
+A number of Emacs packages come with support for this, most notably
+[[https://www.gnu.org/software/emacs/manual/html_node/gnus/][GNUS]] and [[https://www.gnu.org/software/tramp/][TRAMP]].
+
+#+name: auth-sources
+#+begin_src emacs-lisp
+;; Auth Sources, https://www.gnu.org/software/emacs/manual/auth.html
+(if (file-exists-p "~/.authinfo.gpg")
+    (setq auth-sources '((:source "~/.authinfo.gpg" :host t :protocol t)))
+  (setq auth-sources '((:source "~/.authinfo" :host t :protocol t))))
+#+end_src
+
+** real-auto-save for auto-saving files at regular intervals          :melpa:
+
+The [[https://github.com/ChillarAnand/real-auto-save][real-auto-save]] package supports per-file auto-saving at regular
+time intervals, i.e. a buffer-local ~auto-save-visited-mode~.
+
+When the buffer-local minor mode ~real-auto-save-mode~ is active, the
+buffer is automatically saved every ~real-auto-save-interval~ seconds.
+
+#+name: real-auto-save
+#+begin_src emacs-lisp
 ;; buffer-local `auto-save-visited-mode'
 (use-package real-auto-save
   :defer t
   :config (setq real-auto-save-interval 10)) ;; save interval, in seconds
+#+end_src
 
+*Example use case*:
+If some directory (say where files in ~org-agenda-files~ are
+stored) is a cloud-enabled shared folder and external changes should be
+reflected with files auto-saved on changes so that the buffer, local and
+remote files are kept in sync, create a ~.dir-locals.el~ file in the folder
+with the following contents.
+
+#+begin_example
+;; Directory-local settings
+((nil . ((eval . (auto-revert-mode 1)) ;; auto-revert files
+         (eval . (real-auto-save-mode 1))))) ;; buffer-local auto-save
+#+end_example
+
+** Configure mouse settings to be trackpad-friendly
+
+Modify mouse scroll settings to be friendlier for trackpads:
+- Regular scrolling is one line at a time.
+- Hold Shift while scrolling for five lines at a time.
+- Hold Control while scrolling for a screen at a time.
+- Natural scrolling (scrolling right moves the screen left and the
+  converse is true as well).
+
+Only apply these settings after initialization is complete
+to avoid it being clobbered by settings applied by the
+Emacs implementation (looking at Emacs Mac Port here).
+
+#+name: mouse-settings
+#+begin_src emacs-lisp
 ;; mouse settings
 (when (display-graphic-p)
   (add-hook
@@ -2913,12 +5171,29 @@ Whitespace (_q_: quit)"
      (setq mouse-wheel-flip-direction t ;; t/nil for trackpad/mouse
            mouse-wheel-tilt-scroll t))
    t))
+#+end_src
 
+** CRUX --- A Collection of Ridiculously Useful eXtensions            :melpa:
+
+[[https://github.com/bbatsov/crux][A Collection of Ridiculously Useful eXtensions for Emacs]] (CRUX)
+provides a number of useful interactive commands that can
+improve quality-of-life while using Emacs.
+
+#+name:crux
+#+begin_src emacs-lisp
 ;; useful extensions
 (use-package crux
   :config
   (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line))
+#+end_src
 
+*** Crux hydra                                                        :hydra:
+
+Access most of CRUX functionality through a hydra, to reduce
+conflicts with global or mode-specific bindings.
+
+#+name: crux-hydra
+#+begin_src emacs-lisp
 ;; hydra for CRUX commands
 (defhydra my-hydra/crux (:color teal :columns 3)
   "
@@ -2935,7 +5210,13 @@ CRUX (_q_: quit)"
   ("V" crux-view-url "view-url")
   ("o" crux-open-with "open-external"))
 (global-set-key (kbd "C-c C-M-x") #'my-hydra/crux/body)
+#+end_src
+** Help hydra                                                         :hydra:
 
+Hydra for summoning Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Help.html][help]].
+
+#+name: help-hydra
+#+begin_src emacs-lisp
 ;; hydra for help entrypoints
 (defhydra my-hydra/help (:color teal :columns 4)
   "
@@ -2959,7 +5240,39 @@ Help (_q_: quit)"
 
 ;; bind help hydra
 (global-set-key (kbd "C-c C-M-h h") 'my-hydra/help/body)
+#+end_src
 
+** Hyperspace launcher for Emacs                                      :melpa:
+
+[[https://github.com/ieure/hyperspace-el][Hyperspace]] is a launcher for Emacs, much like Alfred or Quicksilver
+for Mac OS X.
+
+On calling ~hyperspace~, a ~HS:~ prompt will appear in the minibuffer
+and the user is expected to provide an input.
+The input should be composed of a /keyword/ and an /query/.
+The first part of the input (typically the first word) is assumed to be
+the keyword, and the remainder of the input is used as the query.
+
+Keywords are mapped to defined actions in ~hyperspace-actions~, which
+are either Elisp function symbols or strings.
+If the mapped action is an Elisp function symbol, the function is
+called with the query as the first argument.
+If the mapped action is a string, ~browse-url~ is called with ~(format
+ACTION QUERY)~ as the parameter (which typically opens the the
+parameter as a URL in the default web browser).
+
+As example, ~ac stuff~ could run the action ~apropos-command~ mapped
+to ~ac~ with ~"stuff"~ as the parameter, evaluating the Elisp
+expression ~(apropos-command "stuff")~.
+
+As another example, ~g stuff~ could run the action
+="https://www.google.com/search?q=%s"= with ~"stuff"~ as the
+parameter, opening to the URL
+="https://www.google.com/search?q=stuff"= with the default web
+browser.
+
+#+name: hyperspace
+#+begin_src emacs-lisp
 ;; launcher for Emacs like Alfred or Quicksilver
 ;; for example, calling `hyperspace' then "ac stuff"
 ;; does an apropos command search for "stuff"
@@ -3001,40 +5314,152 @@ Help (_q_: quit)"
   (unbind-key "H-SPC" hyperspace-minor-mode-map)
   (unbind-key "<H-return>" hyperspace-minor-mode-map)
   (hyperspace-minor-mode))
+#+end_src
 
+** Scratch buffer default mode set to fundamental-mode
+
+Set the initial mode of the scratch buffer to ~fundamental-mode~,
+as it can used for anything and not just Emacs Lisp interaction.
+
+S-expressions in the buffer can still be evaluated as Emacs Lisp by
+using ~C-x C-e~ if desired.
+
+#+name: scratch-buffer-initial-mode
+#+begin_src emacs-lisp
 ;; set *scratch* buffer major-mode to fundamental-mode
 (setq initial-major-mode 'fundamental-mode)
+#+end_src
 
+** Scroll conservatively at window edge
+
+The default behavior in Emacs when scrolling past the window edge is
+to recenter the viewport on the pointer.
+Modify this to scroll conservatively, moving the viewport one column
+or line at a time instead of recentering.
+
+#+name: scroll-conservatively
+#+begin_src emacs-lisp
 ;; scroll a line at a time at window edge
 (setq scroll-conservatively 101)
+#+end_src
 
+** Silence audio and visual bells
+
+Supress audio and visual bells.
+These are super distracting.
+
+#+name: silence-audio-and-visual-bells
+#+begin_src emacs-lisp
 ;; turn off audio and visual bells
 (setq ring-bell-function 'ignore)
+#+end_src
 
+** Suppress auto-revert messages
+
+Suppress the minibuffer messages that appear whenever a file is
+auto-reverted.
+
+#+name: suppress-auto-revert-messages
+#+begin_src emacs-lisp
 ;; suppress auto-revert minibuffer messages
 (setq auto-revert-verbose nil)
+#+end_src
 
+** Suppress startup splash screen
+
+Suppress the startup splash screen.
+Don't need it.
+
+#+name: suppress-startup-splash
+#+begin_src emacs-lisp
 ;; suppress splash screen that appears on startup by default
 (setq inhibit-startup-message t)
+#+end_src
 
+** System process management with proced
+
+[[https://github.com/emacs-mirror/emacs/blob/master/lisp/proced.el][Proced]] lists system processes in a buffer and provides
+commands to operate to listed processes.
+It can be used like [[https://en.wikipedia.org/wiki/Top_(software)][top]] by toggling auto-refresh
+using ~M-x proced-toggle-auto-update~.
+
+Note that Mac OS X isn't very well supported by this package,
+so configure it only for Linux systems.
+For Mac OS X, an alternative is using ~top~ in an ~term-mode~ buffer.
+
+For more usage information, see [[https://www.masteringemacs.org/article/displaying-interacting-processes-proced][here]].
+
+#+name: proced
+#+begin_src emacs-lisp
 ;; manage system processes in Linux
 (when (eq system-type 'gnu/linux)
   (setq proced-format 'medium)
   (global-set-key (kbd "C-x p") #'proced))
+#+end_src
 
+** Very large file support                                            :melpa:
+
+[[https://github.com/m00natic/vlfi][Very Large Files]] provides a minor mode ~vlf-mode~ that allows loading
+of large file in chunks, trading increased processing time for reduced
+memory usage.
+
+When ~vlf-mode~ is active, it exposes a number of commands that
+are prefixed by ~C-c C-v~:
+- ~C-c C-v n~ and ~C-c C-v p~ moves forward and back through the file
+  by chunk.
+- ~C-c C-v SPC~ shows the chunk starting from the current point.
+- ~C-c C-v [~ and ~C-c C-v ]~ goes to the front and end of the file.
+- ~C-c C-v l~ and ~C-c C-v j~ jumps to a given line in the file and a given chunk number respectively.
+- ~C-c C-v s~, ~C-c C-v r~, ~C-c C-v o~ and ~C-c C-v %~ are the forward search,
+  backward search, occur and replace equivalents that act across all the file
+  chunks. Note the ~C-c C-v %~ auto-saves the file when each chunk is
+  processed.
+- ~C-c C-v f~ toggles continuous chunk around the point.
+- ~C-c C-v +~ and ~C-c C-v -~ control chunk size.
+
+The package also provides two commands ~vlf-ediff-files~ and
+~vlf-ediff-buffers~ that compare files and buffers in chunks.
+
+#+name: vlf
+#+begin_src emacs-lisp
 ;; visit large files without loading it entirely
 (use-package vlf
   :config (require 'vlf-setup))
+#+end_src
 
-;; OS-specific / Mac OS X
+* OS-specific
 
+** Mac OS X
+
+
+On Mac OS X, configure the following basic settings:
+- Mac OS X does not support file notifications, so use file polling
+  instead for ~auto-revert-mode~.
+- Use the Option key as Meta.
+  For accented characters, use ~C-x 8~ (for example ~C-x 8 , c~).
+- Keep Super key as is.
+  Super key combinations are first intercepted by the system and
+  only passed on if they don't correspond to an existing system
+  shortcut (say ~s-TAB~ or ~s-`~), which can limit the bindings
+  available for use.
+
+#+name: mac
+#+begin_src emacs-lisp
 ;; on Mac OS X, use Option keys as Meta and file polling for auto-revert
 (when (eq system-type 'darwin)
   (setq auto-revert-use-notify nil ;; OS X does not support file notifications
         mac-option-modifier 'meta ;; use Option key as Meta
         mac-right-option-modifier 'left ;; right Option uses left's mapping
         mac-command-modifier 'super)) ;; keep Super key as is
+#+end_src
 
+*** Case-insensitive sorting in Dired
+
+Configure case-insensitive sorting in Dired to match OS X behavior.
+Copied from [[http://pragmaticemacs.com/emacs/case-insensitive-sorting-in-dired-on-os-x/][here]].
+
+#+name: mac-case-insensitive-sorting-in-dired
+#+begin_src emacs-lisp
 ;; case-insensitive sorting in Dired
 ;; http://pragmaticemacs.com/emacs/case-insensitive-sorting-in-dired-on-os-x/
 (when (eq system-type 'darwin)
@@ -3046,7 +5471,15 @@ Help (_q_: quit)"
   (setq ls-lisp-verbosity '(links uid))
   (setq ls-lisp-format-time-list '("%b %e %H:%M" "%b %e %Y"))
   (setq ls-lisp-use-localized-time-format t))
+#+end_src
 
+*** Open Finder at directory of current buffer                        :hydra:
+
+Add a hydra head to the [[Buffer manipulation hydra]] that opens
+Finder at the directory of the current buffer.
+
+#+name: mac-open-finder-at-buffer-directory
+#+begin_src emacs-lisp
 ;; add my-hydra/buffer head to open Finder at current buffer directory in OS X
 (when (eq system-type 'darwin)
   (defun my-open-finder (&optional path)
@@ -3064,18 +5497,636 @@ or the current buffer file or directory if not (Mac OS X)."
         (message "my-open-finder is Mac OS X-only"))))
   (defhydra+ my-hydra/buffer nil
     ("e" my-open-finder "open-finder" :exit t)))
+#+end_src
 
-;; enable toggling of ligatures in visual hydra when using emacs-mac port
-(when (fboundp 'mac-auto-operator-composition-mode)
-  (defhydra+ my-hydra/visual nil
-    ("L" mac-auto-operator-composition-mode "toggle-ligature" :exit nil)))
+*** Scale up Org-mode LaTeX fragment previews on Mac OS X
 
+#+name: mac-scale-org-latex-fragment-previews
+#+begin_src emacs-lisp
 ;; scale up LaTeX fragment preview images on OS X
 (if (and (display-graphic-p)
          (eq system-type 'darwin)
          (executable-find "dvipng"))
     (setq org-format-latex-options (plist-put org-format-latex-options
                                               :scale 1.5)))
+#+end_src
 
-(provide 'init)
-;;; init.el ends here
+*** Ligatures in Emacs Mac Port                                       :hydra:
+
+The [[https://bitbucket.org/mituharu/emacs-mac/][Emacs Mac Port]] ([[https://github.com/railwaycat/homebrew-emacsmacport/releases][binaries]]) by Mitsuharu Yamamoto has built-in support for
+font ligatures with its ~mac-auto-operator-composition-mode~.
+Add a head to the visual settings hydra for toggling this built-in support.
+
+#+name: mac-port-hydra-toggle-ligatures
+#+begin_src emacs-lisp
+;; enable toggling of ligatures in visual hydra when using emacs-mac port
+(when (fboundp 'mac-auto-operator-composition-mode)
+  (defhydra+ my-hydra/visual nil
+    ("L" mac-auto-operator-composition-mode "toggle-ligature" :exit nil)))
+#+end_src
+
+If using [[https://emacsformacosx.com/][Emacs for Mac OS X]], use the built-in [[https://github.com/emacs-mirror/emacs/blob/master/lisp/progmodes/prog-mode.el#L199-L238][Prettify Symbols mode]] and modify ~prettify-symbols-alist~ to configure the desired character compositions.
+
+* Back matter
+
+** Footer
+
+#+name: generate-footer
+#+begin_src emacs-lisp
+(concat "(provide '" feature ")\n"
+        ";;; " feature ".el ends here")
+#+end_src
+
+* Tangled files
+
+** early-init.el
+
+In Emacs 27+, this is loaded before ~package.el~ and UI rendering.
+Static UI customizations should go here to optimize startup time.
+
+#+name: early-init.el
+#+begin_src emacs-lisp :noweb no-export :tangle early-init.el
+<<generate-header(feature="early-init", summary="Emacs early init file")>>
+
+<<author-info>>
+<<generate-timestamp()>>
+
+;;; Commentary:
+
+<<file-commentary-early-init>>
+
+;;; Code:
+
+;; Optimizations
+
+<<startup-optimizations>>
+
+<<io-optimizations>>
+
+;; Package management
+
+<<add-dirs-to-load-path>>
+
+;; Visual user interface components
+
+<<remove-decorations>>
+
+<<load-custom-theme>>
+
+<<set-display-face-fonts>>
+
+<<generate-footer(feature="early-init")>>
+#+end_src
+
+** init.el
+
+The main configuration file.
+
+#+name: init.el
+#+begin_src emacs-lisp :noweb no-export :tangle init.el
+<<generate-header(feature="init", summary="Emacs init file")>>
+
+<<author-info>>
+<<generate-timestamp()>>
+
+;;; Commentary:
+
+<<file-commentary-init>>
+
+;;; Code:
+
+;; Backward compatibility
+
+<<early-init-pre-27>>
+
+;; Customize file
+
+<<custom-file>>
+
+;; Package management
+
+<<elpa-repositories>>
+
+<<package-init>>
+
+<<use-package>>
+
+;; Environment variables
+
+<<environment-variables>>
+
+;; Backend and frontend frameworks for building user interfaces
+
+<<icomplete>>
+
+<<hydra>>
+
+<<company>>
+
+<<edit-indirect>>
+
+;; Visual (part 1)
+
+<<all-the-icons>>
+
+<<doom-modeline>>
+
+<<minions>>
+
+<<which-func>>
+
+;; Backups
+
+<<backup-files-directory>>
+
+;; Bookmarks and history
+
+<<bookmarks-hydra>>
+
+<<amx>>
+
+<<recentf>>
+
+<<saveplace>>
+
+<<savehist>>
+
+;; Buffer management
+
+<<bury-not-kill-buffers>>
+
+<<buffer-hydra>>
+
+<<ibuffer>>
+
+<<ibuffer-filter-groups>>
+
+<<ibuffer-vc>>
+
+<<ibuffer-hydra>>
+
+<<all-the-icons-ibuffer>>
+
+;; Command-line interaction
+
+<<eshell>>
+
+<<eshell-visual-commands>>
+
+<<eshell-disable-git-pager>>
+
+<<eshell-named-buffers>>
+
+<<esh-autosuggest>>
+
+<<fish-completion>>
+
+<<comint-prompt-read-only>>
+
+<<kill-term-buffers-with-q-after-end>>
+
+<<term-hydra>>
+
+;; Comparison tools
+
+<<ediff-hydra>>
+
+<<smerge-hydra>>
+
+<<ztree>>
+
+<<ztree-dir-hydra>>
+
+<<ztree-diff-hydra>>
+
+;; Dired
+
+<<dired>>
+
+<<dired-hydra>>
+
+<<dired-hydra-helper-functions>>
+
+<<dired-filter>>
+
+<<dired-filter-hydra>>
+
+<<all-the-icons-dired>>
+
+;; Editing text
+
+<<indent-with-soft-tabs>>
+
+<<completing-yank>>
+
+<<delsel>>
+
+<<sentence-end-single-space>>
+
+;; *commented* currently do not edit GPG files much
+;; <<epa-file>>
+
+<<kmacros-hydra>>
+
+<<registers-hydra>>
+
+<<which-key>>
+
+<<expand-region>>
+
+<<multiple-cursors>>
+
+<<multiple-cursors-hydra>>
+
+<<yasnippet>>
+
+<<yasnippet-hydra>>
+
+<<paredit>>
+
+<<undo-tree>>
+
+;; Email
+
+<<notmuch>>
+
+<<notmuch-toggle-search-tags-in-results>>
+
+<<org-msg>>
+
+;; Frame and window management
+
+<<winner-mode>>
+
+<<window-hydra>>
+
+<<window-hydra-helper-functions>>
+
+<<frame-hydra>>
+
+<<frame-hydra-helper-functions>>
+
+;; Non-programming files
+
+<<csv-mode>>
+
+<<csv-mode-hydra>>
+
+<<dockerfile-mode>>
+
+<<ebib>>
+
+<<json-mode>>
+
+<<markdown-mode>>
+
+<<markdown-mode-hydra>>
+
+<<markdown-toc>>
+
+<<add-markdown-toc-to-markdown-mode-hydra>>
+
+<<yaml-mode>>
+
+;; Org-mode
+
+<<org>>
+
+<<org-todo-keywords>>
+
+<<org-visual-line-mode>>
+
+<<org-capture-templates>>
+
+<<org-maximize-capture-buffers>>
+
+<<org-tags>>
+
+<<org-mode-hydra>>
+
+<<org-agenda>>
+
+<<org-agenda-hydra>>
+
+<<org-refile>>
+
+<<org-entrypoints-hydra>>
+
+<<org-latex-pdf-process>>
+
+<<org-preview-latex-process>>
+
+<<org-preview-and-scale-latex-fragments>>
+
+<<org-graphical-customizations>>
+
+<<org-which-func>>
+
+<<org-bullets>>
+
+<<org-cliplink>>
+
+<<org-download>>
+
+<<org-download-hydra>>
+
+<<org-journal>>
+
+<<org-present>>
+
+<<add-org-present-to-org-mode-hydra>>
+
+<<org-projectile>>
+
+<<ox-md>>
+
+;; Outlines
+
+<<imenu-auto-rescan>>
+
+<<imenu-anywhere>>
+
+<<imenu-list>>
+
+;; Programming / Flymake syntax checker
+
+<<flymake>>
+
+<<flymake-hydra>>
+
+<<flymake-quickdef>>
+
+;; Programming / DevSkim and FlyMake
+
+<<devskim-flymake>>
+
+;; Programming / Conda package and environment manager
+
+<<conda>>
+
+<<conda-hydra>>
+
+;; Programming / Eglot Language Server Protocol client
+
+<<eglot>>
+
+<<eglot-hydra>>
+
+;; Programming / Emacs Lisp
+
+<<debugger-hydra>>
+
+<<debugger-mode-hydra>>
+
+<<profiler-hydra>>
+
+<<el-patch>>
+
+<<modify-lisp-indent-function>>
+
+;; Programming / Clojure
+
+;; Programming / Python
+
+<<python-hydra>>
+
+<<python-flymake>>
+
+<<python-which-func-imenu>>
+
+<<python-devskim-flymake>>
+
+<<python-eglot>>
+
+;; Programming / R
+
+<<ess>>
+
+<<ess-pipe-operators>>
+
+<<ess-mode-hydra>>
+
+;; Project interaction
+
+<<projectile>>
+
+<<projectile-hydra>>
+
+<<magit>>
+
+<<magit-ibuffer-integration>>
+
+<<git-identity>>
+
+<<git-timemachine>>
+
+;; Search and navigation
+
+<<search-hydra>>
+
+<<ripgrep-support>>
+
+<<anzu>>
+
+<<dumb-jump>>
+
+<<dumb-jump-hydra>>
+
+;; Session management
+
+<<desktop-hydra>>
+
+;; Web
+
+<<eww>>
+
+<<eww-hydra>>
+
+<<eww-hydra-helper-functions>>
+
+<<restclient>>
+
+<<restclient-hydra>>
+
+<<network-security>>
+
+<<http-requests-privacy>>
+
+;; Visual (part 2)
+
+<<visual-hydra>>
+
+<<prism>>
+
+<<prism-hydra>>
+
+<<color-identifiers-mode>>
+
+<<color-identifiers-mode-hydra>>
+
+<<outline-hydra>>
+
+<<whitespace-hydra>>
+
+<<show-column-number>>
+
+<<show-matching-parentheses>>
+
+;; Other
+
+;; *commented* currently do not store secrets using Emacs mechanisms
+;; <<auth-sources>>
+
+<<real-auto-save>>
+
+<<mouse-settings>>
+
+<<crux>>
+
+<<crux-hydra>>
+
+<<help-hydra>>
+
+<<hyperspace>>
+
+<<scratch-buffer-initial-mode>>
+
+<<scroll-conservatively>>
+
+<<silence-audio-and-visual-bells>>
+
+<<suppress-auto-revert-messages>>
+
+<<suppress-startup-splash>>
+
+<<proced>>
+
+<<vlf>>
+
+;; OS-specific / Mac OS X
+
+<<mac>>
+
+<<mac-case-insensitive-sorting-in-dired>>
+
+<<mac-open-finder-at-buffer-directory>>
+
+<<mac-port-hydra-toggle-ligatures>>
+
+<<mac-scale-org-latex-fragment-previews>>
+
+<<generate-footer(feature="init")>>
+#+end_src
+
+* TODO Backlog
+
+** Email
+
+*** Multiple mailboxes
+
+*Planning notes*:
+- Not sure how to configure sending using multiple accounts, although it could probably go something like this:
+  - Configuring multiple gmail mailboxes using Lieer linked to separate notmuch subdirectories (see [[https://github.com/gauteh/lieer/issues/56#issuecomment-546015279][here]]).
+  - ~(setq send-mail-function #'sendmail-send-it)~
+  - Advise ~sendmail-send-it~ to change its ~message-sendmail-extra-arguments~ based on the ~From~ header in the email message using the ~:before~ combinator (see [[https://www.emacswiki.org/emacs/MultipleSMTPAccounts][here]]).
+- notmuch indexing does seem not handle multiple Gmail mailboxes very well (see [[https://github.com/gauteh/lieer/issues/56][Github issue]]).
+
+*** Auto-completion of email address
+
+*Planning notes*:
+- [[https://github.com/redguardtoo/gmail2bbdb][gmail2bbdb]] for converting Google contacts to BBDB.
+- [[https://elpa.gnu.org/packages/bbdb.html][bbdb]] for managing addresses in Emacs.
+- See [[https://github.com/alhassy/emacs.d/blob/master/init.org#auto-completing-mail-addresses][here]] for an example configuration.
+- See [[https://emacs.stackexchange.com/questions/22724/bbdb-searching-for-a-name-by-regex-with-tab-auto-completion/23842][here]] for an alternative method of completion using
+  ~completing-read~ instead of ~company~.
+
+** Org-mode
+
+*** Org export backend to Tufte book and handout style PDFs
+
+*TODO*: fork ~ox-tufte-latex.el~ and incorporate modifications from
+~org-tufte-latex.el~ into it, especially making sure modifications
+are buffer-local.
+
+*** org-reveal
+
+*TODO*: Migrate from org-re-reveal back to org-reveal since org-reveal
+development is once again active.
+
+*** org-static-blog
+
+[[https://github.com/bastibe/org-static-blog][org-static-blog]] is a static website generator.
+
+It integrates well with Github pages or GitLab pages.
+
+It is possible to set up auto-rendering using CI tooling a new blog
+post is pushed, see [[https://gitlab.com/_zngguvnf/org-static-blog-example][here]].
+
+** Non-programming modes
+
+*** PlantUML
+
+** Programming
+
+*** Clojure
+
+*** Racket
+
+** Search and navigation
+
+*** wgrep
+
+Writable grep.
+
+** Writing
+
+*** Dictionary
+
+dictionary.el
+
+**** dictd
+
+**** GCIDE
+
+GNU Collaborative International Dictionary of English
+
+*** Thesaurus
+
+*** Spelling
+
+flyspell
+
+**** Aspell
+
+installing aspell and its dictionaries
+
+*** Distraction-free workspace
+
+[[http://elpa.gnu.org/packages/darkroom.html][darkroom]]
+
+
+*** TinyTex                                                        :external:
+
+Pre-requisite to any LaTeX to PDF compilation on the system.
+
+Fish shell configuration code to add TinyTex bin directory to the
+system path.
+
+#+begin_example
+# TinyTex
+if test -d $HOME/Library/TinyTeX/bin/x86_64-darwin
+    set PATH $HOME/Library/TinyTeX/bin/x86_64-darwin $PATH
+end
+#+end_example
+
+* Local Variables                                                  :noexport:
+
+Autocaption source blocks with their names when exporting so that
+[[https://www.gnu.org/software/emacs/manual/html_node/org/noweb.html][noweb]] entries in the [[Tangled files]] section can be referenced against
+their source blocks.
+
+#+begin_src org
+Local Variables:
+eval: (setq-local org-babel-exp-code-template (concat "\n#+caption:=%name=\n" org-babel-exp-code-template))
+End:
+#+end_src

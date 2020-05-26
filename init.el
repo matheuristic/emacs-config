@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun May 24 17:13:19 2020
+;; Generated: Mon May 25 21:10:35 2020
 
 ;;; Commentary:
 
@@ -19,7 +19,7 @@
 ;; Backward compatibility
 
 ;; backwards-compatibility code for Emacs versions <27
-(when (version<= emacs-version "26.3")
+(when (version< emacs-version "27")
   ;; load early-initialization file ~/.emacs.d/early-init.el
   ;; Emacs 27+ automatically loads this file before rendering UI elements
   (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
@@ -70,7 +70,7 @@
 
 ;; use Icomplete as the completion backend
 ;; emulate ido behavior where possible
-(if (version<= emacs-version "26.3")
+(if (version< emacs-version "27")
     ;; no `fido-mode' on older Emacs versions
     (progn
       (setq completion-category-defaults nil
@@ -93,6 +93,10 @@
         #'exit-minibuffer))
   ;; enable `fido-mode'
   (fido-mode))
+
+;; enable flex completion on Emacs 27+
+(when (not (version< emacs-version "27"))
+    (add-to-list 'completion-styles 'flex t))
 
 ;; framework for defining temporary, repeatable bindings
 ;; see https://github.com/abo-abo/hydra
@@ -938,7 +942,13 @@ YASnippet (_q_: quit)"
   (use-package notmuch
     :bind (("C-c C-M-n" . notmuch)
            :map notmuch-hello-mode-map
-           ("i" . my-notmuch-hello--search-inbox))
+           ("i" . notmuch-hello--inbox-search-view)
+           :map notmuch-show-mode-map
+           ("d" . notmuch-show--toggle-trash-tag)
+           :map notmuch-search-mode-map
+           ("d" . notmuch-search--toggle-trash-tag)
+           :map notmuch-tree-mode-map
+           ("d" . notmuch-tree--toggle-trash-tag))
     :init
     (setq notmuch-always-prompt-for-sender t
           notmuch-archive-tags '("-inbox")
@@ -952,9 +962,35 @@ YASnippet (_q_: quit)"
             ("tags" . "%s ")
             ("subject" . "%s"))
           notmuch-show-logo nil)
-    ;; convenience function for jumping to inbox view from the hello screen
-    (defun my-notmuch-hello--search-inbox ()
-      "Go to inbox search view from the Notmuch hello screen."
+    ;; toggle deletion of message from the Show view
+    ;; note that in Gmail, deleted messages are marked with the "trash" label
+    (defun notmuch-show--toggle-trash-tag ()
+        "Toggle trash tag for message in the Show view."
+        (interactive (notmuch-interactive-region))
+        (if (member "trash")
+            (notmuch-show-tag (list "-trash"))
+          (notmuch-show-tag (list "+trash" "-inbox"))))
+    ;; toggle deletion of thread from the Search view
+    ;; note that in Gmail, deleted messages are marked with the "trash" label
+    (defun notmuch-search--toggle-trash-tag (&optional beg end)
+        "Toggle trash tag for thread(s) in the Search view.
+If applying to a selected region, it adds or removes the trash
+tag based on the entry at the beginning of the region."
+        (interactive (notmuch-interactive-region))
+        (if (member "trash" (notmuch-search-get-tags beg))
+            (notmuch-search-tag (list "-trash") beg end)
+          (notmuch-search-tag (list "+trash" "-inbox") beg end)))
+    ;; toggle deletion of thread from the Tree view
+    ;; note that in Gmail, deleted messages are marked with the "trash" label
+    (defun notmuch-tree--toggle-trash-tag ()
+        "Toggle trash tag for message in the Tree view."
+        (interactive)
+        (if (member "trash" (notmuch-tree-get-tags))
+            (notmuch-tree-tag (list "-trash"))
+          (notmuch-tree-tag (list "+trash" "-inbox"))))
+    ;; convenience function for jumping to inbox view from the Hello view
+    (defun notmuch-hello--inbox-search-view ()
+      "Go to the inbox Search view from the Hello view."
       (interactive)
       (notmuch-hello-search "tag:inbox"))))
 
@@ -995,20 +1031,28 @@ original arguments passed to it."
                             (notmuch-tag-format-tags tags orig-tags))))
         (apply orig-fun args))))
   (defun notmuch-search--toggle-search-tag-visibility ()
-    "Toggles the visibility of search tags in the search results."
+    "Toggle visibility of search tags in the Search and Tree views."
     (interactive)
-    (if (advice-member-p #'notmuch-search-insert-field--filter-search-tags
-                         'notmuch-search-insert-field)
-        (advice-remove 'notmuch-search-insert-field
-                       #'notmuch-search-insert-field--filter-search-tags)
-      (advice-add 'notmuch-search-insert-field :around
-                  #'notmuch-search-insert-field--filter-search-tags))
-    (notmuch-refresh-this-buffer))
+    (let ((current-hide-search-tags
+           (advice-member-p #'notmuch-search-insert-field--filter-search-tags
+                            'notmuch-search-insert-field)))
+      (if current-hide-search-tags
+          (advice-remove 'notmuch-search-insert-field
+                         #'notmuch-search-insert-field--filter-search-tags)
+        (advice-add 'notmuch-search-insert-field :around
+                    #'notmuch-search-insert-field--filter-search-tags))
+      (notmuch-refresh-this-buffer)
+      (message (if current-hide-search-tags
+                   "Search tags visible."
+                 "Search tags hidden."))))
   ;; enable filtering of search tags in the search results by default
   (notmuch-search--toggle-search-tag-visibility)
   ;; bindings to toggle visibility of search tags in the results
-  (define-key notmuch-search-mode-map (kbd "C-t")
-    #'notmuch-search--toggle-search-tag-visibility))
+  (dolist (map '(notmuch-hello-mode-map
+                 notmuch-search-mode-map
+                 notmuch-tree-mode-map))
+    (define-key map (kbd "C-t")
+      #'notmuch-search--toggle-search-tag-visibility)))
 
 ;; provides HTML email composition using Org-mode
 ;; set `org-msg-greeting-fmt' to "\nHi *%s*,\n\n" for auto greeting
@@ -1020,6 +1064,15 @@ original arguments passed to it."
         org-msg-greeting-fmt nil
         org-msg-greeting-name-limit 3
         org-msg-text-plain-alternative t)
+  (with-eval-after-load 'notmuch
+    ;; enable HTML email message composition
+    (org-msg-mode 1)
+    ;; bindings to toggle HTML email message composition
+    (dolist (map '(notmuch-hello-mode-map
+                   notmuch-search-mode-map
+                   notmuch-show-mode-map
+                   notmuch-tree-mode-map)) 
+      (define-key map (kbd "M") #'org-msg-mode)))
   ;; -- START --
   ;; TODO: remove when code is merged into master
   ;; add notmuch capability, from a pull request in org-msg
@@ -2265,6 +2318,146 @@ Lisp function does not specify a special indentation."
 
 ;; Programming / Clojure
 
+;; basic support
+(use-package clojure-mode
+  :defer t
+  :hook ((clojure-mode . paredit-mode)
+         (clojure-mode . subword-mode)))
+
+;; Clojure IDE
+(use-package cider
+  :after clojure-mode
+  :hook ((cider-mode . eldoc-mode)
+         (cider-repl-mode . eldoc-mode)
+         (cider-repl-mode . paredit-mode))
+  :config (setq nrepl-log-messages t))
+
+;; hydras, adapted from https://github.com/clojure-emacs/cider-hydra
+(defhydra my-hydra/cider (:color teal :columns 3)
+  "
+CIDER (_q_: quit)"
+  ("q" nil nil)
+  ;; start a REPL and connect to it
+  ("j" cider-jack-in-clj "jack-in-clj")
+  ("s" cider-jack-in-cljs "jack-in-cljs")
+  ("b" cider-jack-in-clj&cljs "jack-in-clj&cljs")
+  ;; sub-hydras
+  ("d" my-hydra/cider-doc/body "→ Documentation")
+  ("e" my-hydra/cider-eval/body "→ Evaluation")
+  ("T" my-hydra/cider-test/body "→ Test")
+  ("D" my-hydra/cider-debug/body "→ Debug")
+  ("r" my-hydra/cider-repl/body "→ REPL"))
+(defhydra my-hydra/cider-doc (:color teal :columns 4)
+  "
+CIDER → Documentation (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ;; CiderDoc
+  ("d" cider-doc "cider-docs")
+  ;; ClojureDocs
+  ("r" cider-clojuredocs "clojure-docs")
+  ("h" cider-clojuredocs-web "clojure-docs-web")
+  ;; JavaDoc
+  ("j" cider-javadoc "java-docs-web")
+  ;; apropos
+  ("a" cider-apropos "search-symbols")
+  ("s" cider-apropos-select "select-symbols")
+  ("A" cider-apropos-documentation "search-docs")
+  ("e" cider-apropos-documentation-select "select-docs"))
+(defhydra my-hydra/cider-eval (:color teal :columns 3)
+  "
+CIDER → Eval (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ;; load
+  ("k" cider-load-buffer "load-buffer")
+  ("l" cider-load-file "load-file")
+  ("p" cider-load-all-project-ns "load-all-proj-ns")
+  ;; eval
+  ("r" cider-eval-region "eval-region")
+  ("n" cider-eval-ns-form "eval-ns-form")
+  ("e" cider-eval-last-sexp "eval-last-sexp")
+  ("P" cider-pprint-eval-last-sexp "eval-last-sexp-pp")
+  ("w" cider-eval-last-sexp-and-replace "eval-last-sexp-replace")
+  ("E" cider-eval-last-sexp-to-repl "eval-last-sexp-to-repl")
+  ("d" cider-eval-defun-at-point "eval-defun-at-point")
+  ("f" cider-pprint-eval-defun-at-point "eval-defun-at-point-pp")
+  (":" cider-read-and-eval "read-and-eval")
+  ;; inspect
+  ("i" cider-inspect "inspect")
+  ;; macro expansion
+  ("m" cider-macroexpand-1 "macroexpand-1")
+  ("M" cider-macroexpand-all "macroexpand-all"))
+(defhydra my-hydra/cider-test (:color teal :columns 4)
+  "
+CIDER → Test (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ("t" cider-test-run-test "run")
+  ("l" cider-test-run-loaded-tests "run-loaded")
+  ("p" cider-test-run-project-tests "run-project")
+  ("n" cider-test-run-ns-tests "run-ns")
+  ("r" cider-test-rerun-failed-tests "rerun-failed")
+  ("s" cider-test-show-report "show-report"))
+(defhydra my-hydra/cider-debug (:color teal :columns 3)
+  "
+CIDER → Debug (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ("x" (lambda () (interactive) (cider-eval-defun-at-point t)) "eval-defun-at-pt")
+  ("v" cider-toggle-trace-var "toggle-var-trace")
+  ("n" cider-toggle-trace-ns "toggle-ns-trace"))
+(defhydra my-hydra/cider-repl (:color teal :columns 3)
+  "
+CIDER → REPL (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ;; connection
+  ("d" cider-display-connection-info "disp-conn-info")
+  ("r" cider-rotate-default-connection "rot-default-conn")
+  ;; input
+  ("z" cider-switch-to-repl-buffer "switch-to-repl")
+  ("n" cider-repl-set-ns "set-repl-ns")
+  ("p" cider-insert-last-sexp-in-repl "ins-last-sexp-in-repl")
+  ("x" cider-refresh "refresh")
+  ;; output
+  ("o" cider-find-and-clear-repl-output "clear-repl-output")
+  ("O" (lambda () (interactive) (cider-find-and-clear-repl-output t)) "clear-repl-all")
+  ;; interrupt or quit connected REPL
+  ("b" cider-interrupt "interrupt")
+  ("Q" cider-quit "quit-cider"))
+
+;; binding for main CIDER hydra
+(with-eval-after-load 'clojure-mode
+  (define-key clojure-mode-map (kbd "C-c C-M-m") #'my-hydra/cider/body))
+
+;; linting, requires clj-kondo be installed on the system
+;; see https://github.com/borkdude/clj-kondo for install instructions
+(when (executable-find "clj-kondo")
+  ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
+  (with-eval-after-load 'flymake-quickdef
+    (flymake-quickdef-backend flymake-clj-kondo-backend
+      :pre-let ((clj-kondo-exec (executable-find "clj-kondo")))
+      :pre-check (unless clj-kondo-exec (error "Cannot find clj-kondo executable"))
+      :write-type 'pipe
+      :proc-form (list clj-kondo-exec "--lint" "-")
+      :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
+      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
+                              (lcol (string-to-number (match-string 2)))
+                              (severity (match-string 3))
+                              (msg (match-string 4))
+                              (pos (flymake-diag-region fmqd-source lnum lcol))
+                              (beg (car pos))
+                              (end (cdr pos))
+                              (type (cond
+                                     ((string= severity "error") :error)
+                                     ((string= severity "warning") :warning)
+                                     ((string= severity "info") :note)
+                                     (t :note))))
+                         (list fmqd-source beg end type msg)))
+    (defun flymake-clj-kondo-setup ()
+      "Enable clj-kondo backend for Flymake."
+      (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
+    ;; enable Flymake with clj-kondo backend when editing Clojure
+    (with-eval-after-load 'clojure-mode
+      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
+      (add-hook 'clojure-mode-hook 'flymake-mode))))
+
 ;; Programming / Python
 
 ;; mode-specific hydra for Python mode
@@ -2731,6 +2924,21 @@ REST client (_q_: quit)"
 (setq url-privacy-level 'paranoid) ;; more private HTTP requests
 (url-setup-privacy-info) ;; apply `url-privacy-level'
 
+;; Writing
+
+;; hydra for writing functions
+(defhydra my-hydra/writing (:color amaranth :hint nil
+                            :pre (require 'flyspell))
+  "
+Writing (_q_: quit)
+Flyspell [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog"
+  ("q" nil :exit t)
+  ("f" flyspell-mode)
+  ("F" flyspell-prog-mode))
+
+;; bindings for writing hydra
+(global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
+
 ;; Visual (part 2)
 
 ;; hydra for visual settings
@@ -2878,6 +3086,24 @@ Whitespace (_q_: quit)"
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
+
+;; provides toggleable modes that remove visual distractions
+(use-package darkroom
+  :config (setq darkroom-text-increase-scale 2))
+
+;; darkroom hydra
+(defhydra my-hydra/visual/darkroom-mode (:color amaranth :hint nil
+                                         :pre (require 'darkroom))
+  "
+Visual → Darkroom (_q_: ←)
+_SPC_ : straight [% 3`darkroom-mode]  _t_ : tentative  [% 3`darkroom-tentative-mode]"
+  ("q" my-hydra/visual/body :exit t)
+  ("SPC" darkroom-mode)
+  ("t" darkroom-tentative-mode))
+
+;; add entrypoint to darkroom hydra from visual hydra
+(defhydra+ my-hydra/visual nil
+  ("d" my-hydra/visual/darkroom-mode/body "darkroom" :exit t))
 
 ;; Other
 

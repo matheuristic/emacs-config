@@ -32,6 +32,19 @@ $ open -n /Applications/Emacs.app \
    ~2~ for lower priority ones.
 3. Avoid helper functions that can cause eager loads.
 
+** Trying packages before installing them
+
+[[https://github.com/larstvei/Try][Try]] allows trying of Emacs packages without installing them.
+
+It can try packages that are singular Elisp files or packages on an
+ELPA-compatible repository.
+
+** Recompiling Elisp bytecode after upgrading Emacs to a new major version
+
+When upgrading versions, rebuild Elisp bytecode in installed packages
+via ~M-: (byte-recompile-directory package-user-dir nil 'force)~ as
+the newer versions may include new features that speed up performance.
+
 ** What to do when Emacs hangs and C-g does not work
 
 Copied from this StackOverflow [[https://emacs.stackexchange.com/questions/21643/what-do-i-do-when-emacs-is-frozen][question]].
@@ -65,6 +78,10 @@ the ~debug-on-event~ user option).
 - [[http://www.wilfred.me.uk/blog/2017/03/19/pattern-matching-in-emacs-lisp/][Pattern Matching in Emacs Lisp]]
 - [[https://github.com/alphapapa/emacs-package-dev-handbook][GitHub - alphapapa/emacs-package-dev-handbook: An Emacs package development handbook]]
 
+** Useful Org-mode references
+
+- [[https://karl-voit.at/2019/10/26/all-things-org/][All Things Org Mode: PIM, Scientific Writing, Presentation, Programming]]
+
 ** Tags
 
 - ~early~: Configuration code (not boilerplate comments) that should
@@ -77,6 +94,8 @@ the ~debug-on-event~ user option).
 - ~hydra~: Configuration code that enables, creates or modifies
   [[Hydra][hydras]].
 - ~melpa~: Uses a package from MELPA.
+- ~semiearly~: Configuration that should be loaded early in ~init.el~
+  because other configuration code depend on them.
 
 * Front matter
 
@@ -152,7 +171,7 @@ In Emacs versions before 27, we should load the ~early-init.el~ file explicitly 
 #+name: early-init-pre-27
 #+begin_src emacs-lisp
 ;; backwards-compatibility code for Emacs versions <27
-(when (version<= emacs-version "26.3")
+(when (version< emacs-version "27")
   ;; load early-initialization file ~/.emacs.d/early-init.el
   ;; Emacs 27+ automatically loads this file before rendering UI elements
   (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
@@ -329,7 +348,7 @@ bindings.
   (setq use-package-always-ensure t)) ;; default to ":ensure t"
 #+end_src
 
-* Environment variables                                               :melpa:
+* Environment variables                                     :semiearly:melpa:
 
 On Mac OS X, copy the environment variables over from the login shell.
 
@@ -355,7 +374,7 @@ not as thoroughly as ~fido-mode~).
 #+begin_src emacs-lisp
 ;; use Icomplete as the completion backend
 ;; emulate ido behavior where possible
-(if (version<= emacs-version "26.3")
+(if (version< emacs-version "27")
     ;; no `fido-mode' on older Emacs versions
     (progn
       (setq completion-category-defaults nil
@@ -380,7 +399,18 @@ not as thoroughly as ~fido-mode~).
   (fido-mode))
 #+end_src
 
-** Hydra                                                        :melpa:hydra:
+** Flexible minibuffer completion style
+
+Emacs 27+ added a [[https://github.com/emacs-mirror/emacs/commit/fabfb54d1f60cf90e72b1efaabfbefbe877e076a][flexible completion]] similar to [[https://github.com/lewang/flx][flx]] for ~ido~.
+
+#+name: flex-minibuffer-completion-style
+#+begin_src emacs-lisp
+;; enable flex completion on Emacs 27+
+(when (not (version< emacs-version "27"))
+    (add-to-list 'completion-styles 'flex t))
+#+end_src
+
+** Hydra                                              :semiearly:melpa:hydra:
 
 [[https://github.com/abo-abo/hydra][Hydra]] is a framework for surfacing temporary bindings with visual
 help.
@@ -797,7 +827,7 @@ Uses file icon API exposed by the ~all-the-icons~ package.
 [[https://www.masteringemacs.org/article/complete-guide-mastering-eshell][More information]] on Eshell usage.
 
 *Customizations*:
-_ Increase the size of the history input ring from ~128~ to ~1024~.
+- Increase the size of the history input ring from ~128~ to ~1024~.
 - Don't review quick commands (those that have no output and returns a
   ~0~ exit code indicating success).
 - Have space go to the end of the buffer when it is visible.
@@ -1783,7 +1813,7 @@ If there's a need to change client IDs in the future, it is possible to
 use something like ~gmi auth -f -c client_secrets.json~ (untested).
 
 #+begin_example
-$ mv ~/Downloads/client_secret_CLIENTID.json 
+$ mv ~/Downloads/client_secret_CLIENTID.json
 $ gmi init -c client_secret_CLIENTID.json username@emailserver.com
 #+end_example
 
@@ -1901,7 +1931,13 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
   (use-package notmuch
     :bind (("C-c C-M-n" . notmuch)
            :map notmuch-hello-mode-map
-           ("i" . my-notmuch-hello--search-inbox))
+           ("i" . notmuch-hello--inbox-search-view)
+           :map notmuch-show-mode-map
+           ("d" . notmuch-show--toggle-trash-tag)
+           :map notmuch-search-mode-map
+           ("d" . notmuch-search--toggle-trash-tag)
+           :map notmuch-tree-mode-map
+           ("d" . notmuch-tree--toggle-trash-tag))
     :init
     (setq notmuch-always-prompt-for-sender t
           notmuch-archive-tags '("-inbox")
@@ -1915,9 +1951,35 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
             ("tags" . "%s ")
             ("subject" . "%s"))
           notmuch-show-logo nil)
-    ;; convenience function for jumping to inbox view from the hello screen
-    (defun my-notmuch-hello--search-inbox ()
-      "Go to inbox search view from the Notmuch hello screen."
+    ;; toggle deletion of message from the Show view
+    ;; note that in Gmail, deleted messages are marked with the "trash" label
+    (defun notmuch-show--toggle-trash-tag ()
+        "Toggle trash tag for message in the Show view."
+        (interactive (notmuch-interactive-region))
+        (if (member "trash")
+            (notmuch-show-tag (list "-trash"))
+          (notmuch-show-tag (list "+trash" "-inbox"))))
+    ;; toggle deletion of thread from the Search view
+    ;; note that in Gmail, deleted messages are marked with the "trash" label
+    (defun notmuch-search--toggle-trash-tag (&optional beg end)
+        "Toggle trash tag for thread(s) in the Search view.
+If applying to a selected region, it adds or removes the trash
+tag based on the entry at the beginning of the region."
+        (interactive (notmuch-interactive-region))
+        (if (member "trash" (notmuch-search-get-tags beg))
+            (notmuch-search-tag (list "-trash") beg end)
+          (notmuch-search-tag (list "+trash" "-inbox") beg end)))
+    ;; toggle deletion of thread from the Tree view
+    ;; note that in Gmail, deleted messages are marked with the "trash" label
+    (defun notmuch-tree--toggle-trash-tag ()
+        "Toggle trash tag for message in the Tree view."
+        (interactive)
+        (if (member "trash" (notmuch-tree-get-tags))
+            (notmuch-tree-tag (list "-trash"))
+          (notmuch-tree-tag (list "+trash" "-inbox"))))
+    ;; convenience function for jumping to inbox view from the Hello view
+    (defun notmuch-hello--inbox-search-view ()
+      "Go to the inbox Search view from the Hello view."
       (interactive)
       (notmuch-hello-search "tag:inbox"))))
 #+end_src
@@ -1975,20 +2037,28 @@ original arguments passed to it."
                             (notmuch-tag-format-tags tags orig-tags))))
         (apply orig-fun args))))
   (defun notmuch-search--toggle-search-tag-visibility ()
-    "Toggles the visibility of search tags in the search results."
+    "Toggle visibility of search tags in the Search and Tree views."
     (interactive)
-    (if (advice-member-p #'notmuch-search-insert-field--filter-search-tags
-                         'notmuch-search-insert-field)
-        (advice-remove 'notmuch-search-insert-field
-                       #'notmuch-search-insert-field--filter-search-tags)
-      (advice-add 'notmuch-search-insert-field :around
-                  #'notmuch-search-insert-field--filter-search-tags))
-    (notmuch-refresh-this-buffer))
+    (let ((current-hide-search-tags
+           (advice-member-p #'notmuch-search-insert-field--filter-search-tags
+                            'notmuch-search-insert-field)))
+      (if current-hide-search-tags
+          (advice-remove 'notmuch-search-insert-field
+                         #'notmuch-search-insert-field--filter-search-tags)
+        (advice-add 'notmuch-search-insert-field :around
+                    #'notmuch-search-insert-field--filter-search-tags))
+      (notmuch-refresh-this-buffer)
+      (message (if current-hide-search-tags
+                   "Search tags visible."
+                 "Search tags hidden."))))
   ;; enable filtering of search tags in the search results by default
   (notmuch-search--toggle-search-tag-visibility)
   ;; bindings to toggle visibility of search tags in the results
-  (define-key notmuch-search-mode-map (kbd "C-t")
-    #'notmuch-search--toggle-search-tag-visibility))
+  (dolist (map '(notmuch-hello-mode-map
+                 notmuch-search-mode-map
+                 notmuch-tree-mode-map))
+    (define-key map (kbd "C-t")
+      #'notmuch-search--toggle-search-tag-visibility)))
 #+end_src
 
 ** Sending mail with notmuch.el using Lieer as the sendmail program :external:
@@ -2051,6 +2121,15 @@ by (by default, it is off).
         org-msg-greeting-fmt nil
         org-msg-greeting-name-limit 3
         org-msg-text-plain-alternative t)
+  (with-eval-after-load 'notmuch
+    ;; enable HTML email message composition
+    (org-msg-mode 1)
+    ;; bindings to toggle HTML email message composition
+    (dolist (map '(notmuch-hello-mode-map
+                   notmuch-search-mode-map
+                   notmuch-show-mode-map
+                   notmuch-tree-mode-map))
+      (define-key map (kbd "M") #'org-msg-mode)))
   ;; -- START --
   ;; TODO: remove when code is merged into master
   ;; add notmuch capability, from a pull request in org-msg
@@ -2786,11 +2865,11 @@ Clock       _ci_  : in           _co_  : out          _cq_  : cancel
             _cg_  : goto
 Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
             _sd_  : hide done
-"   
+"
   ("q" nil nil :exit t)
   ("ht" org-agenda-todo)
   ("hk" org-agenda-kill)
-  ("hr" org-agenda-refile) 
+  ("hr" org-agenda-refile)
   ("hA" org-agenda-archive-default)
   ("h:" org-agenda-set-tags)
   ("hp" org-agenda-priority)
@@ -3620,6 +3699,180 @@ Eglot [active=%(if (boundp 'eglot--managed-mode) eglot--managed-mode nil)] (_q_:
   (define-key mode-map (kbd "C-c C-M-l") #'my-hydra/eglot-mode/body))
 #+end_src
 
+** Clojure
+
+*** clojure-mode for basic Clojure support                            :melpa:
+
+[[https://github.com/clojure-emacs/clojure-mode][clojure-mode]] provides a major mode for editing Clojure buffers.
+
+#+name: clojure-mode
+#+begin_src emacs-lisp
+;; basic support
+(use-package clojure-mode
+  :defer t
+  :hook ((clojure-mode . paredit-mode)
+         (clojure-mode . subword-mode)))
+#+end_src
+
+*** CIDER for a more complete Clojure development environment         :melpa:
+
+[[https://docs.cider.mx/cider/index.html][CIDER]] (Clojure(Script) Interactive Development Environment that
+Rocks!) complements ~clojure-mode~, providing additional functionality
+for Clojure development including compiling, debugging, running tests,
+definition and documentation lookup, and so on.
+
+#+name: cider
+#+begin_src emacs-lisp
+;; Clojure IDE
+(use-package cider
+  :after clojure-mode
+  :hook ((cider-mode . eldoc-mode)
+         (cider-repl-mode . eldoc-mode)
+         (cider-repl-mode . paredit-mode))
+  :config (setq nrepl-log-messages t))
+#+end_src
+
+**** CIDER hydra                                                      :hydra:
+
+Mode-specific Hydra for accessing CIDER in ~clojure-mode~.
+
+#+name: cider-hydra
+#+begin_src emacs-lisp
+;; hydras, adapted from https://github.com/clojure-emacs/cider-hydra
+(defhydra my-hydra/cider (:color teal :columns 3)
+  "
+CIDER (_q_: quit)"
+  ("q" nil nil)
+  ;; start a REPL and connect to it
+  ("j" cider-jack-in-clj "jack-in-clj")
+  ("s" cider-jack-in-cljs "jack-in-cljs")
+  ("b" cider-jack-in-clj&cljs "jack-in-clj&cljs")
+  ;; sub-hydras
+  ("d" my-hydra/cider-doc/body "→ Documentation")
+  ("e" my-hydra/cider-eval/body "→ Evaluation")
+  ("T" my-hydra/cider-test/body "→ Test")
+  ("D" my-hydra/cider-debug/body "→ Debug")
+  ("r" my-hydra/cider-repl/body "→ REPL"))
+(defhydra my-hydra/cider-doc (:color teal :columns 4)
+  "
+CIDER → Documentation (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ;; CiderDoc
+  ("d" cider-doc "cider-docs")
+  ;; ClojureDocs
+  ("r" cider-clojuredocs "clojure-docs")
+  ("h" cider-clojuredocs-web "clojure-docs-web")
+  ;; JavaDoc
+  ("j" cider-javadoc "java-docs-web")
+  ;; apropos
+  ("a" cider-apropos "search-symbols")
+  ("s" cider-apropos-select "select-symbols")
+  ("A" cider-apropos-documentation "search-docs")
+  ("e" cider-apropos-documentation-select "select-docs"))
+(defhydra my-hydra/cider-eval (:color teal :columns 3)
+  "
+CIDER → Eval (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ;; load
+  ("k" cider-load-buffer "load-buffer")
+  ("l" cider-load-file "load-file")
+  ("p" cider-load-all-project-ns "load-all-proj-ns")
+  ;; eval
+  ("r" cider-eval-region "eval-region")
+  ("n" cider-eval-ns-form "eval-ns-form")
+  ("e" cider-eval-last-sexp "eval-last-sexp")
+  ("P" cider-pprint-eval-last-sexp "eval-last-sexp-pp")
+  ("w" cider-eval-last-sexp-and-replace "eval-last-sexp-replace")
+  ("E" cider-eval-last-sexp-to-repl "eval-last-sexp-to-repl")
+  ("d" cider-eval-defun-at-point "eval-defun-at-point")
+  ("f" cider-pprint-eval-defun-at-point "eval-defun-at-point-pp")
+  (":" cider-read-and-eval "read-and-eval")
+  ;; inspect
+  ("i" cider-inspect "inspect")
+  ;; macro expansion
+  ("m" cider-macroexpand-1 "macroexpand-1")
+  ("M" cider-macroexpand-all "macroexpand-all"))
+(defhydra my-hydra/cider-test (:color teal :columns 4)
+  "
+CIDER → Test (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ("t" cider-test-run-test "run")
+  ("l" cider-test-run-loaded-tests "run-loaded")
+  ("p" cider-test-run-project-tests "run-project")
+  ("n" cider-test-run-ns-tests "run-ns")
+  ("r" cider-test-rerun-failed-tests "rerun-failed")
+  ("s" cider-test-show-report "show-report"))
+(defhydra my-hydra/cider-debug (:color teal :columns 3)
+  "
+CIDER → Debug (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ("x" (lambda () (interactive) (cider-eval-defun-at-point t)) "eval-defun-at-pt")
+  ("v" cider-toggle-trace-var "toggle-var-trace")
+  ("n" cider-toggle-trace-ns "toggle-ns-trace"))
+(defhydra my-hydra/cider-repl (:color teal :columns 3)
+  "
+CIDER → REPL (_q_: ←)"
+  ("q" my-hydra/cider/body nil)
+  ;; connection
+  ("d" cider-display-connection-info "disp-conn-info")
+  ("r" cider-rotate-default-connection "rot-default-conn")
+  ;; input
+  ("z" cider-switch-to-repl-buffer "switch-to-repl")
+  ("n" cider-repl-set-ns "set-repl-ns")
+  ("p" cider-insert-last-sexp-in-repl "ins-last-sexp-in-repl")
+  ("x" cider-refresh "refresh")
+  ;; output
+  ("o" cider-find-and-clear-repl-output "clear-repl-output")
+  ("O" (lambda () (interactive) (cider-find-and-clear-repl-output t)) "clear-repl-all")
+  ;; interrupt or quit connected REPL
+  ("b" cider-interrupt "interrupt")
+  ("Q" cider-quit "quit-cider"))
+
+;; binding for main CIDER hydra
+(with-eval-after-load 'clojure-mode
+  (define-key clojure-mode-map (kbd "C-c C-M-m") #'my-hydra/cider/body))
+#+end_src
+
+*** Clojure linting using clj-kondo                                :external:
+
+Add a Flymake backend for [[https://github.com/borkdude/clj-kondo][clj-kondo]], a linter for Clojure code.
+Enable this backend automatically when editing Clojure buffers.
+
+#+name: flymake-clj-kondo
+#+begin_src emacs-lisp
+;; linting, requires clj-kondo be installed on the system
+;; see https://github.com/borkdude/clj-kondo for install instructions
+(when (executable-find "clj-kondo")
+  ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
+  (with-eval-after-load 'flymake-quickdef
+    (flymake-quickdef-backend flymake-clj-kondo-backend
+      :pre-let ((clj-kondo-exec (executable-find "clj-kondo")))
+      :pre-check (unless clj-kondo-exec (error "Cannot find clj-kondo executable"))
+      :write-type 'pipe
+      :proc-form (list clj-kondo-exec "--lint" "-")
+      :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
+      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
+                              (lcol (string-to-number (match-string 2)))
+                              (severity (match-string 3))
+                              (msg (match-string 4))
+                              (pos (flymake-diag-region fmqd-source lnum lcol))
+                              (beg (car pos))
+                              (end (cdr pos))
+                              (type (cond
+                                     ((string= severity "error") :error)
+                                     ((string= severity "warning") :warning)
+                                     ((string= severity "info") :note)
+                                     (t :note))))
+                         (list fmqd-source beg end type msg)))
+    (defun flymake-clj-kondo-setup ()
+      "Enable clj-kondo backend for Flymake."
+      (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
+    ;; enable Flymake with clj-kondo backend when editing Clojure
+    (with-eval-after-load 'clojure-mode
+      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
+      (add-hook 'clojure-mode-hook 'flymake-mode))))
+#+end_src
+
 ** Emacs Lisp
 
 *** Emacs Lisp debugger hydra                                         :hydra:
@@ -3866,7 +4119,7 @@ Mode-specific Hydra for Python mode.
 Python (_q_: quit)"
   ("q" nil nil)
   ;; python repl
-  ("p" run-python "run-python") 
+  ("p" run-python "run-python")
   ("s" python-shell-send-string "send-str")
   ("e" python-shell-send-statement "send-stmt")
   ("r" python-shell-send-region "send-rgn")
@@ -3929,7 +4182,7 @@ Enable the Flymake DevSkim back when editing Python buffers (see
 
 *** Microsoft Python Language Server support using eglot           :external:
 
-Use ~eglot~ as a client for the Microsoft Python Language Server. 
+Use ~eglot~ as a client for the Microsoft Python Language Server.
 
 Uses functions from the ~el-patch~ package, so make sure that package
 is loaded before this code block.
@@ -4356,6 +4609,12 @@ extremely fast.
 Besides having its own binding, also add a hydra head for calling it
 to the [[Search hydra]].
 
+It has an editing mode ~deadgrep-edit-mode~ (still not mature) that
+can can be enabled within deadgrep buffers somewhat like [[https://github.com/mhayashi1120/Emacs-wgrep][wgrep.el]].
+This allows the direct editing of the deadgrep buffer, after which
+running ~M-x deadgrep-mode~ propogates the changes back to the
+files and the buffer is switched back to ~deadgrep-mode~.
+
 #+name: ripgrep-support
 #+begin_src emacs-lisp
 ;; support for ripgrep if installed on the system
@@ -4627,6 +4886,71 @@ More private HTTP requests.
 (url-setup-privacy-info) ;; apply `url-privacy-level'
 #+end_src
 
+* Writing
+
+*** Writing hydra                                                     :hydra:
+
+Hydra for writing functions.
+
+#+name: writing-hydra
+#+begin_src emacs-lisp
+;; hydra for writing functions
+(defhydra my-hydra/writing (:color amaranth :hint nil
+                            :pre (require 'flyspell))
+  "
+Writing (_q_: quit)
+Flyspell [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog"
+  ("q" nil :exit t)
+  ("f" flyspell-mode)
+  ("F" flyspell-prog-mode))
+
+;; bindings for writing hydra
+(global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
+#+end_src
+
+*** Spell checking
+
+**** Flyspell for spell checking in Emacs
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Spelling.html][Flyspell]] is a built-in spell checker that comes in two flavors:
+- ~flyspell-mode~ checks spelling anywhere in the buffer.
+- ~flyspell-prog-mode~ checks spelling only in comments and strings.
+
+When one of the modes is active, unrecognized words are highlighted.
+To maintain performance, it only checks words that are newly typed or
+that the pointer moves across.
+
+Activating the mode also enables a few bindings that act on
+unrecognized words:
+- ~C-c $~ pops up menu of corrections for the word before the pointer.
+- ~C-.~ corrects the current word. Pressing it repeatedly will propose
+  successive correction candidates.
+- ~C-;~ corrects the previous word. Pressing it repeated will propose
+  successively correction candidates.
+- ~C-,~ jumps to the next unrecognized word.
+
+*Note*: Flyspell uses as its backend a spell checker like Aspell, so
+one needs to be installed on system. An appropriate dictionary or
+dictionaries for the spell checker should also be installed.
+
+**** Aspell command-line spell checker                             :external:
+
+[[http://aspell.net/][Aspell]] is a spell checker. There are a number of alternatives but
+they are either deprecated ([[https://www.cs.hmc.edu/~geoff/ispell.html][Ispell]]), similar ([[https://en.wikipedia.org/wiki/Hunspell][Hunspell]]), or
+language-specific ([[https://voikko.puimula.org/][Voikko]] for Finnish).
+
+This or another supported spell checker has to be installed in order
+for Flyspell to work. Additionally, a dictionary for the spell checker
+should also be intalled.
+
+If using MacPorts, installation instructions follow for Aspell and its
+English dictionary.
+
+#+begin_example
+$ sudo port install aspell
+$ sudo port install aspell-dict-en
+#+end_example
+
 * Visual
 
 ** Decorations                                                        :early:
@@ -4645,7 +4969,7 @@ Remove toolbar and menu to maximize space usage.
     (menu-bar-mode -1))
 #+end_src
 
-** Color theme                                                        :early:
+** Custom color theme                                                 :early:
 
 Use custom ~ereader~ theme in ~lisp/ereader-theme.el~.
 
@@ -4655,6 +4979,8 @@ Use custom ~ereader~ theme in ~lisp/ereader-theme.el~.
 (require 'ereader-theme)
 (load-theme 'ereader t)
 #+end_src
+
+*Note*: Emacs 27+ added a new face attribute ~:extend~ to control extension of the face from the EOL until the edge of the window. By default it is only turned on for the ~hl-line~ and ~region~ faces. When modifying the custom theme, make sure to set this attribute to ~t~ for the faces that need to be extended.
 
 ** Display face fonts                                                 :early:
 
@@ -4716,7 +5042,7 @@ An example is shown below.
 (aset standard-display-table ?0 [?])
 #+end_example
 
-** Icon fonts using all-the-icons                            :external:melpa:
+** Icon fonts using all-the-icons                  :semiearly:external:melpa:
 
 Icon fonts can be enabled using the [[https://github.com/domtronn/all-the-icons.el][all-the-icons]] package.
 These are useful for a few scenarios:
@@ -4735,7 +5061,7 @@ or manually by installing the TTF fonts from [[https://github.com/domtronn/all-t
     :config (setq all-the-icons-color-icons nil)))
 #+end_src
 
-** Fancy mode line using doom-modeline                                :melpa:
+** Fancy mode line using doom-modeline                      :semiearly:melpa:
 
 Use [[https://github.com/seagle0128/doom-modeline][doom-modeline]] when not using via a TTY.
 Requires the ~all-the-icons~ package.
@@ -4757,7 +5083,7 @@ Requires the ~all-the-icons~ package.
     (doom-modeline-mode 1)))
 #+end_src
 
-** Hiding minor modes                                                 :melpa:
+** Hiding minor modes                                       :semiearly:melpa:
 
 Hide minor modes by default using the [[https://github.com/tarsius/minions][minions]] package behind a pop-up menu, only displaying the most important ones.
 
@@ -4774,7 +5100,7 @@ Hide minor modes by default using the [[https://github.com/tarsius/minions][mini
       (minions-mode 1)))
 #+end_src
 
-** Display function or outline node at point using which-func
+** Display function or outline node at point using which-func     :semiearly:
 
 Display current function or outline node at point using [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Which-Function.html][Which Function mode]].
 The mode is customized from its defaults as follows:
@@ -5087,6 +5413,46 @@ Show matching parentheses while editing without delay.
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
+#+end_src
+
+** darkroom for workspaces without visual distractions                 :elpa:
+
+[[http://elpa.gnu.org/packages/darkroom.html][darkroom]] provides two minor modes ~darkroom-mode~ and
+~darkroom-tentative-mode~ that remove visual distractions.
+
+Turning on any of the modes removes the mode line, increases the text
+scale and increases the text margins.
+
+The difference between ~darkroom-tentative-mode~ and ~darkroom-mode~
+is that ~darkroom-tentative-mode~ only removes visual distractions if
+the Emacs frame contains only one window.
+
+#+name: darkroom
+#+begin_src emacs-lisp
+;; provides toggleable modes that remove visual distractions
+(use-package darkroom
+  :config (setq darkroom-text-increase-scale 2))
+#+end_src
+
+*** darkroom hydra                                                    :hydra:
+
+Hydra for darkroom.
+
+#+name: darkroom-hydra
+#+begin_src emacs-lisp
+;; darkroom hydra
+(defhydra my-hydra/visual/darkroom-mode (:color amaranth :hint nil
+                                         :pre (require 'darkroom))
+  "
+Visual → Darkroom (_q_: ←)
+_SPC_ : straight [% 3`darkroom-mode]  _t_ : tentative  [% 3`darkroom-tentative-mode]"
+  ("q" my-hydra/visual/body :exit t)
+  ("SPC" darkroom-mode)
+  ("t" darkroom-tentative-mode))
+
+;; add entrypoint to darkroom hydra from visual hydra
+(defhydra+ my-hydra/visual nil
+  ("d" my-hydra/visual/darkroom-mode/body "darkroom" :exit t))
 #+end_src
 
 * Other
@@ -5431,8 +5797,12 @@ The package also provides two commands ~vlf-ediff-files~ and
 
 ** Mac OS X
 
+There are two main Emacs ports for Mac OS X. Both work pretty well.
+- [[https://emacsformacosx.com/][Emacs for Mac OS X]] is a vanilla build.
+- The [[https://bitbucket.org/mituharu/emacs-mac/][Emacs Mac Port]] ([[https://github.com/railwaycat/homebrew-emacsmacport/releases][binaries]]) by Mitsuharu Yamamoto has a bunch of
+  Mac-specific features patched in.
 
-On Mac OS X, configure the following basic settings:
+On Mac OS X, basic configuration is:
 - Mac OS X does not support file notifications, so use file polling
   instead for ~auto-revert-mode~.
 - Use the Option key as Meta.
@@ -5571,6 +5941,8 @@ Static UI customizations should go here to optimize startup time.
 
 <<remove-decorations>>
 
+;; <<load-elegance-theme>>
+
 <<load-custom-theme>>
 
 <<set-display-face-fonts>>
@@ -5618,6 +5990,8 @@ The main configuration file.
 ;; Backend and frontend frameworks for building user interfaces
 
 <<icomplete>>
+
+<<flex-minibuffer-completion-style>>
 
 <<hydra>>
 
@@ -5886,6 +6260,14 @@ The main configuration file.
 
 ;; Programming / Clojure
 
+<<clojure-mode>>
+
+<<cider>>
+
+<<cider-hydra>>
+
+<<flymake-clj-kondo>>
+
 ;; Programming / Python
 
 <<python-hydra>>
@@ -5952,6 +6334,10 @@ The main configuration file.
 
 <<http-requests-privacy>>
 
+;; Writing
+
+<<writing-hydra>>
+
 ;; Visual (part 2)
 
 <<visual-hydra>>
@@ -5971,6 +6357,10 @@ The main configuration file.
 <<show-column-number>>
 
 <<show-matching-parentheses>>
+
+<<darkroom>>
+
+<<darkroom-hydra>>
 
 ;; Other
 
@@ -6042,18 +6432,32 @@ The main configuration file.
 
 ** Org-mode
 
-*** Org export backend to Tufte book and handout style PDFs
+*** [#C] Org export backend to Tufte book and handout style PDFs
 
 *TODO*: fork ~ox-tufte-latex.el~ and incorporate modifications from
-~org-tufte-latex.el~ into it, especially making sure modifications
-are buffer-local.
+~org-tufte-latex.el~ into it, especially making sure variable
+modifications are buffer-local and reversible, and changing the
+export shortcut keys so they align with the default LaTeX export ones.
 
-*** org-reveal
+*** [#B] org-reveal or org-re-reveal
 
-*TODO*: Migrate from org-re-reveal back to org-reveal since org-reveal
-development is once again active.
+[[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] and [[https://github.com/yjwen/org-reveal][org-reveal]] are comparable packages support
+exporting Org documents to [[https://revealjs.com/#/][reveal.js]] presentations.
 
-*** org-static-blog
+One rationale for going with ~org-re-reveal~ is for its support for
+audio and video, improved support for [[https://github.com/viebel/klipse][klipse]], bilbliography
+support via the supporting ~org-re-reveal-ref~ and a number of quality of life
+improvements for authoring [[https://en.wikipedia.org/wiki/Open_educational_resources][Open Educational Resources]] via the
+supporting ~oer-reveal~ package.
+
+One rationale for going with ~org-reveal~ is that it is more widely
+used, and could be earlier to have esoteric bugs fixed and
+cutting-edge features implemented.
+
+References:
+- [[http://www.zhangjiee.com/blog/2019/emacs-slide.html][Emacs 基于 org-reveal 做幻灯片]]
+
+*** [#B] org-static-blog
 
 [[https://github.com/bastibe/org-static-blog][org-static-blog]] is a static website generator.
 
@@ -6062,48 +6466,70 @@ It integrates well with Github pages or GitLab pages.
 It is possible to set up auto-rendering using CI tooling a new blog
 post is pushed, see [[https://gitlab.com/_zngguvnf/org-static-blog-example][here]].
 
+*** ox-bibtex
+
 ** Non-programming modes
 
-*** PlantUML
+*** [#B] PlantUML
 
 ** Programming
 
-*** Clojure
-
-*** Racket
+*** [#B] Racket
 
 ** Search and navigation
 
-*** wgrep
+*** [#C] wgrep
 
 Writable grep.
 
-** Writing
+~deadgrep~ has an editing mode like that although not yet mature
+already works fairly well, so this is not high priority for
+integration into the configuration.
+
+** Visual
+
+** Elegance theme
+
+[[https://github.com/rougier/elegant-emacs][Elegant Emacs theme]].
+Nice minimal theme, although will take a bit of work to set up for
+a more informative display.
+
+#+name: load-elegance-theme
+#+begin_src emacs-lisp
+;; elegant emacs theme, see https://github.com/rougier/elegant-emacs
+(require 'elegance)
+#+end_src
+
+** Web
+
+*** [#A] Elfeed
+
+[[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
+packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://github.com/sp1ff/elfeed-score][elfeed-score]].
+
+*** [#B] Slack
+
+[[https://github.com/yuya373/emacs-slack][emacs-slack]]
+
+** [#B] Writing
 
 *** Dictionary
 
-dictionary.el
+[[https://github.com/myrkr/dictionary-el][dictionary.el]]
 
 **** dictd
 
+[[https://sourceforge.net/projects/dict/][dictd]]
+
 **** GCIDE
 
-GNU Collaborative International Dictionary of English
+[[https://gcide.gnu.org.ua/][GNU Collaborative International Dictionary of English]]
 
 *** Thesaurus
 
 *** Spelling
 
 flyspell
-
-**** Aspell
-
-installing aspell and its dictionaries
-
-*** Distraction-free workspace
-
-[[http://elpa.gnu.org/packages/darkroom.html][darkroom]]
-
 
 *** TinyTex                                                        :external:
 
@@ -6118,6 +6544,11 @@ if test -d $HOME/Library/TinyTeX/bin/x86_64-darwin
     set PATH $HOME/Library/TinyTeX/bin/x86_64-darwin $PATH
 end
 #+end_example
+
+*** fountain-mode for screenwriting in Fountain markup
+
+[[https://github.com/rnkn/fountain-mode][Fountain Mode]] provides a major mode for editing [[https://fountain.io/][Fountain]] plain-text
+markup.
 
 * Local Variables                                                  :noexport:
 

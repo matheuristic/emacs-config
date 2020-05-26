@@ -25,6 +25,11 @@
 ;; Minimalistic color theme emulating eReader devices with a dash of color,
 ;; forked and modified from eink-theme.el at https://github.com/maio/eink-emacs
 
+;; Emacs 27 introduced a new face attribute ':extend' to control face extension
+;; at EOL until the edge of the window. By default, this attribute is non-nil
+;; only for the `region' and `hl-line' faces. Make sure to set this attribute
+;; to t for any face that needs to be extended beyond the EOL.
+
 ;;; Code:
 
 (deftheme ereader
@@ -94,9 +99,9 @@
    `(org-agenda-date-today ((t (:foreground ,fg :weight bold :underline t))))
    `(org-agenda-date-weekend ((t (:foreground ,fg))))
    `(org-agenda-structure ((t (:foreground ,fg :weight bold))))
-   `(org-block ((t (:foreground ,fg :background "#ffffe0"))))
-   `(org-block-begin-line ((t (:foreground "#555555" :background "#e2e1d5"))))
-   `(org-block-end-line ((t (:foreground "#555555" :background "#e2e1d5"))))
+   `(org-block ((t (:foreground ,fg :background "#ffffe0" :extend t))))
+   `(org-block-begin-line ((t (:foreground "#555555" :background "#e2e1d5" :extend t))))
+   `(org-block-end-line ((t (:foreground "#555555" :background "#e2e1d5" :extend t))))
    `(org-date ((t (:foreground ,fg :underline t))))
    `(org-document-info ((t (:foreground "midnight blue" :slant italic))))
    `(org-document-title ((t (:foreground "midnight blue" :weight bold))))

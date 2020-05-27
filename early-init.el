@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon May 25 21:10:35 2020
+;; Generated: Tue May 26 22:40:50 2020
 
 ;;; Commentary:
 
@@ -71,9 +71,6 @@
 (if (and (not (display-graphic-p))
          (fboundp 'menu-bar-mode))
     (menu-bar-mode -1))
-
-;; ;; elegant emacs theme, see https://github.com/rougier/elegant-emacs
-;; (require 'elegance)
 
 ;; use local eReader theme from ~/.emacs.d/lisp/ereader-theme.el
 (require 'ereader-theme)

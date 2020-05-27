@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon May 25 21:10:35 2020
+;; Generated: Tue May 26 22:40:50 2020
 
 ;;; Commentary:
 
@@ -96,7 +96,8 @@
 
 ;; enable flex completion on Emacs 27+
 (when (not (version< emacs-version "27"))
-    (add-to-list 'completion-styles 'flex t))
+  (with-eval-after-load 'minibuffer
+    (add-to-list 'completion-styles 'flex t)))
 
 ;; framework for defining temporary, repeatable bindings
 ;; see https://github.com/abo-abo/hydra
@@ -260,6 +261,10 @@ Bookmarks (_q_: quit)"
 ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
 ;; exclude files opened as the superuser with su or sudo
 (add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
+;; exclude files from /var/folder as these are temp files
+(add-to-list 'recentf-exclude "^/var/folders")
+
+;; binding for recentf
 (global-set-key (kbd "C-c C-M-r f") #'recentf-open-files)
 
 (save-place-mode 1)
@@ -464,7 +469,10 @@ Ibuffer → Filter (_q_: ←)"
 
 ;; adapted from https://arte.ebrahimi.org/blog/named-eshell-buffers
 (defun my-eshell-with-name ()
-  "Open new or switch to existing named eshell buffer."
+  "Prompts for the name of a eshell buffer to open or switch to.
+If the NAME given at the prompt is not an existing eshell buffer,
+a new one named *eshell*<NAME> will be opened. If no name is
+provided, the default interactive `eshell' command is run."
   (interactive)
   (let* ((my-es-bufs (seq-filter
                       (lambda (buf)
@@ -475,9 +483,12 @@ Ibuffer → Filter (_q_: ←)"
                           "Eshell Buffer : " my-es-buf-name-list)))
     (if (member my-es-buf-name (mapcar #'buffer-name (buffer-list)))
         (switch-to-buffer my-es-buf-name)
-      (progn
-        (eshell 42)
-        (rename-buffer (concat "*eshell*<" my-es-buf-name ">"))))))
+      (if (string= "" my-es-buf-name)
+          (eshell)
+        (progn
+          (eshell 42)
+          (rename-buffer (concat "*eshell*<" my-es-buf-name ">")))))))
+
 ;; binding for spawning or switching to a named Eshell buffer
 (global-set-key (kbd "C-c C-M-e s") #'my-eshell-with-name)
 
@@ -955,39 +966,44 @@ YASnippet (_q_: quit)"
           notmuch-hello-recent-searches-max 10
           notmuch-hello-thousands-separator "," ;; US convention
           notmuch-search-oldest-first nil
-          notmuch-search-result-format
-          `(("date" . "%12s ")
-            ("count" . "%-7s ")
-            ("authors" . "%-20s ")
-            ("tags" . "%s ")
-            ("subject" . "%s"))
-          notmuch-show-logo nil)
+          notmuch-search-result-format `(("date" . "%12s ")
+                                         ("count" . "%-7s ")
+                                         ("authors" . "%-20s ")
+                                         ("tags" . "%s ")
+                                         ("subject" . "%s"))
+          notmuch-show-logo nil
+          notmuch-tree-result-format `(("date" . "%12s  ")
+                                       ("authors" . "%-20s")
+                                       ((("tree" . "%s")
+                                         ("subject" . "%s"))
+                                        . " %-54s ")
+                                       ("tags" . "%s")))
     ;; toggle deletion of message from the Show view
     ;; note that in Gmail, deleted messages are marked with the "trash" label
     (defun notmuch-show--toggle-trash-tag ()
-        "Toggle trash tag for message in the Show view."
-        (interactive (notmuch-interactive-region))
-        (if (member "trash")
-            (notmuch-show-tag (list "-trash"))
-          (notmuch-show-tag (list "+trash" "-inbox"))))
+      "Toggle trash tag for message in the Show view."
+      (interactive)
+      (if (member "trash" (notmuch-show-get-tags))
+          (notmuch-show-tag (list "-trash"))
+        (notmuch-show-tag (list "+trash" "-inbox"))))
     ;; toggle deletion of thread from the Search view
     ;; note that in Gmail, deleted messages are marked with the "trash" label
     (defun notmuch-search--toggle-trash-tag (&optional beg end)
-        "Toggle trash tag for thread(s) in the Search view.
+      "Toggle trash tag for thread(s) in the Search view.
 If applying to a selected region, it adds or removes the trash
 tag based on the entry at the beginning of the region."
-        (interactive (notmuch-interactive-region))
-        (if (member "trash" (notmuch-search-get-tags beg))
-            (notmuch-search-tag (list "-trash") beg end)
-          (notmuch-search-tag (list "+trash" "-inbox") beg end)))
+      (interactive (notmuch-interactive-region))
+      (if (member "trash" (notmuch-search-get-tags beg))
+          (notmuch-search-tag (list "-trash") beg end)
+        (notmuch-search-tag (list "+trash" "-inbox") beg end)))
     ;; toggle deletion of thread from the Tree view
     ;; note that in Gmail, deleted messages are marked with the "trash" label
     (defun notmuch-tree--toggle-trash-tag ()
-        "Toggle trash tag for message in the Tree view."
-        (interactive)
-        (if (member "trash" (notmuch-tree-get-tags))
-            (notmuch-tree-tag (list "-trash"))
-          (notmuch-tree-tag (list "+trash" "-inbox"))))
+      "Toggle trash tag for message in the Tree view."
+      (interactive)
+      (if (member "trash" (notmuch-tree-get-tags))
+          (notmuch-tree-tag (list "-trash"))
+        (notmuch-tree-tag (list "+trash" "-inbox"))))
     ;; convenience function for jumping to inbox view from the Hello view
     (defun notmuch-hello--inbox-search-view ()
       "Go to the inbox Search view from the Hello view."
@@ -997,25 +1013,27 @@ tag based on the entry at the beginning of the region."
 (with-eval-after-load 'notmuch
   ;; advises the search listings field insertion function to remove
   ;; tags in the search query from the displayed tags
-  (defun notmuch-search--search-query-label-list ()
-    "Extracts out a list of labels from the current notmuch search query.
-More concretely, it looks at `notmuch-search-query-string',
-identifies the tokens that begin with the prefix 'is:' or 'tag:'
-and returns a list of those tokens without the prefix.
+  (defun notmuch--extract-search-labels (query)
+    "Extracts out a list of labels from a given notmuch search QUERY.
+More concretely, it identifies tokens that begin with the prefix
+'is:' or 'tag:' and returns them as a list without the prefix.
 Returns nil if there are no labels in the query."
-    (if (boundp 'notmuch-search-query-string)
-        (seq-filter 'identity
-                    (mapcar (lambda (x)
-                              (if (string-match "^\\(tag\\|is\\):\\([^ ]*\\)" x)
-                                  (match-string 2 x)
-                                nil))
-                            (split-string notmuch-search-query-string)))
-      nil))
+    (seq-filter
+     'identity
+     (mapcar (lambda (x)
+               (if (string-match "^\\(tag\\|is\\):\\([^ ]*\\)" x)
+                   (match-string 2 x)
+                 nil))
+             (split-string query))))
   (defun notmuch-search--remove-search-labels-from-label-list (labels)
-    "Returns difference of LABELS and those in the current notmuch query."
-    (set-difference labels
-                    (notmuch-search--search-query-label-list)
-                    :test 'string-equal))
+    "Returns difference of LABELS and those in the current notmuch query.
+Labels in the query are tokens preceded by 'is:' or 'tag:'."
+    (set-difference
+     labels
+     (if (boundp 'notmuch-search-query-string)
+         (notmuch--extract-search-labels notmuch-search-query-string)
+       nil)
+     :test 'string-equal))
   (defun notmuch-search-insert-field--filter-search-tags (orig-fun &rest args)
     "Advises the `notmuch-search-insert-field' function
 to filter search tags from the displayed tags like in Gmail.
@@ -1030,35 +1048,80 @@ original arguments passed to it."
             (insert (format format-string
                             (notmuch-tag-format-tags tags orig-tags))))
         (apply orig-fun args))))
-  (defun notmuch-search--toggle-search-tag-visibility ()
-    "Toggle visibility of search tags in the Search and Tree views."
+  (defun notmuch-tree--remove-search-labels-from-label-list (labels)
+    "Returns difference of LABELS and those in the current notmuch query.
+Labels in the query are tokens preceded by 'is:' or 'tag:'."
+    (set-difference
+     labels
+     (if (boundp 'notmuch-tree-basic-query)
+         (notmuch--extract-search-labels notmuch-tree-basic-query)
+       nil)
+     :test 'string-equal))
+  (defun notmuch-tree-format-field--filter-search-tags (orig-fun &rest args)
+    "Advises the `notmuch-tree-format-field' function
+to filter search tags from the displayed tags like in Gmail.
+ORIG-FUN should be `notmuch-tree-format-field' and ARGS are the
+original arguments passed to it."
+    (pcase-let ((`(,field ,format-string ,msg) args))
+      (cond ((listp field) (apply orig-fun args))
+            ((string-equal field "tags")
+             (let ((tags (notmuch-tree--remove-search-labels-from-label-list
+                          (plist-get msg :tags)))
+                   (orig-tags (notmuch-tree--remove-search-labels-from-label-list
+                               (plist-get msg :orig-tags)))
+                   (face (if (plist-get msg :match)
+                             'notmuch-tree-match-tag-face
+                           'notmuch-tree-no-match-tag-face)))
+               (format format-string
+                       (notmuch-tag-format-tags tags orig-tags face))))
+            (t (apply orig-fun args)))))
+  (defvar notmuch--search-tags-visible t
+    "Indicates if search tags are visible in Notmuch Tree and Search views.")
+  (defun notmuch--toggle-search-tag-visibility ()
+    "Toggle visibility of search tags in the Search and Tree views.
+Assumes "
     (interactive)
     (let ((current-hide-search-tags
            (advice-member-p #'notmuch-search-insert-field--filter-search-tags
-                            'notmuch-search-insert-field)))
-      (if current-hide-search-tags
-          (advice-remove 'notmuch-search-insert-field
-                         #'notmuch-search-insert-field--filter-search-tags)
+                            'notmuch-search-insert-field))
+          (current-hide-tree-tags
+           (advice-member-p #'notmuch-tree-format-field--filter-search-tags
+                            'notmuch-tree-format-field)))
+      ;; toggle Search view advice as needed
+      (cond
+       ((and current-hide-search-tags (not notmuch--search-tags-visible))
+        (advice-remove 'notmuch-search-insert-field
+                       #'notmuch-search-insert-field--filter-search-tags))
+       ((and (not current-hide-search-tags) notmuch--search-tags-visible)
         (advice-add 'notmuch-search-insert-field :around
-                    #'notmuch-search-insert-field--filter-search-tags))
-      (notmuch-refresh-this-buffer)
-      (message (if current-hide-search-tags
+                    #'notmuch-search-insert-field--filter-search-tags)))
+      ;; toggle Tree view advice as needed
+      (cond
+       ((and current-hide-tree-tags (not notmuch--search-tags-visible))
+        (advice-remove 'notmuch-tree-format-field
+                       #'notmuch-tree-format-field--filter-search-tags))
+       ((and (not current-hide-tree-tags) notmuch--search-tags-visible)
+        (advice-add 'notmuch-tree-format-field :around
+                    #'notmuch-tree-format-field--filter-search-tags)))
+      (setq notmuch--search-tags-visible (not notmuch--search-tags-visible))
+      (notmuch-refresh-all-buffers)
+      (message (if notmuch--search-tags-visible
                    "Search tags visible."
                  "Search tags hidden."))))
-  ;; enable filtering of search tags in the search results by default
-  (notmuch-search--toggle-search-tag-visibility)
+  ;; enable filtering of search tags in the Search and Tree views by default
+  (notmuch--toggle-search-tag-visibility)
   ;; bindings to toggle visibility of search tags in the results
   (dolist (map '(notmuch-hello-mode-map
                  notmuch-search-mode-map
                  notmuch-tree-mode-map))
     (define-key map (kbd "C-t")
-      #'notmuch-search--toggle-search-tag-visibility)))
+      #'notmuch--toggle-search-tag-visibility)))
 
 ;; provides HTML email composition using Org-mode
 ;; set `org-msg-greeting-fmt' to "\nHi *%s*,\n\n" for auto greeting
 (use-package org-msg
   :config
-  (setq org-msg-options (concat "html-postamble:nil H:5 num:nil ^:{}"
+  (setq org-msg-options (concat "html-postamble:nil H:5 num:nil ^:{} "
                                 "toc:nil author:nil email:nil \\n:t")
         org-msg-startup "hidestars indent inlineimages"
         org-msg-greeting-fmt nil
@@ -1071,7 +1134,7 @@ original arguments passed to it."
     (dolist (map '(notmuch-hello-mode-map
                    notmuch-search-mode-map
                    notmuch-show-mode-map
-                   notmuch-tree-mode-map)) 
+                   notmuch-tree-mode-map))
       (define-key map (kbd "M") #'org-msg-mode)))
   ;; -- START --
   ;; TODO: remove when code is merged into master
@@ -1099,6 +1162,8 @@ original arguments passed to it."
   (defalias 'org-msg-edit-kill-buffer-notmuch 'message-kill-buffer)
   ;; -- END --
   )
+
+(require 'ol-notmuch)
 
 ;; Frame and window management
 
@@ -1234,7 +1299,7 @@ CSV (_q_: quit)"
 ;; manager for BibTeX bibliographic databases
 ;;
 ;; this setup supports exporting Org to PDF with BibTeX bibliographies via
-;; xelatex and biber, so they will need to be installed on the system
+;; lualatex and biber, so they will need to be installed on the system
 ;;
 ;; Org documents should include the LaTeX headers for bibliographies via
 ;; "#+LATEX_HEADER:" structural markup elements, and "\printbibliography"
@@ -1603,11 +1668,11 @@ Clock       _ci_  : in           _co_  : out          _cq_  : cancel
             _cg_  : goto
 Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
             _sd_  : hide done
-"   
+"
   ("q" nil nil :exit t)
   ("ht" org-agenda-todo)
   ("hk" org-agenda-kill)
-  ("hr" org-agenda-refile) 
+  ("hr" org-agenda-refile)
   ("hA" org-agenda-archive-default)
   ("h:" org-agenda-set-tags)
   ("hp" org-agenda-priority)
@@ -1666,15 +1731,15 @@ Org (_q_: quit)"
 ;; bind Org entrypoints hydra
 (global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
 
-;; compile Org documents to PDF with xelatex and biber
-(when (executable-find "xelatex")
+;; compile Org documents to PDF with LuaTeX and Biber
+(when (executable-find "lualatex")
   (with-eval-after-load 'org
     (setq org-latex-pdf-process
-          '("xelatex -interaction nonstopmode -output-directory %o %f"
-            "xelatex -interaction nonstopmode -output-directory %o %f"))
+          '("lualatex -interaction nonstopmode -output-directory %o %f"
+            "lualatex -interaction nonstopmode -output-directory %o %f"))
     (if (executable-find "biber")
         (push "biber %b" org-latex-pdf-process))
-    (push "xelatex -interaction nonstopmode -output-directory %o %f"
+    (push "lualatex -interaction nonstopmode -output-directory %o %f"
           org-latex-pdf-process)))
 
 ;; use LuaTeX for previewing LaTeX math formula as images
@@ -1881,7 +1946,17 @@ Org-mode → Download (_q_: ←)"
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily
         ;; use ORG-DIRECTORY/journal/ as the default journal directory
-        org-journal-dir (concat org-directory "journal/")))
+        org-journal-dir (concat org-directory "journal/"))
+  :config
+  ;; workaround on `org-journal-is-journal' `string-match' error when
+  ;; exporting to HTML due to `buffer-file-name' func returning nil
+  (defun org-journal-is-journal--around-workaround (orig-fun &rest args)
+    "Drop-in replacement advice function for `org-journal-is-journal'."
+    (let ((buf-file-name (or (buffer-file-name) "")))
+      (string-match (org-journal-dir-and-file-format->pattern)
+                    buf-file-name)))
+  (advice-add 'org-journal-is-journal :around
+              #'org-journal-is-journal--around-workaround))
 
 ;; in-editor presentations using Org documents
 (use-package org-present
@@ -2162,7 +2237,8 @@ Eglot [active=%(if (boundp 'eglot--managed-mode) eglot--managed-mode nil)] (_q_:
 ;; Programming / Emacs Lisp
 
 ;; hydra for built-in Emacs Lisp debugger
-(defhydra my-hydra/debugger (:color teal :hint nil)
+(defhydra my-hydra/debugger (:color teal :hint nil
+                             :pre (require 'debug))
   "
 Emacs debugger settings (_q_: quit)
 Toggle    _1_ : debug-on-error (currently: %`debug-on-error)
@@ -2466,7 +2542,7 @@ CIDER → REPL (_q_: ←)"
 Python (_q_: quit)"
   ("q" nil nil)
   ;; python repl
-  ("p" run-python "run-python") 
+  ("p" run-python "run-python")
   ("s" python-shell-send-string "send-str")
   ("e" python-shell-send-statement "send-stmt")
   ("r" python-shell-send-region "send-rgn")
@@ -2637,6 +2713,11 @@ Help          _h_ : object    _H_ : browser   _A_ : apropos
 (with-eval-after-load 'ess-mode
   (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess-mode/body))
 
+;; Programming / Racket
+
+(use-package racket-mode
+  :defer t)
+
 ;; Project interaction
 
 ;; project interaction library
@@ -2803,6 +2884,26 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 ;; add entrypoint for dumb-jump hydra in my-hydra/search
 (defhydra+ my-hydra/search nil
   ("j" my-hydra/search/dumb-jump/body "dumb-jump"))
+
+;; load notdeft, make sure this comes after org-directory is set
+(require 'notdeft-autoloads)
+(setq notdeft-directories `(,(concat org-directory "journal/")
+                            ,(concat org-directory "scratchpad/"))
+      notdeft-extension "org"
+      notdeft-secondary-extensions '("md" "txt")
+      notdeft-directory (concat org-directory "scratchpad/")
+      notdeft-xapian-program (concat (file-name-directory
+                                      (file-truename
+                                       (locate-library "notdeft")))
+                                     "xapian/notdeft-xapian"))
+
+;; binding to access Notdeft
+(global-set-key (kbd "C-c C-M-s") #'notdeft)
+
+;; load and bind the Notdeft mode-specific hydra
+(autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
+(with-eval-after-load 'notdeft
+  (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
 
 ;; Session management
 

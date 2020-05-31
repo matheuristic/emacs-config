@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue May 26 22:40:50 2020
+;; Generated: Sun May 31 12:52:50 2020
 
 ;;; Commentary:
 
@@ -651,7 +651,8 @@ ztree-diff (_q_: quit)"
       dired-omit-files (concat dired-omit-files "\\|^\\..+$") ;; omit dot files in dired-omit-mode
       dired-recursive-copies 'always ;; always copy recursively
       dired-recursive-deletes 'always) ;; always delete recursively
-(add-hook 'dired-mode-hook 'auto-revert-mode) ;; auto-refresh on file change
+(add-hook 'dired-mode-hook #'auto-revert-mode) ;; auto-refresh on file change
+(add-hook 'dired-mode-hook #'dired-hide-details-mode) ;; hide details initially
 
 ;; hydras for Dired
 (defhydra my-hydra/dired-mode (:color pink :columns 4)
@@ -946,14 +947,38 @@ YASnippet (_q_: quit)"
   :init (setq undo-tree-visualizer-relative-timestamps nil)
   :config (global-undo-tree-mode))
 
+;; Emacs as an edit server
+
+;; server mode restart safety valve
+(defun restart-emacs-server ()
+  "Restarts an Emacs server."
+  (interactive)
+  (server-force-delete)
+  (server-mode 1)
+  (message "Restarted Emacs server."))
+
+;; bind SIGUSR1 signal to call `server-restart'
+(define-key special-event-map [sigusr1] #'restart-emacs-server)
+
+;; hydra for Emacs server interaction
+(defhydra my-hydra/emacs-client-server (:color teal :hint nil
+                                        :pre (require 'server))
+  "
+Emacs client-server interaction (_q_: quit)
+Server  [% 3`server-mode]   _s_ : toggle  _r_ : restart"
+  ("q" nil)
+  ("s" server-mode :exit nil)
+  ("r" restart-emacs-server))
+
+;; binding for Emacs server hydra
+(global-set-key (kbd "C-c C-M-e c") #'my-hydra/emacs-client-server/body)
+
 ;; Email
 
 ;; configure Notmuch email client
 (when (executable-find "notmuch")
   (use-package notmuch
     :bind (("C-c C-M-n" . notmuch)
-           :map notmuch-hello-mode-map
-           ("i" . notmuch-hello--inbox-search-view)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
            :map notmuch-search-mode-map
@@ -965,7 +990,7 @@ YASnippet (_q_: quit)"
           notmuch-archive-tags '("-inbox")
           notmuch-hello-recent-searches-max 10
           notmuch-hello-thousands-separator "," ;; US convention
-          notmuch-search-oldest-first nil
+          notmuch-search-oldest-first nil ;; sort date descending
           notmuch-search-result-format `(("date" . "%12s ")
                                          ("count" . "%-7s ")
                                          ("authors" . "%-20s ")
@@ -978,6 +1003,7 @@ YASnippet (_q_: quit)"
                                          ("subject" . "%s"))
                                         . " %-54s ")
                                        ("tags" . "%s")))
+    :config
     ;; toggle deletion of message from the Show view
     ;; note that in Gmail, deleted messages are marked with the "trash" label
     (defun notmuch-show--toggle-trash-tag ()
@@ -1003,21 +1029,19 @@ tag based on the entry at the beginning of the region."
       (interactive)
       (if (member "trash" (notmuch-tree-get-tags))
           (notmuch-tree-tag (list "-trash"))
-        (notmuch-tree-tag (list "+trash" "-inbox"))))
-    ;; convenience function for jumping to inbox view from the Hello view
-    (defun notmuch-hello--inbox-search-view ()
-      "Go to the inbox Search view from the Hello view."
-      (interactive)
-      (notmuch-hello-search "tag:inbox"))))
+        (notmuch-tree-tag (list "+trash" "-inbox"))))))
 
+;; notmuch extension to toggle search tag visibility in results by
+;; advising the search listings field insertion function to remove
+;; tags in the search query from the displayed tags except for those
+;; modified after the search
 (with-eval-after-load 'notmuch
-  ;; advises the search listings field insertion function to remove
-  ;; tags in the search query from the displayed tags
-  (defun notmuch--extract-search-labels (query)
-    "Extracts out a list of labels from a given notmuch search QUERY.
+
+  (defun notmuch--extract-search-tags (query)
+    "Extracts out a list of tags from a given notmuch search QUERY.
 More concretely, it identifies tokens that begin with the prefix
 'is:' or 'tag:' and returns them as a list without the prefix.
-Returns nil if there are no labels in the query."
+Returns nil if there are no tags in the query."
     (seq-filter
      'identity
      (mapcar (lambda (x)
@@ -1025,58 +1049,78 @@ Returns nil if there are no labels in the query."
                    (match-string 2 x)
                  nil))
              (split-string query))))
-  (defun notmuch-search--remove-search-labels-from-label-list (labels)
-    "Returns difference of LABELS and those in the current notmuch query.
-Labels in the query are tokens preceded by 'is:' or 'tag:'."
-    (set-difference
-     labels
-     (if (boundp 'notmuch-search-query-string)
-         (notmuch--extract-search-labels notmuch-search-query-string)
-       nil)
-     :test 'string-equal))
+
+  (defun string-equal-except (except-list s1 s2)
+    "Tests if strings S1 are S2 the same, but return nil if
+either is in EXCEPT-LIST."
+    (if (or (member s1 except-list)
+            (member s2 except-list))
+        nil
+      (string-equal s1 s2)))
+
+  (defun notmuch--filter-common-search-tags (tags orig-tags query)
+    "Returns '(TAGS ORIG-TAGS) with search tags in QUERY filtered out.
+Only query search tags appearing in both TAGS and ORIG-TAGS are
+removed."
+    (let ((add-tags (cl-set-difference tags orig-tags :test 'string-equal))
+          (rem-tags (cl-set-difference orig-tags tags :test 'string-equal))
+          (search-tags (notmuch--extract-search-tags query)))
+      (list (cl-set-difference tags
+                               search-tags
+                               :test (apply-partially
+                                      'string-equal-except
+                                      add-tags))
+            (cl-set-difference orig-tags
+                               search-tags
+                               :test (apply-partially
+                                      'string-equal-except
+                                      rem-tags)))))
+
   (defun notmuch-search-insert-field--filter-search-tags (orig-fun &rest args)
     "Advises the `notmuch-search-insert-field' function
 to filter search tags from the displayed tags like in Gmail.
 ORIG-FUN should be `notmuch-search-insert-field' and ARGS are the
 original arguments passed to it."
-    (pcase-let ((`(,field ,format-string ,result) args))
+    (seq-let (field format-string result) args
       (if (string-equal field "tags")
-          (let* ((tags (notmuch-search--remove-search-labels-from-label-list
-                        (plist-get result :tags)))
-                 (orig-tags (notmuch-search--remove-search-labels-from-label-list
-                             (plist-get result :orig-tags))))
-            (insert (format format-string
-                            (notmuch-tag-format-tags tags orig-tags))))
+          (let ((base-tags (plist-get result :tags))
+                (base-orig-tags (plist-get result :orig-tags))
+                (query (if (boundp 'notmuch-search-query-string)
+                           notmuch-search-query-string
+                         nil)))
+            (seq-let (tags orig-tags) (notmuch--filter-common-search-tags
+                                       base-tags base-orig-tags query)
+             (insert (format format-string
+                             (notmuch-tag-format-tags tags orig-tags)))))
         (apply orig-fun args))))
-  (defun notmuch-tree--remove-search-labels-from-label-list (labels)
-    "Returns difference of LABELS and those in the current notmuch query.
-Labels in the query are tokens preceded by 'is:' or 'tag:'."
-    (set-difference
-     labels
-     (if (boundp 'notmuch-tree-basic-query)
-         (notmuch--extract-search-labels notmuch-tree-basic-query)
-       nil)
-     :test 'string-equal))
+
   (defun notmuch-tree-format-field--filter-search-tags (orig-fun &rest args)
     "Advises the `notmuch-tree-format-field' function
 to filter search tags from the displayed tags like in Gmail.
 ORIG-FUN should be `notmuch-tree-format-field' and ARGS are the
 original arguments passed to it."
-    (pcase-let ((`(,field ,format-string ,msg) args))
+    (seq-let (field format-string msg) args
       (cond ((listp field) (apply orig-fun args))
             ((string-equal field "tags")
-             (let ((tags (notmuch-tree--remove-search-labels-from-label-list
-                          (plist-get msg :tags)))
-                   (orig-tags (notmuch-tree--remove-search-labels-from-label-list
-                               (plist-get msg :orig-tags)))
+             (let ((base-tags (plist-get msg :tags))
+                   (base-orig-tags (plist-get msg :orig-tags))
                    (face (if (plist-get msg :match)
                              'notmuch-tree-match-tag-face
-                           'notmuch-tree-no-match-tag-face)))
-               (format format-string
-                       (notmuch-tag-format-tags tags orig-tags face))))
+                           'notmuch-tree-no-match-tag-face))
+                   (query (if (boundp 'notmuch-tree-basic-query)
+                              notmuch-tree-basic-query
+                            nil)))
+               (seq-let (tags orig-tags) (notmuch--filter-common-search-tags
+                                          base-tags base-orig-tags query)
+                 (format format-string
+                         (notmuch-tag-format-tags tags orig-tags face)))))
             (t (apply orig-fun args)))))
+
+  ;; using a global variable helps in correcting scenarios where
+  ;; individual tag visibility states get misaligned
   (defvar notmuch--search-tags-visible t
     "Indicates if search tags are visible in Notmuch Tree and Search views.")
+
   (defun notmuch--toggle-search-tag-visibility ()
     "Toggle visibility of search tags in the Search and Tree views.
 Assumes "
@@ -1108,8 +1152,10 @@ Assumes "
       (message (if notmuch--search-tags-visible
                    "Search tags visible."
                  "Search tags hidden."))))
+
   ;; enable filtering of search tags in the Search and Tree views by default
   (notmuch--toggle-search-tag-visibility)
+
   ;; bindings to toggle visibility of search tags in the results
   (dolist (map '(notmuch-hello-mode-map
                  notmuch-search-mode-map
@@ -1135,33 +1181,7 @@ Assumes "
                    notmuch-search-mode-map
                    notmuch-show-mode-map
                    notmuch-tree-mode-map))
-      (define-key map (kbd "M") #'org-msg-mode)))
-  ;; -- START --
-  ;; TODO: remove when code is merged into master
-  ;; add notmuch capability, from a pull request in org-msg
-  ;; see https://github.com/jeremy-compostella/org-msg/pull/49
-  (add-to-list 'org-msg-supported-mua '(notmuch-user-agent . "notmuch"))
-  (defun org-msg-article-htmlp-notmuch ()
-    "Return t if the current notmuch reply is an HTML article."
-    ;; Seems like never the case for notmuch but we want to use org-msg
-    t)
-  (defun org-msg-post-setup--if-not-reply (&rest _args)
-    "Helper for new mail setup vs reply in notmuch"
-    (unless (org-msg-message-fetch-field "subject")
-      (org-msg-post-setup _args)))
-  (defun org-msg-mode-notmuch ()
-    "Setup the hook for notmuch mail user agent."
-    (if org-msg-mode
-        (progn
-          (advice-add 'notmuch-mua-reply :after 'org-msg-post-setup)
-          (advice-add 'notmuch-mua-mail :after 'org-msg-post-setup--if-not-reply))
-      (progn
-        (advice-remove 'notmuch-mua-reply 'org-msg-post-setup)
-        (advice-remove 'notmuch-mua-mail 'org-msg-post-setup--if-not-reply))))
-  ;; also fill in defalias so "C-c C-k" works properly
-  (defalias 'org-msg-edit-kill-buffer-notmuch 'message-kill-buffer)
-  ;; -- END --
-  )
+      (define-key map (kbd "M") #'org-msg-mode))))
 
 (require 'ol-notmuch)
 
@@ -1295,76 +1315,6 @@ CSV (_q_: quit)"
 (use-package dockerfile-mode
   :commands dockerfile-mode
   :config (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
-
-;; manager for BibTeX bibliographic databases
-;;
-;; this setup supports exporting Org to PDF with BibTeX bibliographies via
-;; lualatex and biber, so they will need to be installed on the system
-;;
-;; Org documents should include the LaTeX headers for bibliographies via
-;; "#+LATEX_HEADER:" structural markup elements, and "\printbibliography"
-;; should be added at the desired location for the bibliography (usually
-;; at the end of an article or book chapter or before the index)
-;;
-;; Org references to bibliography entries can be inserted by pressing `i' when
-;; on an entry in ebib or by calling `ebib-insert-citation' within Org mode
-;;
-;; to export references from Org to LaTeX, ebib needs to be opened with the
-;; bibliographies for the references that appear in the document
-;;
-;; use "::" in the Org link description to separate the preamble text,
-;; pre-note, and post-note elements (all optional) for export to LaTeX,
-;; i.e. "[[ebib:key][Preamble text::Pre-note::Post-note]]"
-;; will export to "Preamble text\cite[Pre-note][Post-note]{key}"
-;;
-;; example:
-;; ---
-;; ...
-;; #+LATEX_HEADER: \usepackage[backend=biber]{biblatex}
-;; #+LATEX_HEADER: \addbibresource{path/to/bibtex_file.bib}
-;; ...
-;; [[ebib:some_ebib_entry_key]]
-;; [[ebib:some_ebib_entry_key][Preamble]
-;; [[ebib:some_ebib_entry_key][Preamble::::Post-note]
-;; [[ebib:some_ebib_entry_key][Preamble::Pre-note::Post-note]]
-;; [[ebib:incognito_1970][::see::pg. 99]]
-;; ...
-;; \printbibliography
-;; ...
-;; ---
-;;
-(use-package ebib
-  :commands (ebib ebib-insert-citation)
-  :bind (("C-c C-M-b e" . ebib)
-         :map org-mode-map
-         ("C-c C-M-b i" . ebib-insert-citation))
-  :config
-  (with-eval-after-load 'org
-    (require 'org-ebib)
-    (defun my-org-ebib-export (path desc format)
-      "Export an ebib link. See `org-link-parameters' for details about PATH, DESC and FORMAT."
-      (let* ((my-desc (or desc ""))
-             (desc-parts (split-string my-desc "::"))
-             (desc-name (car desc-parts))
-             (desc-pre-note (or (nth 1 desc-parts) ""))
-             (desc-post-note (mapconcat 'identity (nthcdr 2 desc-parts) "::")))
-        (cond
-         ((eq format 'html)
-          (if desc
-              (format "(%s<cite>%s</cite>%s)"
-                      (if (string= "" desc-pre-note) "" (concat desc-pre-note " "))
-                      (if (string= "" desc-name) path desc-name)
-                      (if (string= "" desc-post-note) "" (concat ", " desc-post-note)))
-            (format "(<cite>%s</cite>)" path)))
-         ((eq format 'latex)
-          (if desc
-              (format "%s\\cite%s%s{%s}"
-                      (concat desc-name " ")
-                      (if (string= "" desc-pre-note) "" (format "[%s]" desc-pre-note))
-                      (if (string= "" desc-post-note) "" (format "[%s]" desc-post-note))
-                      path)
-            (format "\\cite{%s}" path))))))
-    (org-link-set-parameters "ebib" :export 'my-org-ebib-export)))
 
 ;; provides a major mode for editing JSON files
 (use-package json-mode
@@ -1544,29 +1494,35 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
   (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown))
 
 ;; tags (note that tags within the same group are mutually exclusive)
-(setq org-tag-alist '((:startgroup) ;; difficulty
-                      ("easy" . ?1)
-                      ("medium" . ?2)
-                      ("hard" . ?3)
+(setq org-tag-alist '((:startgroup) ;; importance
+                      ("important" . ?1)
+                      ("unimportant" . ?2)
+                      (:endgroup)
+                      (:startgroup) ;; time-sensitivity
+                      ("urgent" . ?3)
+                      ("nonurgent" . ?4)
                       (:endgroup)
                       (:startgroup) ;; location
                       ("@home" . ?H)
-                      ("@work" . ?W)
-                      ("@traveling" . ?V)
-                      ("@phone" . ?P)
-                      ("@email" . ?M)
+                      ("@office" . ?O)
+                      ("@travel" . ?V)
                       ("@errands" . ?E)
-                      (:endgroup)
-                      (:startgroup) ;; time-sensitivity
-                      ("someday" . ?s)
-                      ("urgent" . ?u)
                       (:endgroup)
                       (:startgroup) ;; export
                       ("export" . ?e)
                       ("noexport" . ?x)
                       (:endgroup)
                       ;; ungrouped
-                      ("note" . ?n)))
+                      ("note" . ?n)
+                      ;; work-related
+                      ("hiring" . ?h)
+                      ("managing" . ?m)
+                      ("vendor" . ?v)
+                      ("partner" . ?p)
+                      ("client" . ?c)
+                      ("internal" . ?\^n) ; C-n
+                      ("healthcare" . ?\^h) ;; C-h
+                      ("retail" . ?\^r))) ;; C-r
 
 ;; hydra for org-mode
 (defhydra my-hydra/org-mode (:color amaranth :columns 3)
@@ -2718,6 +2674,45 @@ Help          _h_ : object    _H_ : browser   _A_ : apropos
 (use-package racket-mode
   :defer t)
 
+;; major mode-specific hydra for racket-mode
+(defhydra my-hydra/racket-mode (:color teal :columns 4)
+  "
+Racket Mode (_q_: quit)"
+  ("q" nil nil)
+  ;; refactoring requires
+  ("Rt" racket-tidy-requires "tidy-req")
+  ("RT" racket-trim-requires "trim-req")
+  ("Rb" racket-base-requires "base-req")
+  ;; compile Racket Mode's .rkt files for faster startup
+  ("S" racket-mode-start-faster "mode-compile")
+  ;; racket modes
+  ("x" racket-xp-mode "xp-mode" :exit nil)
+  ;; repl
+  ("rr" racket-run "run")
+  ("rm" racket-run-module-at-point "run-module")
+  ("rR" racket-racket "racket")
+  ;; profiling and logging
+  ("rp" racket-profile "profile")
+  ("rl" racket-logger "logger")
+  ;; testing
+  ("t" racket-test "test")
+  ("T" racket-raco-test "raco-test")
+  ;; misc
+  ("f" racket-find-collection "find-coll")
+  ;; help
+  ("." racket-xp-visit-definition "visit-defn")
+  ("C-." racket-visit-module "visit-modl")
+  ("," racket-unvisit "unvisit")
+  ("h" racket-xp-describe "desc")
+  ("H" racket-xp-documentation "docs")
+  ;; editing
+  ("a" racket-align "align")
+  ("A" racket-unalign "unalign"))
+
+;; bindings for racket-mode hydra
+(with-eval-after-load 'racket-mode
+  (define-key racket-mode-map (kbd "C-c C-M-m") #'my-hydra/racket-mode/body))
+
 ;; Project interaction
 
 ;; project interaction library
@@ -2824,6 +2819,82 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 (use-package git-timemachine
   :commands git-timemachine
   :bind ("C-c C-M-g t" . git-timemachine))
+
+;; Reference management
+
+;; manager for BibTeX bibliographic databases
+(use-package ebib
+  :bind (("C-c C-M-b e" . ebib)))
+
+;; configure Ebib Org-mode support
+;;
+;; this setup supports exporting Org to PDF with BibTeX bibliographies via
+;; lualatex and biber, so they will need to be installed on the system
+;;
+;; org-mode documents should include the LaTeX headers for
+;; bibliographies via "#+LATEX_HEADER:" structural markup elements,
+;; and "\printbibliography" should be added at the desired location
+;; for the bibliography (usually at the end of an article or book
+;; chapter or before the index)
+;;
+;; references to bibliography entries in org-mode can be inserted by
+;; pressing `i' when on an entry in ebib or by calling
+;; `ebib-insert-citation'
+;;
+;; to export references from Org to LaTeX, ebib needs to be opened with the
+;; bibliographies for the references that appear in the document
+;;
+;; use "::" in the Org link description to separate the preamble text,
+;; pre-note, and post-note elements (all optional) for export to LaTeX,
+;; i.e. "[[ebib:key][Preamble text::Pre-note::Post-note]]"
+;; will export to "Preamble text\cite[Pre-note][Post-note]{key}"
+;;
+;; example:
+;; ---
+;; ...
+;; #+LATEX_HEADER: \usepackage[backend=biber]{biblatex}
+;; #+LATEX_HEADER: \addbibresource{path/to/bibtex_file.bib}
+;; ...
+;; [[ebib:some_ebib_entry_key]]
+;; [[ebib:some_ebib_entry_key][Preamble]
+;; [[ebib:some_ebib_entry_key][Preamble::::Post-note]
+;; [[ebib:some_ebib_entry_key][Preamble::Pre-note::Post-note]]
+;; [[ebib:incognito_1970][::see::pg. 99]]
+;; ...
+;; \printbibliography
+;; ...
+;; ---
+;;
+(with-eval-after-load 'org
+  ;; ebib configuration for org-mode
+  (with-eval-after-load 'ebib
+    (require 'org-ebib)
+    (defun my-org-ebib-export (path desc format)
+      "Export an ebib link. See `org-link-parameters' for details about PATH, DESC and FORMAT."
+      (let* ((my-desc (or desc ""))
+             (desc-parts (split-string my-desc "::"))
+             (desc-name (car desc-parts))
+             (desc-pre-note (or (nth 1 desc-parts) ""))
+             (desc-post-note (mapconcat 'identity (nthcdr 2 desc-parts) "::")))
+        (cond
+         ((eq format 'html)
+          (if desc
+              (format "(%s<cite>%s</cite>%s)"
+                      (if (string= "" desc-pre-note) "" (concat desc-pre-note " "))
+                      (if (string= "" desc-name) path desc-name)
+                      (if (string= "" desc-post-note) "" (concat ", " desc-post-note)))
+            (format "(<cite>%s</cite>)" path)))
+         ((eq format 'latex)
+          (if desc
+              (format "%s\\cite%s%s{%s}"
+                      (concat desc-name " ")
+                      (if (string= "" desc-pre-note) "" (format "[%s]" desc-pre-note))
+                      (if (string= "" desc-post-note) "" (format "[%s]" desc-post-note))
+                      path)
+            (format "\\cite{%s}" path))))))
+    (org-link-set-parameters "ebib" :export 'my-org-ebib-export))
+  ;; binding for `ebib-insert-citation'
+  (define-key org-mode-map (kbd "C-c C-M-b i") #'ebib-insert-citation))
 
 ;; Search and navigation
 
@@ -3032,13 +3103,62 @@ REST client (_q_: quit)"
                             :pre (require 'flyspell))
   "
 Writing (_q_: quit)
-Flyspell [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog"
+Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
+"
   ("q" nil :exit t)
   ("f" flyspell-mode)
   ("F" flyspell-prog-mode))
 
 ;; bindings for writing hydra
 (global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
+
+;; provides word lookups from a dictionary server
+;; `dictionary-server' can be set to "localhost" to use a local
+;; dictionary server like dictd or GNU Dico that implements RFC 2229
+(use-package dictionary
+  :init (setq dictionary-server "dict.org"
+              dictionary-default-dictionary "*"))
+
+;; add dictionary entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
+    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
+")
+    ("s" dictionary-search :exit t)
+    ("m" dictionary-match-words :exit t)))
+
+;; thesaurus functions using Synosaurus
+(use-package synosaurus
+  :init (setq synosaurus-choose-method 'default
+              synosaurus-backend 'synosaurus-backend-wordnet))
+
+;; add synosaurus entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
+    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
+")
+    ("S" synosaurus-mode :exit nil)
+    ("L" synosaurus-lookup :exit t)
+    ("R" synosaurus-choose-and-replace :exit t)
+    ("I" synosaurus-choose-and-insert :exit t)))
+
+;; grammar checking functions using LanguageTool
+(use-package langtool
+  :init (setq langtool-default-language "en-US"
+              langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
+
+;; add langtool functions to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
+    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
+")
+    ("w" langtool-check nil :exit nil)
+    ("W" langtool-check-done nil :exit nil)
+    ("l" langtool-switch-default-language nil :exit nil)
+    ("c" langtool-correct-buffer nil :exit nil)))
 
 ;; Visual (part 2)
 
@@ -3251,6 +3371,8 @@ _SPC_ : straight [% 3`darkroom-mode]  _t_ : tentative  [% 3`darkroom-tentative-m
   "
 CRUX (_q_: quit)"
   ("q" nil nil)
+  ("M-o" crux-smart-open-line "newline" :exit nil)
+  ("C-M-o" crux-smart-open-line-above "newline-above" :exit nil)
   ("J" crux-top-join-line "join-line" :exit nil)
   ("C-y" crux-duplicate-current-line-or-region "duplicate")
   ("C-;" crux-duplicate-and-comment-current-line-or-region "duplicate+comment")
@@ -3371,7 +3493,7 @@ Help (_q_: quit)"
   (setq ls-lisp-use-string-collate nil)
   ;; customise the appearance of the listing
   (setq ls-lisp-verbosity '(links uid))
-  (setq ls-lisp-format-time-list '("%b %e %H:%M" "%b %e %Y"))
+  ;; (setq ls-lisp-format-time-list '("%b %e %H:%M" "%b %e %Y"))
   (setq ls-lisp-use-localized-time-format t))
 
 ;; add my-hydra/buffer head to open Finder at current buffer directory in OS X
@@ -3403,6 +3525,22 @@ or the current buffer file or directory if not (Mac OS X)."
          (executable-find "dvipng"))
     (setq org-format-latex-options (plist-put org-format-latex-options
                                               :scale 1.5)))
+
+;; workaround for problematic entries in `load-history' which affects
+;; Emacs 27+ on some systems, probably to do with the portable dumper
+(defun load-history-filename-element (file-regexp)
+  "Get the first elt of `load-history' whose car matches FILE-REGEXP.
+Return nil if there isn't one."
+  (let* ((loads load-history)
+	 (load-elt (and loads (car loads))))
+    (save-match-data
+      (while (and loads
+		  (or (null (car load-elt))
+		      (not (and (stringp (car load-elt)) ;; skip non-strings
+                                (string-match file-regexp (car load-elt))))))
+	(setq loads (cdr loads)
+	      load-elt (and loads (car loads)))))
+    load-elt))
 
 (provide 'init)
 ;;; init.el ends here

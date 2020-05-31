@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun May 31 12:52:50 2020
+;; Generated: Sun May 31 15:37:50 2020
 
 ;;; Commentary:
 
@@ -3177,7 +3177,7 @@ _H_ : hl-changes   [% 5`highlight-changes-mode]   _h_ : hl-line      [% 5`hl-lin
 _p_ : show-paren   [% 5`show-paren-mode]   _s_ : scroll-bar   [% 5(frame-parameter nil 'vertical-scroll-bars)]   _S_ : hscroll-bar  [% 5(frame-parameter nil 'horizontal-scroll-bars)]
 _T_ : transient-mk [% 5`transient-mark-mode]   _t_ : truncate-lns [% 5`truncate-lines]   _v_ : visual-line  [% 5`visual-line-mode]
 _nr_ / _np_ / _nd_ / _nw_ : narrow to-region / to-page / to-defun / widen      [% 5(buffer-narrowed-p)]
-_+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 5`text-scale-mode-amount]
+_+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 5(if text-scale-mode text-scale-mode-amount nil)]
 "
   ("q" nil :exit t)
   ("b" blink-cursor-mode)
@@ -3203,9 +3203,22 @@ _+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 
 ;; bind visual hydra
 (global-set-key (kbd "C-c C-M-v i") 'my-hydra/visual/body)
 
+;; provides toggleable modes that remove visual distractions
+(use-package darkroom
+  :config (setq darkroom-text-increase-scale 2))
+
+;; extend visual hydra to support darkroom-mode and darkroom-tentative-mode
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'darkroom)))
+    ,(concat my-hydra/visual/docstring
+             "_dm_ : darkroom-mode            [% 3`darkroom-mode]   _dt_ : darkroom-tentative-mode  [% 3`darkroom-tentative-mode]
+")
+    ("dm" darkroom-mode :exit nil)
+    ("dt" darkroom-tentative-mode :exit nil)))
+
 ;; color code by depth
 (use-package prism
-  :commands (prism-mode prism-whitespace-mode)
   :config
   (prism-set-colors :num 16
                     :desaturations (cl-loop for i from 0 below 16
@@ -3225,38 +3238,29 @@ _+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 
                     (lambda (color)
                       (prism-blend color "white" 0.5))))
 
-;; prism-mode and prism-whitespace-mode hydra
-(defhydra my-hydra/visual/prism-mode (:color amaranth :hint nil
-                                      :pre (require 'prism))
-  "
-Visual → Prism (_q_: ←)
-_p_ : lisp-c-like [% 3`prism-mode]  _SPC_ : whitespace  [% 3`prism-whitespace-mode]"
-  ("q" my-hydra/visual/body :exit t)
-  ("p" prism-mode)
-  ("SPC" prism-whitespace-mode))
-
-;; add entrypoint to prism hydra from visual hydra
-(defhydra+ my-hydra/visual nil
-  ("P" my-hydra/visual/prism-mode/body "prism" :exit t))
+;; extend visual hydra to support prism-mode and prism-whitespace-mode
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'prism)))
+    ,(concat my-hydra/visual/docstring
+             "_Pm_ : prism-mode               [% 3`prism-mode]   _Pw_ : prism-whitespace-mode    [% 3`prism-whitespace-mode]
+")
+    ("Pm" prism-mode :exit nil)
+    ("Pw" prism-whitespace-mode :exit nil)))
 
 ;; provides semantic coloring where same keywords are also colored the same
 (use-package color-identifiers-mode
-  :defer t
   :config (setq color-identifiers-coloring-method 'sequential
                 color-identifiers:num-colors 10))
 
-;; color-identifiers-mode hydra
-(defhydra my-hydra/visual/color-identifiers-mode (:color amaranth :hint nil
-                                                  :pre (require 'color-identifiers-mode))
-  "
-Visual → Color Identifiers (_q_: ←)
-_SPC_ : color-identifiers [% 3`color-identifiers-mode]"
-  ("q" my-hydra/visual/body :exit t)
-  ("SPC" color-identifiers-mode))
-
-;; add entrypoint to color-identifiers-mode hydra from visual hydra
-(defhydra+ my-hydra/visual nil
-  ("c" my-hydra/visual/color-identifiers-mode/body "color-identifiers" :exit t))
+;; extend visual hydra to support color-identifiers-mode
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'color-identifiers-mode)))
+    ,(concat my-hydra/visual/docstring
+             "_C_  : color-identifiers-mode   [% 3`color-identifiers-mode]
+")
+    ("C" color-identifiers-mode :exit nil)))
 
 ;; hydra for toggling outline-minor-mode and running its commands
 (defhydra my-hydra/visual/outline (:color amaranth :hint nil
@@ -3307,24 +3311,6 @@ Whitespace (_q_: quit)"
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
-
-;; provides toggleable modes that remove visual distractions
-(use-package darkroom
-  :config (setq darkroom-text-increase-scale 2))
-
-;; darkroom hydra
-(defhydra my-hydra/visual/darkroom-mode (:color amaranth :hint nil
-                                         :pre (require 'darkroom))
-  "
-Visual → Darkroom (_q_: ←)
-_SPC_ : straight [% 3`darkroom-mode]  _t_ : tentative  [% 3`darkroom-tentative-mode]"
-  ("q" my-hydra/visual/body :exit t)
-  ("SPC" darkroom-mode)
-  ("t" darkroom-tentative-mode))
-
-;; add entrypoint to darkroom hydra from visual hydra
-(defhydra+ my-hydra/visual nil
-  ("d" my-hydra/visual/darkroom-mode/body "darkroom" :exit t))
 
 ;; Other
 

@@ -5679,7 +5679,7 @@ _H_ : hl-changes   [% 5`highlight-changes-mode]   _h_ : hl-line      [% 5`hl-lin
 _p_ : show-paren   [% 5`show-paren-mode]   _s_ : scroll-bar   [% 5(frame-parameter nil 'vertical-scroll-bars)]   _S_ : hscroll-bar  [% 5(frame-parameter nil 'horizontal-scroll-bars)]
 _T_ : transient-mk [% 5`transient-mark-mode]   _t_ : truncate-lns [% 5`truncate-lines]   _v_ : visual-line  [% 5`visual-line-mode]
 _nr_ / _np_ / _nd_ / _nw_ : narrow to-region / to-page / to-defun / widen      [% 5(buffer-narrowed-p)]
-_+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 5`text-scale-mode-amount]
+_+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 5(if text-scale-mode text-scale-mode-amount nil)]
 "
   ("q" nil :exit t)
   ("b" blink-cursor-mode)
@@ -5706,6 +5706,43 @@ _+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 
 (global-set-key (kbd "C-c C-M-v i") 'my-hydra/visual/body)
 #+end_src
 
+** darkroom for workspaces without visual distractions                 :elpa:
+
+[[http://elpa.gnu.org/packages/darkroom.html][darkroom]] provides two minor modes ~darkroom-mode~ and
+~darkroom-tentative-mode~ that remove visual distractions.
+
+Turning on any of the modes removes the mode line, increases the text
+scale and increases the text margins.
+
+The difference between ~darkroom-tentative-mode~ and ~darkroom-mode~
+is that ~darkroom-tentative-mode~ only removes visual distractions if
+the Emacs frame contains only one window.
+
+#+name: darkroom
+#+begin_src emacs-lisp
+;; provides toggleable modes that remove visual distractions
+(use-package darkroom
+  :config (setq darkroom-text-increase-scale 2))
+#+end_src
+
+*** darkroom hydra                                                    :hydra:
+
+Extend visual hydra to support ~darkroom-mode~ and
+~darkroom-tentative-mode~.
+
+#+name: darkroom-hydra
+#+begin_src emacs-lisp
+;; extend visual hydra to support darkroom-mode and darkroom-tentative-mode
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'darkroom)))
+    ,(concat my-hydra/visual/docstring
+             "_dm_ : darkroom-mode            [% 3`darkroom-mode]   _dt_ : darkroom-tentative-mode  [% 3`darkroom-tentative-mode]
+")
+    ("dm" darkroom-mode :exit nil)
+    ("dt" darkroom-tentative-mode :exit nil)))
+#+end_src
+
 ** Color coding by depth using prism                                  :melpa:
 
 [[https://github.com/alphapapa/prism.el][prism.el]] disperses Lisp and other forms in different colors by depth.
@@ -5717,7 +5754,6 @@ There are two modes:
 #+begin_src emacs-lisp
 ;; color code by depth
 (use-package prism
-  :commands (prism-mode prism-whitespace-mode)
   :config
   (prism-set-colors :num 16
                     :desaturations (cl-loop for i from 0 below 16
@@ -5740,24 +5776,19 @@ There are two modes:
 
 *** Prism hydra                                                       :hydra:
 
-Hydra for toggling ~prism-mode~ and ~prism-whitespace-mode~.
-Entry-point into this hydra is via the [[Visual hydra][visual hydra]].
+Extend visual hydra to support ~prism-mode~ and ~prism-whitespace-mode~.
 
 #+name: prism-hydra
 #+begin_src emacs-lisp
-;; prism-mode and prism-whitespace-mode hydra
-(defhydra my-hydra/visual/prism-mode (:color amaranth :hint nil
-                                      :pre (require 'prism))
-  "
-Visual → Prism (_q_: ←)
-_p_ : lisp-c-like [% 3`prism-mode]  _SPC_ : whitespace  [% 3`prism-whitespace-mode]"
-  ("q" my-hydra/visual/body :exit t)
-  ("p" prism-mode)
-  ("SPC" prism-whitespace-mode))
-
-;; add entrypoint to prism hydra from visual hydra
-(defhydra+ my-hydra/visual nil
-  ("P" my-hydra/visual/prism-mode/body "prism" :exit t))
+;; extend visual hydra to support prism-mode and prism-whitespace-mode
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'prism)))
+    ,(concat my-hydra/visual/docstring
+             "_Pm_ : prism-mode               [% 3`prism-mode]   _Pw_ : prism-whitespace-mode    [% 3`prism-whitespace-mode]
+")
+    ("Pm" prism-mode :exit nil)
+    ("Pw" prism-whitespace-mode :exit nil)))
 #+end_src
 
 ** Semantic highlighting using color-identifiers-mode                 :melpa:
@@ -5777,30 +5808,24 @@ colors could end up very similar).
 #+begin_src emacs-lisp
 ;; provides semantic coloring where same keywords are also colored the same
 (use-package color-identifiers-mode
-  :defer t
   :config (setq color-identifiers-coloring-method 'sequential
                 color-identifiers:num-colors 10))
 #+end_src
 
 *** color-identifiers-mode hydra                                      :hydra:
 
-Hydra for toggling ~color-identifiers-mode~.
-Entry-point into this hydra is via the [[Visual hydra][visual hydra]].
+Extend visual hydra to allow toggling of ~color-identifiers-mode~.
 
 #+name: color-identifiers-mode-hydra
 #+begin_src emacs-lisp
-;; color-identifiers-mode hydra
-(defhydra my-hydra/visual/color-identifiers-mode (:color amaranth :hint nil
-                                                  :pre (require 'color-identifiers-mode))
-  "
-Visual → Color Identifiers (_q_: ←)
-_SPC_ : color-identifiers [% 3`color-identifiers-mode]"
-  ("q" my-hydra/visual/body :exit t)
-  ("SPC" color-identifiers-mode))
-
-;; add entrypoint to color-identifiers-mode hydra from visual hydra
-(defhydra+ my-hydra/visual nil
-  ("c" my-hydra/visual/color-identifiers-mode/body "color-identifiers" :exit t))
+;; extend visual hydra to support color-identifiers-mode
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'color-identifiers-mode)))
+    ,(concat my-hydra/visual/docstring
+             "_C_  : color-identifiers-mode   [% 3`color-identifiers-mode]
+")
+    ("C" color-identifiers-mode :exit nil)))
 #+end_src
 
 ** Outline minor mode hydra                                           :hydra:
@@ -5890,46 +5915,6 @@ Show matching parentheses while editing without delay.
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
-#+end_src
-
-** darkroom for workspaces without visual distractions                 :elpa:
-
-[[http://elpa.gnu.org/packages/darkroom.html][darkroom]] provides two minor modes ~darkroom-mode~ and
-~darkroom-tentative-mode~ that remove visual distractions.
-
-Turning on any of the modes removes the mode line, increases the text
-scale and increases the text margins.
-
-The difference between ~darkroom-tentative-mode~ and ~darkroom-mode~
-is that ~darkroom-tentative-mode~ only removes visual distractions if
-the Emacs frame contains only one window.
-
-#+name: darkroom
-#+begin_src emacs-lisp
-;; provides toggleable modes that remove visual distractions
-(use-package darkroom
-  :config (setq darkroom-text-increase-scale 2))
-#+end_src
-
-*** darkroom hydra                                                    :hydra:
-
-Hydra for darkroom.
-
-#+name: darkroom-hydra
-#+begin_src emacs-lisp
-;; darkroom hydra
-(defhydra my-hydra/visual/darkroom-mode (:color amaranth :hint nil
-                                         :pre (require 'darkroom))
-  "
-Visual → Darkroom (_q_: ←)
-_SPC_ : straight [% 3`darkroom-mode]  _t_ : tentative  [% 3`darkroom-tentative-mode]"
-  ("q" my-hydra/visual/body :exit t)
-  ("SPC" darkroom-mode)
-  ("t" darkroom-tentative-mode))
-
-;; add entrypoint to darkroom hydra from visual hydra
-(defhydra+ my-hydra/visual nil
-  ("d" my-hydra/visual/darkroom-mode/body "darkroom" :exit t))
 #+end_src
 
 * Other
@@ -6890,6 +6875,10 @@ The main configuration file.
 
 <<visual-hydra>>
 
+<<darkroom>>
+
+<<darkroom-hydra>>
+
 <<prism>>
 
 <<prism-hydra>>
@@ -6905,10 +6894,6 @@ The main configuration file.
 <<show-column-number>>
 
 <<show-matching-parentheses>>
-
-<<darkroom>>
-
-<<darkroom-hydra>>
 
 ;; Other
 

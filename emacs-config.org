@@ -73,12 +73,15 @@ $ pkill -SIGUSR2 -i emacs ; emacsclient -e '(setq debug-on-quit nil)'
 For more information, see the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Misc-Events.html#Misc-Events][official]] [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Error-Debugging.html#Error-Debugging][documentation]] (specifically on
 the ~debug-on-event~ user option).
 
-** Literate Emacs configurations
+** Random useful Emacs links
+
+Literate configs, package lists, and so on and so forth.
 
 - Nice [[https://leanpub.com/lit-config][intro]] to literate configuration files.
 - [[https://github.com/caisah/emacs.dz][Awesome emacs config files]].
 - [[https://so.nwalsh.com/2020/02/29/dot-emacs][My .emacs | SO… A WEBLOG BY NORM]] and [[https://so.nwalsh.com/2020/02/29-dotfiles][Dotfiles | SO… A WEBLOG BY NORM]].
 - [[https://uwabami.github.io/cc-env/Emacs.html][Emacs の設定 | Youhei SASAKI’s official site]].
+- [[https://github.com/emacs-tw/awesome-emacs][GitHub - emacs-tw/awesome-emacs]]
 
 ** Useful Emacs Lisp references
 
@@ -98,7 +101,8 @@ the ~debug-on-event~ user option).
 - ~external~: Configuration code in the section uses external tools
   that are not typically packaged with the default userland on Linux
   and BSD systems (including Mac OS X), and which need to be installed
-  at the system-level outside of Emacs packaging.
+  at the system-level outside of the Emacs ~package.el~ mechanisms.
+  Also includes Elisp scripts that need to be downloaded manually.
 - ~hydra~: Configuration code that enables, creates or modifies
   [[Hydra][hydras]].
 - ~melpa~: Uses a package from MELPA.
@@ -568,11 +572,22 @@ opened files.
       recentf-max-saved-items 50
       recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
 (recentf-mode 1)
+;; exclude source code files in installed packages from ELPA-compatible repos
+(add-to-list 'recentf-exclude
+             (concat "^" (expand-file-name user-emacs-directory) "elpa/"))
 ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
 ;; exclude files opened as the superuser with su or sudo
 (add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
 ;; exclude files from /var/folder as these are temp files
 (add-to-list 'recentf-exclude "^/var/folders")
+;; exclude files in `org-agenda-files' and `notdeft-directories'
+;; these files are quickly accessible from their respective tooling
+(add-hook 'after-init-hook
+          (lambda ()
+            (dolist (file-list (list org-agenda-files
+                                     notdeft-directories))
+              (dolist (exclude-file file-list)
+                (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
 ;; binding for recentf
 (global-set-key (kbd "C-c C-M-r f") #'recentf-open-files)
@@ -992,7 +1007,7 @@ Kill term buffers after session end on a "q" keypress.
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 #+end_src
 
-*** Term hydra
+*** Term hydra                                                        :hydra:
 
 Major mode-specific hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Terminal-emulator.html][term-mode]] for toggling between char mode
 (mostly similar to a regular terminal emulator) and line mode (which
@@ -1048,7 +1063,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
 (global-set-key (kbd "C-c C-M-d f") #'my-hydra/ediff/body)
 #+end_src
 
-** Smerge hydra
+** Smerge hydra                                                       :hydra:
 
 Major mode-specific hydra for [[https://github.com/emacs-mirror/emacs/blob/master/lisp/vc/smerge-mode.el][Smerge]], a lightweight alternative to Ediff.
 It is the default merge tool called by [[Magit][Magit]] to resolve merge conflicts.
@@ -2009,6 +2024,65 @@ change both local and remote ignored tags at the same time).
 A full push or pull is also a heavy handed fix when tags end up not
 synchronizing in general.
 
+*** Regular background mail syncs using launchd in Mac OS X        :external:
+
+On most Linux and Unix machines, it is easiest to have ~notmuch new~
+run in the backend according to a schedule using ~cron~ to sync mail
+automatically.
+
+On Mac OS X, it is recommended to use [[https://support.apple.com/guide/terminal/script-management-with-launchd-apdc6c1077b-5d5d-4d35-9c19-60f2397b2369/mac][launchd]] ([[https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html][more info]]) instead.
+Create the file =~/Library/LaunchAgents/local.notmuch.new.plist= with
+the following contents that specifies the ~notmuch new~ launchd job.
+This provided configuration makes the next assumptions.
+- The ~notmuch~ binary was installed to =/opt/local/bin/notmuch= which
+  is the default location using MacPorts. Modify this as needed.
+- ~notmuch new~ is to be run every 600 seconds. If changing this run
+  interval, modify both ~StartInterval~ and ~ThrottleInterval~ to the
+  desired time interval in seconds; note that due to a [[https://gist.github.com/dabrahams/4092951][some]] [[https://alvinalexander.com/mac-os-x/mac-os-x-startinterval-broken-launchctl-throttleinterval/][bugs]], it is
+  best to /make sure both values are set/.
+
+#+begin_example
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Name of job -->
+  <key>Label</key>
+  <string>local.notmuch.new</string>
+  <!-- Command to run -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>/opt/local/bin/notmuch</string>
+    <string>new</string>
+  </array>
+  <!-- Run interval in seconds -->
+  <key>StartInterval</key>
+  <integer>600</integer>
+  <!-- Throttle, https://alvinalexander.com/mac-os-x/mac-os-x-startinterval-broken-launchctl-throttleinterval/ -->
+  <key>ThrottleInterval</key>
+  <integer>600</integer>
+</dict>
+</plist>
+#+end_example
+
+To load the mail sync job, run the following.
+
+#+begin_example
+$ launchctl load ~/Library/LaunchAgents/local.notmuch.new.plist
+#+end_example
+
+To see if the mail sync job is currently loaded, run the following.
+
+#+begin_example
+$ launchctl list | grep local.notmuch.new
+#+end_example
+
+To unload the mail sync job, do the following.
+
+#+begin_example
+$ launchctl unload ~/Library/LaunchAgents/local.notmuch.new.plist
+#+end_example
+
 ** Reading email using notmuch.el                            :external:melpa:
 
 Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
@@ -2078,6 +2152,96 @@ tag based on the entry at the beginning of the region."
       (if (member "trash" (notmuch-tree-get-tags))
           (notmuch-tree-tag (list "-trash"))
         (notmuch-tree-tag (list "+trash" "-inbox"))))))
+#+end_src
+
+** Shortening names in Search view for threads with multiple authors
+
+Advise ~:around~ ~notmuch-search-insert-authors~ to show the first and
+last author of a thread, and abbreviate and truncate each of their
+names in the ~authors~ param to better fit the author column width.
+
+Regexp name transforms adapted from [[https://scripter.co/narrowing-the-author-column-in-magit/][here]].
+
+#+name: notmuch-shorten-multiple-author-names
+#+begin_src emacs-lisp
+;; advise `notmuch-search-insert-authors' so that when a thread has
+;; multiple authors, only the first and last message authors are
+;; displayed and their names are abbreviated to fit the column width
+(with-eval-after-load 'notmuch
+  (defvar notmuch--abbreviate-person-name-width
+    (let* ((format-string (string-trim
+                           (cdr
+                            (assoc "authors"
+                                   notmuch-search-result-format))))
+           (authors-width (string-width (format format-string ""))))
+      (- (/ authors-width 2) 1))
+    "Width of each author in Notmuch Search view when more than one.
+Should be N/2-1, N is the width of the Search view author column.")
+
+  (defun notmuch--abbreviate-person-name (name &optional maxlen)
+    "Abbreviates a person NAME.
+The result will have `notmuch--abbreviate-person-name-width'
+characters or less. This is done by using the initial of the
+person's first name and shortening the person's last name as
+necessary; also handles emails."
+    (let* ((maxlen (or maxlen notmuch--abbreviate-person-name-width))
+           (split-idx (string-match-p "\[,@\]" name))
+           (split-char (if split-idx
+                           (substring name split-idx (+ split-idx 1))
+                         "")))
+      (cond ((string-equal split-char "@") ;; user.name@server.com -> u name
+             (let ((name-part (substring name 0 split-idx)))
+               (notmuch--abbreviate-person-name name-part)))
+            (t
+             ;; is-comma-split t? lastname, firstname -> f lastname
+             ;; is-comma-split f? firstname lastname -> f lastname
+             ;;                   OR firstname -> firstname
+             (let* ((is-comma-split (string-equal split-char ","))
+                    (regexp (if is-comma-split
+                                "\\(.*?\\), *\\(.\\).*"
+                              "\\(.\\).*?[. ]+\\(.*\\)"))
+                    (replacement (if is-comma-split
+                                     "\\2 \\1"
+                                   "\\1 \\2"))
+                    (abbrev-name (replace-regexp-in-string regexp
+                                                           replacement
+                                                           name))
+                    (further-truncate (> (length abbrev-name)
+                                         maxlen)))
+               (if further-truncate
+                   (concat
+                    (substring abbrev-name
+                               0
+                               (- maxlen 2))
+                    "..")
+                 abbrev-name))))))
+
+  (defun notmuch-search-insert-authors--around-abbreviate (orig-fun &rest args)
+    "Advice for `notmuch-search-insert-authors' to abbreviate names.
+Extracts the authors field from ARGS, abbreviates its elements
+using `notmuch--abbreviate-person-name' and calls ORIG-FUN
+replacing the original authors with their abbreviated names.
+Assumes ', ' is used to separate authors and names are not of the
+form 'Lastname, Firstname'."
+    (seq-let (format-string authors) args
+      (save-match-data
+        (let ((author-list (mapcar (lambda (s) (replace-regexp-in-string
+                                                "'" "" s)) ;; no single quotes
+                                   (split-string authors ", "))))
+          (if (> (length author-list) 1)
+              (let* ((oldest-newest-authors (cons (car author-list)
+                                                  (last author-list)))
+                     (abbrev-authors
+                      (mapconcat 'identity
+                                 (mapcar 'notmuch--abbreviate-person-name
+                                         oldest-newest-authors)
+                                 ", ")))
+                (apply orig-fun (list format-string abbrev-authors)))
+            (apply orig-fun args))))))
+
+  ;; abbreviate names when there are multiple authors
+  (advice-add 'notmuch-search-insert-authors :around
+              'notmuch-search-insert-authors--around-abbreviate))
 #+end_src
 
 ** Toggling visibility of search tags in the notmuch search results list
@@ -2278,7 +2442,7 @@ In most instances the filepath for the notmuch init file is the
 ;;; notmuch-config.el ends here
 #+end_example
 
-** OrgMsg for composing HTML emails
+** OrgMsg for composing HTML emails                                   :melpa:
 
 [[https://github.com/jeremy-compostella/org-msg][OrgMsg]] provides HTML email composition capability.
 Calling ~org-msg-mode~ toggles whether to use HTML composition for emails
@@ -2307,7 +2471,40 @@ by (by default, it is off).
       (define-key map (kbd "M") #'org-msg-mode))))
 #+end_src
 
-** Link to notmuch messages in Org-mode documents
+*** OrgMsg hydra                                                      :hydra:
+
+Major mode-specific hydra for ~org-msg-edit-mode~ for jumping to
+various parts of the email and performing email-related actions.
+
+*Note*: ~org-msg-edit-mode~ is in effect when editing email messages
+with ~org-msg-mode~ enabled.
+
+#+name: org-msg-edit-mode-hydra
+#+begin_src emacs-lisp
+;; major mode-specific hydra for OrgMsg edit mode
+(with-eval-after-load 'org-msg
+  (defhydra my-hydra/org-msg-edit-mode (:color teal :columns 6)
+    "
+OrgMsg (_q_: quit)"
+    ("q" nil nil)
+    ("f" message-goto-from "from")
+    ("t" message-goto-to "to")
+    ("c" message-goto-cc "cc")
+    ("B" message-goto-bcc "bcc")
+    ("F" message-goto-fcc "fcc")
+    ("S" message-goto-subject "subj")
+    ("b" org-msg-goto-body "body")
+    ("C-a" org-msg-attach "attach")
+    ("C-e" org-msg-preview "preview")
+    ("C-c" org-ctrl-c-ctrl-c "send")
+    ("C-k" org-msg-edit-kill-buffer "kill"))
+
+  ;; binding for org-msg-edit-mode
+  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
+    #'my-hydra/org-msg-edit-mode/body))
+#+end_src
+
+** Link to notmuch messages in Org-mode documents                  :external:
 
 [[https://code.orgmode.org/bzg/org-mode/src/master/contrib/lisp/ol-notmuch.el][ol-notmuch]] is an Org-mode contributed package that adds Org-mode
 support for notmuch links.
@@ -2343,6 +2540,10 @@ Org-mode buffers and storing links to searches and messages using
 
 Hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Windows.html][window]] (panes) manipulation.
 
+*Note*: In Emacs 27+, ~next-multiframe-window~ and
+~previous-multiframe-window~ were renamed to ~next-window-any-frame~
+and ~previous-window-any-frame~, and the new names are used here.
+
 #+name: window-hydra
 #+begin_src emacs-lisp
 (defhydra my-hydra/window (:color amaranth :columns 3)
@@ -2351,8 +2552,8 @@ Window (_q_: quit)"
   ("q" nil nil :exit t)
   ("u" winner-undo "winner-undo")
   ("r" winner-redo "winner-redo")
-  ("n" next-multiframe-window "next")
-  ("p" previous-multiframe-window "previous")
+  ("n" next-window-any-frame "next")
+  ("p" previous-window-any-frame "previous")
   ("v" split-window-right "split-v")
   ("s" split-window-below "split-h")
   ("<left>" windmove-left "left")
@@ -2548,13 +2749,14 @@ CSV (_q_: quit)"
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode)
-         ("\\.Rmd\\'" . markdown-mode)) ;; R markdown
+         ("\\.markdown\\'" . markdown-mode))
   :config
   ;; place header markup only at the start of a line
   ;; syntax highlighting in fenced code blocks
+  ;; use underscores for italics instead of asterisks
   (setq markdown-asymmetric-header t
-        markdown-fontify-code-blocks-natively t)
+        markdown-fontify-code-blocks-natively t
+        markdown-italic-underscore t)
   ;; render mathematical expressions in HTML previews
   (setq markdown-xhtml-header-content
         (concat "<script type=\"text/x-mathjax-config\">"
@@ -2642,7 +2844,7 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
     ("C-t" markdown-toc-delete-toc "delete-toc")))
 #+end_src
 
-** YAML
+** YAML                                                               :melpa:
 
 [[https://github.com/yoshiki/yaml-mode][yaml-mode]] provides a major mode for editing [[https://yaml.org/][YAML]] files.
 
@@ -2817,15 +3019,97 @@ Restore the window configuration after capturing the task.
                       (:endgroup)
                       ;; ungrouped
                       ("note" . ?n)
-                      ;; work-related
+                      ;; work-related relationship category
                       ("hiring" . ?h)
                       ("managing" . ?m)
                       ("vendor" . ?v)
                       ("partner" . ?p)
                       ("client" . ?c)
+                      ;; work-related project category
                       ("internal" . ?\^n) ; C-n
                       ("healthcare" . ?\^h) ;; C-h
                       ("retail" . ?\^r))) ;; C-r
+#+end_src
+
+** Org export global macros
+
+Useful Org export macros that are enabled globally.
+
+To color text (works with LaTeX and HTML exports):
+#+begin_example
+{{{color(colorname, text)}}}
+#+end_example
+
+To insert [[https://en.wikipedia.org/wiki/Lorem_ipsum][filler]] text:
+#+begin_example
+{{{loremipsum}}}
+#+end_example
+
+To export different text for LaTeX and for other formats:
+#+begin_example
+{{{if-latex-else(latex-specific text,other text)}}}
+#+end_example
+
+#+name: org-export-global-macros
+#+begin_src emacs-lisp
+;; `org-export' macros
+(with-eval-after-load 'ox
+  ;; color macro, {{{color(colorname, text)}}} to use
+  (push `("color"
+          .
+          ,(concat "@@latex:\\textcolor{$1}{$2}@@"
+                   "@@html:<span style=\"color:$1\">$2</span>@@"))
+        org-export-global-macros)
+  ;; placeholder text, {{{loremipsum}}} to use
+  (push `("loremipsum"
+          .
+          ,(mapconcat 'identity
+                      '("Lorem ipsum dolor sit amet, consectetur"
+                        "adipisicing elit, sed do eiusmod tempor"
+                        "incididunt ut labore et dolore magna"
+                        "aliqua. Ut enim ad minim veniam, quis"
+                        "nostrud exercitation ullamco laboris nisi"
+                        "ut aliquip ex ea commodo consequat. Duis"
+                        "aute irure dolor in reprehenderit in"
+                        "voluptate velit esse cillum dolore eu"
+                        "fugiat nulla pariatur. Excepteur sint"
+                        "occaecat cupidatat non proident, sunt in"
+                        "culpa qui officia deserunt mollit anim id"
+                        "est laborum."
+                        "\n\n"
+                        "Curabitur pretium tincidunt lacus. Nulla"
+                        "gravida orci a odio. Nullam varius, turpis"
+                        "et commodo pharetra, est eros bibendum elit,"
+                        "nec luctus magna felis sollicitudin mauris."
+                        "Integer in mauris eu nibh euismod gravida."
+                        "Duis ac tellus et risus vulputate vehicula."
+                        "Donec lobortis risus a elit. Etiam tempor."
+                        "Ut ullamcorper, ligula eu tempor congue,"
+                        "eros est euismod turpis, id tincidunt sapien"
+                        "risus a quam. Maecenas fermentum consequat"
+                        "mi. Donec fermentum. Pellentesque malesuada"
+                        "nulla a mi. Duis sapien sem, aliquet nec,"
+                        "commodo eget, consequat quis, neque. Aliquam"
+                        "faucibus, elit ut dictum aliquet, felis nisl"
+                        "adipiscing sapien, sed malesuada diam lacus"
+                        "eget erat. Cras mollis scelerisque nunc."
+                        "Nullam arcu. Aliquam consequat. Curabitur"
+                        "augue lorem, dapibus quis, laoreet et,"
+                        "pretium ac, nisi. Aenean magna nisl, mollis"
+                        "quis, molestie eu, feugiat in, orci. In hac"
+                        "habitasse platea dictumst.")
+                      " "))
+        org-export-global-macros)
+  ;; flow control for latex-specific text and otherwise
+  ;; {{{if-latex-else(latex text, other text)}}} to use
+  (push '("if-latex-else"
+          .
+          "(eval (if (org-export-derived-backend-p
+                     org-export-current-backend
+                     'latex)
+                    $1
+                  $2))")
+        org-export-global-macros))
 #+end_src
 
 ** Org-mode hydra                                                     :hydra:
@@ -2904,6 +3188,17 @@ specified by ~org-agenda-files~.
 
 A number of customizations are done here, including defining
 a view that displays 3-day agenda and undated ~TODO~ entries.
+
+*Note*: Archiving ~DONE~ and ~CANX~ items every so often helps to keep
+Org agenda parsing and operations speedy ([[https://www.gnu.org/software/emacs/manual/html_node/org/Speeding-up-your-agendas.html][link]]):
+- ~M-x org-agenda~ to bring up the agenda menu.
+- ~t~ to list ~TODO~ items.
+- ~N r~ (where ~N~ is the number corresponding to a task state) to
+  select the ~DONE~ (~N=3~ in this configuration) or the ~CANX~ (~N=6~
+  in this configuration) task state.
+- ~*~ to select all listed items.
+- ~B $~ to bulk archive the selected items to their respective
+  =<filename>.org_archive= files.
 
 #+name: org-agenda
 #+begin_src emacs-lisp
@@ -2998,13 +3293,21 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
 
 ** Org refiling of tasks and subtrees
 
+Set up Org refile targets:
+- Current buffer up to a max depth of 9 levels.
+- Org Agenda files corresponding to non-directory entries of
+  ~org-agenda-files~ at the top-level of each file.
+
 #+name: org-refile
 #+begin_src emacs-lisp
 ;; allow refiling up to 9 levels deep in the current buffer
 ;; and 3 levels deep in Org agenda files
 ;; allow refiling to the top level
-(setq org-refile-targets '((nil . (:maxlevel . 9)) ;; current buffer
-                           (org-agenda-files . (:maxlevel . 3)))
+(setq org-refile-targets `((nil . (:maxlevel . 9)) ;; current buffer
+                           ;; top-level of regular `org-agenda-files' files
+                           (,(seq-filter
+                              'file-regular-p
+                              org-agenda-files) . (:level . 0)))
       org-refile-use-outline-path 'file
       org-refile-allow-creating-parent-nodes 'confirm)
 #+end_src
@@ -3038,8 +3341,8 @@ By default, this build process utilizes the base ~latex~ compiler and
 does not handle [[http://tug.org/bibtex/][BibTeX]] bibliography database files (~.bib~ files).
 
 It is better change to this to a more modern compiler like [[http://www.luatex.org/][LuaTeX]] for
-better font and unicode support, and to add a BibTex compiler like
-[[http://biblatex-biber.sourceforge.net/][Biber]] to the build chain.
+better font and unicode support, and add a BibTeX compiler like [[http://biblatex-biber.sourceforge.net/][Biber]]
+to the build chain.
 
 #+name: org-latex-pdf-process
 #+begin_src emacs-lisp
@@ -3322,6 +3625,12 @@ Org-mode → Download (_q_: ←)"
 
 [[https://github.com/bastibe/org-journal][org-journal]] extends journaling capabilities to Org-mode.
 
+*Note*: Journal files are not added to the Org agenda by default in
+the config due to potential slowdown as the number of files increases.
+Instead it is better to use ~org-store-link~ to store an Org link to
+the heading and then creating a new todo using ~org-capture~ and
+pasting/yanking the Org link in the todo using ~C-c C-l~.
+
 #+name: org-journal
 #+begin_src emacs-lisp
 ;; journaling using Org documents
@@ -3339,13 +3648,18 @@ Org-mode → Download (_q_: ←)"
     (goto-char (point-min)))
   ;; add org-capture-template for new journal entries
   (push '("j" "Journal" entry (function my-org-journal-find-location)
-              "* %(format-time-string org-journal-time-format)%^{Title}\n%i%?")
+          "* %(format-time-string org-journal-time-format)%^{Title}\n%i%?")
         org-capture-templates)
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily
         ;; use ORG-DIRECTORY/journal/ as the default journal directory
         org-journal-dir (concat org-directory "journal/"))
+  ;; add journal files to Org agenda
+  ;; may cause the Org agenda parsing to slow down as the number as
+  ;; the number of files grows, so make sure to prune or archive the
+  ;; files elsewhere every so often if this is enabled.
+  ;; (push org-journal-dir org-agenda-files)
   :config
   ;; workaround on `org-journal-is-journal' `string-match' error when
   ;; exporting to HTML due to `buffer-file-name' func returning nil
@@ -4403,7 +4717,7 @@ created in a directory on the system path for easier access.
 
 ** R
 
-*** Emacs Speaks Statistics
+*** Emacs Speaks Statistics                                           :melpa:
 
 R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]], more commonly known by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
 
@@ -4459,7 +4773,7 @@ Of these, the forward pipe operator ~%>%~ is most common in usage.
   (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
 #+end_src
 
-*** ess-mode hydra
+*** ess-mode hydra                                                    :hydra:
 
 Hydra for ~ess-mode~.
 
@@ -4501,7 +4815,20 @@ Help          _h_ : object    _H_ : browser   _A_ : apropos
   (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess-mode/body))
 #+end_src
 
-** Racket
+*** Better support for R Markdown and bookdown files                  :melpa:
+
+[[https://github.com/polymode/poly-R/][poly-R]] provides better support for R Markdown and bookdown files, as
+well as other formats interleaved with R code.
+
+Leverages support for multiple major modes using [[https://github.com/polymode/polymode][polymode]] to have
+different major modes be active for different buffer regions.
+
+#+name: poly-R
+#+begin_src emacs-lisp
+(use-package poly-R)
+#+end_src
+
+** Racket                                                             :melpa:
 
 [[https://github.com/greghendershott/racket-mode][racket-mode]] provides a major mode for editing Racket buffers.
 
@@ -4511,7 +4838,7 @@ Help          _h_ : object    _H_ : browser   _A_ : apropos
   :defer t)
 #+end_src
 
-*** racket-mode hydra
+*** racket-mode hydra                                                 :hydra:
 
 Mode-specific hydra for ~racket-mode~.
 
@@ -4947,12 +5274,56 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
   ("j" my-hydra/search/dumb-jump/body "dumb-jump"))
 #+end_src
 
+** avy                                                                :melpa:
+
+[[https://github.com/abo-abo/avy][Avy]] provides support for jumping to visible text by traversing a
+character-based decision tree.
+
+*Configuration*:
+- Remap ~goto-line~ bindings to call ~avy-goto-line~ instead.
+  ~goto-line~ can be invoked by entering numbers for ~avy-goto-line~
+  input instead of characters in the decision tree.
+
+#+name: avy
+#+begin_src emacs-lisp
+;; jump to visible text using char-based decision tree
+(use-package avy
+  :config
+  ;; bind over `goto-line' since it can be invoked by entering numbers
+  ;; for `avy-goto-line' input instead characters in the decision tree
+  (global-set-key [remap goto-line] #'avy-goto-line))
+#+end_src
+
+** ace-link                                                           :melpa:
+
+[[https://github.com/abo-abo/ace-link][ace-link]] provides support for displaying, selecting and jumping to links
+in a number of major modes using [[https://github.com/abo-abo/avy][avy]] as the backend.
+
+*Configuration*:
+- Call default setup code, which binds ~o~ in ~compilation-mode~,
+  ~Custom-mode~, ~eww-mode~, ~help-mode~, ~Info-mode~ and ~woman-mode~
+  to the corresponding ace-link command.
+- ~M-o~ in ~org-mode-map~ calls the corresponding ace-link function.
+
+#+name: ace-link
+#+begin_src emacs-lisp
+;; display, select and jump to links in various major modes
+(use-package ace-link
+  :config
+  ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
+  ;; eww-mode, help-mode, Info-mode and woman-mode
+  (ace-link-setup-default)
+  ;; bind "M-o" to jump to link in Org mode
+  (with-eval-after-load 'org
+    (define-key org-mode-map (kbd "M-o") #'ace-link-org)))
+#+end_src
+
 ** Notdeft for searching notes and other text files
 
 [[https://github.com/hasu/notdeft][Notdeft]] is an Emacs mode for quickly searching and managing
 directories of files, utilizing [[https://xapian.org/][Xapian]] for indexing.
 
-*** Installing Notdeft
+*** Installing Notdeft                                             :external:
 
 Clone ~notdeft~ into a build directory (change =~/build= as needed).
 
@@ -4979,7 +5350,6 @@ The following shows the softlink approach
 #+begin_example
 $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
 #+end_example
-
 
 *** Configuring Notdeft
 
@@ -5008,7 +5378,7 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
 (global-set-key (kbd "C-c C-M-s") #'notdeft)
 #+end_src
 
-*** Notdeft hydras
+*** Notdeft hydras                                                    :hydra:
 
 Built-in mode-specific hydra for Notdeft.
 
@@ -5069,7 +5439,7 @@ It supports text and images, but not webfonts or Javascript.
   :config (setq-default shr-inhibit-images t))
 #+end_src
 
-*** Emacs Web Wowser hydra
+*** Emacs Web Wowser hydra                                            :hydra:
 
 Major mode-specific hydra for Emacs Web Wowser (~eww~).
 
@@ -5446,7 +5816,7 @@ Remove toolbar and menu to maximize space usage.
     (menu-bar-mode -1))
 #+end_src
 
-** Custom color theme                                                 :early:
+** Custom color theme                                        :external:early:
 
 Use custom ~ereader~ theme in ~lisp/ereader-theme.el~.
 
@@ -6257,6 +6627,45 @@ The package also provides two commands ~vlf-ediff-files~ and
   :config (require 'vlf-setup))
 #+end_src
 
+** Auto-disable modes that slow down Emacs in files with long lines
+
+Many Emacs modes cause slowdown when working with buffers containing
+extremely long lines.
+
+Emacs 27+ includes a package ~so-long~ that if enabled will
+automatically disable major and minor modes that can cause extreme
+slowdown when visiting files with excessively long lines.
+
+~C-c C-c~ will revert ~so-long-mode~ after it is activated back to the
+original major mode.
+
+See ~M-x so-long-commentary~ for more information.
+
+#+name: so-long
+#+begin_src emacs-lisp
+;; automatically disable major and minor modes that can slow down
+;; Emacs when visiting files with long lines, Emacs 27+ only
+(when (require 'so-long nil :noerror)
+  (global-so-long-mode 1)
+  ;; leave major modes alone, only disable minor modes
+  ;; increase threshold before so-long action is invoked
+  (setq so-long-action 'so-long-minor-mode
+        so-long-max-lines 10
+        so-long-threshold 500))
+#+end_src
+
+*** Extend buffer hydra with so-long                                  :hydra:
+
+Extend buffer hydra with toggles for ~so-long-mode~ and
+~so-long-minor-mode~.
+
+#+name: so-long-hydra
+#+begin_src emacs-lisp
+(defhydra+ my-hydra/buffer nil
+  ("l" so-long-mode "so-long")
+  ("L" so-long-minor-mode "so-long-mm"))
+#+end_src
+
 * OS-specific
 
 ** Mac OS X
@@ -6307,6 +6716,16 @@ Copied from [[http://pragmaticemacs.com/emacs/case-insensitive-sorting-in-dired-
   (setq ls-lisp-use-localized-time-format t))
 #+end_src
 
+*** Exclude Emacs source files from being tracked by recentf
+
+Exclude Emacs source files from ~recentf~ history on Mac OS X.
+
+#+name: mac-recentf-exclude
+#+begin_src emacs-lisp
+;; exclude Emacs source files from recentf history on Mac OS X
+(add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
+#+end_src
+
 *** Open Finder at directory of current buffer                        :hydra:
 
 Add a hydra head to the [[Buffer manipulation hydra]] that opens
@@ -6351,7 +6770,7 @@ The [[https://bitbucket.org/mituharu/emacs-mac/][Emacs Mac Port]] ([[https://git
 font ligatures with its ~mac-auto-operator-composition-mode~.
 Add a head to the visual settings hydra for toggling this built-in support.
 
-#+name: mac-port-hydra-toggle-ligatures
+#+name: mac-emacs-mac-port-hydra-toggle-ligatures
 #+begin_src emacs-lisp
 ;; enable toggling of ligatures in visual hydra when using emacs-mac port
 (when (fboundp 'mac-auto-operator-composition-mode)
@@ -6629,9 +7048,13 @@ The main configuration file.
 
 <<notmuch>>
 
+<<notmuch-shorten-multiple-author-names>>
+
 <<notmuch-toggle-search-tags-in-results>>
 
 <<org-msg>>
+
+<<org-msg-edit-mode-hydra>>
 
 <<ol-notmuch>>
 
@@ -6680,6 +7103,8 @@ The main configuration file.
 <<org-maximize-capture-buffers>>
 
 <<org-tags>>
+
+<<org-export-global-macros>>
 
 <<org-mode-hydra>>
 
@@ -6793,6 +7218,8 @@ The main configuration file.
 
 <<ess-mode-hydra>>
 
+<<poly-R>>
+
 ;; Programming / Racket
 
 <<racket-mode>>
@@ -6830,6 +7257,10 @@ The main configuration file.
 <<dumb-jump>>
 
 <<dumb-jump-hydra>>
+
+<<avy>>
+
+<<ace-link>>
 
 <<notdeft>>
 
@@ -6926,17 +7357,23 @@ The main configuration file.
 
 <<vlf>>
 
+<<so-long>>
+
+<<so-long-hydra>>
+
 ;; OS-specific / Mac OS X
 
 <<mac>>
 
 <<mac-case-insensitive-sorting-in-dired>>
 
+<<mac-recentf-exclude>>
+
 <<mac-open-finder-at-buffer-directory>>
 
-<<mac-port-hydra-toggle-ligatures>>
-
 <<mac-scale-org-latex-fragment-previews>>
+
+<<mac-emacs-mac-port-hydra-toggle-ligatures>>
 
 <<mac-load-history-filename-element-workaround>>
 
@@ -6947,7 +7384,7 @@ The main configuration file.
 
 ** Backend and frontend frameworks for building user interfaces
 
-*** [#C] Transient
+*** [#C] Transient                                                    :melpa:
 
 [[https://github.com/magit/transient][Transient]] provides transient keymaps, like Hydra.
 
@@ -6979,14 +7416,49 @@ References:
 
 ** Org-mode
 
-*** [#C] Org export backend to Tufte book and handout style PDFs
+*** [#C] Org export backend to Tufte book and handout style PDFs   :external:
 
 *TODO*: fork ~ox-tufte-latex.el~ and incorporate modifications from
 ~org-tufte-latex.el~ into it, especially making sure variable
 modifications are buffer-local and reversible, and changing the
 export shortcut keys so they align with the default LaTeX export ones.
 
-*** [#B] org-reveal or org-re-reveal
+Additionally, use the ~ETbb~ package from CTAN for the font instead
+of the look-alike in the old code.
+
+*** WAIT [#B] org-protocol
+:LOGBOOK:
+- State "WAIT"       from              [2020-06-06 Sat 09:27] \\
+  Probably best to just use the built-in support in the Emacs Mac Port, so wait until it is released for Emacs 27
+:END:
+
+**** Setting up an org-protocol handler on Mac OS X
+
+*Note*: Or just use Emacs Mac Port, which has ~org-protocol~ support built-in.
+
+References:
+- https://blog.aaronbieber.com/2016/11/24/org-capture-from-anywhere-on-your-mac.html
+- https://github.com/aaronbieber/org-protocol-handler
+- https://github.com/sprig/org-capture-extension
+- https://github.com/mgmart/capture
+
+**** Capturing HTML to Org via org-protocol
+
+https://github.com/alphapapa/org-protocol-capture-html
+
+There's an option to use [[https://pypi.org/project/readability-lxml/][readability-lxml]] ([[https://github.com/buriy/python-readability][Github]]) to clean up full
+webpages captured via URLs before processing although a much better
+choice would to process URLs with [[https://github.com/postlight/mercury-parser][Mercury Parser]] to extract the page
+content, parse the JSON to extract the ~content~ value which is in
+HTML and pass that to ~pandoc~ which ~org-protocol-capture-html~ uses.
+To do this, modify the [[https://github.com/alphapapa/org-protocol-capture-html/blob/master/org-protocol-capture-html.sh][shell script]] in ~org-protocol-capture-html~ to
+use ~mercury-parser~ followed by [[https://stedolan.github.io/jq/][jq]] to extract the HTML ~content~ for
+processing.
+
+Note that an alternate Webpage to Mercury Reader to Markdown workflow
+could use [[https://github.com/zyocum/reader][reader]] instead or [[http://fuckyeahmarkdown.com/][Markdownifier]] (web API) for conversion.
+
+*** [#B] org-reveal or org-re-reveal                                  :melpa:
 
 [[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] and [[https://github.com/yjwen/org-reveal][org-reveal]] are comparable packages support
 exporting Org documents to [[https://revealjs.com/#/][reveal.js]] presentations.
@@ -7004,7 +7476,7 @@ cutting-edge features implemented.
 References:
 - [[http://www.zhangjiee.com/blog/2019/emacs-slide.html][Emacs 基于 org-reveal 做幻灯片]]
 
-*** [#A] org-static-blog
+*** [#A] org-static-blog                                              :melpa:
 
 [[https://github.com/bastibe/org-static-blog][org-static-blog]] is a static website generator.
 
@@ -7013,18 +7485,74 @@ It integrates well with Github pages or GitLab pages.
 It is possible to set up auto-rendering using CI tooling a new blog
 post is pushed, see [[https://gitlab.com/_zngguvnf/org-static-blog-example][here]].
 
+To enable local development, may want to use a =.dir-locals= file in
+the repositort that sets up a switcher between local development and
+remote deployment for:
+- ~org-static-blog-publish-url~
+- ~org-static-blog-publish-directory~
+- ~org-static-blog-posts-directory~
+- ~org-static-blog-drafts-directory~
+
 References:
 - [[https://jao.io/blog/2020-02-11-simplicity.html][simplicity]]
+- [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
 
-*** [#C] ox-bibtex
+*** [#C] ox-bibtex                                                 :external:
+
+*** [#C] Convert data to Org-mode representation using Orger       :external:
+
+Built-in modules support conversion from a variety of sources,
+alternative is Memacs.
+
+[[https://github.com/karlicoss/orger][GitHub - karlicoss/orger]]
+
+*** [#C] Static site generation from Org files using firn          :external:
+
+Static site generator for org-mode using Clojure and Rust.
+
+Probably better to use ~org-static-blog~ if making a simple blog,
+while this would work better for a wiki or product website.
+
+https://github.com/theiceshelf/firn
 
 ** Non-programming modes
 
-*** [#B] PlantUML
+*** [#B] PlantUML                                                     :melpa:
+
+** Programming
+
+*** Bash
+
+**** [#C] Static analysis using ShellCheck
+
+Install via MacPorts.
+
+[[https://github.com/koalaman/shellcheck][GitHub - koalaman/shellcheck]]
+
+Flymake support. Should be in MELPA.
+Or can define using ~flymake-quickdef~.
+
+[[https://github.com/federicotdn/flymake-shellcheck][GitHub - federicotdn/flymake-shellcheck]]
+
+** Project interaction
+
+*** [#B] Forge for working with Git forges from Magit                 :melpa:
+
+[[https://github.com/magit/forge][Forge]] extends Magit to integrate more tightly with Git forges like
+Github and Gitlab, exposing functionality to work on issues and pull
+requests as well as to perform other forge-related tasks like forking.
+
+Quick overview of using Forge in a typical open-source contribution workflow.
+
+1. ~M-x magit-status~ on Git clone of project to contribute to.
+2. Add GitHub user id to Forge custom option ~forge-owned-accounts~.
+3. ~magit-status~ buffer \to ~' c f~ to create a fork (defaults ok).
+4. Create feature branch, add contribution and push to feature branch.
+5. ~magit-status~ buffer \to ~' c p~ to create the pull-request.
 
 ** Reference management
 
-*** [#C] Biblio
+*** [#C] Biblio                                                       :melpa:
 
 [[https://github.com/cpitclaudel/biblio.el][Biblio]] provides Emacs functions to browse bibliographic references
 from a number of sources and import them as BibTeX records.
@@ -7036,7 +7564,7 @@ See the /Merging and Importing/ section of the Ebib [[http://joostkremers.github
 
 ** Search and navigation
 
-*** [#C] wgrep
+*** [#C] wgrep                                                        :melpa:
 
 Writable grep.
 
@@ -7046,7 +7574,7 @@ integration into the configuration.
 
 ** Visual
 
-*** [#C] Elegance theme
+*** [#C] Elegance theme                                            :external:
 
 [[https://github.com/rougier/elegant-emacs][Elegant Emacs theme]].
 Nice minimal theme, although will take a bit of work to set up for
@@ -7054,18 +7582,22 @@ a more informative display.
 
 ** Web
 
-*** [#A] Elfeed
+*** [#A] Elfeed                                                       :melpa:
 
 [[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
 packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://github.com/sp1ff/elfeed-score][elfeed-score]].
 
-*** [#B] Slack
+*** [#B] Slack                                                        :melpa:
 
 [[https://github.com/yuya373/emacs-slack][emacs-slack]]
 
+*** [#C] Promnesia remembrance agent for web browser
+
+[[https://github.com/karlicoss/promnesia][GitHub - karlicoss/promnesia: Another piece of your extended mind]]
+
 ** Writing
 
-*** [#C] fountain-mode for screenwriting in Fountain markup
+*** [#C] fountain-mode for screenwriting in Fountain markup           :melpa:
 
 [[https://github.com/rnkn/fountain-mode][Fountain Mode]] provides a major mode for editing [[https://fountain.io/][Fountain]] plain-text
 markup.

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun May 31 15:37:50 2020
+;; Generated: Sat Jun  6 16:16:36 2020
 
 ;;; Commentary:
 
@@ -258,11 +258,22 @@ Bookmarks (_q_: quit)"
       recentf-max-saved-items 50
       recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
 (recentf-mode 1)
+;; exclude source code files in installed packages from ELPA-compatible repos
+(add-to-list 'recentf-exclude
+             (concat "^" (expand-file-name user-emacs-directory) "elpa/"))
 ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
 ;; exclude files opened as the superuser with su or sudo
 (add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
 ;; exclude files from /var/folder as these are temp files
 (add-to-list 'recentf-exclude "^/var/folders")
+;; exclude files in `org-agenda-files' and `notdeft-directories'
+;; these files are quickly accessible from their respective tooling
+(add-hook 'after-init-hook
+          (lambda ()
+            (dolist (file-list (list org-agenda-files
+                                     notdeft-directories))
+              (dolist (exclude-file file-list)
+                (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
 ;; binding for recentf
 (global-set-key (kbd "C-c C-M-r f") #'recentf-open-files)
@@ -1031,6 +1042,85 @@ tag based on the entry at the beginning of the region."
           (notmuch-tree-tag (list "-trash"))
         (notmuch-tree-tag (list "+trash" "-inbox"))))))
 
+;; advise `notmuch-search-insert-authors' so that when a thread has
+;; multiple authors, only the first and last message authors are
+;; displayed and their names are abbreviated to fit the column width
+(with-eval-after-load 'notmuch
+  (defvar notmuch--abbreviate-person-name-width
+    (let* ((format-string (string-trim
+                           (cdr
+                            (assoc "authors"
+                                   notmuch-search-result-format))))
+           (authors-width (string-width (format format-string ""))))
+      (- (/ authors-width 2) 1))
+    "Width of each author in Notmuch Search view when more than one.
+Should be N/2-1, N is the width of the Search view author column.")
+
+  (defun notmuch--abbreviate-person-name (name &optional maxlen)
+    "Abbreviates a person NAME.
+The result will have `notmuch--abbreviate-person-name-width'
+characters or less. This is done by using the initial of the
+person's first name and shortening the person's last name as
+necessary; also handles emails."
+    (let* ((maxlen (or maxlen notmuch--abbreviate-person-name-width))
+           (split-idx (string-match-p "\[,@\]" name))
+           (split-char (if split-idx
+                           (substring name split-idx (+ split-idx 1))
+                         "")))
+      (cond ((string-equal split-char "@") ;; user.name@server.com -> u name
+             (let ((name-part (substring name 0 split-idx)))
+               (notmuch--abbreviate-person-name name-part)))
+            (t
+             ;; is-comma-split t? lastname, firstname -> f lastname
+             ;; is-comma-split f? firstname lastname -> f lastname
+             ;;                   OR firstname -> firstname
+             (let* ((is-comma-split (string-equal split-char ","))
+                    (regexp (if is-comma-split
+                                "\\(.*?\\), *\\(.\\).*"
+                              "\\(.\\).*?[. ]+\\(.*\\)"))
+                    (replacement (if is-comma-split
+                                     "\\2 \\1"
+                                   "\\1 \\2"))
+                    (abbrev-name (replace-regexp-in-string regexp
+                                                           replacement
+                                                           name))
+                    (further-truncate (> (length abbrev-name)
+                                         maxlen)))
+               (if further-truncate
+                   (concat
+                    (substring abbrev-name
+                               0
+                               (- maxlen 2))
+                    "..")
+                 abbrev-name))))))
+
+  (defun notmuch-search-insert-authors--around-abbreviate (orig-fun &rest args)
+    "Advice for `notmuch-search-insert-authors' to abbreviate names.
+Extracts the authors field from ARGS, abbreviates its elements
+using `notmuch--abbreviate-person-name' and calls ORIG-FUN
+replacing the original authors with their abbreviated names.
+Assumes ', ' is used to separate authors and names are not of the
+form 'Lastname, Firstname'."
+    (seq-let (format-string authors) args
+      (save-match-data
+        (let ((author-list (mapcar (lambda (s) (replace-regexp-in-string
+                                                "'" "" s)) ;; no single quotes
+                                   (split-string authors ", "))))
+          (if (> (length author-list) 1)
+              (let* ((oldest-newest-authors (cons (car author-list)
+                                                  (last author-list)))
+                     (abbrev-authors
+                      (mapconcat 'identity
+                                 (mapcar 'notmuch--abbreviate-person-name
+                                         oldest-newest-authors)
+                                 ", ")))
+                (apply orig-fun (list format-string abbrev-authors)))
+            (apply orig-fun args))))))
+
+  ;; abbreviate names when there are multiple authors
+  (advice-add 'notmuch-search-insert-authors :around
+              'notmuch-search-insert-authors--around-abbreviate))
+
 ;; notmuch extension to toggle search tag visibility in results by
 ;; advising the search listings field insertion function to remove
 ;; tags in the search query from the displayed tags except for those
@@ -1183,6 +1273,28 @@ Assumes "
                    notmuch-tree-mode-map))
       (define-key map (kbd "M") #'org-msg-mode))))
 
+;; major mode-specific hydra for OrgMsg edit mode
+(with-eval-after-load 'org-msg
+  (defhydra my-hydra/org-msg-edit-mode (:color teal :columns 6)
+    "
+OrgMsg (_q_: quit)"
+    ("q" nil nil)
+    ("f" message-goto-from "from")
+    ("t" message-goto-to "to")
+    ("c" message-goto-cc "cc")
+    ("B" message-goto-bcc "bcc")
+    ("F" message-goto-fcc "fcc")
+    ("S" message-goto-subject "subj")
+    ("b" org-msg-goto-body "body")
+    ("C-a" org-msg-attach "attach")
+    ("C-e" org-msg-preview "preview")
+    ("C-c" org-ctrl-c-ctrl-c "send")
+    ("C-k" org-msg-edit-kill-buffer "kill"))
+
+  ;; binding for org-msg-edit-mode
+  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
+    #'my-hydra/org-msg-edit-mode/body))
+
 (require 'ol-notmuch)
 
 ;; Frame and window management
@@ -1196,8 +1308,8 @@ Window (_q_: quit)"
   ("q" nil nil :exit t)
   ("u" winner-undo "winner-undo")
   ("r" winner-redo "winner-redo")
-  ("n" next-multiframe-window "next")
-  ("p" previous-multiframe-window "previous")
+  ("n" next-window-any-frame "next")
+  ("p" previous-window-any-frame "previous")
   ("v" split-window-right "split-v")
   ("s" split-window-below "split-h")
   ("<left>" windmove-left "left")
@@ -1325,13 +1437,14 @@ CSV (_q_: quit)"
   :commands (markdown-mode gfm-mode)
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
-         ("\\.markdown\\'" . markdown-mode)
-         ("\\.Rmd\\'" . markdown-mode)) ;; R markdown
+         ("\\.markdown\\'" . markdown-mode))
   :config
   ;; place header markup only at the start of a line
   ;; syntax highlighting in fenced code blocks
+  ;; use underscores for italics instead of asterisks
   (setq markdown-asymmetric-header t
-        markdown-fontify-code-blocks-natively t)
+        markdown-fontify-code-blocks-natively t
+        markdown-italic-underscore t)
   ;; render mathematical expressions in HTML previews
   (setq markdown-xhtml-header-content
         (concat "<script type=\"text/x-mathjax-config\">"
@@ -1514,15 +1627,75 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
                       (:endgroup)
                       ;; ungrouped
                       ("note" . ?n)
-                      ;; work-related
+                      ;; work-related relationship category
                       ("hiring" . ?h)
                       ("managing" . ?m)
                       ("vendor" . ?v)
                       ("partner" . ?p)
                       ("client" . ?c)
+                      ;; work-related project category
                       ("internal" . ?\^n) ; C-n
                       ("healthcare" . ?\^h) ;; C-h
                       ("retail" . ?\^r))) ;; C-r
+
+;; `org-export' macros
+(with-eval-after-load 'ox
+  ;; color macro, {{{color(colorname, text)}}} to use
+  (push `("color"
+          .
+          ,(concat "@@latex:\\textcolor{$1}{$2}@@"
+                   "@@html:<span style=\"color:$1\">$2</span>@@"))
+        org-export-global-macros)
+  ;; placeholder text, {{{loremipsum}}} to use
+  (push `("loremipsum"
+          .
+          ,(mapconcat 'identity
+                      '("Lorem ipsum dolor sit amet, consectetur"
+                        "adipisicing elit, sed do eiusmod tempor"
+                        "incididunt ut labore et dolore magna"
+                        "aliqua. Ut enim ad minim veniam, quis"
+                        "nostrud exercitation ullamco laboris nisi"
+                        "ut aliquip ex ea commodo consequat. Duis"
+                        "aute irure dolor in reprehenderit in"
+                        "voluptate velit esse cillum dolore eu"
+                        "fugiat nulla pariatur. Excepteur sint"
+                        "occaecat cupidatat non proident, sunt in"
+                        "culpa qui officia deserunt mollit anim id"
+                        "est laborum."
+                        "\n\n"
+                        "Curabitur pretium tincidunt lacus. Nulla"
+                        "gravida orci a odio. Nullam varius, turpis"
+                        "et commodo pharetra, est eros bibendum elit,"
+                        "nec luctus magna felis sollicitudin mauris."
+                        "Integer in mauris eu nibh euismod gravida."
+                        "Duis ac tellus et risus vulputate vehicula."
+                        "Donec lobortis risus a elit. Etiam tempor."
+                        "Ut ullamcorper, ligula eu tempor congue,"
+                        "eros est euismod turpis, id tincidunt sapien"
+                        "risus a quam. Maecenas fermentum consequat"
+                        "mi. Donec fermentum. Pellentesque malesuada"
+                        "nulla a mi. Duis sapien sem, aliquet nec,"
+                        "commodo eget, consequat quis, neque. Aliquam"
+                        "faucibus, elit ut dictum aliquet, felis nisl"
+                        "adipiscing sapien, sed malesuada diam lacus"
+                        "eget erat. Cras mollis scelerisque nunc."
+                        "Nullam arcu. Aliquam consequat. Curabitur"
+                        "augue lorem, dapibus quis, laoreet et,"
+                        "pretium ac, nisi. Aenean magna nisl, mollis"
+                        "quis, molestie eu, feugiat in, orci. In hac"
+                        "habitasse platea dictumst.")
+                      " "))
+        org-export-global-macros)
+  ;; flow control for latex-specific text and otherwise
+  ;; {{{if-latex-else(latex text, other text)}}} to use
+  (push '("if-latex-else"
+          .
+          "(eval (if (org-export-derived-backend-p
+                     org-export-current-backend
+                     'latex)
+                    $1
+                  $2))")
+        org-export-global-macros))
 
 ;; hydra for org-mode
 (defhydra my-hydra/org-mode (:color amaranth :columns 3)
@@ -1669,8 +1842,11 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
 ;; allow refiling up to 9 levels deep in the current buffer
 ;; and 3 levels deep in Org agenda files
 ;; allow refiling to the top level
-(setq org-refile-targets '((nil . (:maxlevel . 9)) ;; current buffer
-                           (org-agenda-files . (:maxlevel . 3)))
+(setq org-refile-targets `((nil . (:maxlevel . 9)) ;; current buffer
+                           ;; top-level of regular `org-agenda-files' files
+                           (,(seq-filter
+                              'file-regular-p
+                              org-agenda-files) . (:level . 0)))
       org-refile-use-outline-path 'file
       org-refile-allow-creating-parent-nodes 'confirm)
 
@@ -1896,13 +2072,18 @@ Org-mode → Download (_q_: ←)"
     (goto-char (point-min)))
   ;; add org-capture-template for new journal entries
   (push '("j" "Journal" entry (function my-org-journal-find-location)
-              "* %(format-time-string org-journal-time-format)%^{Title}\n%i%?")
+          "* %(format-time-string org-journal-time-format)%^{Title}\n%i%?")
         org-capture-templates)
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily
         ;; use ORG-DIRECTORY/journal/ as the default journal directory
         org-journal-dir (concat org-directory "journal/"))
+  ;; add journal files to Org agenda
+  ;; may cause the Org agenda parsing to slow down as the number as
+  ;; the number of files grows, so make sure to prune or archive the
+  ;; files elsewhere every so often if this is enabled.
+  ;; (push org-journal-dir org-agenda-files)
   :config
   ;; workaround on `org-journal-is-journal' `string-match' error when
   ;; exporting to HTML due to `buffer-file-name' func returning nil
@@ -2669,6 +2850,8 @@ Help          _h_ : object    _H_ : browser   _A_ : apropos
 (with-eval-after-load 'ess-mode
   (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess-mode/body))
 
+(use-package poly-R)
+
 ;; Programming / Racket
 
 (use-package racket-mode
@@ -2955,6 +3138,23 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 ;; add entrypoint for dumb-jump hydra in my-hydra/search
 (defhydra+ my-hydra/search nil
   ("j" my-hydra/search/dumb-jump/body "dumb-jump"))
+
+;; jump to visible text using char-based decision tree
+(use-package avy
+  :config
+  ;; bind over `goto-line' since it can be invoked by entering numbers
+  ;; for `avy-goto-line' input instead characters in the decision tree
+  (global-set-key [remap goto-line] #'avy-goto-line))
+
+;; display, select and jump to links in various major modes
+(use-package ace-link
+  :config
+  ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
+  ;; eww-mode, help-mode, Info-mode and woman-mode
+  (ace-link-setup-default)
+  ;; bind "M-o" to jump to link in Org mode
+  (with-eval-after-load 'org
+    (define-key org-mode-map (kbd "M-o") #'ace-link-org)))
 
 ;; load notdeft, make sure this comes after org-directory is set
 (require 'notdeft-autoloads)
@@ -3461,6 +3661,20 @@ Help (_q_: quit)"
 (use-package vlf
   :config (require 'vlf-setup))
 
+;; automatically disable major and minor modes that can slow down
+;; Emacs when visiting files with long lines, Emacs 27+ only
+(when (require 'so-long nil :noerror)
+  (global-so-long-mode 1)
+  ;; leave major modes alone, only disable minor modes
+  ;; increase threshold before so-long action is invoked
+  (setq so-long-action 'so-long-minor-mode
+        so-long-max-lines 10
+        so-long-threshold 500))
+
+(defhydra+ my-hydra/buffer nil
+  ("l" so-long-mode "so-long")
+  ("L" so-long-minor-mode "so-long-mm"))
+
 ;; OS-specific / Mac OS X
 
 ;; on Mac OS X, use Option keys as Meta and file polling for auto-revert
@@ -3482,6 +3696,9 @@ Help (_q_: quit)"
   ;; (setq ls-lisp-format-time-list '("%b %e %H:%M" "%b %e %Y"))
   (setq ls-lisp-use-localized-time-format t))
 
+;; exclude Emacs source files from recentf history on Mac OS X
+(add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
+
 ;; add my-hydra/buffer head to open Finder at current buffer directory in OS X
 (when (eq system-type 'darwin)
   (defun my-open-finder (&optional path)
@@ -3500,17 +3717,17 @@ or the current buffer file or directory if not (Mac OS X)."
   (defhydra+ my-hydra/buffer nil
     ("e" my-open-finder "open-finder" :exit t)))
 
-;; enable toggling of ligatures in visual hydra when using emacs-mac port
-(when (fboundp 'mac-auto-operator-composition-mode)
-  (defhydra+ my-hydra/visual nil
-    ("L" mac-auto-operator-composition-mode "toggle-ligature" :exit nil)))
-
 ;; scale up LaTeX fragment preview images on OS X
 (if (and (display-graphic-p)
          (eq system-type 'darwin)
          (executable-find "dvipng"))
     (setq org-format-latex-options (plist-put org-format-latex-options
                                               :scale 1.5)))
+
+;; enable toggling of ligatures in visual hydra when using emacs-mac port
+(when (fboundp 'mac-auto-operator-composition-mode)
+  (defhydra+ my-hydra/visual nil
+    ("L" mac-auto-operator-composition-mode "toggle-ligature" :exit nil)))
 
 ;; workaround for problematic entries in `load-history' which affects
 ;; Emacs 27+ on some systems, probably to do with the portable dumper

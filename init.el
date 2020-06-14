@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Jun  6 16:16:36 2020
+;; Generated: Sun Jun 14 18:41:15 2020
 
 ;;; Commentary:
 
@@ -68,36 +68,64 @@
 
 ;; Backend and frontend frameworks for building user interfaces
 
-;; use Icomplete as the completion backend
-;; emulate ido behavior where possible
-(if (version< emacs-version "27")
-    ;; no `fido-mode' on older Emacs versions
-    (progn
-      (setq completion-category-defaults nil
-            icomplete-compute-delay 0
-            icomplete-hide-common-prefix nil
-            icomplete-prospects-height 2
-            icomplete-show-matches-on-no-input t
-            icomplete-tidy-shadowed-file-names t)
-      (icomplete-mode)
-      ;; C-s and C-r cycles through completion candidates like isearch
-      (define-key icomplete-minibuffer-map (kbd "C-s")
-        #'icomplete-forward-completions)
-      (define-key icomplete-minibuffer-map (kbd "C-r")
-        #'icomplete-backward-completions)
-      ;; RET selects current completion candidate like ido
-      ;; M-j uses input as is, e.g. to create new files or new dirs
-      (define-key icomplete-minibuffer-map (kbd "RET")
-        #'icomplete-force-complete-and-exit)
-      (define-key icomplete-minibuffer-map (kbd "M-j")
-        #'exit-minibuffer))
-  ;; enable `fido-mode'
-  (fido-mode))
-
 ;; enable flex completion on Emacs 27+
 (when (not (version< emacs-version "27"))
   (with-eval-after-load 'minibuffer
     (add-to-list 'completion-styles 'flex t)))
+
+(use-package helm
+  :init
+  (setq helm-allow-mouse t
+        helm-prevent-escaping-from-minibuffer nil
+        ;; show helm buffers by splitting current window instead of
+        ;; taking over another window in multi-window layout
+        helm-split-window-inside-p t)
+  :config
+  (require 'helm-config)
+  (helm-mode 1)
+  (helm-autoresize-mode 1)
+  ;; bind over the standard Emacs commands
+  (define-key global-map [remap find-file] 'helm-find-files)
+  (define-key global-map [remap occur] 'helm-occur)
+  ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
+  (define-key global-map [remap switch-to-buffer] 'helm-mini)
+  (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
+  ;; (define-key global-map [remap execute-extended-command] 'helm-M-x)
+  (define-key global-map [remap apropos-command] 'helm-apropos)
+  ;; make <tab> only complete names during helm completion, instead of
+  ;; default behavior that creates new buffer on the second press
+  ;; after which a third press kills the newly created buffer
+  (setq helm-ff-kill-or-find-buffer-fname-fn #'ignore)
+  (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
+  (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
+  (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
+  (define-key helm-map (kbd "C-z") #'helm-select-action))
+
+;; ;; use Icomplete as the completion backend
+;; ;; emulate ido behavior where possible
+;; (if (version< emacs-version "27")
+;;     ;; no `fido-mode' on older Emacs versions
+;;     (progn
+;;       (setq completion-category-defaults nil
+;;             icomplete-compute-delay 0
+;;             icomplete-hide-common-prefix nil
+;;             icomplete-prospects-height 2
+;;             icomplete-show-matches-on-no-input t
+;;             icomplete-tidy-shadowed-file-names t)
+;;       (icomplete-mode)
+;;       ;; C-s and C-r cycles through completion candidates like isearch
+;;       (define-key icomplete-minibuffer-map (kbd "C-s")
+;;         #'icomplete-forward-completions)
+;;       (define-key icomplete-minibuffer-map (kbd "C-r")
+;;         #'icomplete-backward-completions)
+;;       ;; RET selects current completion candidate like ido
+;;       ;; M-j uses input as is, e.g. to create new files or new dirs
+;;       (define-key icomplete-minibuffer-map (kbd "RET")
+;;         #'icomplete-force-complete-and-exit)
+;;       (define-key icomplete-minibuffer-map (kbd "M-j")
+;;         #'exit-minibuffer))
+;;   ;; enable `fido-mode'
+;;   (fido-mode))
 
 ;; framework for defining temporary, repeatable bindings
 ;; see https://github.com/abo-abo/hydra
@@ -280,7 +308,19 @@ Bookmarks (_q_: quit)"
 
 (save-place-mode 1)
 
-(setq history-length 10000)
+;; save minibuffer and other history across sessions
+;; don't persist kill-ring if in the habit of copy-pasting passwords
+(setq history-length 10000
+      savehist-additional-variables '(Info-history-list
+                                      ;; kill-ring
+                                      kmacro-ring
+                                      regexp-search-ring
+                                      register-alist
+                                      last-kbd-macro
+                                      search-ring
+                                      shell-command-history))
+
+;; enable save history mode
 (savehist-mode 1)
 
 ;; Buffer management
@@ -864,6 +904,9 @@ Registers (_q_: quit)"
   :commands er/expand-region
   :bind ("C-=" . er/expand-region))
 
+(use-package iedit
+  :init (setq iedit-toggle-key-default (kbd "C-;")))
+
 ;; multiple cursors
 (use-package multiple-cursors
   :defer t
@@ -1040,7 +1083,18 @@ tag based on the entry at the beginning of the region."
       (interactive)
       (if (member "trash" (notmuch-tree-get-tags))
           (notmuch-tree-tag (list "-trash"))
-        (notmuch-tree-tag (list "+trash" "-inbox"))))))
+        (notmuch-tree-tag (list "+trash" "-inbox"))))
+    ;; set up Gmail-style citations in replies
+    ;; https://emacs.stackexchange.com/questions/14625/how-to-control-quoting-of-original-message-when-replying
+    (setq notmuch-mua-cite-function 'message-cite-original
+          message-fill-column nil ;; don't break paragraphs
+          message-citation-line-function 'message-insert-formatted-citation-line
+          message-cite-reply-position 'above
+          ;; message-yank-prefix "    "
+          ;; message-yank-cited-prefix "    "
+          ;; message-yank-empty-prefix "    "
+          message-citation-line-format "On %a, %b %e, %Y at %l:%M %p %f wrote:
+")))
 
 ;; advise `notmuch-search-insert-authors' so that when a thread has
 ;; multiple authors, only the first and last message authors are
@@ -1254,7 +1308,7 @@ Assumes "
       #'notmuch--toggle-search-tag-visibility)))
 
 ;; provides HTML email composition using Org-mode
-;; set `org-msg-greeting-fmt' to "\nHi *%s*,\n\n" for auto greeting
+;; for autogreeting, set `org-msg-greeting-fmt' to "\nHi *%s*,\n\n"
 (use-package org-msg
   :config
   (setq org-msg-options (concat "html-postamble:nil H:5 num:nil ^:{} "
@@ -1271,7 +1325,92 @@ Assumes "
                    notmuch-search-mode-map
                    notmuch-show-mode-map
                    notmuch-tree-mode-map))
-      (define-key map (kbd "M") #'org-msg-mode))))
+      (define-key map (kbd "M") #'org-msg-mode))
+    (defun my-gmail-quote-html (htmltext) htmltext)
+    ;; modify HTML text to use Gmail blockquotes in place of '>'
+    (defun my-gmail-quote-html (htmltext)
+      "Modify HTMLTEXT to use Gmail blockquotes."
+      (let ((blockquote-begin
+             (concat "<blockquote type=\"gmail_quote\" "
+                     "style=\"margin:0px 0px 0px 0.8ex;"
+                     "border-left:1px solid rgb(204,204,204);"
+                     "padding-left:1ex\""
+                     ">\n"))
+            (blockquote-end "</blockquote>\n"))
+        (with-temp-buffer
+          ;; change message citation line HTML from a <p> element to a
+          ;; <div> element with class 'gmail_quote'
+          (insert (replace-regexp-in-string
+                   (concat "<p[^\n\r]*>[\n\r]"
+                           "\\([^\r\n]*\\)"
+                           "</p>"
+                           "\\([\n\r]*<p[^\n\r]*>[\n\r]*&gt;\\)")
+                   "<br/><div class=\"gmail_quote\">\\1</div>\\2"
+                   htmltext))
+          ;; process one line at a time to traverse blockquote levels
+          ;; using the number of leading '>' characters in each line
+          (goto-char (point-min))
+          (let ((blockquote-level 0))
+            (while (not (eobp))
+              (let ((line-level 0))
+                (while (looking-at "&gt;[[:blank:]]*")
+                  (replace-match "")
+                  (cl-incf line-level))
+                (while (< blockquote-level line-level)
+                  (insert blockquote-begin)
+                  (cl-incf blockquote-level))
+                (while (> blockquote-level line-level)
+                  (insert blockquote-end)
+                  (cl-decf blockquote-level)))
+              (forward-line)))
+          (buffer-string))))
+    (defun org-msg-preview (arg)
+      "Create a temporary mail and open it with `browse-url'.
+With the prefix argument ARG set, it calls
+`xwidget-webkit-browse-url' instead of `browse-url'.
+Modified copy of original using Gmail blockquotes."
+      (interactive "P")
+      (save-window-excursion
+        (let ((browse-url-browser-function (if arg
+					       'xwidget-webkit-browse-url
+					     browse-url-browser-function))
+	      (tmp-file (make-temp-file "org-msg" nil ".html"))
+	      (mail (org-msg-build)))
+          (with-temp-buffer
+            ;; following line modified from original
+	    (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
+	    (write-file tmp-file))
+          (browse-url (concat "file://" tmp-file)))))
+    (defun org-msg-prepare-to-send ()
+      "Convert the current OrgMsg buffer into `mml' content.
+This function is a hook for `message-send-hook'.
+Modified copy of original using Gmail blockquotes."
+      (save-window-excursion
+        (when (eq major-mode 'org-msg-edit-mode)
+          (let ((mail (org-msg-build))
+	        (attachments (org-msg-get-prop "attachment")))
+	    (dolist (file attachments)
+	      (unless (file-exists-p file)
+	        (error "File '%s' does not exist" file)))
+	    (setq org-msg-attachment attachments)
+	    (when org-msg-text-plain-alternative
+	      (setq org-msg-text-plain (org-msg-org-to-text-plain)))
+	    (goto-char (org-msg-start))
+	    (delete-region (org-msg-start) (point-max))
+	    (when (org-msg-mml-recursive-support)
+	      (when attachments
+	        (mml-insert-multipart "mixed")
+	        (dolist (file attachments)
+	          (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
+			          'filename file 'disposition "attachment")))
+	      (when org-msg-text-plain-alternative
+	        (mml-insert-multipart "alternative")
+	        (mml-insert-part "text/plain")
+	        (insert org-msg-text-plain)
+	        (forward-line)))
+	    (mml-insert-part "text/html")
+            ;; following line modified from original
+	    (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
 
 ;; major mode-specific hydra for OrgMsg edit mode
 (with-eval-after-load 'org-msg
@@ -1294,6 +1433,59 @@ OrgMsg (_q_: quit)"
   ;; binding for org-msg-edit-mode
   (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
     #'my-hydra/org-msg-edit-mode/body))
+
+;; redefine `org-msg-post-setup' so quoted text is not removed when
+;; replying to emails like in Gmail and other modern mail programs
+;; https://github.com/jeremy-compostella/org-msg/blob/master/org-msg.el#L872-L908
+(with-eval-after-load 'org-msg
+  (defun org-msg-post-setup (&rest _args)
+   "Transform the current `message' buffer into a OrgMsg buffer.
+If the current `message' buffer is a reply, the
+`org-msg-separator' string is inserted at the end of the editing
+area."
+   (unless (eq major-mode 'org-msg-edit-mode)
+     (message-goto-body)
+     (let ((new (not (org-msg-message-fetch-field "subject")))
+	   (with-original (not (= (point) (point-max))))
+	   (reply-to))
+       (when (or new (org-msg-mua-call 'article-htmlp))
+	 (unless new
+	   (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
+	 (insert (org-msg-header reply-to))
+	 (when org-msg-greeting-fmt
+	   (insert (format org-msg-greeting-fmt
+			   (if new
+			       ""
+			     (org-msg-get-to-first-name)))))
+	 (save-excursion
+           (insert "\n\n")
+	   ;; (when with-original
+	   ;;   (save-excursion
+	   ;;     (insert "\n\n" org-msg-separator "\n")
+	   ;;     (delete-region (line-beginning-position)
+	   ;;      	      (1+ (line-end-position)))
+	   ;;     (dolist (rep '(("^>+ *" . "") ("___+" . "---")))
+	   ;;       (save-excursion
+	   ;;         (while (re-search-forward (car rep) nil t)
+	   ;;           (replace-match (cdr rep)))))
+	   ;;     (org-escape-code-in-region (point) (point-max))))
+           (when with-original
+             ;; TODO need to add "On %a, %b %d, %Y at %I:%M %p "
+             ;; where the date and time are parsed from the message
+             ;; being replied to
+             (org-escape-code-in-region (point) (point-max)))
+           (save-excursion
+             (end-of-buffer)
+	     (when org-msg-signature
+	       (insert org-msg-signature)))
+	   (org-msg-edit-mode))
+	 (set-buffer-modified-p nil))
+       ;; (if (org-msg-message-fetch-field "to")
+       ;;     (org-msg-goto-body)
+       ;;   (message-goto-to))
+       (if (org-msg-message-fetch-field "to")
+           (recenter)
+         (message-goto-to))))))
 
 (require 'ol-notmuch)
 
@@ -1341,6 +1533,42 @@ Window (_q_: quit)"
     (set-window-buffer from-win (window-buffer))
     (set-window-buffer (selected-window) from-buf)))
 
+(defun rotate-window-buffers (rotations)
+  "Rotate buffers in the windows of the current frame ROTATIONS times.
+ROTATIONS can be negative, which rotates in the opposite direction."
+  (interactive "P")
+  (let ((num-windows (count-windows)))
+    (if (not (> num-windows 1))
+        (message "Only one window in the frame. Nothing to rotate.")
+      (let* ((windows (window-list))
+             ;; original window order properties
+             (window-props (mapcar (lambda (w)
+                                     `(:buffer ,(window-buffer w)
+                                       :start ,(window-start w)
+                                       :point ,(window-point w)))
+                                   windows))
+             ;; new window order after rotation
+             (window-moves (mapcar
+                            (lambda (k)
+                              (elt windows (mod (+ k rotations) num-windows)))
+                            (number-sequence 0 (1- num-windows))))
+             ;; create alist for easier looping later
+             (wins-props (mapcar* #'cons window-moves window-props)))
+        ;; iteratively assign orig window props in new window order
+        (dolist (w-p wins-props)
+          (let ((win (car w-p))
+                (prop (cdr w-p)))
+            (set-window-buffer-start-and-point
+             win
+             (plist-get prop :buffer)
+             (plist-get prop :start)
+             (plist-get prop :point))))))))
+
+;; add entrypoint for `rotate-window-buffers' to window management hydra
+(defhydra+ my-hydra/window nil
+  ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
+  ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
+
 (defhydra my-hydra/frame (:color amaranth :columns 4)
   "
 Frame (_q_: quit)"
@@ -1386,7 +1614,88 @@ Frame (_q_: quit)"
     (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
                                     (cons 'top (+ y (cdr cur-pos))))))))
 
+(use-package transpose-frame)
+
+;; add entrypoint for transpose-frame to frame management hydra
+(defhydra+ my-hydra/frame nil
+  ("," (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-anticlockwise))) "rotate-l")
+  ("." (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-clockwise))) "rotate-r"))
+
 ;; Non-programming files
+
+(with-eval-after-load 'doc-view
+  (easy-menu-define my-doc-view-menu doc-view-mode-map "Menu for Doc-View Mode."
+    '("DocView"
+      ["Switch to a different mode" doc-view-toggle-display :help "Switch to a different mode"]
+      ["Open Text" doc-view-open-text :help "Display the current doc's contents as text"]
+      "--"
+      ("Navigate Doc"
+       ["Goto Page ..." doc-view-goto-page :help "View the page given by PAGE"]
+       "--"
+       ["Scroll Down" doc-view-scroll-down-or-previous-page :help "Scroll page down ARG lines if possible, else goto previous page"]
+       ["Scroll Up" doc-view-scroll-up-or-next-page :help "Scroll page up ARG lines if possible, else goto next page"]
+       "--"
+       ["Next Line" doc-view-next-line-or-next-page :help "Scroll upward by ARG lines if possible, else goto next page"]
+       ["Previous Line" doc-view-previous-line-or-previous-page :help "Scroll downward by ARG lines if possible, else goto previous page"]
+       ("Customize"
+        ["Continuous Off"
+         (setq doc-view-continuous nil)
+         :help "Stay put in the current page, when moving past first/last line" :style radio :selected
+         (eq doc-view-continuous nil)]
+        ["Continuous On"
+         (setq doc-view-continuous t)
+         :help "Goto to the previous/next page, when moving past first/last line" :style radio :selected
+         (eq doc-view-continuous t)]
+        "---"
+        ["Save as Default"
+         (customize-save-variable 'doc-view-continuous doc-view-continuous)
+         t])
+       "--"
+       ["Next Page" doc-view-next-page :help "Browse ARG pages forward"]
+       ["Previous Page" doc-view-previous-page :help "Browse ARG pages backward"]
+       "--"
+       ["First Page" doc-view-first-page :help "View the first page"]
+       ["Last Page" doc-view-last-page :help "View the last page"])
+      "--"
+      ("Adjust Display"
+       ["Enlarge" doc-view-enlarge :help "Enlarge the document by FACTOR"]
+       ["Shrink" doc-view-shrink :help "Shrink the document"]
+       "--"
+       ["Fit Width To Window" doc-view-fit-width-to-window :help "Fit the image width to the window width"]
+       ["Fit Height To Window" doc-view-fit-height-to-window :help "Fit the image height to the window height"]
+       "--"
+       ["Fit Page To Window" doc-view-fit-page-to-window :help "Fit the image to the window"]
+       "--"
+       ["Set Slice From Bounding Box" doc-view-set-slice-from-bounding-box :help "Set the slice from the document's BoundingBox information"]
+       ["Set Slice Using Mouse" doc-view-set-slice-using-mouse :help "Set the slice of the images that should be displayed"]
+       ["Set Slice" doc-view-set-slice :help "Set the slice of the images that should be displayed"]
+       ["Reset Slice" doc-view-reset-slice :help "Reset the current slice"])
+      ("Search"
+       ["New Search ..."
+        (doc-view-search t)
+        :help "Jump to the next match or initiate a new search if NEW-QUERY is given"]
+       "--"
+       ["Search" doc-view-search :help "Jump to the next match or initiate a new search if NEW-QUERY is given"]
+       ["Backward" doc-view-search-backward :help "Call `doc-view-search' for backward search"]
+       "--"
+       ["Show Tooltip" doc-view-show-tooltip :help nil])
+      ("Maintain"
+       ["Reconvert Doc" doc-view-reconvert-doc :help "Reconvert the current document"]
+       "--"
+       ["Clear Cache" doc-view-clear-cache :help "Delete the whole cache (`doc-view-cache-directory')"]
+       ["Dired Cache" doc-view-dired-cache :help "Open `dired' in `doc-view-cache-directory'"]
+       "--"
+       ["Revert Buffer" doc-view-revert-buffer :help "Like `revert-buffer', but preserves the buffer's current modes"]
+       "--"
+       ["Kill Proc" doc-view-kill-proc :help "Kill the current converter process(es)"]
+       ["Kill Proc And Buffer" doc-view-kill-proc-and-buffer :help "Kill the current buffer"])
+      "--"
+      ["Customize"
+       (customize-group 'doc-view)]))
+  (easy-menu-define my-doc-view-minor-mode-menu doc-view-minor-mode-map "Menu for Doc-View Minor Mode."
+    '("DocView*"
+      ["Display in DocView Mode" doc-view-toggle-display :help "View"]
+      ["Exit DocView Mode" doc-view-minor-mode])))
 
 (use-package csv-mode
     :commands csv-mode
@@ -1427,6 +1736,11 @@ CSV (_q_: quit)"
 (use-package dockerfile-mode
   :commands dockerfile-mode
   :config (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
+
+;; major mode for reading EPUBs
+(use-package nov
+  :init (add-to-list 'auto-mode-alist
+                     '("\\.epub\\'" . nov-mode)))
 
 ;; provides a major mode for editing JSON files
 (use-package json-mode
@@ -2184,6 +2498,11 @@ Org-mode → Download (_q_: ←)"
 (with-eval-after-load 'org
   (require 'ox-md))
 
+;; create sychronized external notes in DocView and Nov.el
+(use-package org-noter
+  :bind ("C-c C-M-S-n" . org-noter)
+  :init (setq org-noter-always-create-frame nil))
+
 ;; Outlines
 
 (setq imenu-auto-rescan t)
@@ -2339,8 +2658,8 @@ conda (_q_: quit)"
   :commands eglot
   :config
   ;; increase wait time after last change before asking for
-  ;; completions from 0.5s to 1s to reduce request rate
-  (setq eglot-send-changes-idle-time 1)
+  ;; completions from 0.5s to 2s to reduce request rate
+  (setq eglot-send-changes-idle-time 2)
   ;; prioritize diagnostic message display if a Flymake error is under the point
   ;; https://github.com/joaotavora/eglot/issues/8#issuecomment-414149077
   (advice-add 'eglot-eldoc-function :around
@@ -2719,6 +3038,11 @@ Python (_q_: quit)"
 ;; set path to Microsoft Python Language Server binary
 (setq mspyls-path (expand-file-name "~/.local/bin/Microsoft.Python.LanguageServer"))
 
+;; set path to typeshed containing Python external type annotations
+;; which comes with MS Python Language Server
+;; or clone https://github.com/python/typeshed
+(setq typeshed-path (expand-file-name "~/Packages/typeshed/"))
+
 ;; eglot Python settings
 ;; cobbled together from the following sources:
 ;; https://github.com/joaotavora/eglot/issues/144#issuecomment-557229445
@@ -2776,7 +3100,9 @@ Python (_q_: quit)"
                        :trimDocumentationText :json-false
                        :maxDocumentationTextLength 0)
       :analysisUpdates t
-      :asyncStartup t))
+      :asyncStartup t
+      :logLevel "Error"
+      :typeStubSearchPaths ,(vector typeshed-path)))
 
   (add-to-list 'eglot-server-programs
                `(python-mode eglot-pyls ,mspyls-path)))
@@ -3364,12 +3690,12 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
 
 ;; hydra for visual settings
 (defhydra my-hydra/visual (:color amaranth :hint nil
-                                  :pre (progn
-                                         (require 'follow)
-                                         (require 'hilit-chg)
-                                         (require 'hl-line)
-                                         (require 'display-line-numbers)
-                                         (require 'face-remap)))
+                           :pre (progn
+                                  (require 'follow)
+                                  (require 'hilit-chg)
+                                  (require 'hl-line)
+                                  (require 'display-line-numbers)
+                                  (require 'face-remap)))
   "
 Visual (_q_: quit)
 _b_ : blink-cursor [% 5`blink-cursor-mode]   _F_ : follow       [% 5`follow-mode]   _f_ : font-lock    [% 5`font-lock-mode]
@@ -3400,8 +3726,53 @@ _+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 
   ("-" text-scale-decrease)
   ("0" (text-scale-adjust 0)))
 
+(defvar-local my-hydra/visual/emphasis--face-remap-cookies '()
+  "Alist storing cookies for `face-remap-add-relative' calls.")
+
+(defun my-hydra/visual/emphasis--toggle-lighten-face (face)
+  "Toggle lightening of FACE color for emphasis or emphasis."
+  (let ((face-remap-cookie-old (alist-get face my-hydra/visual/emphasis--face-remap-cookies)))
+    (if face-remap-cookie-old
+        (progn
+          (face-remap-remove-relative face-remap-cookie-old)
+          (setq my-hydra/visual/emphasis--face-remap-cookies
+                (assq-delete-all
+                 face
+                 my-hydra/visual/emphasis--face-remap-cookies)))
+      (let* ((light-color (color-lighten-name
+                           (face-attribute face :foreground)
+                           50)) ;; lighten color by 50 percent
+             (face-remap-cookie-new (face-remap-add-relative
+                                     face
+                                     :foreground light-color)))
+        (push `(,face . ,face-remap-cookie-new)
+              my-hydra/visual/emphasis--face-remap-cookies)))))
+
+(defhydra my-hydra/visual/emphasis (:color amaranth :hint nil)
+  "
+Visual → Emphasis (_q_: quit)
+_c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emphasis--face-remap-cookies))]   _C_ : comment-delim  [% 3(null (assq 'font-lock-comment-delimiter-face my-hydra/visual/emphasis--face-remap-cookies))]   _d_ : doc            [% 3(null (assq 'font-lock-doc-face my-hydra/visual/emphasis--face-remap-cookies))]
+"
+  ("q" my-hydra/visual/body :exit t)
+  ("c" (lambda ()
+         (interactive)
+         (my-hydra/visual/emphasis--toggle-lighten-face
+          'font-lock-comment-face)))
+  ("C" (lambda ()
+         (interactive)
+         (my-hydra/visual/emphasis--toggle-lighten-face
+          'font-lock-comment-delimiter-face)))
+  ("d" (lambda ()
+         (interactive)
+         (my-hydra/visual/emphasis--toggle-lighten-face
+          'font-lock-doc-face))))
+
 ;; bind visual hydra
 (global-set-key (kbd "C-c C-M-v i") 'my-hydra/visual/body)
+
+;; add entrypoint to visual emphasis hydra to visual hydra
+(defhydra+ my-hydra/visual nil
+  ("e" my-hydra/visual/emphasis/body "→ Emphasis" :exit t))
 
 ;; provides toggleable modes that remove visual distractions
 (use-package darkroom
@@ -3684,6 +4055,41 @@ Help (_q_: quit)"
         mac-right-option-modifier 'left ;; right Option uses left's mapping
         mac-command-modifier 'super)) ;; keep Super key as is
 
+(when (eq window-system 'ns)
+  (setq mac-option-modifier 'meta ;; use Option key as Meta
+        mac-right-option-modifier 'left ;; right Option uses left's mapping
+        mac-command-modifier 'super)) ;; keep Super key as is
+
+;; revert Command keys in Emacs Mac Port to match Emacs for Mac OS X bindings
+(when (eq window-system 'mac)
+  (setq mac-option-modifier 'meta
+        mac-right-option-modifier 'left
+        mac-command-modifier 'super)
+  (global-set-key (kbd "s-'") 'next-multiframe-window)
+  (global-set-key (kbd "s-,") 'customize)
+  (global-set-key (kbd "s-`") 'other-frame)
+  (global-set-key (kbd "s-a") 'mark-whole-buffer)
+  (global-set-key (kbd "s-c") 'kill-ring-save) ;; ns-copy-including-secondary
+  (global-set-key (kbd "s-d") 'isearch-repeat-backward)
+  (global-set-key (kbd "s-f") 'isearch-forward)
+  (global-set-key (kbd "s-g") 'isearch-repeat-forward)
+  ;; (global-set-key (kbd "s-h") 'ns-do-hide-emacs) ;; done by default
+  (global-set-key (kbd "s-j") 'exchange-point-and-mark)
+  (global-set-key (kbd "s-k") 'kill-this-buffer)
+  (global-set-key (kbd "s-l") 'goto-line)
+  (global-set-key (kbd "s-m") 'iconify-frame)
+  (global-set-key (kbd "s-n") 'make-frame)
+  ;; (global-set-key (kbd "s-o") 'ns-open-file-using-panel) ;; no equivalent
+  ;; (global-set-key (kbd "s-p") 'ns-print-buffer) ;; no equivalent
+  (global-set-key (kbd "s-q") 'save-buffers-kill-emacs)
+  (global-set-key (kbd "s-s") 'save-buffer)
+  (global-set-key (kbd "s-u") 'revert-buffer)
+  (global-set-key (kbd "s-v") 'yank)
+  (global-set-key (kbd "s-w") 'delete-frame)
+  (global-set-key (kbd "s-x") 'kill-region)
+  (global-set-key (kbd "s-y") 'yank) ;; ns-paste-secondary
+  (global-set-key (kbd "s-z") 'undo))
+
 ;; case-insensitive sorting in Dired
 ;; http://pragmaticemacs.com/emacs/case-insensitive-sorting-in-dired-on-os-x/
 (when (eq system-type 'darwin)
@@ -3695,6 +4101,18 @@ Help (_q_: quit)"
   (setq ls-lisp-verbosity '(links uid))
   ;; (setq ls-lisp-format-time-list '("%b %e %H:%M" "%b %e %Y"))
   (setq ls-lisp-use-localized-time-format t))
+
+;; open files in dired mode using 'open' when using Mac OS X,
+;; bindings are 'z' in Dired which is also in the Dired mode hydra
+(with-eval-after-load 'dired
+  (defun dired--mac-open-file-at-pt ()
+    "Opens file at point in Dired using Mac OS X 'open' command."
+    (interactive)
+      (let ((filename (dired-get-file-for-visit)))
+        (start-process "default-app" nil "open" filename)))
+  (define-key dired-mode-map (kbd "z") #'dired--mac-open-file-at-pt)
+  (defhydra+ my-hydra/dired-mode nil
+    ("z" dired--mac-open-file-at-pt "mac-open")))
 
 ;; exclude Emacs source files from recentf history on Mac OS X
 (add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
@@ -3728,6 +4146,11 @@ or the current buffer file or directory if not (Mac OS X)."
 (when (fboundp 'mac-auto-operator-composition-mode)
   (defhydra+ my-hydra/visual nil
     ("L" mac-auto-operator-composition-mode "toggle-ligature" :exit nil)))
+
+;; increment DocView DPI resolution for Mac Retina screens
+;; when using emacs-mac port
+(when (eq window-system 'mac)
+  (setq doc-view-resolution 300))
 
 ;; workaround for problematic entries in `load-history' which affects
 ;; Emacs 27+ on some systems, probably to do with the portable dumper

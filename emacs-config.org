@@ -422,10 +422,16 @@ In most instances, use only this or Icomplete but not both.
 (use-package helm
   :init
   (setq helm-allow-mouse t
+        helm-command-prefix-key "C-c C-M-h"
         helm-prevent-escaping-from-minibuffer nil
+        ;; show helm completion buffer using default display function
+        ;; instead of always opening a new frame for it
+        helm-show-completion-display-function #'helm-show-completion-default-display-function
         ;; show helm buffers by splitting current window instead of
         ;; taking over another window in multi-window layout
         helm-split-window-inside-p t)
+  (when (version< emacs-version "27")
+    (add-to-list 'completion-styles 'helm-flex t))
   :config
   (require 'helm-config)
   (helm-mode 1)
@@ -436,7 +442,7 @@ In most instances, use only this or Icomplete but not both.
   ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
   (define-key global-map [remap switch-to-buffer] 'helm-mini)
   (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
-  ;; (define-key global-map [remap execute-extended-command] 'helm-M-x)
+  (define-key global-map [remap execute-extended-command] 'helm-M-x)
   (define-key global-map [remap apropos-command] 'helm-apropos)
   ;; make <tab> only complete names during helm completion, instead of
   ;; default behavior that creates new buffer on the second press
@@ -616,12 +622,15 @@ following enhancements:
 - Prioritizing most-used commands.
 - Showing keyboard shortcuts.
 
+*Note*: When Helm is enabled, use ~helm-M-x~ instead.
+
 #+name: amx
 #+begin_src emacs-lisp
 ;; alternative interface for M-x
-(use-package amx
-  :bind ("M-X" . amx-major-mode-commands)
-  :init (amx-mode))
+(when (not (featurep 'helm))
+  (use-package amx
+    :bind ("M-X" . amx-major-mode-commands)
+    :init (amx-mode)))
 #+end_src
 
 ** Recent files
@@ -638,7 +647,7 @@ opened files.
 (recentf-mode 1)
 ;; exclude source code files in installed packages from ELPA-compatible repos
 (add-to-list 'recentf-exclude
-             (concat "^" (expand-file-name user-emacs-directory) "elpa/"))
+             (concat "^" (expand-file-name "elpa/" user-emacs-directory)))
 ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
 ;; exclude files opened as the superuser with su or sudo
 (add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
@@ -653,8 +662,22 @@ opened files.
               (dolist (exclude-file file-list)
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
-;; binding for recentf
+;; binding for recentf, use Helm version if available
 (global-set-key (kbd "C-c C-M-r f") #'recentf-open-files)
+#+end_src
+
+*** Helm recentf
+
+Prefer ~helm-recentf~ to ~recentf-open-files~ for the main binding.
+
+#+name: helm-recentf
+#+begin_src emacs-lisp
+;; prefer helm-recentf to recentf-open-files
+(add-hook 'after-init-hook
+          (lambda ()
+            (when (featurep 'helm)
+              (define-key global-map [remap recentf-open-files]
+                'helm-recentf))))
 #+end_src
 
 ** Save location in file
@@ -698,9 +721,11 @@ by the ~history-length~ variable.
 (savehist-mode 1)
 #+end_src
 
-* Buffer management
+* Buffers, windows, frames, workspaces
 
-** Bury scratch and message buffer instead of killing them
+** Buffer management
+
+*** Bury scratch and message buffer instead of killing them
 
 Make ~*scratch*~ and ~*Message*~ buffers unkillable, burying the
 buffers instead when the user tries to delete them.
@@ -720,7 +745,7 @@ buffers instead when the user tries to delete them.
 (add-hook 'kill-buffer-query-functions #'my-bury-unkillable-buffers)
 #+end_src
 
-** Buffer manipulation hydra                                          :hydra:
+*** Buffer manipulation hydra                                         :hydra:
 
 Hydra for basic [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Buffers.html][buffer]] manipulation.
 
@@ -744,7 +769,7 @@ Buffer (_q_: quit)"
 (global-set-key (kbd "C-c C-M-b f") 'my-hydra/buffer/body)
 #+end_src
 
-** Advanced buffer management with Ibuffer
+*** Advanced buffer management with Ibuffer
 
 Use [[https://www.emacswiki.org/emacs/IbufferMode][Ibuffer]] to manage buffers.
 
@@ -764,7 +789,7 @@ Use [[https://www.emacswiki.org/emacs/IbufferMode][Ibuffer]] to manage buffers.
 (global-set-key (kbd "C-x C-b") #'ibuffer)
 #+end_src
 
-*** Ibuffer filter groups
+**** Ibuffer filter groups
 
 Set default rules for grouping files in Ibuffer.
 
@@ -780,19 +805,19 @@ Set default rules for grouping files in Ibuffer.
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)))
-           ("Programming" (derived-mode . prog-mode))
-           ("Web Browsing" (mode . eww-mode))
            ("Org" (or (mode . org-mode)
                       (mode . org-agenda-mode)))
+           ("Web Browsing" (mode . eww-mode))
+           ("Programming" (derived-mode . prog-mode))
+           ("Dired" (mode . dired-mode))
            ("Magit" (or (name . "\*magit.*\\*")
                         (mode . magit-mode)))
-           ("Dired" (mode . dired-mode))
            ("Help" (or (derived-mode . apropos-mode)
                        (derived-mode . help-mode)
                        (derived-mode . Info-mode)))))))
 #+end_src
 
-*** Group by version-controlled project in Ibuffer                    :melpa:
+**** Group by version-controlled project in Ibuffer                   :melpa:
 
 Add support for grouping files by version-controlled project ([[https://github.com/purcell/ibuffer-vc][link]]).
 
@@ -805,7 +830,7 @@ Add support for grouping files by version-controlled project ([[https://github.c
          ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
 #+end_src
 
-*** Ibuffer hydra                                                     :hydra:
+**** Ibuffer hydra                                                    :hydra:
 
 Major mode-specific hydra for Ibuffer.
 
@@ -833,6 +858,7 @@ Ibuffer (_q_: quit)"
   ("D" ibuffer-do-delete "delete")
   ("a" my-hydra/ibuffer-mode/action/body "→ Action" :exit t)
   ;; view
+  ("`" ibuffer-switch-format "format")
   ("g" ibuffer-update "refresh")
   ("s" my-hydra/ibuffer-mode/sort/body "→ Sort" :exit t)
   ("/" my-hydra/ibuffer-mode/filter/body "→ Filter" :exit t)
@@ -885,7 +911,8 @@ Ibuffer → Sort (_q_: ←)"
   ("s" ibuffer-do-sort-by-size "size")
   ("v" ibuffer-do-sort-by-recency "recency")
   ("i" ibuffer-invert-sorting "invert"))
-(defhydra my-hydra/ibuffer-mode/filter (:color amaranth :columns 5)
+(defhydra my-hydra/ibuffer-mode/filter (:color amaranth :columns 5
+                                        :pre (require 'ibuffer-vc))
   "
 Ibuffer → Filter (_q_: ←)"
   ("q" my-hydra/ibuffer-mode/body nil :exit t)
@@ -905,11 +932,13 @@ Ibuffer → Filter (_q_: ←)"
   ("R" ibuffer-switch-to-saved-filter-groups "saved-groups")
   ("\\" ibuffer-clear-filter-groups "clear-groups")
   ("/" ibuffer-filter-disable "disable"))
+
+;; bind Ibuffer hydra
 (with-eval-after-load 'ibuffer
   (define-key ibuffer-mode-map (kbd "C-c C-M-m") #'my-hydra/ibuffer-mode/body))
 #+end_src
 
-*** Ibuffer icons                                                     :melpa:
+**** Ibuffer icons                                                    :melpa:
 
 Add file icons next to the file names.
 Uses file icon API exposed by the ~all-the-icons~ package.
@@ -921,6 +950,253 @@ Uses file icon API exposed by the ~all-the-icons~ package.
   (use-package all-the-icons-ibuffer
     :after (all-the-icons ibuffer)
     :config (all-the-icons-ibuffer-mode 1)))
+#+end_src
+
+** Window management
+
+*** Traverse window configuration history using Winner mode
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Window-Convenience.html][Winner mode]] allows the traversal of window configuration history using
+~C-c <left>~ (undo) and ~C-c <right>~ (redo).
+
+#+name: winner-mode
+#+begin_src emacs-lisp
+;; traverse window config changes, C-c left/right to undo/redo
+;; uncomment to not bind C-c left/right keys by default
+;; (setq winner-dont-bind-my-keys t)
+;; enable winner-mode at end of initialization
+(add-hook 'after-init-hook #'winner-mode)
+#+end_src
+
+*** Window management hydra                                           :hydra:
+
+Hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Windows.html][window]] (panes) management.
+
+*Note*: In Emacs 27+, ~next-multiframe-window~ and
+~previous-multiframe-window~ were renamed to ~next-window-any-frame~
+and ~previous-window-any-frame~, and the new names are used here.
+
+#+name: window-hydra
+#+begin_src emacs-lisp
+(defhydra my-hydra/window (:color amaranth :columns 3)
+  "
+Window (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("u" winner-undo "winner-undo")
+  ("r" winner-redo "winner-redo")
+  ("n" next-window-any-frame "next")
+  ("p" previous-window-any-frame "previous")
+  ("v" split-window-right "split-v")
+  ("s" split-window-below "split-h")
+  ("<left>" windmove-left "left")
+  ("<down>" windmove-down "down")
+  ("<up>" windmove-up "up")
+  ("<right>" windmove-right "right")
+  ("S-<left>" (my-transpose-windows 'windmove-left) "transpose-l")
+  ("S-<down>" (my-transpose-windows 'windmove-down) "transpose-d")
+  ("S-<up>" (my-transpose-windows 'windmove-up) "transpose-u")
+  ("S-<right>" (my-transpose-windows 'windmove-right) "transpose-r")
+  ("-" shrink-window "shrink-v")
+  ("+" enlarge-window "enlarge-v")
+  ("<" shrink-window-horizontally "shrink-h")
+  (">" enlarge-window-horizontally "enlarge-h")
+  ("M" minimize-window "minimize")
+  ("m" maximize-window "maximize")
+  ("=" balance-windows "balance")
+  ("_" balance-windows-area "balance-area")
+  ("o" delete-other-windows "only")
+  ("d" delete-window "delete")
+  ("D" kill-buffer-and-window "delete-buf"))
+(global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body)
+#+end_src
+
+**** Window management helper functions
+
+Helper functions for the frame management hydra.
+
+#+name: window-hydra-helper-functions
+#+begin_src emacs-lisp
+(defun my-transpose-windows (selector)
+  "Call SELECTOR and transpose buffers between current and selected windows."
+  (let ((from-win (selected-window))
+        (from-buf (window-buffer)))
+    (funcall selector)
+    (set-window-buffer from-win (window-buffer))
+    (set-window-buffer (selected-window) from-buf)))
+#+end_src
+
+*** Add buffer rotation across windows to window management hydra     :hydra:
+
+Define a function to rotate buffers across the windows of a frame, and
+add an entrypoint to the function in the window management hydra.
+
+#+name: rotate-window-buffers-hydra
+#+begin_src emacs-lisp
+(defun rotate-window-buffers (rotations)
+  "Rotate buffers in the windows of the current frame ROTATIONS times.
+ROTATIONS can be negative, which rotates in the opposite direction."
+  (interactive "P")
+  (let ((num-windows (count-windows)))
+    (if (not (> num-windows 1))
+        (message "Only one window in the frame. Nothing to rotate.")
+      (let* ((windows (window-list))
+             ;; original window order properties
+             (window-props (mapcar (lambda (w)
+                                     `(:buffer ,(window-buffer w)
+                                       :start ,(window-start w)
+                                       :point ,(window-point w)))
+                                   windows))
+             ;; new window order after rotation
+             (window-moves (mapcar
+                            (lambda (k)
+                              (elt windows (mod (+ k rotations) num-windows)))
+                            (number-sequence 0 (1- num-windows))))
+             ;; create alist for easier looping later
+             (wins-props (mapcar* #'cons window-moves window-props)))
+        ;; iteratively assign orig window props in new window order
+        (dolist (w-p wins-props)
+          (let ((win (car w-p))
+                (prop (cdr w-p)))
+            (set-window-buffer-start-and-point
+             win
+             (plist-get prop :buffer)
+             (plist-get prop :start)
+             (plist-get prop :point))))))))
+
+;; add entrypoint for `rotate-window-buffers' to window management hydra
+(defhydra+ my-hydra/window nil
+  ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
+  ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
+#+end_src
+
+** Frame management
+
+*** Frame management hydra                                            :hydra:
+
+Hydra for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Frames.html][frame]] (application window) management.
+
+#+name: frame-hydra
+#+begin_src emacs-lisp
+(defhydra my-hydra/frame (:color amaranth :columns 4)
+  "
+Frame (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("<up>" (lambda (n) (interactive "p") (my-move-frame-pct 0 (- n))) "move-u")
+  ("<down>" (lambda (n) (interactive "p") (my-move-frame-pct 0 n)) "move-d")
+  ("<left>" (lambda (n) (interactive "p") (my-move-frame-pct (- n) 0)) "move-l")
+  ("<right>" (lambda (n) (interactive "p") (my-move-frame-pct n 0)) "move-r")
+  ("+" (lambda (n) (interactive "p") (my-enlarge-frame 0 n)) "enlarge-v")
+  ("-" (lambda (n) (interactive "p") (my-enlarge-frame 0 (- n))) "shrink-v")
+  (">" (lambda (n) (interactive "p") (my-enlarge-frame n 0)) "enlarge-h")
+  ("<" (lambda (n) (interactive "p") (my-enlarge-frame (- n) 0)) "shrink-h")
+  ("M" toggle-frame-maximized "maximize")
+  ("f" toggle-frame-fullscreen "fullscreen")
+  ("p" (other-frame -1) "previous")
+  ("n" other-frame "next")
+  ("s" select-frame-by-name "select")
+  ("m" (lambda () (interactive) (my-make-frame 15 20)) "make")
+  ("d" delete-frame "delete")
+  ("o" delete-other-frames "only"))
+(global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
+#+end_src
+
+**** Frame management helper functions
+
+Helper functions for the frame management hydra.
+
+#+name: frame-hydra-helper-functions
+#+begin_src emacs-lisp
+(defun my-enlarge-frame (w h)
+  "Enlarge width, height of selected frame by W, H lines (shrink if negative)."
+  (let ((this-frame (selected-frame)))
+    (set-frame-width this-frame (+ (frame-width this-frame) w))
+    (set-frame-height this-frame (+ (frame-height this-frame) h))))
+
+(defun my-move-frame (x y)
+  "Move selected frame by X pixels horizontally and Y pixels vertically."
+  (let* ((this-frame (selected-frame))
+         (fpos (frame-position this-frame)))
+    (set-frame-position this-frame (+ (car fpos) x) (+ (cdr fpos) y))))
+
+(defun my-move-frame-pct (x y)
+  "Move selected frame within display by X% horizontally and Y% vertically."
+  (my-move-frame (* x (/ (x-display-pixel-width) 100))
+                 (* y (/ (x-display-pixel-height) 100))))
+
+(defun my-make-frame (x y)
+  "Make new frame, offset by X pixels horizontally and Y pixels vertically."
+  (let ((cur-pos (frame-position)))
+    (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
+                                    (cons 'top (+ y (cdr cur-pos))))))))
+#+end_src
+
+*** transpose-frame for rotating frames                               :melpa:
+
+[[https://github.com/emacsorphanage/transpose-frame][transpose-frame]] allows for the rotation of the frame to get a new
+window layout that is rotated from the original.
+
+See the package Elisp code for more details.
+
+#+name: transpose-frame
+#+begin_src emacs-lisp
+(use-package transpose-frame)
+#+end_src
+
+**** Add transpose-frame rotation functions to frame management hydra :hydra:
+
+Add entrypoints to ~transpose-frame~ frame rotation functions to the
+frame maangement hydra.
+
+#+name: transpose-frame-hydra
+#+begin_src emacs-lisp
+;; add entrypoint for transpose-frame to frame management hydra
+(defhydra+ my-hydra/frame nil
+  ("," (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-anticlockwise))) "rotate-l")
+  ("." (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-clockwise))) "rotate-r"))
+#+end_src
+
+** Workspace management
+
+*** Desktop.el for saving and restoring sessions
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Saving-Emacs-Sessions.html][desktop.el]] provides capabilities for saving and restoring sessions
+manually and automatically.
+
+*Configuration*:
+- Enable ~desktop-save-mode~ which automatically saves on exit and
+  loads on entry, but set ~desktop-auto-save-timeout~ to disable
+  default behavior of auto-saving on a timer.
+
+#+name: desktop
+#+begin_src emacs-lisp
+;; settings for desktop.el
+;; desktops are saved to ~/.emacs.d/.emacs.desktop
+;; and locks are saved to ~/.emacs.d/.emacs.desktop.lock
+;; - enable desktop-save-mode to save on timer and exit, load on entry
+;; - set `desktop-autosave-timeout' to nil to disable timer auto-saves
+(setq desktop-auto-save-timeout nil)
+(desktop-save-mode 1)
+#+end_src
+
+*** Workspace hydra                                                   :hydra:
+
+Hydra for workspace manipulation and usage.
+
+#+name: workspace-hydra
+#+begin_src emacs-lisp
+;; hydra for workspace management
+(defhydra my-hydra/workspace (:color teal :columns 3)
+  "
+Workspace (_q_: quit)"
+  ("q" nil nil)
+  ("dc" desktop-clear "desktop-clear")
+  ("ds" desktop-save "desktop-save")
+  ("dr" desktop-read "desktop-read")
+  ("dR" desktop-revert "desktop-revert")
+  ("dd" desktop-change-dir "desktop-dir"))
+
+;; binding for workspace management hydra
+(global-set-key (kbd "C-c C-M-e w") 'my-hydra/workspace/body)
 #+end_src
 
 * Command-line interaction
@@ -1036,13 +1312,52 @@ autocomplete, or ~M-<right>~ or ~M-f~ to autocomplete just the next word.
   :hook (eshell-mode . esh-autosuggest-mode))
 #+end_src
 
-*** Extend pcomplete with fish-like completions              :external:melpa:
+*** Helm completion in Eshell
 
-The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] ([[https://www.masteringemacs.org/article/pcomplete-context-sensitive-completion-emacs][more info]])
-to power Eshell command-line completions using [[https://fishshell.com/][fish]].
+Extend [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] ([[https://www.masteringemacs.org/article/pcomplete-context-sensitive-completion-emacs][more info]]) to complete commands and files in Eshell
+using Helm, adapted from the [[https://github.com/emacs-helm/helm/wiki/Eshell][Helm wiki]].
+
+#+name: helm-eshell-completion
+#+begin_src emacs-lisp
+(when (featurep 'helm)
+  (add-hook 'eshell-mode-hook
+          (lambda ()
+            (eshell-cmpl-initialize)
+            (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
+            (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
+#+end_src
+
+*** Helm Fish Completion of CLI options in Eshell            :external:melpa:
+
+[[https://github.com/emacs-helm/helm-fish-completion][Helm Fish Completion]] provides a Helm-based extension of [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to
+complete CLI options using [[https://fishshell.com/][fish]] in Eshell and other shells.
+
+If using this, ~fish-completion-mode~ should be disabled.
+
+#+name: helm-fish-completion
+#+begin_src emacs-lisp
+(when (and (executable-find "fish") (featurep 'helm))
+  (use-package helm-fish-completion
+    :config
+    (setq helm-esh-pcomplete-build-source-fn
+          #'helm-fish-completion-make-eshell-source)
+    (with-eval-after-load 'shell
+      (define-key shell-mode-map (kbd "<tab>") #'helm-fish-completion))
+    (add-hook 'eshell-mode-hook
+              (lambda ()
+                (define-key eshell-mode-map (kbd "<tab>")
+                  #'helm-fish-completion)))))
+#+end_src
+
+*** fish-completion of CLI options in Eshell                 :external:melpa:
+
+The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to power Eshell CLI
+option completions using [[https://fishshell.com/][fish]].
 
 This package requires that ~fish~ be installed on the system and
 be on the system path.
+
+If using ~helm-fish-completion~, ~fish-completion-mode~ should be disabled.
 
 #+name: fish-completion
 #+begin_src emacs-lisp
@@ -1050,7 +1365,8 @@ be on the system path.
 (when (executable-find "fish")
   (use-package fish-completion
     :after eshell
-    :hook (eshell-mode . fish-completion-mode)))
+    :config (when (not (featurep 'helm))
+              (add-hook 'eshell-mode-hook #'fish-completion-mode))))
 #+end_src
 
 ** Command interpreters for other shells
@@ -2580,7 +2896,6 @@ by (by default, it is off).
                    notmuch-show-mode-map
                    notmuch-tree-mode-map))
       (define-key map (kbd "M") #'org-msg-mode))
-    (defun my-gmail-quote-html (htmltext) htmltext)
     ;; modify HTML text to use Gmail blockquotes in place of '>'
     (defun my-gmail-quote-html (htmltext)
       "Modify HTMLTEXT to use Gmail blockquotes."
@@ -2733,20 +3048,7 @@ area."
 			     (org-msg-get-to-first-name)))))
 	 (save-excursion
            (insert "\n\n")
-	   ;; (when with-original
-	   ;;   (save-excursion
-	   ;;     (insert "\n\n" org-msg-separator "\n")
-	   ;;     (delete-region (line-beginning-position)
-	   ;;      	      (1+ (line-end-position)))
-	   ;;     (dolist (rep '(("^>+ *" . "") ("___+" . "---")))
-	   ;;       (save-excursion
-	   ;;         (while (re-search-forward (car rep) nil t)
-	   ;;           (replace-match (cdr rep)))))
-	   ;;     (org-escape-code-in-region (point) (point-max))))
            (when with-original
-             ;; TODO need to add "On %a, %b %d, %Y at %I:%M %p "
-             ;; where the date and time are parsed from the message
-             ;; being replied to
              (org-escape-code-in-region (point) (point-max)))
            (save-excursion
              (end-of-buffer)
@@ -2754,9 +3056,6 @@ area."
 	       (insert org-msg-signature)))
 	   (org-msg-edit-mode))
 	 (set-buffer-modified-p nil))
-       ;; (if (org-msg-message-fetch-field "to")
-       ;;     (org-msg-goto-body)
-       ;;   (message-goto-to))
        (if (org-msg-message-fetch-field "to")
            (recenter)
          (message-goto-to))))))
@@ -2776,207 +3075,13 @@ Loading the packages enables support for following notmuch links in
 Org-mode buffers and storing links to searches and messages using
 ~org-store-link~.
 
+*Note*: This requires Org mode 9.2.3 or newer.
+
 #+name: ol-notmuch
 #+begin_src emacs-lisp
-(require 'ol-notmuch)
-#+end_src
-
-* Frame and window management
-
-** Traverse window configuration history using Winner mode
-
-[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Window-Convenience.html][Winner mode]] allows the traversal of window configuration history using
-~C-c <left>~ (undo) and ~C-c <right>~ (redo).
-
-#+name: winner-mode
-#+begin_src emacs-lisp
-;; traverse window config changes, use C-c left/right to undo/redo
-(add-hook 'after-init-hook #'winner-mode)
-#+end_src
-
-** Window management hydra                                          :hydra:
-
-Hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Windows.html][window]] (panes) management.
-
-*Note*: In Emacs 27+, ~next-multiframe-window~ and
-~previous-multiframe-window~ were renamed to ~next-window-any-frame~
-and ~previous-window-any-frame~, and the new names are used here.
-
-#+name: window-hydra
-#+begin_src emacs-lisp
-(defhydra my-hydra/window (:color amaranth :columns 3)
-  "
-Window (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("u" winner-undo "winner-undo")
-  ("r" winner-redo "winner-redo")
-  ("n" next-window-any-frame "next")
-  ("p" previous-window-any-frame "previous")
-  ("v" split-window-right "split-v")
-  ("s" split-window-below "split-h")
-  ("<left>" windmove-left "left")
-  ("<down>" windmove-down "down")
-  ("<up>" windmove-up "up")
-  ("<right>" windmove-right "right")
-  ("S-<left>" (my-transpose-windows 'windmove-left) "transpose-l")
-  ("S-<down>" (my-transpose-windows 'windmove-down) "transpose-d")
-  ("S-<up>" (my-transpose-windows 'windmove-up) "transpose-u")
-  ("S-<right>" (my-transpose-windows 'windmove-right) "transpose-r")
-  ("-" shrink-window "shrink-v")
-  ("+" enlarge-window "enlarge-v")
-  ("<" shrink-window-horizontally "shrink-h")
-  (">" enlarge-window-horizontally "enlarge-h")
-  ("M" minimize-window "minimize")
-  ("m" maximize-window "maximize")
-  ("=" balance-windows "balance")
-  ("_" balance-windows-area "balance-area")
-  ("o" delete-other-windows "only")
-  ("d" delete-window "delete")
-  ("D" kill-buffer-and-window "delete-buf"))
-(global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body)
-#+end_src
-
-*** Window management helper functions
-
-Helper functions for the frame management hydra.
-
-#+name: window-hydra-helper-functions
-#+begin_src emacs-lisp
-(defun my-transpose-windows (selector)
-  "Call SELECTOR and transpose buffers between current and selected windows."
-  (let ((from-win (selected-window))
-        (from-buf (window-buffer)))
-    (funcall selector)
-    (set-window-buffer from-win (window-buffer))
-    (set-window-buffer (selected-window) from-buf)))
-#+end_src
-
-** Add buffer rotation across windows to window management hydra      :hydra:
-
-Define a function to rotate buffers across the windows of a frame, and
-add an entrypoint to the function in the window management hydra.
-
-#+name: rotate-window-buffers-hydra
-#+begin_src emacs-lisp
-(defun rotate-window-buffers (rotations)
-  "Rotate buffers in the windows of the current frame ROTATIONS times.
-ROTATIONS can be negative, which rotates in the opposite direction."
-  (interactive "P")
-  (let ((num-windows (count-windows)))
-    (if (not (> num-windows 1))
-        (message "Only one window in the frame. Nothing to rotate.")
-      (let* ((windows (window-list))
-             ;; original window order properties
-             (window-props (mapcar (lambda (w)
-                                     `(:buffer ,(window-buffer w)
-                                       :start ,(window-start w)
-                                       :point ,(window-point w)))
-                                   windows))
-             ;; new window order after rotation
-             (window-moves (mapcar
-                            (lambda (k)
-                              (elt windows (mod (+ k rotations) num-windows)))
-                            (number-sequence 0 (1- num-windows))))
-             ;; create alist for easier looping later
-             (wins-props (mapcar* #'cons window-moves window-props)))
-        ;; iteratively assign orig window props in new window order
-        (dolist (w-p wins-props)
-          (let ((win (car w-p))
-                (prop (cdr w-p)))
-            (set-window-buffer-start-and-point
-             win
-             (plist-get prop :buffer)
-             (plist-get prop :start)
-             (plist-get prop :point))))))))
-
-;; add entrypoint for `rotate-window-buffers' to window management hydra
-(defhydra+ my-hydra/window nil
-  ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
-  ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
-#+end_src
-
-** Frame management hydra                                           :hydra:
-
-Hydra for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Frames.html][frame]] (application window) management.
-
-#+name: frame-hydra
-#+begin_src emacs-lisp
-(defhydra my-hydra/frame (:color amaranth :columns 4)
-  "
-Frame (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("<up>" (lambda (n) (interactive "p") (my-move-frame-pct 0 (- n))) "move-u")
-  ("<down>" (lambda (n) (interactive "p") (my-move-frame-pct 0 n)) "move-d")
-  ("<left>" (lambda (n) (interactive "p") (my-move-frame-pct (- n) 0)) "move-l")
-  ("<right>" (lambda (n) (interactive "p") (my-move-frame-pct n 0)) "move-r")
-  ("+" (lambda (n) (interactive "p") (my-enlarge-frame 0 n)) "enlarge-v")
-  ("-" (lambda (n) (interactive "p") (my-enlarge-frame 0 (- n))) "shrink-v")
-  (">" (lambda (n) (interactive "p") (my-enlarge-frame n 0)) "enlarge-h")
-  ("<" (lambda (n) (interactive "p") (my-enlarge-frame (- n) 0)) "shrink-h")
-  ("M" toggle-frame-maximized "maximize")
-  ("f" toggle-frame-fullscreen "fullscreen")
-  ("p" (other-frame -1) "previous")
-  ("n" other-frame "next")
-  ("s" select-frame-by-name "select")
-  ("m" (lambda () (interactive) (my-make-frame 15 20)) "make")
-  ("d" delete-frame "delete")
-  ("o" delete-other-frames "only"))
-(global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
-#+end_src
-
-*** Frame management helper functions
-
-Helper functions for the frame management hydra.
-
-#+name: frame-hydra-helper-functions
-#+begin_src emacs-lisp
-(defun my-enlarge-frame (w h)
-  "Enlarge width, height of selected frame by W, H lines (shrink if negative)."
-  (let ((this-frame (selected-frame)))
-    (set-frame-width this-frame (+ (frame-width this-frame) w))
-    (set-frame-height this-frame (+ (frame-height this-frame) h))))
-
-(defun my-move-frame (x y)
-  "Move selected frame by X pixels horizontally and Y pixels vertically."
-  (let* ((this-frame (selected-frame))
-         (fpos (frame-position this-frame)))
-    (set-frame-position this-frame (+ (car fpos) x) (+ (cdr fpos) y))))
-
-(defun my-move-frame-pct (x y)
-  "Move selected frame within display by X% horizontally and Y% vertically."
-  (my-move-frame (* x (/ (x-display-pixel-width) 100))
-                 (* y (/ (x-display-pixel-height) 100))))
-
-(defun my-make-frame (x y)
-  "Make new frame, offset by X pixels horizontally and Y pixels vertically."
-  (let ((cur-pos (frame-position)))
-    (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
-                                    (cons 'top (+ y (cdr cur-pos))))))))
-#+end_src
-
-** transpose-frame for rotating frames                                :melpa:
-
-[[https://github.com/emacsorphanage/transpose-frame][transpose-frame]] allows for the rotation of the frame to get a new
-window layout that is rotated from the original.
-
-See the package Elisp code for more details.
-
-#+name: transpose-frame
-#+begin_src emacs-lisp
-(use-package transpose-frame)
-#+end_src
-
-*** Add transpose-frame rotation functions to frame management hydra  :hydra:
-
-Add entrypoints to ~transpose-frame~ frame rotation functions to the
-frame maangement hydra.
-
-#+name: transpose-frame-hydra
-#+begin_src emacs-lisp
-;; add entrypoint for transpose-frame to frame management hydra
-(defhydra+ my-hydra/frame nil
-  ("," (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-anticlockwise))) "rotate-l")
-  ("." (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-clockwise))) "rotate-r"))
+(condition-case nil
+    (require 'ol-notmuch)
+  (error (message "ol-notmuch requires Org 9.2.3+")))
 #+end_src
 
 * Non-programming files
@@ -3330,6 +3435,7 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
       org-hide-emphasis-markers nil
       org-hide-leading-stars t
       org-highlight-latex-and-related '(latex script entities) ;; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
+      org-image-actual-width (list (/ (display-pixel-width) 3)) ;; auto-resize displayed images to one-third of display width
       org-log-into-drawer t
       org-outline-path-complete-in-steps nil
       org-pretty-entities t
@@ -3564,6 +3670,13 @@ Org-mode (_q_: quit)"
   ("M-s" org-narrow-to-subtree "narrow-subtree")
   ("M-b" org-narrow-to-block "narrow-block")
   ("M-w" widen "widen")
+  ("M-l" org-toggle-link-display "toggle-link-disp")
+  ("M-i" (lambda ()
+           (interactive)
+           (if org-image-actual-width
+               (setq org-image-actual-width nil)
+             (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
+           (org-redisplay-inline-images)) "toggle-img-width")
   ("i" org-toggle-inline-images "toggle-images")
   ("I" org-indent-mode "toggle-indent")
   ("P" org-toggle-pretty-entities "toggle-prettify")
@@ -4086,7 +4199,7 @@ pasting/yanking the Org link in the todo using ~C-c C-l~.
     (goto-char (point-min)))
   ;; add org-capture-template for new journal entries
   (push '("j" "Journal" entry (function my-org-journal-find-location)
-          "* %(format-time-string org-journal-time-format)%^{Title}\n%i%?")
+          "* %(format-time-string org-journal-time-format)%?\n%i")
         org-capture-templates)
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
         org-journal-file-format "%Y%m%d.org"
@@ -5383,7 +5496,8 @@ convenience functions to navigate, search and build projects.
 (use-package projectile
   :demand t
   :config
-  (setq projectile-create-missing-test-files t ;; create test file if none is found when toggling
+  (setq projectile-completion-system (if (featurep 'helm) 'helm 'default)
+        projectile-create-missing-test-files t ;; create test file if none is found when toggling
         projectile-switch-project-action 'projectile-commander
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
   (projectile-mode)) ;; enable mode globally
@@ -5398,7 +5512,7 @@ Major mode-specific hydra for interfacing with Projectile commands.
 ;; hydra for Projectile
 (defhydra my-hydra/projectile-mode (:color teal :hint nil)
   "
-Projectile: %(projectile-project-name) (_q_: quit)
+Projectile: %s(projectile-project-name) (_q_: quit)
 Buffer _←_ : previous proj buf  _→_ : next proj buf      _b_ : switch
        _I_ : ibuffer            _S_ : save proj bufs     _k_ : kill proj bufs
 File   _f_ : find (curr proj)   _F_ : find (known projs) _g_ : find (context)
@@ -5448,7 +5562,8 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
   ;; misc
   ("m" projectile-commander "commander")
   ("p" projectile-switch-project "switch project"))
-;; binding
+
+;; binding for projectile hydra
 (with-eval-after-load 'projectile
   (define-key projectile-mode-map (kbd "C-c C-M-p") #'my-hydra/projectile-mode/body))
 #+end_src
@@ -5795,7 +5910,9 @@ in a number of major modes using [[https://github.com/abo-abo/avy][avy]] as the 
   (ace-link-setup-default)
   ;; bind "M-o" to jump to link in Org mode
   (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "M-o") #'ace-link-org)))
+    (define-key org-mode-map (kbd "M-o") #'ace-link-org))
+  (with-eval-after-load 'org-agenda
+    (define-key org-agenda-mode-map (kbd "M-o") #'ace-link-org-agenda)))
 #+end_src
 
 ** Notdeft for searching notes and other text files
@@ -5871,26 +5988,6 @@ Notdeft is mainly used for searching notes and not for creating them.
 (autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
 (with-eval-after-load 'notdeft
   (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
-#+end_src
-
-* Session management
-
-** Desktop hydra                                                      :hydra:
-
-Hydra for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Saving-Emacs-Sessions.html][Emacs desktop]] (session) manipulation and usage.
-
-#+name: desktop-hydra
-#+begin_src emacs-lisp
-(defhydra my-hydra/desktop (:color teal :columns 5)
-  "
-Desktop (_q_: quit)"
-  ("q" nil nil)
-  ("c" desktop-clear "clear")
-  ("s" desktop-save "save")
-  ("r" desktop-read "read")
-  ("R" desktop-revert "revert")
-  ("d" desktop-change-dir "dir"))
-(global-set-key (kbd "C-c C-M-e k") 'my-hydra/desktop/body)
 #+end_src
 
 * Web
@@ -6354,6 +6451,8 @@ For more information about fonts and fontsets in Emacs, see this [[https://idioc
                     :height 120 :weight 'normal :width 'normal)
 ;; fallback font
 (set-fontset-font t nil "Symbola" nil 'append)
+;; increase min underline offset for more readable underlined words
+(setq underline-minimum-offset 5)
 #+end_src
 
 For some fonts, an alternative character may be preferable to the
@@ -6405,7 +6504,6 @@ Requires the ~all-the-icons~ package.
           doom-modeline-env-version nil
           doom-modeline-height 23 ;; change this based on mode-line face height
           doom-modeline-minor-modes t
-          doom-modeline-persp-name nil
           doom-modeline-unicode-fallback t)
     (doom-modeline-mode 1)))
 #+end_src
@@ -6878,15 +6976,9 @@ Emacs implementation (looking at Emacs Mac Port here).
   (add-hook
    'after-init-hook
    (lambda ()
-     ;; turn off Emacs Mac Port mouse wheel implementation, use the default one
-     (when (and (boundp 'mac-mouse-wheel-mode)
-                mac-mouse-wheel-mode)
-       (mac-mouse-wheel-mode -1)
-       (mouse-wheel-mode 1))
      ;; use super-left-click as middle-click (trackpad workaround)
      ;; (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
      ;; smooth scrolling, hold SHIFT/CONTROL for 5 line/full window increments
-     ;; scrolling while holding CTRL changes the text size
      (setq mouse-wheel-scroll-amount '(1
                                        ((shift) . 5)
                                        ((control) . nil)))
@@ -6964,7 +7056,7 @@ Help (_q_: quit)"
   ("w" where-is "where-is"))
 
 ;; bind help hydra
-(global-set-key (kbd "C-c C-M-h h") 'my-hydra/help/body)
+(global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
 #+end_src
 
 ** Hyperspace launcher for Emacs                                      :melpa:
@@ -7422,19 +7514,22 @@ See these links:
 #+begin_src emacs-lisp
 ;; workaround for problematic entries in `load-history' which affects
 ;; Emacs 27+ on some systems, probably to do with the portable dumper
-(defun load-history-filename-element (file-regexp)
-  "Get the first elt of `load-history' whose car matches FILE-REGEXP.
+;; mainly affecting Emacs for OS X
+(when (and (not (version< emacs-version "27"))
+           (eq window-system 'ns))
+  (defun load-history-filename-element (file-regexp)
+    "Get the first elt of `load-history' whose car matches FILE-REGEXP.
 Return nil if there isn't one."
-  (let* ((loads load-history)
-	 (load-elt (and loads (car loads))))
-    (save-match-data
-      (while (and loads
-		  (or (null (car load-elt))
-		      (not (and (stringp (car load-elt)) ;; skip non-strings
-                                (string-match file-regexp (car load-elt))))))
-	(setq loads (cdr loads)
-	      load-elt (and loads (car loads)))))
-    load-elt))
+    (let* ((loads load-history)
+           (load-elt (and loads (car loads))))
+      (save-match-data
+        (while (and loads
+                    (or (null (car load-elt))
+                        (not (and (stringp (car load-elt)) ;; skip non-strings
+                                  (string-match file-regexp (car load-elt))))))
+          (setq loads (cdr loads)
+                load-elt (and loads (car loads)))))
+      load-elt)))
 #+end_src
 
 * Back matter
@@ -7561,11 +7656,13 @@ The main configuration file.
 
 <<recentf>>
 
+<<helm-recentf>>
+
 <<saveplace>>
 
 <<savehist>>
 
-;; Buffer management
+;; Buffers, windows, frames, workspaces / Buffer management
 
 <<bury-not-kill-buffers>>
 
@@ -7581,6 +7678,32 @@ The main configuration file.
 
 <<all-the-icons-ibuffer>>
 
+;; Buffers, windows, frames, workspaces / Window management
+
+<<winner-mode>>
+
+<<window-hydra>>
+
+<<window-hydra-helper-functions>>
+
+<<rotate-window-buffers-hydra>>
+
+;; Buffers, windows, frames, workspaces / Frame management
+
+<<frame-hydra>>
+
+<<frame-hydra-helper-functions>>
+
+<<transpose-frame>>
+
+<<transpose-frame-hydra>>
+
+;; Buffers, windows, frames, workspaces / Workspace management
+
+<<desktop>>
+
+<<workspace-hydra>>
+
 ;; Command-line interaction
 
 <<eshell>>
@@ -7593,7 +7716,11 @@ The main configuration file.
 
 <<esh-autosuggest>>
 
-<<fish-completion>>
+<<helm-eshell-completion>>
+
+<<helm-fish-completion>>
+
+;; <<fish-completion>>
 
 <<comint-prompt-read-only>>
 
@@ -7683,24 +7810,6 @@ The main configuration file.
 <<org-msg-post-setup-no-remove-quote-text>>
 
 <<ol-notmuch>>
-
-;; Frame and window management
-
-<<winner-mode>>
-
-<<window-hydra>>
-
-<<window-hydra-helper-functions>>
-
-<<rotate-window-buffers-hydra>>
-
-<<frame-hydra>>
-
-<<frame-hydra-helper-functions>>
-
-<<transpose-frame>>
-
-<<transpose-frame-hydra>>
 
 ;; Non-programming files
 
@@ -7904,10 +8013,6 @@ The main configuration file.
 
 <<notdeft-hydra>>
 
-;; Session management
-
-<<desktop-hydra>>
-
 ;; Web
 
 <<eww>>
@@ -8060,7 +8165,7 @@ References:
 - See [[https://emacs.stackexchange.com/questions/22724/bbdb-searching-for-a-name-by-regex-with-tab-auto-completion/23842][here]] for an alternative method of completion using
   ~completing-read~ instead of ~company~.
 
-** Frame and window management
+** Buffers, windows, frames
 
 *** [#B] emacs-purpose                                                :melpa:
 
@@ -8072,6 +8177,16 @@ or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 (specifically the two functions add and remove ~ibuffer-auto-mode~).
 
 ** Non-programming files
+
+*** Nix configuration files
+
+**** [#C] nix-mode for editing Nix configuration files                :melpa:
+
+[[https://github.com/NixOS/nix-mode][GitHub - NixOS/nix-mode: An Emacs major mode for editing Nix expressions.]]
+
+**** [#C] nix-update-el for updating the rev/sha of a fetchgit declaration :melpa:
+
+[[https://github.com/jwiegley/nix-update-el][GitHub - jwiegley/nix-update-el]] ([[https://melpa.org/#/nix-update][MELPA]])
 
 *** [#B] PlantUML                                                     :melpa:
 
@@ -8093,6 +8208,71 @@ of the look-alike in the old code.
 
 Graphing of the linkages between Org documents in ~org-roam-directory~
 requires that [[https://graphviz.org/][Graphviz]] be installed on the system.
+
+**** Miscellaneous setup notes from others
+
+***** Setup one
+
+[[https://www.ianjones.us/2020-05-05-doom-emacs][Own Your Second Brain: Set Up org-roam on Your Own Machine]]
+
+***** Setup two
+
+From [[https://www.reddit.com/r/emacs/comments/gz4lk8/org_brain_and_org_roam/][Reddit thread]].
+
+#+begin_quote
+I have Org-Roam, Org-Roam-Bibtex and Org-Roam-Server packages installed. I also have roam protocol enabled which allows me to caputre webpages if I need them. I have the helm-bibtex package also enabled and configured to read the bibtex file I generate from Zotero (where I store all my papers) using better-bibtex extension. Lastly, I have org-noter package enabled.
+
+My typical workflow is - use helm-bibtex to find the paper I want to take notes on - hit `tab` hit `edit notes`. This opens up a capture template I have, which automatically populates the Title, Author, Year etc + puts the file path to the pdf in there.
+
+Next I `M-x org-noter`, which opens up the PDF file, in a new buffer for me, and I take notes on the pdf. I can use org-noter's capabilties to directly lift sections of text, with location information (as in where the text is in the pdf, super handy if you are tying to find exactly where a quote is from). After I am done reading and taking notes on the paper, I add the relevant tags and keywords. Moreover, I try to write a paragraph in my own words to encapsulate the main ideas of the paper I read, and link it to other ideas I have read in other works by using `org-roam-insert-note`. I also try to encapsulate any new research ideas or questions this paper might have generated for me, or questions for further inquiry.
+
+(I have separate org files for each paper. And the notes go into the roam [folder].)
+
+If I come across a citation in a paper, that I think I should I tend to find that paper and add it to my zotero, which automatically updates the citation helm-bibtex database for me. I can always go and read and process that paper.
+
+I have my org roam server usually on, so I can see the big clusters and ideas in my knowledge graph. This allows me to actively think about making connections to existing ideas and clusters while reading any new paper.
+
+> Thanks for this. Super helpful. One question, do you Zotero instead of org-ref or are they manage and handle references differently?
+
+I actually use org-ref too. But I use zotero as my master database. You can always use org-ref to use the same bibtex file that zotero generates. My preference for zotero is because I am locked in with over 1500 papers and notes in there and also because of the cite as you write capabilities in word and libreoffice. (which I use because of my co-authors).
+
+> did you auto-export from zotero to bibtex or you need to do it manually "exporting library"?
+
+there is an automatic sync.
+
+If you use the better bibtex plugin for zotero you export the file for the first time and click the option of "keep updated". After that Everytime you add a new paper it will automatically update the bibtex file.
+#+end_quote
+
+~org-roam-bibtex~ capture template for extracting the file path from ~helm-bibtex~:
+
+#+begin_src emacs-lisp
+(setq orb-preformat-keywords   '(("citekey" . "=key=")
+                                 "title"
+                                 "url"
+                                 "file"
+                                 "author-or-editor"
+                                 "keywords"))
+
+(setq orb-templates
+      '(("n" "ref+noter" plain (function org-roam-capture--get-point)
+         ""
+         :file-name "${slug}"
+         :head (mapconcat 'identity
+                          '("#+TITLE: ${citekey}: ${title}"
+                            "#+ROAM_KEY: ${ref}"
+                            ""
+                            "- tags ::"
+                            "- keywords :: ${keywords}"
+                            "* ${title}"
+                            ":PROPERTIES:"
+                            ":Custom_ID: ${citekey}"
+                            ":URL: ${url}"
+                            ":AUTHOR: ${author-or-editor}"
+                            ":NOTER_DOCUMENT: %(orb-process-file-field \"${citekey}\")"
+                            ":NOTER_PAGE:"
+                            ":END:")
+                          "\n"))))
+#+end_src
 
 *** [#B] Org-ref                                                      :melpa:
 
@@ -8149,7 +8329,29 @@ cutting-edge features implemented.
 References:
 - [[http://www.zhangjiee.com/blog/2019/emacs-slide.html][Emacs 基于 org-reveal 做幻灯片]]
 
-*** [#A] org-static-blog                                              :melpa:
+*** [#C] ox-hugo                                             :external:melpa:
+
+[[https://github.com/kaushalmodi/ox-hugo][GitHub - kaushalmodi/ox-hugo: A carefully crafted Org exporter back-end for Hugo]]
+
+[[https://www.kengrimes.com/ox-hugo-tutorial/][Ken Grimes :: Using ox-hugo To Build Websites with Emacs]]
+
+**** [#C] Using Github Actions to build and deploy websites
+
+[[https://www.aaron-powell.com/posts/2019-12-17-implementing-github-actions-for-my-blog/][Implementing GitHub Actions for My Blog]]
+
+[[https://dev.to/bnb/an-unintentionally-comprehensive-introduction-to-github-actions-ci-blm][An Unintentionally Comprehensive Introduction to GitHub Actions CI - DEV]]
+
+**** [#C] hugo.el                                                  :external:
+
+[[https://github.com/aaronbieber/hugo.el][GitHub - aaronbieber/hugo.el: An interactive wrapper around the Hugo site gen...]]
+
+**** [#C] Javascript (optional)
+
+[[https://zihao.me/post/building-a-blog-with-hugo-and-webpack/][The Perfect Blog Setup with Hugo, Webpack 4 and Babel 7 in 2019 · Zihao Zhang]]
+
+[[https://simonclayson.co.uk/notebook/hugo-pipes-mounts-optimisation/][Minify CSS and JS with Hugo Pipes and Module Mounts | Simon Clayson]]
+
+*** [#C] org-static-blog                                              :melpa:
 
 [[https://github.com/bastibe/org-static-blog][org-static-blog]] is a static website generator.
 
@@ -8176,15 +8378,6 @@ Built-in modules support conversion from a variety of sources,
 alternative is Memacs.
 
 [[https://github.com/karlicoss/orger][GitHub - karlicoss/orger]]
-
-*** [#C] Static site generation from Org files using firn          :external:
-
-Static site generator for org-mode using Clojure and Rust.
-
-Probably better to use ~org-static-blog~ if making a simple blog,
-while this would work better for a wiki or product website.
-
-https://github.com/theiceshelf/firn
 
 ** Programming
 
@@ -8237,6 +8430,13 @@ Quick overview of using Forge in a typical open-source contribution workflow.
 4. Create feature branch, add contribution and push to feature branch.
 5. ~magit-status~ buffer \to ~' c p~ to create the pull-request.
 
+*** [#C] nix-buffer for directory/file-specific specific environments :external:melpa:
+
+[[https://github.com/shlevy/nix-buffer][nix-buffer]] allows for directory-specific or file-specific (see below)
+environments using Nix.
+
+- Using nix-buffer for file-local environments ([[https://blog.jethro.dev/posts/nix_buffer_emacs/][link]])
+
 ** Reference management
 
 *** [#C] Biblio                                                       :melpa:
@@ -8287,7 +8487,7 @@ packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://g
 
 [[https://github.com/yuya373/emacs-slack][emacs-slack]]
 
-*** [#C] Promnesia remembrance agent for web browser
+*** [#C] Promnesia remembrance agent for web browser               :external:
 
 [[https://github.com/karlicoss/promnesia][GitHub - karlicoss/promnesia: Another piece of your extended mind]]
 

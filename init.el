@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jun 14 18:41:15 2020
+;; Generated: Sun Jun 21 18:36:30 2020
 
 ;;; Commentary:
 
@@ -76,10 +76,16 @@
 (use-package helm
   :init
   (setq helm-allow-mouse t
+        helm-command-prefix-key "C-c C-M-h"
         helm-prevent-escaping-from-minibuffer nil
+        ;; show helm completion buffer using default display function
+        ;; instead of always opening a new frame for it
+        helm-show-completion-display-function #'helm-show-completion-default-display-function
         ;; show helm buffers by splitting current window instead of
         ;; taking over another window in multi-window layout
         helm-split-window-inside-p t)
+  (when (version< emacs-version "27")
+    (add-to-list 'completion-styles 'helm-flex t))
   :config
   (require 'helm-config)
   (helm-mode 1)
@@ -90,7 +96,7 @@
   ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
   (define-key global-map [remap switch-to-buffer] 'helm-mini)
   (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
-  ;; (define-key global-map [remap execute-extended-command] 'helm-M-x)
+  (define-key global-map [remap execute-extended-command] 'helm-M-x)
   (define-key global-map [remap apropos-command] 'helm-apropos)
   ;; make <tab> only complete names during helm completion, instead of
   ;; default behavior that creates new buffer on the second press
@@ -165,7 +171,6 @@
           doom-modeline-env-version nil
           doom-modeline-height 23 ;; change this based on mode-line face height
           doom-modeline-minor-modes t
-          doom-modeline-persp-name nil
           doom-modeline-unicode-fallback t)
     (doom-modeline-mode 1)))
 
@@ -277,9 +282,10 @@ Bookmarks (_q_: quit)"
 (global-set-key (kbd "C-c C-M-b m") 'my-hydra/bookmarks/body)
 
 ;; alternative interface for M-x
-(use-package amx
-  :bind ("M-X" . amx-major-mode-commands)
-  :init (amx-mode))
+(when (not (featurep 'helm))
+  (use-package amx
+    :bind ("M-X" . amx-major-mode-commands)
+    :init (amx-mode)))
 
 ;; recently opened files
 (setq recentf-max-menu-items 10
@@ -288,7 +294,7 @@ Bookmarks (_q_: quit)"
 (recentf-mode 1)
 ;; exclude source code files in installed packages from ELPA-compatible repos
 (add-to-list 'recentf-exclude
-             (concat "^" (expand-file-name user-emacs-directory) "elpa/"))
+             (concat "^" (expand-file-name "elpa/" user-emacs-directory)))
 ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
 ;; exclude files opened as the superuser with su or sudo
 (add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
@@ -303,8 +309,15 @@ Bookmarks (_q_: quit)"
               (dolist (exclude-file file-list)
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
-;; binding for recentf
+;; binding for recentf, use Helm version if available
 (global-set-key (kbd "C-c C-M-r f") #'recentf-open-files)
+
+;; prefer helm-recentf to recentf-open-files
+(add-hook 'after-init-hook
+          (lambda ()
+            (when (featurep 'helm)
+              (define-key global-map [remap recentf-open-files]
+                'helm-recentf))))
 
 (save-place-mode 1)
 
@@ -323,7 +336,7 @@ Bookmarks (_q_: quit)"
 ;; enable save history mode
 (savehist-mode 1)
 
-;; Buffer management
+;; Buffers, windows, frames, workspaces / Buffer management
 
 ;; bury these buffers on kill command instead of killing them
 (setq my-unkillable-buffers '("*scratch*"
@@ -377,13 +390,13 @@ Buffer (_q_: quit)"
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)))
-           ("Programming" (derived-mode . prog-mode))
-           ("Web Browsing" (mode . eww-mode))
            ("Org" (or (mode . org-mode)
                       (mode . org-agenda-mode)))
+           ("Web Browsing" (mode . eww-mode))
+           ("Programming" (derived-mode . prog-mode))
+           ("Dired" (mode . dired-mode))
            ("Magit" (or (name . "\*magit.*\\*")
                         (mode . magit-mode)))
-           ("Dired" (mode . dired-mode))
            ("Help" (or (derived-mode . apropos-mode)
                        (derived-mode . help-mode)
                        (derived-mode . Info-mode)))))))
@@ -416,6 +429,7 @@ Ibuffer (_q_: quit)"
   ("D" ibuffer-do-delete "delete")
   ("a" my-hydra/ibuffer-mode/action/body "→ Action" :exit t)
   ;; view
+  ("`" ibuffer-switch-format "format")
   ("g" ibuffer-update "refresh")
   ("s" my-hydra/ibuffer-mode/sort/body "→ Sort" :exit t)
   ("/" my-hydra/ibuffer-mode/filter/body "→ Filter" :exit t)
@@ -468,7 +482,8 @@ Ibuffer → Sort (_q_: ←)"
   ("s" ibuffer-do-sort-by-size "size")
   ("v" ibuffer-do-sort-by-recency "recency")
   ("i" ibuffer-invert-sorting "invert"))
-(defhydra my-hydra/ibuffer-mode/filter (:color amaranth :columns 5)
+(defhydra my-hydra/ibuffer-mode/filter (:color amaranth :columns 5
+                                        :pre (require 'ibuffer-vc))
   "
 Ibuffer → Filter (_q_: ←)"
   ("q" my-hydra/ibuffer-mode/body nil :exit t)
@@ -488,6 +503,8 @@ Ibuffer → Filter (_q_: ←)"
   ("R" ibuffer-switch-to-saved-filter-groups "saved-groups")
   ("\\" ibuffer-clear-filter-groups "clear-groups")
   ("/" ibuffer-filter-disable "disable"))
+
+;; bind Ibuffer hydra
 (with-eval-after-load 'ibuffer
   (define-key ibuffer-mode-map (kbd "C-c C-M-m") #'my-hydra/ibuffer-mode/body))
 
@@ -496,6 +513,167 @@ Ibuffer → Filter (_q_: ←)"
   (use-package all-the-icons-ibuffer
     :after (all-the-icons ibuffer)
     :config (all-the-icons-ibuffer-mode 1)))
+
+;; Buffers, windows, frames, workspaces / Window management
+
+;; traverse window config changes, C-c left/right to undo/redo
+;; uncomment to not bind C-c left/right keys by default
+;; (setq winner-dont-bind-my-keys t)
+;; enable winner-mode at end of initialization
+(add-hook 'after-init-hook #'winner-mode)
+
+(defhydra my-hydra/window (:color amaranth :columns 3)
+  "
+Window (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("u" winner-undo "winner-undo")
+  ("r" winner-redo "winner-redo")
+  ("n" next-window-any-frame "next")
+  ("p" previous-window-any-frame "previous")
+  ("v" split-window-right "split-v")
+  ("s" split-window-below "split-h")
+  ("<left>" windmove-left "left")
+  ("<down>" windmove-down "down")
+  ("<up>" windmove-up "up")
+  ("<right>" windmove-right "right")
+  ("S-<left>" (my-transpose-windows 'windmove-left) "transpose-l")
+  ("S-<down>" (my-transpose-windows 'windmove-down) "transpose-d")
+  ("S-<up>" (my-transpose-windows 'windmove-up) "transpose-u")
+  ("S-<right>" (my-transpose-windows 'windmove-right) "transpose-r")
+  ("-" shrink-window "shrink-v")
+  ("+" enlarge-window "enlarge-v")
+  ("<" shrink-window-horizontally "shrink-h")
+  (">" enlarge-window-horizontally "enlarge-h")
+  ("M" minimize-window "minimize")
+  ("m" maximize-window "maximize")
+  ("=" balance-windows "balance")
+  ("_" balance-windows-area "balance-area")
+  ("o" delete-other-windows "only")
+  ("d" delete-window "delete")
+  ("D" kill-buffer-and-window "delete-buf"))
+(global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body)
+
+(defun my-transpose-windows (selector)
+  "Call SELECTOR and transpose buffers between current and selected windows."
+  (let ((from-win (selected-window))
+        (from-buf (window-buffer)))
+    (funcall selector)
+    (set-window-buffer from-win (window-buffer))
+    (set-window-buffer (selected-window) from-buf)))
+
+(defun rotate-window-buffers (rotations)
+  "Rotate buffers in the windows of the current frame ROTATIONS times.
+ROTATIONS can be negative, which rotates in the opposite direction."
+  (interactive "P")
+  (let ((num-windows (count-windows)))
+    (if (not (> num-windows 1))
+        (message "Only one window in the frame. Nothing to rotate.")
+      (let* ((windows (window-list))
+             ;; original window order properties
+             (window-props (mapcar (lambda (w)
+                                     `(:buffer ,(window-buffer w)
+                                       :start ,(window-start w)
+                                       :point ,(window-point w)))
+                                   windows))
+             ;; new window order after rotation
+             (window-moves (mapcar
+                            (lambda (k)
+                              (elt windows (mod (+ k rotations) num-windows)))
+                            (number-sequence 0 (1- num-windows))))
+             ;; create alist for easier looping later
+             (wins-props (mapcar* #'cons window-moves window-props)))
+        ;; iteratively assign orig window props in new window order
+        (dolist (w-p wins-props)
+          (let ((win (car w-p))
+                (prop (cdr w-p)))
+            (set-window-buffer-start-and-point
+             win
+             (plist-get prop :buffer)
+             (plist-get prop :start)
+             (plist-get prop :point))))))))
+
+;; add entrypoint for `rotate-window-buffers' to window management hydra
+(defhydra+ my-hydra/window nil
+  ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
+  ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
+
+;; Buffers, windows, frames, workspaces / Frame management
+
+(defhydra my-hydra/frame (:color amaranth :columns 4)
+  "
+Frame (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("<up>" (lambda (n) (interactive "p") (my-move-frame-pct 0 (- n))) "move-u")
+  ("<down>" (lambda (n) (interactive "p") (my-move-frame-pct 0 n)) "move-d")
+  ("<left>" (lambda (n) (interactive "p") (my-move-frame-pct (- n) 0)) "move-l")
+  ("<right>" (lambda (n) (interactive "p") (my-move-frame-pct n 0)) "move-r")
+  ("+" (lambda (n) (interactive "p") (my-enlarge-frame 0 n)) "enlarge-v")
+  ("-" (lambda (n) (interactive "p") (my-enlarge-frame 0 (- n))) "shrink-v")
+  (">" (lambda (n) (interactive "p") (my-enlarge-frame n 0)) "enlarge-h")
+  ("<" (lambda (n) (interactive "p") (my-enlarge-frame (- n) 0)) "shrink-h")
+  ("M" toggle-frame-maximized "maximize")
+  ("f" toggle-frame-fullscreen "fullscreen")
+  ("p" (other-frame -1) "previous")
+  ("n" other-frame "next")
+  ("s" select-frame-by-name "select")
+  ("m" (lambda () (interactive) (my-make-frame 15 20)) "make")
+  ("d" delete-frame "delete")
+  ("o" delete-other-frames "only"))
+(global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
+
+(defun my-enlarge-frame (w h)
+  "Enlarge width, height of selected frame by W, H lines (shrink if negative)."
+  (let ((this-frame (selected-frame)))
+    (set-frame-width this-frame (+ (frame-width this-frame) w))
+    (set-frame-height this-frame (+ (frame-height this-frame) h))))
+
+(defun my-move-frame (x y)
+  "Move selected frame by X pixels horizontally and Y pixels vertically."
+  (let* ((this-frame (selected-frame))
+         (fpos (frame-position this-frame)))
+    (set-frame-position this-frame (+ (car fpos) x) (+ (cdr fpos) y))))
+
+(defun my-move-frame-pct (x y)
+  "Move selected frame within display by X% horizontally and Y% vertically."
+  (my-move-frame (* x (/ (x-display-pixel-width) 100))
+                 (* y (/ (x-display-pixel-height) 100))))
+
+(defun my-make-frame (x y)
+  "Make new frame, offset by X pixels horizontally and Y pixels vertically."
+  (let ((cur-pos (frame-position)))
+    (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
+                                    (cons 'top (+ y (cdr cur-pos))))))))
+
+(use-package transpose-frame)
+
+;; add entrypoint for transpose-frame to frame management hydra
+(defhydra+ my-hydra/frame nil
+  ("," (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-anticlockwise))) "rotate-l")
+  ("." (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-clockwise))) "rotate-r"))
+
+;; Buffers, windows, frames, workspaces / Workspace management
+
+;; settings for desktop.el
+;; desktops are saved to ~/.emacs.d/.emacs.desktop
+;; and locks are saved to ~/.emacs.d/.emacs.desktop.lock
+;; - enable desktop-save-mode to save on timer and exit, load on entry
+;; - set `desktop-autosave-timeout' to nil to disable timer auto-saves
+(setq desktop-auto-save-timeout nil)
+(desktop-save-mode 1)
+
+;; hydra for workspace management
+(defhydra my-hydra/workspace (:color teal :columns 3)
+  "
+Workspace (_q_: quit)"
+  ("q" nil nil)
+  ("dc" desktop-clear "desktop-clear")
+  ("ds" desktop-save "desktop-save")
+  ("dr" desktop-read "desktop-read")
+  ("dR" desktop-revert "desktop-revert")
+  ("dd" desktop-change-dir "desktop-dir"))
+
+;; binding for workspace management hydra
+(global-set-key (kbd "C-c C-M-e w") 'my-hydra/workspace/body)
 
 ;; Command-line interaction
 
@@ -549,11 +727,31 @@ provided, the default interactive `eshell' command is run."
   :after eshell
   :hook (eshell-mode . esh-autosuggest-mode))
 
-;; extend pcomplete with fish shell
-(when (executable-find "fish")
-  (use-package fish-completion
-    :after eshell
-    :hook (eshell-mode . fish-completion-mode)))
+(when (featurep 'helm)
+  (add-hook 'eshell-mode-hook
+          (lambda ()
+            (eshell-cmpl-initialize)
+            (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
+            (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
+
+(when (and (executable-find "fish") (featurep 'helm))
+  (use-package helm-fish-completion
+    :config
+    (setq helm-esh-pcomplete-build-source-fn
+          #'helm-fish-completion-make-eshell-source)
+    (with-eval-after-load 'shell
+      (define-key shell-mode-map (kbd "<tab>") #'helm-fish-completion))
+    (add-hook 'eshell-mode-hook
+              (lambda ()
+                (define-key eshell-mode-map (kbd "<tab>")
+                  #'helm-fish-completion)))))
+
+;; ;; extend pcomplete with fish shell
+;; (when (executable-find "fish")
+;;   (use-package fish-completion
+;;     :after eshell
+;;     :config (when (not (featurep 'helm))
+;;               (add-hook 'eshell-mode-hook #'fish-completion-mode))))
 
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
@@ -1326,7 +1524,6 @@ Assumes "
                    notmuch-show-mode-map
                    notmuch-tree-mode-map))
       (define-key map (kbd "M") #'org-msg-mode))
-    (defun my-gmail-quote-html (htmltext) htmltext)
     ;; modify HTML text to use Gmail blockquotes in place of '>'
     (defun my-gmail-quote-html (htmltext)
       "Modify HTMLTEXT to use Gmail blockquotes."
@@ -1459,20 +1656,7 @@ area."
 			     (org-msg-get-to-first-name)))))
 	 (save-excursion
            (insert "\n\n")
-	   ;; (when with-original
-	   ;;   (save-excursion
-	   ;;     (insert "\n\n" org-msg-separator "\n")
-	   ;;     (delete-region (line-beginning-position)
-	   ;;      	      (1+ (line-end-position)))
-	   ;;     (dolist (rep '(("^>+ *" . "") ("___+" . "---")))
-	   ;;       (save-excursion
-	   ;;         (while (re-search-forward (car rep) nil t)
-	   ;;           (replace-match (cdr rep)))))
-	   ;;     (org-escape-code-in-region (point) (point-max))))
            (when with-original
-             ;; TODO need to add "On %a, %b %d, %Y at %I:%M %p "
-             ;; where the date and time are parsed from the message
-             ;; being replied to
              (org-escape-code-in-region (point) (point-max)))
            (save-excursion
              (end-of-buffer)
@@ -1480,146 +1664,13 @@ area."
 	       (insert org-msg-signature)))
 	   (org-msg-edit-mode))
 	 (set-buffer-modified-p nil))
-       ;; (if (org-msg-message-fetch-field "to")
-       ;;     (org-msg-goto-body)
-       ;;   (message-goto-to))
        (if (org-msg-message-fetch-field "to")
            (recenter)
          (message-goto-to))))))
 
-(require 'ol-notmuch)
-
-;; Frame and window management
-
-;; traverse window config changes, use C-c left/right to undo/redo
-(add-hook 'after-init-hook #'winner-mode)
-
-(defhydra my-hydra/window (:color amaranth :columns 3)
-  "
-Window (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("u" winner-undo "winner-undo")
-  ("r" winner-redo "winner-redo")
-  ("n" next-window-any-frame "next")
-  ("p" previous-window-any-frame "previous")
-  ("v" split-window-right "split-v")
-  ("s" split-window-below "split-h")
-  ("<left>" windmove-left "left")
-  ("<down>" windmove-down "down")
-  ("<up>" windmove-up "up")
-  ("<right>" windmove-right "right")
-  ("S-<left>" (my-transpose-windows 'windmove-left) "transpose-l")
-  ("S-<down>" (my-transpose-windows 'windmove-down) "transpose-d")
-  ("S-<up>" (my-transpose-windows 'windmove-up) "transpose-u")
-  ("S-<right>" (my-transpose-windows 'windmove-right) "transpose-r")
-  ("-" shrink-window "shrink-v")
-  ("+" enlarge-window "enlarge-v")
-  ("<" shrink-window-horizontally "shrink-h")
-  (">" enlarge-window-horizontally "enlarge-h")
-  ("M" minimize-window "minimize")
-  ("m" maximize-window "maximize")
-  ("=" balance-windows "balance")
-  ("_" balance-windows-area "balance-area")
-  ("o" delete-other-windows "only")
-  ("d" delete-window "delete")
-  ("D" kill-buffer-and-window "delete-buf"))
-(global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body)
-
-(defun my-transpose-windows (selector)
-  "Call SELECTOR and transpose buffers between current and selected windows."
-  (let ((from-win (selected-window))
-        (from-buf (window-buffer)))
-    (funcall selector)
-    (set-window-buffer from-win (window-buffer))
-    (set-window-buffer (selected-window) from-buf)))
-
-(defun rotate-window-buffers (rotations)
-  "Rotate buffers in the windows of the current frame ROTATIONS times.
-ROTATIONS can be negative, which rotates in the opposite direction."
-  (interactive "P")
-  (let ((num-windows (count-windows)))
-    (if (not (> num-windows 1))
-        (message "Only one window in the frame. Nothing to rotate.")
-      (let* ((windows (window-list))
-             ;; original window order properties
-             (window-props (mapcar (lambda (w)
-                                     `(:buffer ,(window-buffer w)
-                                       :start ,(window-start w)
-                                       :point ,(window-point w)))
-                                   windows))
-             ;; new window order after rotation
-             (window-moves (mapcar
-                            (lambda (k)
-                              (elt windows (mod (+ k rotations) num-windows)))
-                            (number-sequence 0 (1- num-windows))))
-             ;; create alist for easier looping later
-             (wins-props (mapcar* #'cons window-moves window-props)))
-        ;; iteratively assign orig window props in new window order
-        (dolist (w-p wins-props)
-          (let ((win (car w-p))
-                (prop (cdr w-p)))
-            (set-window-buffer-start-and-point
-             win
-             (plist-get prop :buffer)
-             (plist-get prop :start)
-             (plist-get prop :point))))))))
-
-;; add entrypoint for `rotate-window-buffers' to window management hydra
-(defhydra+ my-hydra/window nil
-  ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
-  ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
-
-(defhydra my-hydra/frame (:color amaranth :columns 4)
-  "
-Frame (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("<up>" (lambda (n) (interactive "p") (my-move-frame-pct 0 (- n))) "move-u")
-  ("<down>" (lambda (n) (interactive "p") (my-move-frame-pct 0 n)) "move-d")
-  ("<left>" (lambda (n) (interactive "p") (my-move-frame-pct (- n) 0)) "move-l")
-  ("<right>" (lambda (n) (interactive "p") (my-move-frame-pct n 0)) "move-r")
-  ("+" (lambda (n) (interactive "p") (my-enlarge-frame 0 n)) "enlarge-v")
-  ("-" (lambda (n) (interactive "p") (my-enlarge-frame 0 (- n))) "shrink-v")
-  (">" (lambda (n) (interactive "p") (my-enlarge-frame n 0)) "enlarge-h")
-  ("<" (lambda (n) (interactive "p") (my-enlarge-frame (- n) 0)) "shrink-h")
-  ("M" toggle-frame-maximized "maximize")
-  ("f" toggle-frame-fullscreen "fullscreen")
-  ("p" (other-frame -1) "previous")
-  ("n" other-frame "next")
-  ("s" select-frame-by-name "select")
-  ("m" (lambda () (interactive) (my-make-frame 15 20)) "make")
-  ("d" delete-frame "delete")
-  ("o" delete-other-frames "only"))
-(global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
-
-(defun my-enlarge-frame (w h)
-  "Enlarge width, height of selected frame by W, H lines (shrink if negative)."
-  (let ((this-frame (selected-frame)))
-    (set-frame-width this-frame (+ (frame-width this-frame) w))
-    (set-frame-height this-frame (+ (frame-height this-frame) h))))
-
-(defun my-move-frame (x y)
-  "Move selected frame by X pixels horizontally and Y pixels vertically."
-  (let* ((this-frame (selected-frame))
-         (fpos (frame-position this-frame)))
-    (set-frame-position this-frame (+ (car fpos) x) (+ (cdr fpos) y))))
-
-(defun my-move-frame-pct (x y)
-  "Move selected frame within display by X% horizontally and Y% vertically."
-  (my-move-frame (* x (/ (x-display-pixel-width) 100))
-                 (* y (/ (x-display-pixel-height) 100))))
-
-(defun my-make-frame (x y)
-  "Make new frame, offset by X pixels horizontally and Y pixels vertically."
-  (let ((cur-pos (frame-position)))
-    (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
-                                    (cons 'top (+ y (cdr cur-pos))))))))
-
-(use-package transpose-frame)
-
-;; add entrypoint for transpose-frame to frame management hydra
-(defhydra+ my-hydra/frame nil
-  ("," (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-anticlockwise))) "rotate-l")
-  ("." (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-clockwise))) "rotate-r"))
+(condition-case nil
+    (require 'ol-notmuch)
+  (error (message "ol-notmuch requires Org 9.2.3+")))
 
 ;; Non-programming files
 
@@ -1850,6 +1901,7 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
       org-hide-emphasis-markers nil
       org-hide-leading-stars t
       org-highlight-latex-and-related '(latex script entities) ;; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
+      org-image-actual-width (list (/ (display-pixel-width) 3)) ;; auto-resize displayed images to one-third of display width
       org-log-into-drawer t
       org-outline-path-complete-in-steps nil
       org-pretty-entities t
@@ -2019,6 +2071,13 @@ Org-mode (_q_: quit)"
   ("M-s" org-narrow-to-subtree "narrow-subtree")
   ("M-b" org-narrow-to-block "narrow-block")
   ("M-w" widen "widen")
+  ("M-l" org-toggle-link-display "toggle-link-disp")
+  ("M-i" (lambda ()
+           (interactive)
+           (if org-image-actual-width
+               (setq org-image-actual-width nil)
+             (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
+           (org-redisplay-inline-images)) "toggle-img-width")
   ("i" org-toggle-inline-images "toggle-images")
   ("I" org-indent-mode "toggle-indent")
   ("P" org-toggle-pretty-entities "toggle-prettify")
@@ -2386,7 +2445,7 @@ Org-mode → Download (_q_: ←)"
     (goto-char (point-min)))
   ;; add org-capture-template for new journal entries
   (push '("j" "Journal" entry (function my-org-journal-find-location)
-          "* %(format-time-string org-journal-time-format)%^{Title}\n%i%?")
+          "* %(format-time-string org-journal-time-format)%?\n%i")
         org-capture-templates)
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
         org-journal-file-format "%Y%m%d.org"
@@ -3228,7 +3287,8 @@ Racket Mode (_q_: quit)"
 (use-package projectile
   :demand t
   :config
-  (setq projectile-create-missing-test-files t ;; create test file if none is found when toggling
+  (setq projectile-completion-system (if (featurep 'helm) 'helm 'default)
+        projectile-create-missing-test-files t ;; create test file if none is found when toggling
         projectile-switch-project-action 'projectile-commander
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
   (projectile-mode)) ;; enable mode globally
@@ -3236,7 +3296,7 @@ Racket Mode (_q_: quit)"
 ;; hydra for Projectile
 (defhydra my-hydra/projectile-mode (:color teal :hint nil)
   "
-Projectile: %(projectile-project-name) (_q_: quit)
+Projectile: %s(projectile-project-name) (_q_: quit)
 Buffer _←_ : previous proj buf  _→_ : next proj buf      _b_ : switch
        _I_ : ibuffer            _S_ : save proj bufs     _k_ : kill proj bufs
 File   _f_ : find (curr proj)   _F_ : find (known projs) _g_ : find (context)
@@ -3286,7 +3346,8 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
   ;; misc
   ("m" projectile-commander "commander")
   ("p" projectile-switch-project "switch project"))
-;; binding
+
+;; binding for projectile hydra
 (with-eval-after-load 'projectile
   (define-key projectile-mode-map (kbd "C-c C-M-p") #'my-hydra/projectile-mode/body))
 
@@ -3480,7 +3541,9 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
   (ace-link-setup-default)
   ;; bind "M-o" to jump to link in Org mode
   (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "M-o") #'ace-link-org)))
+    (define-key org-mode-map (kbd "M-o") #'ace-link-org))
+  (with-eval-after-load 'org-agenda
+    (define-key org-agenda-mode-map (kbd "M-o") #'ace-link-org-agenda)))
 
 ;; load notdeft, make sure this comes after org-directory is set
 (require 'notdeft-autoloads)
@@ -3501,19 +3564,6 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 (autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
 (with-eval-after-load 'notdeft
   (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
-
-;; Session management
-
-(defhydra my-hydra/desktop (:color teal :columns 5)
-  "
-Desktop (_q_: quit)"
-  ("q" nil nil)
-  ("c" desktop-clear "clear")
-  ("s" desktop-save "save")
-  ("r" desktop-read "read")
-  ("R" desktop-revert "revert")
-  ("d" desktop-change-dir "dir"))
-(global-set-key (kbd "C-c C-M-e k") 'my-hydra/desktop/body)
 
 ;; Web
 
@@ -3901,15 +3951,9 @@ Whitespace (_q_: quit)"
   (add-hook
    'after-init-hook
    (lambda ()
-     ;; turn off Emacs Mac Port mouse wheel implementation, use the default one
-     (when (and (boundp 'mac-mouse-wheel-mode)
-                mac-mouse-wheel-mode)
-       (mac-mouse-wheel-mode -1)
-       (mouse-wheel-mode 1))
      ;; use super-left-click as middle-click (trackpad workaround)
      ;; (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
      ;; smooth scrolling, hold SHIFT/CONTROL for 5 line/full window increments
-     ;; scrolling while holding CTRL changes the text size
      (setq mouse-wheel-scroll-amount '(1
                                        ((shift) . 5)
                                        ((control) . nil)))
@@ -3964,7 +4008,7 @@ Help (_q_: quit)"
   ("w" where-is "where-is"))
 
 ;; bind help hydra
-(global-set-key (kbd "C-c C-M-h h") 'my-hydra/help/body)
+(global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
 
 ;; launcher for Emacs like Alfred or Quicksilver
 ;; for example, calling `hyperspace' then "ac stuff"
@@ -4154,19 +4198,22 @@ or the current buffer file or directory if not (Mac OS X)."
 
 ;; workaround for problematic entries in `load-history' which affects
 ;; Emacs 27+ on some systems, probably to do with the portable dumper
-(defun load-history-filename-element (file-regexp)
-  "Get the first elt of `load-history' whose car matches FILE-REGEXP.
+;; mainly affecting Emacs for OS X
+(when (and (not (version< emacs-version "27"))
+           (eq window-system 'ns))
+  (defun load-history-filename-element (file-regexp)
+    "Get the first elt of `load-history' whose car matches FILE-REGEXP.
 Return nil if there isn't one."
-  (let* ((loads load-history)
-	 (load-elt (and loads (car loads))))
-    (save-match-data
-      (while (and loads
-		  (or (null (car load-elt))
-		      (not (and (stringp (car load-elt)) ;; skip non-strings
-                                (string-match file-regexp (car load-elt))))))
-	(setq loads (cdr loads)
-	      load-elt (and loads (car loads)))))
-    load-elt))
+    (let* ((loads load-history)
+           (load-elt (and loads (car loads))))
+      (save-match-data
+        (while (and loads
+                    (or (null (car load-elt))
+                        (not (and (stringp (car load-elt)) ;; skip non-strings
+                                  (string-match file-regexp (car load-elt))))))
+          (setq loads (cdr loads)
+                load-elt (and loads (car loads)))))
+      load-elt)))
 
 (provide 'init)
 ;;; init.el ends here

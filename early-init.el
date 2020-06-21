@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jun 14 18:41:15 2020
+;; Generated: Sun Jun 21 18:36:30 2020
 
 ;;; Commentary:
 
@@ -90,6 +90,8 @@
                     :height 120 :weight 'normal :width 'normal)
 ;; fallback font
 (set-fontset-font t nil "Symbola" nil 'append)
+;; increase min underline offset for more readable underlined words
+(setq underline-minimum-offset 5)
 
 (provide 'early-init)
 ;;; early-init.el ends here

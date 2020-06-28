@@ -37,9 +37,9 @@
 
 (let ((fg "#111111")
       (fg-table "#222291")
-      (bg "#fffff8")
-      (bg-light "#ddddd8")
-      (fg-light "#ddddd8")
+      (bg "#fbfbf8")
+      (bg-light "#b2b29f")
+      (fg-light "#b7b7b7")
       (bg-highlight "#fff1aa")
       (bg-highlight-2 "light cyan")
       (bg-highlight-3 "light green"))
@@ -76,6 +76,7 @@
    `(gnus-header-from ((t (:foreground ,fg))))
    `(gnus-header-name ((t (:foreground ,fg))))
    `(gnus-header-subject ((t (:foreground ,fg))))
+   `(header-line ((t (:background ,bg :box (:line-width 1 :color ,fg)))))
    `(highlight ((t (:background "#efecaf"))))
    `(hl-line ((t (:background "#fedcba"))))
    `(ido-first-match ((t (:foreground ,fg))))
@@ -85,9 +86,11 @@
    `(line-number ((t (:foreground "#cacaca" :weight light))))
    `(link ((t (:foreground ,fg :underline t))))
    `(minibuffer-prompt ((t (:foreground ,fg :weight bold))))
-   `(mode-line ((t (:background ,bg-light :foreground ,fg))))
+   ;; `(mode-line ((t (:background ,bg-light :foreground ,fg))))
+   `(mode-line ((t (:background ,bg :foreground ,fg :overline ,fg))))
    `(mode-line-buffer ((t (:foreground ,fg :weight bold))))
-   `(mode-line-inactive ((t (:background ,bg-light :foreground "#909090"))))
+   ;; `(mode-line-inactive ((t (:background ,bg-light :foreground "#909090"))))
+   `(mode-line-inactive ((t (:background ,bg :foreground "#909090" :overline ,fg))))
    `(mode-line-minor-mode ((t (:weight ultra-light))))
    `(query-replace ((t (:strike-through t))))
    `(region ((t (:background "#eeeee8" :foreground ,fg))))
@@ -96,8 +99,8 @@
 
    ;; org
    `(org-agenda-date ((t (:foreground ,fg))))
-   `(org-agenda-date-today ((t (:foreground ,fg :weight bold :underline t))))
-   `(org-agenda-date-weekend ((t (:foreground ,fg))))
+   `(org-agenda-date-today ((t (:foreground ,fg :weight bold))))
+   `(org-agenda-date-weekend ((t (:foreground ,fg :weight light))))
    `(org-agenda-structure ((t (:foreground ,fg :weight bold))))
    `(org-block ((t (:foreground ,fg :background "#ffffe0" :extend t))))
    `(org-block-begin-line ((t (:foreground "#555555" :background "#e2e1d5" :extend t))))
@@ -126,11 +129,82 @@
    `(org-todo ((t (:foreground ,fg))))
    `(org-verbatim ((t (:foreground ,fg :weight semi-bold))))
    `(org-verse ((t (:inherit org-block :slant italic))))
+
+   ;; org-super-agenda
+   `(org-super-agenda-header ((t (:foreground ,fg :weight semi-bold))))
    
    ;; powerline
    `(powerline-active1 ((t (:background "gray22" :foreground ,bg :inherit mode-line))))
    `(powerline-active2 ((t (:background "gray40" :foreground ,bg :inherit mode-line))))
 
+   ;; doom-modeline
+   `(doom-modeline-spc-face ((t (:inherit mode-line))))
+   `(doom-modeline-vspc-face ((t (:inherit variable-pitch))))
+   `(doom-modeline-buffer-path ((t (:inherit (mode-line-emphasis bold)
+                                    :weight normal))))
+   `(doom-modeline-buffer-file ((t (:inherit (mode-line-buffer-id bold)
+                                    :weight normal))))
+   `(doom-modeline-buffer-modified ((t (:inherit (error bold)
+                                        :background nil
+                                        :weight normal))))
+   `(doom-modeline-buffer-major-mode ((t (:inherit (mode-line-emphasis bold)
+                                          :weight normal))))
+   `(doom-modeline-buffer-minor-mode ((t (:inherit font-lock-doc-face
+                                          :slant normal
+                                          :weight normal))))
+   `(doom-modeline-project-parent-dir ((t (:inherit (font-lock-comment-face bold)
+                                           :weight normal))))
+   `(doom-modeline-project-dir ((t (:inherit (font-lock-string-face bold)))))
+   `(doom-modeline-project-root-dir ((t (:inherit (mode-line-emphasis bold)
+                                         :weight normal))))
+   `(doom-modeline-highlight ((t (:inherit mode-line-emphasis))))
+   `(doom-modeline-panel ((t (:inherit mode-line-highlight))))
+   `(doom-modeline-host ((t (:inherit italic))))
+   `(doom-modeline-input-method ((t (:inherit (mode-line-emphasis bold)
+                                     :weight normal))))
+   `(doom-modeline-input-method-alt ((t (:inherit (font-lock-doc-face bold)
+                                         :slant normal
+                                         :weight normal))))
+   `(doom-modeline-debug ((t (:inherit (font-lock-doc-face bold)
+                              :slant normal
+                              :weight normal))))
+   `(doom-modeline-info ((t (:inherit (success bold) :weight normal))))
+   `(doom-modeline-warning ((t (:inherit (warning bold) :weight normal))))
+   `(doom-modeline-urgent ((t (:inherit (error bold) :weight normal))))
+   `(doom-modeline-unread-number ((t (:slant italic :weight normal))))
+   `(doom-modeline-bar ((t (:inherit highlight))))
+   `(doom-modeline-bar-inactive ((t (:background ,(face-foreground
+                                                   'mode-line-inactive)))))
+   `(doom-modeline-debug-visual ((t (:background ,(face-foreground
+                                                   'mode-line)))))
+   `(doom-modeline-evil-emacs-state ((t (:inherit (font-lock-builtin-face
+                                                   bold)))))
+   `(doom-modeline-evil-insert-state ((t (:inherit (font-lock-keyword-face
+                                                    bold)))))
+   `(doom-modeline-evil-motion-state ((t :inherit (font-lock-doc-face bold)
+                                         :slant normal)))
+   `(doom-modeline-evil-normal-state ((t (:inherit doom-modeline-info))))
+   `(doom-modeline-evil-operator-state ((t (:inherit doom-modeline-buffer-file))))
+   `(doom-modeline-evil-visual-state ((t (:inherit doom-modeline-warning))))
+   `(doom-modeline-evil-replace-state ((t (:inherit doom-modeline-urgent))))
+   `(doom-modeline-persp-name ((t (:inherit (font-lock-comment-face italic)))))
+   `(doom-modeline-persp-buffer-not-in-persp
+     ((t (:inherit (font-lock-doc-face italic)))))
+   `(doom-modeline-repl-success ((t (:inherit success :weight normal))))
+   `(doom-modeline-repl-warning ((t (:inherit warning :weight normal))))
+   `(doom-modeline-lsp-success ((t (:inherit success :weight normal))))
+   `(doom-modeline-lsp-warning ((t (:inherit warning :weight normal))))
+   `(doom-modeline-lsp-error ((t (:inherit error :weight normal))))
+   `(doom-modeline-lsp-running ((t (:inherit compilation-mode-line-run :weight normal :slant normal))))
+   `(doom-modeline-battery-charging ((t (:inherit success :weight normal))))
+   `(doom-modeline-battery-full ((t (:inherit success :weight normal))))
+   `(doom-modeline-battery-normal ((t (:inherit mode-line :weight normal))))
+   `(doom-modeline-battery-warning ((t (:inherit warning :weight normal))))
+   `(doom-modeline-battery-critical ((t (:inherit error :weight normal))))
+   `(doom-modeline-battery-error ((t (:inherit error :weight normal))))
+   `(doom-modeline-buffer-timemachine
+     ((t (:inherit (doom-modeline-buffer-file italic underline)))))
+   
    ;; magit
    `(magit-header ((t (:weight semi-bold))))
    `(magit-item-mark ((t (:background ,bg-highlight))))
@@ -233,7 +307,10 @@
    `(yas-field-highlight-face ((t (:background "#eeeee8" :foreground ,fg))))
    `(eshell-prompt ((t (:foreground ,fg :weight bold))))
    `(cider-result-overlay-face ((t (:weight bold))))
-  
+
+   ;; markdown-mode
+   `(markdown-code-face ((t (:inherit fixed-pitch :foreground ,fg :background "#ffffe0" :extend t))))
+
    ;; evil-quickscope
    `(evil-quickscope-first-face ((t (:foreground ,fg :background "#eeeee8"))))
    `(evil-quickscope-second-face ((t (:foreground ,fg :background ,bg-highlight-3))))
@@ -247,11 +324,16 @@
    `(evil-ex-substitute-matches ((t (:background ,bg-highlight-2))))
    `(evil-ex-substitute-replacement ((t (:background ,bg-highlight :underline nil :foreground ,fg))))))
 
+(custom-theme-set-variables
+ 'ereader
+ `(default-frame-alist (add-to-list 'default-frame-alist '(internal-border-width . ,(if (eq system-type 'darwin) 12 6)))))
+
 ;;;###autoload
-(when load-file-name
+(when (and (boundp 'custom-theme-load-path) load-file-name)
   (add-to-list
    'custom-theme-load-path
    (file-name-as-directory (file-name-directory load-file-name))))
+
 
 (provide-theme 'ereader)
 

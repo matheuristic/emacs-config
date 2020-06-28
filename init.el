@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jun 21 18:36:30 2020
+;; Generated: Sun Jun 28 18:12:36 2020
 
 ;;; Commentary:
 
@@ -107,6 +107,11 @@
   (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-z") #'helm-select-action))
 
+(use-package helm-treemacs-icons
+  :after helm
+  :ensure nil ;; in site-lisp subdirectory
+  :config (helm-treemacs-icons-enable))
+
 ;; ;; use Icomplete as the completion backend
 ;; ;; emulate ido behavior where possible
 ;; (if (version< emacs-version "27")
@@ -145,7 +150,7 @@
           (add-hook 'prog-mode-hook 'company-mode))
   :config
   (setq company-dabbrev-downcase nil
-        company-idle-delay 0.25
+        company-idle-delay 0.5
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-show-numbers t ;; use M-<num> to directly choose completion
@@ -159,7 +164,10 @@
 ;; font icons
 (when (display-graphic-p)
   (use-package all-the-icons
-    :config (setq all-the-icons-color-icons nil)))
+    :config (setq all-the-icons-color-icons nil
+                  ;; workaround for doom-modeline getting truncated in certain conditions
+                  ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
+                  all-the-icons-scale-factor 1.1)))
 
 ;; set custom mode line in graphical Emacs
 (when (display-graphic-p)
@@ -167,11 +175,25 @@
   (use-package doom-modeline
     :after all-the-icons
     :config
-    (setq doom-modeline-buffer-file-name-style 'auto
+    (setq doom-modeline-buffer-file-name-style 'buffer-name
           doom-modeline-env-version nil
           doom-modeline-height 23 ;; change this based on mode-line face height
+          doom-modeline-icon (display-graphic-p)
+          doom-modeline-irc nil
           doom-modeline-minor-modes t
+          doom-modeline-persp-name nil
           doom-modeline-unicode-fallback t)
+    ;; workaround for modeline getting truncated in certain conditions
+    ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
+    (doom-modeline-def-modeline 'main
+      '(" " workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
+      '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker " "))
+    ;; hide left margin indicator bar
+    (set-face-background 'doom-modeline-bar
+                         (face-background 'mode-line))
+    (set-face-background 'doom-modeline-bar-inactive
+                         (face-background 'mode-line-inactive))
+    ;; enable mode line
     (doom-modeline-mode 1)))
 
 (if (display-graphic-p)
@@ -184,73 +206,73 @@
             minions-mode-line-lighter "☰")
       (minions-mode 1)))
 
-;; display function or outline node at point
-(setq which-func-modes '() ;; use `which-func-mode' only for given modes
-      which-func-unknown "n/a")
-
-;; enable minor mode
-(which-function-mode)
-
-;; modify to show current function in header instead of in mode line
-
-(defun my-narrow-to-defun-toggle ()
-  "Toggle narrow to defun."
-  (interactive)
-  (if (buffer-narrowed-p)
-      (widen)
-    (narrow-to-defun)))
-
-(defvar my-which-func-header-keymap-default
-  (let ((map (make-sparse-keymap)))
-    (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
-    (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
-    (define-key map [header-line wheel-up] 'beginning-of-defun)
-    (define-key map [header-line wheel-down] 'end-of-defun)
-    map)
-  "Keymap for header line which-func.")
-
-(defvar my-which-func-header-keymap-help-text-default
-  "mouse-2 : toggle rest visibility\n\
-wheel-u : go to beginning\n\
-wheel-d : go to end"
-  "Help text for `my-which-fun-header-keymap-default'.")
-
-(defvar my-which-func-header-format-default
-  `(:propertize which-func-current
-                local-map ,my-which-func-header-keymap-default
-                face which-func
-                mouse-face mode-line-highlight
-                help-echo my-which-func-header-keymap-help-text-default)
-  "Default header format for which-func part.")
-
-;; remove which-func part from the mode line
-(setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
-
-;; see Org mode section for a mode-specific example for Org-mode
-(defvar my-which-func-header-formats
-  `((nil . ,my-which-func-header-format-default))
-  "Association list for looking up mode-specific which-func header-lines.
-Keys should be major mode symbols and values should unevaluated
-mode-line constructs, see
-https://www.gnu.org/software/emacs/manual/html_node/elisp/Mode-Line-Data.html
-for more info.")
-
-(defun my-which-func-get-header-format ()
-  "Gets `header-line-format' associated with the current major mode in `my-which-func-header-formats'."
-  (cdr (or (assoc major-mode my-which-func-header-formats) ;; mode-specific
-           (assoc nil my-which-func-header-formats)))) ;; default
-
-(defun which-func-ff-hook--add-which-func-to-header-line ()
-  "Add which-func part to header line for major modes in `which-func-modes'."
-  (when (memq major-mode which-func-modes)
-    (add-to-list 'header-line-format
-                 '(which-function-mode
-                   (which-func-mode
-                    ("[ " (:eval (my-which-func-get-header-format)) " ]"))))))
-
-;; run `which-func-ff-hook--add-which-func-to-header-line' after `which-func-ff-hook'
-(advice-add 'which-func-ff-hook
-            :after #'which-func-ff-hook--add-which-func-to-header-line)
+;; ;; display function or outline node at point
+;; (setq which-func-modes '() ;; use `which-func-mode' only for given modes
+;;       which-func-unknown "n/a")
+;; 
+;; ;; enable minor mode
+;; (which-function-mode)
+;; 
+;; ;; modify to show current function in header instead of in mode line
+;; 
+;; (defun my-narrow-to-defun-toggle ()
+;;   "Toggle narrow to defun."
+;;   (interactive)
+;;   (if (buffer-narrowed-p)
+;;       (widen)
+;;     (narrow-to-defun)))
+;; 
+;; (defvar my-which-func-header-keymap-default
+;;   (let ((map (make-sparse-keymap)))
+;;     (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
+;;     (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
+;;     (define-key map [header-line wheel-up] 'beginning-of-defun)
+;;     (define-key map [header-line wheel-down] 'end-of-defun)
+;;     map)
+;;   "Keymap for header line which-func.")
+;; 
+;; (defvar my-which-func-header-keymap-help-text-default
+;;   "mouse-2 : toggle rest visibility\n\
+;; wheel-u : go to beginning\n\
+;; wheel-d : go to end"
+;;   "Help text for `my-which-fun-header-keymap-default'.")
+;; 
+;; (defvar my-which-func-header-format-default
+;;   `(:propertize which-func-current
+;;                 local-map ,my-which-func-header-keymap-default
+;;                 face which-func
+;;                 mouse-face mode-line-highlight
+;;                 help-echo my-which-func-header-keymap-help-text-default)
+;;   "Default header format for which-func part.")
+;; 
+;; ;; remove which-func part from the mode line
+;; (setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
+;; 
+;; ;; see Org mode section for a mode-specific example for Org-mode
+;; (defvar my-which-func-header-formats
+;;   `((nil . ,my-which-func-header-format-default))
+;;   "Association list for looking up mode-specific which-func header-lines.
+;; Keys should be major mode symbols and values should unevaluated
+;; mode-line constructs, see
+;; https://www.gnu.org/software/emacs/manual/html_node/elisp/Mode-Line-Data.html
+;; for more info.")
+;; 
+;; (defun my-which-func-get-header-format ()
+;;   "Gets `header-line-format' associated with the current major mode in `my-which-func-header-formats'."
+;;   (cdr (or (assoc major-mode my-which-func-header-formats) ;; mode-specific
+;;            (assoc nil my-which-func-header-formats)))) ;; default
+;; 
+;; (defun which-func-ff-hook--add-which-func-to-header-line ()
+;;   "Add which-func part to header line for major modes in `which-func-modes'."
+;;   (when (memq major-mode which-func-modes)
+;;     (add-to-list 'header-line-format
+;;                  '(which-function-mode
+;;                    (which-func-mode
+;;                     ("[ " (:eval (my-which-func-get-header-format)) " ]"))))))
+;; 
+;; ;; run `which-func-ff-hook--add-which-func-to-header-line' after `which-func-ff-hook'
+;; (advice-add 'which-func-ff-hook
+;;             :after #'which-func-ff-hook--add-which-func-to-header-line)
 
 ;; Backups
 
@@ -323,7 +345,8 @@ Bookmarks (_q_: quit)"
 
 ;; save minibuffer and other history across sessions
 ;; don't persist kill-ring if in the habit of copy-pasting passwords
-(setq history-length 10000
+(setq history-delete-duplicates t
+      history-length 100
       savehist-additional-variables '(Info-history-list
                                       ;; kill-ring
                                       kmacro-ring
@@ -1007,8 +1030,20 @@ Dired → Filter (_q_: ←)"
 (use-package all-the-icons-dired
   :after (all-the-icons dired)
   :hook (dired-mode . all-the-icons-dired-mode)
-  :config (set-face-attribute 'all-the-icons-dired-dir-face nil
-                              :weight 'normal))
+  :config
+  (set-face-attribute 'all-the-icons-dired-dir-face nil
+                      :weight 'normal)
+  ;; extra workaround to avoid misalignment in filenames due to with
+  ;; varying icon widths
+  ;; https://github.com/jtbm37/all-the-icons-dired/issues/10
+  (advice-add 'all-the-icons-dired--setup :after
+              (lambda () (setq-local tab-width 2))))
+
+;; ;; use Treemacs icons in Dired
+;; (when (display-graphic-p)
+;;   (use-package treemacs-icons-dired
+;;     :after dired
+;;     :hook (dired-mode . treemacs-icons-dired-mode)))
 
 ;; Editing text
 
@@ -1116,8 +1151,7 @@ Registers (_q_: quit)"
 ;; disable prefix interpretation when multiple-cursors-mode is active
 ;; see https://stackoverflow.com/questions/53798055
 (defhydra my-hydra/multiple-cursors (:color pink :hint nil
-                                     :base-map (make-sparse-keymap)
-                                     :post (mc/keyboard-quit))
+                                     :base-map (make-sparse-keymap))
   "
 Multiple-cursors (_C-g_: quit)
 Mark    _C-<_: add-prev _C->_: add-next _C-%_: add-all  _C-s_: search
@@ -1125,7 +1159,11 @@ Mark    _C-<_: add-prev _C->_: add-next _C-%_: add-all  _C-s_: search
         _C-|_: edit-lns _<mouse-1>_: add/remove
 Misc    _C-{_: number   _C-}_: letter
 "
-  ("C-g" nil :exit t)
+  ("C-g" (lambda ()
+           (interactive)
+           (mc/keyboard-quit)
+           (when multiple-cursors-mode
+             (my-hydra/multiple-cursors/body))) :exit t)
   ("C-<" mc/mark-previous-like-this)
   ("C-," mc/skip-to-previous-like-this)
   ("M-<" mc/unmark-previous-like-this)
@@ -1142,6 +1180,8 @@ Misc    _C-{_: number   _C-}_: letter
   ("C-{" mc/insert-numbers)
   ("C-}" mc/insert-letters)
   ("C-|" mc/edit-lines))
+
+;; bind multiple-cursors hydra
 (global-set-key (kbd "C-c C-M-c") #'my-hydra/multiple-cursors/body)
 
 ;; expandable snippet template system
@@ -1230,6 +1270,7 @@ Server  [% 3`server-mode]   _s_ : toggle  _r_ : restart"
 ;; configure Notmuch email client
 (when (executable-find "notmuch")
   (use-package notmuch
+    :ensure nil ;; in site-lisp directory
     :bind (("C-c C-M-n" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
@@ -1249,6 +1290,12 @@ Server  [% 3`server-mode]   _s_ : toggle  _r_ : restart"
                                          ("tags" . "%s ")
                                          ("subject" . "%s"))
           notmuch-show-logo nil
+          ;; workaround for Notmuch using SVG icons when unsupported
+          ;; https://emacs.stackexchange.com/questions/14875/notmuch-mode-very-slow-in-emacs-mac-port-railwaycat
+          notmuch-tag-formats '(("unread"
+                                 (propertize tag 'face 'notmuch-tag-unread))
+                                ("flagged"
+                                 (propertize tag 'face 'notmuch-tag-flagged)))
           notmuch-tree-result-format `(("date" . "%12s  ")
                                        ("authors" . "%-20s")
                                        ((("tree" . "%s")
@@ -1569,14 +1616,14 @@ Modified copy of original using Gmail blockquotes."
       (interactive "P")
       (save-window-excursion
         (let ((browse-url-browser-function (if arg
-					       'xwidget-webkit-browse-url
-					     browse-url-browser-function))
-	      (tmp-file (make-temp-file "org-msg" nil ".html"))
-	      (mail (org-msg-build)))
+                                               'xwidget-webkit-browse-url
+                                             browse-url-browser-function))
+              (tmp-file (make-temp-file "org-msg" nil ".html"))
+              (mail (org-msg-build)))
           (with-temp-buffer
             ;; following line modified from original
-	    (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
-	    (write-file tmp-file))
+            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
+            (write-file tmp-file))
           (browse-url (concat "file://" tmp-file)))))
     (defun org-msg-prepare-to-send ()
       "Convert the current OrgMsg buffer into `mml' content.
@@ -1585,29 +1632,29 @@ Modified copy of original using Gmail blockquotes."
       (save-window-excursion
         (when (eq major-mode 'org-msg-edit-mode)
           (let ((mail (org-msg-build))
-	        (attachments (org-msg-get-prop "attachment")))
-	    (dolist (file attachments)
-	      (unless (file-exists-p file)
-	        (error "File '%s' does not exist" file)))
-	    (setq org-msg-attachment attachments)
-	    (when org-msg-text-plain-alternative
-	      (setq org-msg-text-plain (org-msg-org-to-text-plain)))
-	    (goto-char (org-msg-start))
-	    (delete-region (org-msg-start) (point-max))
-	    (when (org-msg-mml-recursive-support)
-	      (when attachments
-	        (mml-insert-multipart "mixed")
-	        (dolist (file attachments)
-	          (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
-			          'filename file 'disposition "attachment")))
-	      (when org-msg-text-plain-alternative
-	        (mml-insert-multipart "alternative")
-	        (mml-insert-part "text/plain")
-	        (insert org-msg-text-plain)
-	        (forward-line)))
-	    (mml-insert-part "text/html")
+                (attachments (org-msg-get-prop "attachment")))
+            (dolist (file attachments)
+              (unless (file-exists-p file)
+                (error "File '%s' does not exist" file)))
+            (setq org-msg-attachment attachments)
+            (when org-msg-text-plain-alternative
+              (setq org-msg-text-plain (org-msg-org-to-text-plain)))
+            (goto-char (org-msg-start))
+            (delete-region (org-msg-start) (point-max))
+            (when (org-msg-mml-recursive-support)
+              (when attachments
+                (mml-insert-multipart "mixed")
+                (dolist (file attachments)
+                  (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
+                                  'filename file 'disposition "attachment")))
+              (when org-msg-text-plain-alternative
+                (mml-insert-multipart "alternative")
+                (mml-insert-part "text/plain")
+                (insert org-msg-text-plain)
+                (forward-line)))
+            (mml-insert-part "text/html")
             ;; following line modified from original
-	    (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
+            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
 
 ;; major mode-specific hydra for OrgMsg edit mode
 (with-eval-after-load 'org-msg
@@ -1643,27 +1690,27 @@ area."
    (unless (eq major-mode 'org-msg-edit-mode)
      (message-goto-body)
      (let ((new (not (org-msg-message-fetch-field "subject")))
-	   (with-original (not (= (point) (point-max))))
-	   (reply-to))
+           (with-original (not (= (point) (point-max))))
+           (reply-to))
        (when (or new (org-msg-mua-call 'article-htmlp))
-	 (unless new
-	   (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
-	 (insert (org-msg-header reply-to))
-	 (when org-msg-greeting-fmt
-	   (insert (format org-msg-greeting-fmt
-			   (if new
-			       ""
-			     (org-msg-get-to-first-name)))))
-	 (save-excursion
+         (unless new
+           (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
+         (insert (org-msg-header reply-to))
+         (when org-msg-greeting-fmt
+           (insert (format org-msg-greeting-fmt
+                           (if new
+                               ""
+                             (org-msg-get-to-first-name)))))
+         (save-excursion
            (insert "\n\n")
            (when with-original
              (org-escape-code-in-region (point) (point-max)))
            (save-excursion
              (end-of-buffer)
-	     (when org-msg-signature
-	       (insert org-msg-signature)))
-	   (org-msg-edit-mode))
-	 (set-buffer-modified-p nil))
+             (when org-msg-signature
+               (insert org-msg-signature)))
+           (org-msg-edit-mode))
+         (set-buffer-modified-p nil))
        (if (org-msg-message-fetch-field "to")
            (recenter)
          (message-goto-to))))))
@@ -2141,6 +2188,15 @@ Org-mode → Emphasize (_q_: ←)"
       org-agenda-window-setup 'only-window
       org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
 
+;; add separator between each day in agenda view
+(setq org-agenda-format-date
+      (lambda (date)
+        (let* ((datestr (org-agenda-format-date-aligned date))
+               (separator-width (- (window-width)
+                                   (string-width datestr)
+                                   1)))
+          (concat "\n" datestr " " (make-string separator-width ?_)))))
+
 (with-eval-after-load 'org-agenda
   ;; add custom agenda commands that only show undated tasks in list view
   (dolist (my-custom-cmd
@@ -2320,61 +2376,61 @@ Org (_q_: quit)"
                            org-verbatim))
         (set-face-attribute curr-face nil :family fixed-pitch-family)))))
 
-(with-eval-after-load 'org
-  ;; display the outline path at point using which-func
-  (with-eval-after-load 'which-func
-    (add-to-list 'which-func-modes 'org-mode)
-    (defun my-org-which-function-string-shortener (str &optional maxlen)
-      "Shortens STR if it is longer than MAXLEN chars."
-      (let* ((len (length str))
-             (maxlen (or maxlen 40)) ;; default maxlen of 40
-             (num-left-chars (/ maxlen 2))
-             (num-right-chars (- maxlen num-left-chars 3)))
-        (if (> len maxlen)
-            (concat (substring str 0 num-left-chars)
-                    "..."
-                    (substring str (- len num-right-chars) len))
-          str)))
-    (defun my-org-which-function ()
-      "Returns current outline path."
-      (if (eq major-mode 'org-mode)
-        (condition-case nil
-            (mapconcat #'my-org-which-function-string-shortener
-                       (org-get-outline-path t)
-                       " > ")
-          (error nil))))
-    (add-to-list 'which-func-functions #'my-org-which-function)
-    ;; Org-specific which-func header
-    (defun my-org-narrow-to-subtree-toggle ()
-      "Toggle org-narrow-to-subtree."
-      (interactive)
-      (if (buffer-narrowed-p)
-          (widen)
-        (org-narrow-to-subtree)))
-    (defvar my-which-func-header-keymap-org
-      (let ((map (make-sparse-keymap)))
-        (define-key map [header-line mouse-1] 'my-org-narrow-to-subtree-toggle)
-        ;; work around mouse-1 mapping to mouse-2 when cursor is on org bullet
-        (define-key map [header-line mouse-2] 'my-org-narrow-to-subtree-toggle)
-        (define-key map [header-line mouse-3] 'outline-up-heading)
-        (define-key map [header-line wheel-up] 'org-backward-heading-same-level)
-        (define-key map [header-line wheel-down] 'org-forward-heading-same-level)
-        map)
-      "Keymap for header line which-func.")
-    (defvar my-which-func-header-keymap-help-text-org
-      "mouse-1 : toggle rest visibility\n\
-mouse-3 : go up one heading\n\
-wheel-u : next same-level heading\n\
-wheel-d : prev same-level heading"
-      "Help text for `my-which-fun-header-keymap-org'.")
-    (defvar my-which-func-header-format-org
-            `(:propertize which-func-current
-                          local-map ,my-which-func-header-keymap-org
-                          face which-func
-                          mouse-face mode-line-highlight
-                          help-echo my-which-func-header-keymap-help-text-org))
-    ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
-    (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
+;; (with-eval-after-load 'org
+;;   ;; display the outline path at point using which-func
+;;   (with-eval-after-load 'which-func
+;;     (add-to-list 'which-func-modes 'org-mode)
+;;     (defun my-org-which-function-string-shortener (str &optional maxlen)
+;;       "Shortens STR if it is longer than MAXLEN chars."
+;;       (let* ((len (length str))
+;;              (maxlen (or maxlen 40)) ;; default maxlen of 40
+;;              (num-left-chars (/ maxlen 2))
+;;              (num-right-chars (- maxlen num-left-chars 3)))
+;;         (if (> len maxlen)
+;;             (concat (substring str 0 num-left-chars)
+;;                     "..."
+;;                     (substring str (- len num-right-chars) len))
+;;           str)))
+;;     (defun my-org-which-function ()
+;;       "Returns current outline path."
+;;       (if (eq major-mode 'org-mode)
+;;         (condition-case nil
+;;             (mapconcat #'my-org-which-function-string-shortener
+;;                        (org-get-outline-path t)
+;;                        " > ")
+;;           (error nil))))
+;;     (add-to-list 'which-func-functions #'my-org-which-function)
+;;     ;; Org-specific which-func header
+;;     (defun my-org-narrow-to-subtree-toggle ()
+;;       "Toggle org-narrow-to-subtree."
+;;       (interactive)
+;;       (if (buffer-narrowed-p)
+;;           (widen)
+;;         (org-narrow-to-subtree)))
+;;     (defvar my-which-func-header-keymap-org
+;;       (let ((map (make-sparse-keymap)))
+;;         (define-key map [header-line mouse-1] 'my-org-narrow-to-subtree-toggle)
+;;         ;; work around mouse-1 mapping to mouse-2 when cursor is on org bullet
+;;         (define-key map [header-line mouse-2] 'my-org-narrow-to-subtree-toggle)
+;;         (define-key map [header-line mouse-3] 'outline-up-heading)
+;;         (define-key map [header-line wheel-up] 'org-backward-heading-same-level)
+;;         (define-key map [header-line wheel-down] 'org-forward-heading-same-level)
+;;         map)
+;;       "Keymap for header line which-func.")
+;;     (defvar my-which-func-header-keymap-help-text-org
+;;       "mouse-1 : toggle rest visibility\n\
+;; mouse-3 : go up one heading\n\
+;; wheel-u : next same-level heading\n\
+;; wheel-d : prev same-level heading"
+;;       "Help text for `my-which-fun-header-keymap-org'.")
+;;     (defvar my-which-func-header-format-org
+;;             `(:propertize which-func-current
+;;                           local-map ,my-which-func-header-keymap-org
+;;                           face which-func
+;;                           mouse-face mode-line-highlight
+;;                           help-echo my-which-func-header-keymap-help-text-org))
+;;     ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
+;;     (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
 
 ;; UTF-8 bullets in Org buffers
 (use-package org-bullets
@@ -2450,6 +2506,8 @@ Org-mode → Download (_q_: ←)"
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily
+        ;; don't carry over TODO items from a previous days
+        org-journal-carryover-items nil
         ;; use ORG-DIRECTORY/journal/ as the default journal directory
         org-journal-dir (concat org-directory "journal/"))
   ;; add journal files to Org agenda
@@ -2561,6 +2619,30 @@ Org-mode → Download (_q_: ←)"
 (use-package org-noter
   :bind ("C-c C-M-S-n" . org-noter)
   :init (setq org-noter-always-create-frame nil))
+
+(use-package org-super-agenda
+  :config
+  (setq org-super-agenda-groups '((:name "Today"
+                                   :time-grid t
+                                   :scheduled today)
+                                  (:name "Due today"
+                                   :deadline today)
+                                  (:name "Important"
+                                   :priority "A")
+                                  (:name "Overdue"
+                                   :deadline past)
+                                  (:name "Due soon"
+                                   :deadline future)
+                                  (:name "Backlog"
+                                   :scheduled past)
+                                  (:name "Upcoming"
+                                   :scheduled future)
+                                  (:priority<= "B")
+                                  (:name "Waiting"
+                                   :todo "WAIT")
+                                  (:name "On hold"
+                                   :todo "HOLD")))
+  (org-super-agenda-mode 1))
 
 ;; Outlines
 
@@ -2699,7 +2781,7 @@ Flymake (_q_: quit)"
                                       conda-env-current-name
                                       15 nil nil "…"))
                            ""))
-                 t))
+                 t)))
 
 (defhydra my-hydra/conda (:color teal :columns 4)
   "
@@ -2709,45 +2791,134 @@ conda (_q_: quit)"
   ("d" conda-env-deactivate "deactivate")
   ("l" conda-env-list "list"))
 (with-eval-after-load 'conda
-  (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body)))
+  (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body))
 
-;; Programming / Eglot Language Server Protocol client
+;; Programming / lsp-mode Language Server Protocol client
 
-(use-package eglot
-  :commands eglot
+;; lsp-mode Language Server Protocol client
+;; auto-signature-help activation is not enabled by default, but to
+;; show it activate it using `lsp-toggle-signature-auto-activate' or
+;; C-S-SPC to peek, https://github.com/emacs-lsp/lsp-mode/issues/1223
+(use-package lsp-mode
+  :init (setq lsp-print-io nil ;; disable logging packets between Emacs and LS
+              lsp-print-performance nil ;; disable performance logging
+              lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
+              lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
+              lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
+              lsp-diagnostic-package :flymake ;; use Flymake for syntax checking
+              lsp-signature-auto-activate nil) ;; don't automatically show signature
   :config
-  ;; increase wait time after last change before asking for
-  ;; completions from 0.5s to 2s to reduce request rate
-  (setq eglot-send-changes-idle-time 2)
-  ;; prioritize diagnostic message display if a Flymake error is under the point
-  ;; https://github.com/joaotavora/eglot/issues/8#issuecomment-414149077
-  (advice-add 'eglot-eldoc-function :around
-              (lambda (oldfun)
-                (let ((help (help-at-pt-kbd-string)))
-                  (if help (message "%s" help) (funcall oldfun))))))
+  ;; TODO: may be fixed with newer Flymake or newer Emacs
+  ;; redefine lsp--flymake to work around scenarios where the LS sends
+  ;; diagnostics before Flymake changes the reporting function and new
+  ;; diagnostics are ignored while old errors continue being reported
+  ;; https://github.com/emacs-lsp/lsp-mode/pull/1423
+  (defun lsp--flymake-backend (report-fn &rest _args)
+    "Flymake backend."
+    (let ((first-run (null lsp--flymake-report-fn)))
+      (setq lsp--flymake-report-fn report-fn)
+      (lsp--flymake-update-diagnostics))))
 
-;; hydra for Eglot
-(defhydra my-hydra/eglot-mode (:color teal :columns 4)
+;; company backend for LSP-driven completion
+(use-package company-lsp
+  :after lsp-mode
+  :init (setq company-lsp-cache-candidates t))
+
+;; hydras adapted from lsp-mode's default command map, see lsp-command-map in
+;; https://github.com/emacs-lsp/lsp-mode/blob/master/lsp-mode.el
+(defhydra my-hydra/lsp (:color teal :columns 3)
   "
-Eglot [active=%(if (boundp 'eglot--managed-mode) eglot--managed-mode nil)] (_q_: quit)"
+Language Server (_q_: quit)"
   ("q" nil nil)
-  ("s" eglot "start")
-  ("r" eglot-reconnect "reconnect")
-  ("Q" eglot-shutdown "shutdown")
-  ("R" eglot-rename "rename")
-  ("f" eglot-format "format")
-  ("a" eglot-code-actions "code-actions")
-  ("h" eglot-help-at-point "help-at-pt")
-  ("U" eglot-signal-didChangeConfiguration "update-cfg")
-  ("be" eglot-events-buffer "events-buf")
-  ("bs" eglot-stderr-buffer "stderr-buf"))
+  ("s" my-hydra/lsp-session/body "→ Session")
+  ("=" my-hydra/lsp-format/body "→ Format")
+  ("F" my-hydra/lsp-folder/body "→ Folder")
+  ("T" my-hydra/lsp-toggle/body "→ Toggle")
+  ("g" my-hydra/lsp-goto/body "→ Goto")
+  ("h" my-hydra/lsp-help/body "→ Help")
+  ("r" my-hydra/lsp-refactor/body "→ Refactor")
+  ("a" my-hydra/lsp-actions/body "→ Actions"))
+(defhydra my-hydra/lsp-session (:color teal :columns 3)
+  "
+Language Server → Session (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("r" (condition-case nil (lsp-restart-workspace) (error (lsp))) "(re-)start")
+  ("s" lsp-workspace-shutdown "shutdown")
+  ("d" lsp-describe-session "describe")
+  ("D" lsp-disconnect "disconnect"))
+(defhydra my-hydra/lsp-format (:color teal :columns 3)
+  "
+Language Server → Format (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("=" lsp-format-buffer "buffer")
+  ("r" lsp-format-region "range"))
+(defhydra my-hydra/lsp-folder (:color teal :columns 3)
+  "
+Language Server → Folder (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("a" lsp-workspace-folders-add "add")
+  ("r" lsp-workspace-folders-remove "remove")
+  ("b" lsp-workspace-blacklist-remove "un-blacklist"))
+(defhydra my-hydra/lsp-toggle (:color amaranth :columns 3)
+  "
+Language Server → Toggle (_q_: ←)"
+  ("q" my-hydra/lsp/body nil :exit t)
+  ("l" lsp-lens-mode "lens-mode")
+  ("L" lsp-toggle-trace-io "trace-io")
+  ("h" lsp-toggle-symbol-highlight "symbol-highlight")
+  ("b" lsp-headerline-breadcrumb-mode "headerline-breadcrumb")
+  ("s" lsp-toggle-signature-auto-activate "signature-help")
+  ("f" lsp-toggle-on-type-formatting "on-type-formatting"))
+(defhydra my-hydra/lsp-goto (:color teal :columns 3)
+  "
+Language Server → Goto (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("j" (lambda ()
+         (interactive)
+         (if (fboundp 'imenu-list-smart-toggle)
+             (imenu-list-smart-toggle)
+           (message "Requires imenu-list"))) "imenu")
+  ("g" lsp-find-definition "definition")
+  ("r" lsp-find-references "references")
+  ("i" lsp-find-implementation "implementation")
+  ("t" lsp-find-type-definition "type-implementation")
+  ("d" lsp-find-declaration "declaration")
+  ("a" xref-find-apropos "workspace-symbol"))
+(defhydra my-hydra/lsp-help (:color teal :columns 3)
+  "
+Language Server → Help (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("h" lsp-describe-thing-at-point "describe")
+  ("s" lsp-signature-activate "signature-activate"))
+(defhydra my-hydra/lsp-refactor (:color teal :columns 3)
+  "
+Language Server → Refactor (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("r" lsp-rename "rename")
+  ("o" lsp-organize-imports "organize-imports"))
+(defhydra my-hydra/lsp-actions (:color teal :columns 3)
+  "
+Language Server → Actions (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("a" lsp-execute-code-action "execute-code-action")
+  ("l" lsp-avy-lens "avy-lens")
+  ("h" lsp-document-highlight "document-highlight"))
 
-;; binding setup function for Eglot hydra
-;; call `eglot--setup-hydra-bindings' in a mode's init config code
-;; to set up the hydra for use in that mode at the "C-c C-M-l" binding
-(defun eglot--setup-hydra-bindings (mode-map)
-  "Sets up 'C-c C-M-l' binding to Eglot hydra in given MODE-MAP."
-  (define-key mode-map (kbd "C-c C-M-l") #'my-hydra/eglot-mode/body))
+;; bind lsp-mode hydra
+(with-eval-after-load 'lsp-mode
+  (define-key lsp-mode-map (kbd "C-c C-M-l") #'my-hydra/lsp/body))
+
+;; Programming / dap-mode Debug Adaptor Protocol client
+
+;; client for Debug Adaptor Protocol servers
+(use-package dap-mode
+  :after lsp-mode
+  :bind (:map lsp-mode-map
+         ("C-c C-M-d d" . dap-debug)
+         ("C-c C-M-d D" . dap-debug-edit-template))
+  :config
+  (add-hook 'dap-stopped-hook
+            (lambda (arg) (call-interactively #'dap-hydra))))
 
 ;; Programming / Emacs Lisp
 
@@ -3082,92 +3253,34 @@ Python (_q_: quit)"
 
 (add-hook 'python-mode-hook #'flymake-mode t)
 
-;; show function at point
-(with-eval-after-load 'which-func
-  (add-to-list 'which-func-modes 'python-mode))
-
-;; add Imenu index to menubar
-(with-eval-after-load 'imenu
-  (add-hook 'python-mode-hook 'imenu-add-menubar-index))
+;; ;; show function at point
+;; (with-eval-after-load 'which-func
+;;   (add-to-list 'which-func-modes 'python-mode))
+;; 
+;; ;; add Imenu index to menubar
+;; (with-eval-after-load 'imenu
+;;   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
 
 (when (executable-find "devskim")
   (with-eval-after-load 'flymake-quickdef
     (add-hook 'python-mode-hook #'flymake-devskim-setup)))
 
-;; set path to Microsoft Python Language Server binary
-(setq mspyls-path (expand-file-name "~/.local/bin/Microsoft.Python.LanguageServer"))
+;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
+(use-package lsp-python-ms
+  ;; append lsp-mode hooks
+  :config (add-hook 'python-mode-hook
+                    (lambda ()
+                      ;; load packages if deferred
+                      (require 'lsp-mode)
+                      (require 'lsp-python-ms)
+                      ;; start LSP client
+                      (lsp-mode))
+                    t))
 
-;; set path to typeshed containing Python external type annotations
-;; which comes with MS Python Language Server
-;; or clone https://github.com/python/typeshed
-(setq typeshed-path (expand-file-name "~/Packages/typeshed/"))
-
-;; eglot Python settings
-;; cobbled together from the following sources:
-;; https://github.com/joaotavora/eglot/issues/144#issuecomment-557229445
-;; https://www.reddit.com/r/emacs/comments/do2z6y/i_am_moving_from_lspmode_to_eglot/f87p7hb/
-(with-eval-after-load 'eglot
-  ;; patch to ignore format-markup errors.
-  ;; Workaround for MS Python language server which can send empty values.
-  (el-patch-defun eglot--format-markup (markup)
-    "Format MARKUP according to LSP's spec."
-    (pcase-let ((`(,string ,mode)
-                 (if (stringp markup) (list (string-trim markup)
-                                            (intern "gfm-view-mode"))
-                   (list (plist-get markup :value)
-                         major-mode))))
-      (el-patch-swap
-        (with-temp-buffer
-          (insert string)
-          (ignore-errors (funcall mode))
-          (font-lock-ensure)
-          (buffer-string))
-        (when string
-          (with-temp-buffer
-            (insert string)
-            (ignore-errors (funcall mode))
-            (font-lock-ensure)
-            (buffer-string))))))
-
-  (setq-default eglot-workspace-configuration
-                (cons '(:python :autoComplete (:extraPaths nil)
-                        :analysis (:autoSearchPaths :json-false
-                                   :usePYTHONPATH :json-false))
-                      eglot-workspace-configuration))
-
-  (defun eglot-pyls--get-python-version ()
-    (with-temp-buffer
-      (call-process
-       (executable-find python-shell-interpreter) nil t nil
-       "-c" "import sys; print(\"%s.%s\" % (sys.version_info[0], sys.version_info[1]))")
-      (car (split-string (buffer-string) "\n"))))
-
-  (defclass eglot-pyls (eglot-lsp-server) ()
-    :documentation
-    "Microsoft Python Language Server.")
-
-  (cl-defmethod eglot-initialization-options ((server eglot-pyls))
-    "Passes through required pyls initialization options."
-    `(:interpreter (:properties
-                    (:UseDefaultDatabase t
-                     :InterpreterPath ,(executable-find python-shell-interpreter)
-                     :Version ,(eglot-pyls--get-python-version)))
-      ;; preferredFormat should be "markdown" or "plaintext"
-      :displayOptions (:preferredFormat "markdown"
-                       :trimDocumentationLines :json-false
-                       :maxDocumentationLineLength 0
-                       :trimDocumentationText :json-false
-                       :maxDocumentationTextLength 0)
-      :analysisUpdates t
-      :asyncStartup t
-      :logLevel "Error"
-      :typeStubSearchPaths ,(vector typeshed-path)))
-
-  (add-to-list 'eglot-server-programs
-               `(python-mode eglot-pyls ,mspyls-path)))
-
-;; setup binding to Eglot hydra in Python mode
-(eglot--setup-hydra-bindings python-mode-map)
+(add-hook 'python-mode-hook
+          (lambda ()
+            (require 'dap-python))
+          t)
 
 ;; Programming / R
 
@@ -3390,6 +3503,26 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
   :commands git-timemachine
   :bind ("C-c C-M-g t" . git-timemachine))
 
+;; per-project file trees
+(use-package treemacs
+  :bind ("C-c C-M-t" . treemacs)
+  :init
+  ;; resize treemacs icon sizes to 75% of line-height
+  (add-hook 'after-init-hook
+            (lambda ()
+              (when (and (display-graphic-p)
+                         (eq system-type 'darwin))
+                (treemacs-resize-icons
+                 (truncate (* (line-pixel-height) 0.75)))))))
+
+;; treemacs projectile integration
+(use-package treemacs-projectile
+  :after (treemacs projectile))
+
+;; treemacs magit integration
+(use-package treemacs-magit
+  :after (treemacs magit))
+
 ;; Reference management
 
 ;; manager for BibTeX bibliographic databases
@@ -3564,177 +3697,6 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 (autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
 (with-eval-after-load 'notdeft
   (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
-
-;; Web
-
-;; built-in Emacs text web browser
-(use-package eww
-  :ensure nil ;; built-in
-  :commands (eww eww-follow-link)
-  :bind (:map eww-mode-map
-         ("I" . my-eww-toggle-images))
-  :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
-  ;; don't render images in HTML pages by default
-  :config (setq-default shr-inhibit-images t))
-
-;; hydra for Emacs Web Wowser
-(defhydra my-hydra/eww-mode (:color teal :columns 3)
-  "
-Emacs Web Wowser (_q_: quit)"
-  ("q" nil nil)
-  ("d" eww-download "download-link")
-  ("G" eww "search")
-  ("o" eww-open-file "open-file")
-  ("l" eww-back-url "back")
-  ("r" eww-forward-url "forward")
-  ("g" eww-reload "reload")
-  ("v" eww-view-source "view-source")
-  ("w" eww-copy-url "copy-url")
-  ("&" eww-browse-with-external-browser "browse-ext")
-  ("b" eww-add-bookmark "bookmark-page")
-  ("B" eww-list-bookmarks "bookmark-list")
-  ("R" eww-readable "readable-only")
-  ("F" eww-toggle-fonts "toggle-fonts")
-  ("I" my-eww-toggle-images "toggle-images")
-  ("M-C" eww-toggle-colors "toggle-colors")
-  ("D" eww-toggle-paragraph-direction "toggle-text-dir")
-  ("s" eww-switch-to-buffer "eww-switch-buf")
-  ("S" eww-list-buffers "eww-list-buf")
-  ("H" eww-list-histories "history")
-  ("C" url-cookie-list "cookie-list"))
-
-;; binding
-(with-eval-after-load 'eww
-  (define-key eww-mode-map (kbd "C-c C-M-m") #'my-hydra/eww-mode/body))
-
-;; helper function for toggling images in Emacs Web Wowser
-(defun my-eww-toggle-images ()
-  "Toggle displaying of images when rendering HTML."
-  (interactive)
-  (setq-local shr-inhibit-images (not shr-inhibit-images))
-  (eww-reload)
-  (message "Images are now %s" (if shr-inhibit-images "off" "on")))
-
-(use-package restclient
-  :defer t
-  ;; assume request source files have ".http" suffix
-  :mode ("\\.http\\'" . restclient-mode)
-  :config
-  ;; pulse *HTTP Response* buffer after receiving request response
-  ;; adapted from https://github.com/jordonbiondo/.emacs.d/blob/master/init.el
-  (defun my-restclient-pulse-buffer ()
-    "Pulses the current buffer."
-    (save-excursion
-      (goto-char (point-min))
-      (pulse-momentary-highlight-region (point-min) (point-max))))
-  (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
-
-;; hydra for restclient
-(defhydra my-hydra/restclient-mode (:color teal :columns 3)
-  "
-REST client (_q_: quit)"
-  ("q" nil nil)
-  ("c" restclient-http-send-current "send")
-  ("r" restclient-http-send-current-raw "send-raw")
-  ("v" restclient-http-send-current-stay-in-window "send-bg")
-  ("n" restclient-jump-next "next" :exit nil)
-  ("p" restclient-jump-prev "prev" :exit nil)
-  ("." restclient-mark-current "mark")
-  ("u" restclient-copy-curl-command "copy-curl")
-  ("N"
-   (lambda ()
-     (interactive)
-     (if (buffer-narrowed-p)
-         (widen)
-       (restclient-narrow-to-current)))
-   "narrow" :exit nil)
-  ("f"
-   (lambda ()
-     (interactive)
-     (require 'json-mode nil t)
-     (if (fboundp 'json-mode-pretty-print-dwim)
-         (call-interactively 'json-mode-pretty-print-dwim)
-       (message "Requires the `json-mode' package be installed.")))
-   "fmt-json-rgn"))
-
-;; binding for restclient hydra
-(with-eval-after-load 'restclient
-  (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
-
-;; increase network security settings
-(setq gnutls-verify-error t)
-(setq gnutls-min-prime-bits 1024)
-(setq network-security-level 'high)
-(setq nsm-save-host-names t)
-
-;; HTTP requests privacy settings
-(setq url-cookie-untrusted-urls '(".*")) ;; no cookies
-(setq url-privacy-level 'paranoid) ;; more private HTTP requests
-(url-setup-privacy-info) ;; apply `url-privacy-level'
-
-;; Writing
-
-;; hydra for writing functions
-(defhydra my-hydra/writing (:color amaranth :hint nil
-                            :pre (require 'flyspell))
-  "
-Writing (_q_: quit)
-Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
-"
-  ("q" nil :exit t)
-  ("f" flyspell-mode)
-  ("F" flyspell-prog-mode))
-
-;; bindings for writing hydra
-(global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
-
-;; provides word lookups from a dictionary server
-;; `dictionary-server' can be set to "localhost" to use a local
-;; dictionary server like dictd or GNU Dico that implements RFC 2229
-(use-package dictionary
-  :init (setq dictionary-server "dict.org"
-              dictionary-default-dictionary "*"))
-
-;; add dictionary entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
-    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
-")
-    ("s" dictionary-search :exit t)
-    ("m" dictionary-match-words :exit t)))
-
-;; thesaurus functions using Synosaurus
-(use-package synosaurus
-  :init (setq synosaurus-choose-method 'default
-              synosaurus-backend 'synosaurus-backend-wordnet))
-
-;; add synosaurus entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
-    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
-")
-    ("S" synosaurus-mode :exit nil)
-    ("L" synosaurus-lookup :exit t)
-    ("R" synosaurus-choose-and-replace :exit t)
-    ("I" synosaurus-choose-and-insert :exit t)))
-
-;; grammar checking functions using LanguageTool
-(use-package langtool
-  :init (setq langtool-default-language "en-US"
-              langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
-
-;; add langtool functions to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
-    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
-")
-    ("w" langtool-check nil :exit nil)
-    ("W" langtool-check-done nil :exit nil)
-    ("l" langtool-switch-default-language nil :exit nil)
-    ("c" langtool-correct-buffer nil :exit nil)))
 
 ;; Visual (part 2)
 
@@ -3932,6 +3894,177 @@ Whitespace (_q_: quit)"
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
+
+;; Web
+
+;; built-in Emacs text web browser
+(use-package eww
+  :ensure nil ;; built-in
+  :commands (eww eww-follow-link)
+  :bind (:map eww-mode-map
+         ("I" . my-eww-toggle-images))
+  :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
+  ;; don't render images in HTML pages by default
+  :config (setq-default shr-inhibit-images t))
+
+;; hydra for Emacs Web Wowser
+(defhydra my-hydra/eww-mode (:color teal :columns 3)
+  "
+Emacs Web Wowser (_q_: quit)"
+  ("q" nil nil)
+  ("d" eww-download "download-link")
+  ("G" eww "search")
+  ("o" eww-open-file "open-file")
+  ("l" eww-back-url "back")
+  ("r" eww-forward-url "forward")
+  ("g" eww-reload "reload")
+  ("v" eww-view-source "view-source")
+  ("w" eww-copy-url "copy-url")
+  ("&" eww-browse-with-external-browser "browse-ext")
+  ("b" eww-add-bookmark "bookmark-page")
+  ("B" eww-list-bookmarks "bookmark-list")
+  ("R" eww-readable "readable-only")
+  ("F" eww-toggle-fonts "toggle-fonts")
+  ("I" my-eww-toggle-images "toggle-images")
+  ("M-C" eww-toggle-colors "toggle-colors")
+  ("D" eww-toggle-paragraph-direction "toggle-text-dir")
+  ("s" eww-switch-to-buffer "eww-switch-buf")
+  ("S" eww-list-buffers "eww-list-buf")
+  ("H" eww-list-histories "history")
+  ("C" url-cookie-list "cookie-list"))
+
+;; binding
+(with-eval-after-load 'eww
+  (define-key eww-mode-map (kbd "C-c C-M-m") #'my-hydra/eww-mode/body))
+
+;; helper function for toggling images in Emacs Web Wowser
+(defun my-eww-toggle-images ()
+  "Toggle displaying of images when rendering HTML."
+  (interactive)
+  (setq-local shr-inhibit-images (not shr-inhibit-images))
+  (eww-reload)
+  (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+
+(use-package restclient
+  :defer t
+  ;; assume request source files have ".http" suffix
+  :mode ("\\.http\\'" . restclient-mode)
+  :config
+  ;; pulse *HTTP Response* buffer after receiving request response
+  ;; adapted from https://github.com/jordonbiondo/.emacs.d/blob/master/init.el
+  (defun my-restclient-pulse-buffer ()
+    "Pulses the current buffer."
+    (save-excursion
+      (goto-char (point-min))
+      (pulse-momentary-highlight-region (point-min) (point-max))))
+  (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
+
+;; hydra for restclient
+(defhydra my-hydra/restclient-mode (:color teal :columns 3)
+  "
+REST client (_q_: quit)"
+  ("q" nil nil)
+  ("c" restclient-http-send-current "send")
+  ("r" restclient-http-send-current-raw "send-raw")
+  ("v" restclient-http-send-current-stay-in-window "send-bg")
+  ("n" restclient-jump-next "next" :exit nil)
+  ("p" restclient-jump-prev "prev" :exit nil)
+  ("." restclient-mark-current "mark")
+  ("u" restclient-copy-curl-command "copy-curl")
+  ("N"
+   (lambda ()
+     (interactive)
+     (if (buffer-narrowed-p)
+         (widen)
+       (restclient-narrow-to-current)))
+   "narrow" :exit nil)
+  ("f"
+   (lambda ()
+     (interactive)
+     (require 'json-mode nil t)
+     (if (fboundp 'json-mode-pretty-print-dwim)
+         (call-interactively 'json-mode-pretty-print-dwim)
+       (message "Requires the `json-mode' package be installed.")))
+   "fmt-json-rgn"))
+
+;; binding for restclient hydra
+(with-eval-after-load 'restclient
+  (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
+
+;; increase network security settings
+(setq gnutls-verify-error t)
+(setq gnutls-min-prime-bits 1024)
+(setq network-security-level 'high)
+(setq nsm-save-host-names t)
+
+;; HTTP requests privacy settings
+(setq url-cookie-untrusted-urls '(".*")) ;; no cookies
+(setq url-privacy-level 'paranoid) ;; more private HTTP requests
+(url-setup-privacy-info) ;; apply `url-privacy-level'
+
+;; Writing
+
+;; hydra for writing functions
+(defhydra my-hydra/writing (:color amaranth :hint nil
+                            :pre (require 'flyspell))
+  "
+Writing (_q_: quit)
+Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
+"
+  ("q" nil :exit t)
+  ("f" flyspell-mode)
+  ("F" flyspell-prog-mode))
+
+;; bindings for writing hydra
+(global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
+
+;; provides word lookups from a dictionary server
+;; `dictionary-server' can be set to "localhost" to use a local
+;; dictionary server like dictd or GNU Dico that implements RFC 2229
+(use-package dictionary
+  :init (setq dictionary-server "dict.org"
+              dictionary-default-dictionary "*"))
+
+;; add dictionary entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
+    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
+")
+    ("s" dictionary-search :exit t)
+    ("m" dictionary-match-words :exit t)))
+
+;; thesaurus functions using Synosaurus
+(use-package synosaurus
+  :init (setq synosaurus-choose-method 'default
+              synosaurus-backend 'synosaurus-backend-wordnet))
+
+;; add synosaurus entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
+    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
+")
+    ("S" synosaurus-mode :exit nil)
+    ("L" synosaurus-lookup :exit t)
+    ("R" synosaurus-choose-and-replace :exit t)
+    ("I" synosaurus-choose-and-insert :exit t)))
+
+;; grammar checking functions using LanguageTool
+(use-package langtool
+  :init (setq langtool-default-language "en-US"
+              langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
+
+;; add langtool functions to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
+    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
+")
+    ("w" langtool-check nil :exit nil)
+    ("W" langtool-check-done nil :exit nil)
+    ("l" langtool-switch-default-language nil :exit nil)
+    ("c" langtool-correct-buffer nil :exit nil)))
 
 ;; Other
 

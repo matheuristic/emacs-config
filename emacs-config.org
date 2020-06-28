@@ -454,6 +454,27 @@ In most instances, use only this or Icomplete but not both.
   (define-key helm-map (kbd "C-z") #'helm-select-action))
 #+end_src
 
+*** Use Treemacs icons in Helm                                     :external:
+
+[[https://github.com/yyoncho/helm-treemacs-icons][helm-treemacs-icons]] shows file icons using those from Treemacs when
+using file-related Helm commands.
+
+Current not in MELPA, so it should be downloaded or cloned from the
+Github repo into some directory in the ~load-path~, for example its
+own folder in the =~/.emacs.d/site-lisp/= directory.
+
+*Note*: The maintainer of this package intends to rename it to
+~helm-icons~ in the future and integrate ~all-the-icons~ support
+prior to putting it on MELPA ([[https://github.com/melpa/melpa/pull/6853][link]]).
+
+#+name: helm-treemacs-icons
+#+begin_src emacs-lisp
+(use-package helm-treemacs-icons
+  :after helm
+  :ensure nil ;; in site-lisp subdirectory
+  :config (helm-treemacs-icons-enable))
+#+end_src
+
 ** Minibuffer completion with Icomplete
 
 Use [[https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el][Icomplete]] as the completion backend, emulating [[https://www.gnu.org/software/emacs/manual/html_mono/ido.html][Ido]] where possible.
@@ -553,7 +574,7 @@ enabled by default only in programming modes.
           (add-hook 'prog-mode-hook 'company-mode))
   :config
   (setq company-dabbrev-downcase nil
-        company-idle-delay 0.25
+        company-idle-delay 0.5
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-show-numbers t ;; use M-<num> to directly choose completion
@@ -707,7 +728,8 @@ by the ~history-length~ variable.
 #+begin_src emacs-lisp
 ;; save minibuffer and other history across sessions
 ;; don't persist kill-ring if in the habit of copy-pasting passwords
-(setq history-length 10000
+(setq history-delete-duplicates t
+      history-length 100
       savehist-additional-variables '(Info-history-list
                                       ;; kill-ring
                                       kmacro-ring
@@ -1728,8 +1750,29 @@ Requires the ~all-the-icons~ package be loaded.
 (use-package all-the-icons-dired
   :after (all-the-icons dired)
   :hook (dired-mode . all-the-icons-dired-mode)
-  :config (set-face-attribute 'all-the-icons-dired-dir-face nil
-                              :weight 'normal))
+  :config
+  (set-face-attribute 'all-the-icons-dired-dir-face nil
+                      :weight 'normal)
+  ;; extra workaround to avoid misalignment in filenames due to with
+  ;; varying icon widths
+  ;; https://github.com/jtbm37/all-the-icons-dired/issues/10
+  (advice-add 'all-the-icons-dired--setup :after
+              (lambda () (setq-local tab-width 2))))
+#+end_src
+
+** Dired icons using treemacs-icons-dired                             :melpa:
+
+Add icons from [[https://github.com/Alexander-Miller/treemacs][Treemacs]] to Dired.
+
+Requires the ~treemacs~ package be installed.
+
+#+name: treemacs-icons-dired
+#+begin_src emacs-lisp
+;; use Treemacs icons in Dired
+(when (display-graphic-p)
+  (use-package treemacs-icons-dired
+    :after dired
+    :hook (dired-mode . treemacs-icons-dired-mode)))
 #+end_src
 
 * Editing text
@@ -1948,8 +1991,7 @@ disables ~multiple-cursors-mode~ on exit.
 ;; disable prefix interpretation when multiple-cursors-mode is active
 ;; see https://stackoverflow.com/questions/53798055
 (defhydra my-hydra/multiple-cursors (:color pink :hint nil
-                                     :base-map (make-sparse-keymap)
-                                     :post (mc/keyboard-quit))
+                                     :base-map (make-sparse-keymap))
   "
 Multiple-cursors (_C-g_: quit)
 Mark    _C-<_: add-prev _C->_: add-next _C-%_: add-all  _C-s_: search
@@ -1957,7 +1999,11 @@ Mark    _C-<_: add-prev _C->_: add-next _C-%_: add-all  _C-s_: search
         _C-|_: edit-lns _<mouse-1>_: add/remove
 Misc    _C-{_: number   _C-}_: letter
 "
-  ("C-g" nil :exit t)
+  ("C-g" (lambda ()
+           (interactive)
+           (mc/keyboard-quit)
+           (when multiple-cursors-mode
+             (my-hydra/multiple-cursors/body))) :exit t)
   ("C-<" mc/mark-previous-like-this)
   ("C-," mc/skip-to-previous-like-this)
   ("M-<" mc/unmark-previous-like-this)
@@ -1974,6 +2020,8 @@ Misc    _C-{_: number   _C-}_: letter
   ("C-{" mc/insert-numbers)
   ("C-}" mc/insert-letters)
   ("C-|" mc/edit-lines))
+
+;; bind multiple-cursors hydra
 (global-set-key (kbd "C-c C-M-c") #'my-hydra/multiple-cursors/body)
 #+end_src
 
@@ -2511,11 +2559,18 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
 - Set up replies so text being replied to is properly quoted by Gmail
   (it automatically assumes duplicated text should be quoted).
 
+*Notes*:
+- It is best to copy over the contents of the =emacs= folder from the
+  Notmuch codebase into the =site-lisp/notmuch= folder in
+  ~user-emacs-directory~ (or some directory in ~load-path~) than using
+  the MELPA version, so that the Elisp code matches the system binary.
+
 #+name: notmuch
 #+begin_src emacs-lisp
 ;; configure Notmuch email client
 (when (executable-find "notmuch")
   (use-package notmuch
+    :ensure nil ;; in site-lisp directory
     :bind (("C-c C-M-n" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
@@ -2535,6 +2590,12 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
                                          ("tags" . "%s ")
                                          ("subject" . "%s"))
           notmuch-show-logo nil
+          ;; workaround for Notmuch using SVG icons when unsupported
+          ;; https://emacs.stackexchange.com/questions/14875/notmuch-mode-very-slow-in-emacs-mac-port-railwaycat
+          notmuch-tag-formats '(("unread"
+                                 (propertize tag 'face 'notmuch-tag-unread))
+                                ("flagged"
+                                 (propertize tag 'face 'notmuch-tag-flagged)))
           notmuch-tree-result-format `(("date" . "%12s  ")
                                        ("authors" . "%-20s")
                                        ((("tree" . "%s")
@@ -2941,14 +3002,14 @@ Modified copy of original using Gmail blockquotes."
       (interactive "P")
       (save-window-excursion
         (let ((browse-url-browser-function (if arg
-					       'xwidget-webkit-browse-url
-					     browse-url-browser-function))
-	      (tmp-file (make-temp-file "org-msg" nil ".html"))
-	      (mail (org-msg-build)))
+                                               'xwidget-webkit-browse-url
+                                             browse-url-browser-function))
+              (tmp-file (make-temp-file "org-msg" nil ".html"))
+              (mail (org-msg-build)))
           (with-temp-buffer
             ;; following line modified from original
-	    (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
-	    (write-file tmp-file))
+            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
+            (write-file tmp-file))
           (browse-url (concat "file://" tmp-file)))))
     (defun org-msg-prepare-to-send ()
       "Convert the current OrgMsg buffer into `mml' content.
@@ -2957,29 +3018,29 @@ Modified copy of original using Gmail blockquotes."
       (save-window-excursion
         (when (eq major-mode 'org-msg-edit-mode)
           (let ((mail (org-msg-build))
-	        (attachments (org-msg-get-prop "attachment")))
-	    (dolist (file attachments)
-	      (unless (file-exists-p file)
-	        (error "File '%s' does not exist" file)))
-	    (setq org-msg-attachment attachments)
-	    (when org-msg-text-plain-alternative
-	      (setq org-msg-text-plain (org-msg-org-to-text-plain)))
-	    (goto-char (org-msg-start))
-	    (delete-region (org-msg-start) (point-max))
-	    (when (org-msg-mml-recursive-support)
-	      (when attachments
-	        (mml-insert-multipart "mixed")
-	        (dolist (file attachments)
-	          (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
-			          'filename file 'disposition "attachment")))
-	      (when org-msg-text-plain-alternative
-	        (mml-insert-multipart "alternative")
-	        (mml-insert-part "text/plain")
-	        (insert org-msg-text-plain)
-	        (forward-line)))
-	    (mml-insert-part "text/html")
+                (attachments (org-msg-get-prop "attachment")))
+            (dolist (file attachments)
+              (unless (file-exists-p file)
+                (error "File '%s' does not exist" file)))
+            (setq org-msg-attachment attachments)
+            (when org-msg-text-plain-alternative
+              (setq org-msg-text-plain (org-msg-org-to-text-plain)))
+            (goto-char (org-msg-start))
+            (delete-region (org-msg-start) (point-max))
+            (when (org-msg-mml-recursive-support)
+              (when attachments
+                (mml-insert-multipart "mixed")
+                (dolist (file attachments)
+                  (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
+                                  'filename file 'disposition "attachment")))
+              (when org-msg-text-plain-alternative
+                (mml-insert-multipart "alternative")
+                (mml-insert-part "text/plain")
+                (insert org-msg-text-plain)
+                (forward-line)))
+            (mml-insert-part "text/html")
             ;; following line modified from original
-	    (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
+            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
 #+end_src
 
 *** OrgMsg hydra                                                      :hydra:
@@ -3035,27 +3096,27 @@ area."
    (unless (eq major-mode 'org-msg-edit-mode)
      (message-goto-body)
      (let ((new (not (org-msg-message-fetch-field "subject")))
-	   (with-original (not (= (point) (point-max))))
-	   (reply-to))
+           (with-original (not (= (point) (point-max))))
+           (reply-to))
        (when (or new (org-msg-mua-call 'article-htmlp))
-	 (unless new
-	   (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
-	 (insert (org-msg-header reply-to))
-	 (when org-msg-greeting-fmt
-	   (insert (format org-msg-greeting-fmt
-			   (if new
-			       ""
-			     (org-msg-get-to-first-name)))))
-	 (save-excursion
+         (unless new
+           (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
+         (insert (org-msg-header reply-to))
+         (when org-msg-greeting-fmt
+           (insert (format org-msg-greeting-fmt
+                           (if new
+                               ""
+                             (org-msg-get-to-first-name)))))
+         (save-excursion
            (insert "\n\n")
            (when with-original
              (org-escape-code-in-region (point) (point-max)))
            (save-excursion
              (end-of-buffer)
-	     (when org-msg-signature
-	       (insert org-msg-signature)))
-	   (org-msg-edit-mode))
-	 (set-buffer-modified-p nil))
+             (when org-msg-signature
+               (insert org-msg-signature)))
+           (org-msg-edit-mode))
+         (set-buffer-modified-p nil))
        (if (org-msg-message-fetch-field "to")
            (recenter)
          (message-goto-to))))))
@@ -3763,6 +3824,15 @@ Org agenda parsing and operations speedy ([[https://www.gnu.org/software/emacs/m
       org-agenda-window-setup 'only-window
       org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
 
+;; add separator between each day in agenda view
+(setq org-agenda-format-date
+      (lambda (date)
+        (let* ((datestr (org-agenda-format-date-aligned date))
+               (separator-width (- (window-width)
+                                   (string-width datestr)
+                                   1)))
+          (concat "\n" datestr " " (make-string separator-width ?_)))))
+
 (with-eval-after-load 'org-agenda
   ;; add custom agenda commands that only show undated tasks in list view
   (dolist (my-custom-cmd
@@ -4204,6 +4274,8 @@ pasting/yanking the Org link in the todo using ~C-c C-l~.
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
         org-journal-file-format "%Y%m%d.org"
         org-journal-file-type 'daily
+        ;; don't carry over TODO items from a previous days
+        org-journal-carryover-items nil
         ;; use ORG-DIRECTORY/journal/ as the default journal directory
         org-journal-dir (concat org-directory "journal/"))
   ;; add journal files to Org agenda
@@ -4385,6 +4457,37 @@ When annotating in the split-screen mode:
 (use-package org-noter
   :bind ("C-c C-M-S-n" . org-noter)
   :init (setq org-noter-always-create-frame nil))
+#+end_src
+
+** org-super-agenda                                                   :melpa:
+
+[[https://github.com/alphapapa/org-super-agenda][org-super-agenda]] groups agenda items into sections.
+
+#+name: org-super-agenda
+#+begin_src emacs-lisp
+(use-package org-super-agenda
+  :config
+  (setq org-super-agenda-groups '((:name "Today"
+                                   :time-grid t
+                                   :scheduled today)
+                                  (:name "Due today"
+                                   :deadline today)
+                                  (:name "Important"
+                                   :priority "A")
+                                  (:name "Overdue"
+                                   :deadline past)
+                                  (:name "Due soon"
+                                   :deadline future)
+                                  (:name "Backlog"
+                                   :scheduled past)
+                                  (:name "Upcoming"
+                                   :scheduled future)
+                                  (:priority<= "B")
+                                  (:name "Waiting"
+                                   :todo "WAIT")
+                                  (:name "On hold"
+                                   :todo "HOLD")))
+  (org-super-agenda-mode 1))
 #+end_src
 
 * Outlines
@@ -4613,7 +4716,7 @@ packages.
                                       conda-env-current-name
                                       15 nil nil "…"))
                            ""))
-                 t))
+                 t)))
 #+end_src
 
 *** Conda hydra                                                       :hydra:
@@ -4630,61 +4733,159 @@ conda (_q_: quit)"
   ("d" conda-env-deactivate "deactivate")
   ("l" conda-env-list "list"))
 (with-eval-after-load 'conda
-  (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body)))
+  (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body))
 #+end_src
 
-** Eglot Language Server Protocol client                              :melpa:
+** lsp-mode Language Server Protocol client                           :melpa:
 
-[[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglot) is an Emacs Language Server Protocol client.
-It is more lightweight than [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]], though also with less features.
+[[https://github.com/emacs-lsp/lsp-mode][lsp-mode]] is an Language Server Protocol client for Emacs.
+It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglot) but also has more features.
 
-A useful customization is to have the diagnostic message under the
-point display in the minibuffer when there is a Flymake error ([[https://github.com/joaotavora/eglot/issues/8#issuecomment-414149077][link]]).
-
-#+name: eglot
+#+name: lsp-mode
 #+begin_src emacs-lisp
-(use-package eglot
-  :commands eglot
+;; lsp-mode Language Server Protocol client
+;; auto-signature-help activation is not enabled by default, but to
+;; show it activate it using `lsp-toggle-signature-auto-activate' or
+;; C-S-SPC to peek, https://github.com/emacs-lsp/lsp-mode/issues/1223
+(use-package lsp-mode
+  :init (setq lsp-print-io nil ;; disable logging packets between Emacs and LS
+              lsp-print-performance nil ;; disable performance logging
+              lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
+              lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
+              lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
+              lsp-diagnostic-package :flymake ;; use Flymake for syntax checking
+              lsp-signature-auto-activate nil) ;; don't automatically show signature
   :config
-  ;; increase wait time after last change before asking for
-  ;; completions from 0.5s to 2s to reduce request rate
-  (setq eglot-send-changes-idle-time 2)
-  ;; prioritize diagnostic message display if a Flymake error is under the point
-  ;; https://github.com/joaotavora/eglot/issues/8#issuecomment-414149077
-  (advice-add 'eglot-eldoc-function :around
-              (lambda (oldfun)
-                (let ((help (help-at-pt-kbd-string)))
-                  (if help (message "%s" help) (funcall oldfun))))))
+  ;; TODO: may be fixed with newer Flymake or newer Emacs
+  ;; redefine lsp--flymake to work around scenarios where the LS sends
+  ;; diagnostics before Flymake changes the reporting function and new
+  ;; diagnostics are ignored while old errors continue being reported
+  ;; https://github.com/emacs-lsp/lsp-mode/pull/1423
+  (defun lsp--flymake-backend (report-fn &rest _args)
+    "Flymake backend."
+    (let ((first-run (null lsp--flymake-report-fn)))
+      (setq lsp--flymake-report-fn report-fn)
+      (lsp--flymake-update-diagnostics))))
 #+end_src
 
-*** Eglot hydra                                                       :hydra:
+*** company-mode support for lsp-mode                                 :melpa:
 
-Hydra for Eglot.
+Add company-mode support for lsp-mode.
 
-#+name: eglot-hydra
+#+name: company-lsp
 #+begin_src emacs-lisp
-;; hydra for Eglot
-(defhydra my-hydra/eglot-mode (:color teal :columns 4)
-  "
-Eglot [active=%(if (boundp 'eglot--managed-mode) eglot--managed-mode nil)] (_q_: quit)"
-  ("q" nil nil)
-  ("s" eglot "start")
-  ("r" eglot-reconnect "reconnect")
-  ("Q" eglot-shutdown "shutdown")
-  ("R" eglot-rename "rename")
-  ("f" eglot-format "format")
-  ("a" eglot-code-actions "code-actions")
-  ("h" eglot-help-at-point "help-at-pt")
-  ("U" eglot-signal-didChangeConfiguration "update-cfg")
-  ("be" eglot-events-buffer "events-buf")
-  ("bs" eglot-stderr-buffer "stderr-buf"))
+;; company backend for LSP-driven completion
+(use-package company-lsp
+  :after lsp-mode
+  :init (setq company-lsp-cache-candidates t))
+#+end_src
 
-;; binding setup function for Eglot hydra
-;; call `eglot--setup-hydra-bindings' in a mode's init config code
-;; to set up the hydra for use in that mode at the "C-c C-M-l" binding
-(defun eglot--setup-hydra-bindings (mode-map)
-  "Sets up 'C-c C-M-l' binding to Eglot hydra in given MODE-MAP."
-  (define-key mode-map (kbd "C-c C-M-l") #'my-hydra/eglot-mode/body))
+*** lsp-mode hydra                                                    :hydra:
+
+Hydra for lsp-mode.
+
+#+name: lsp-mode-hydra
+#+begin_src emacs-lisp
+;; hydras adapted from lsp-mode's default command map, see lsp-command-map in
+;; https://github.com/emacs-lsp/lsp-mode/blob/master/lsp-mode.el
+(defhydra my-hydra/lsp (:color teal :columns 3)
+  "
+Language Server (_q_: quit)"
+  ("q" nil nil)
+  ("s" my-hydra/lsp-session/body "→ Session")
+  ("=" my-hydra/lsp-format/body "→ Format")
+  ("F" my-hydra/lsp-folder/body "→ Folder")
+  ("T" my-hydra/lsp-toggle/body "→ Toggle")
+  ("g" my-hydra/lsp-goto/body "→ Goto")
+  ("h" my-hydra/lsp-help/body "→ Help")
+  ("r" my-hydra/lsp-refactor/body "→ Refactor")
+  ("a" my-hydra/lsp-actions/body "→ Actions"))
+(defhydra my-hydra/lsp-session (:color teal :columns 3)
+  "
+Language Server → Session (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("r" (condition-case nil (lsp-restart-workspace) (error (lsp))) "(re-)start")
+  ("s" lsp-workspace-shutdown "shutdown")
+  ("d" lsp-describe-session "describe")
+  ("D" lsp-disconnect "disconnect"))
+(defhydra my-hydra/lsp-format (:color teal :columns 3)
+  "
+Language Server → Format (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("=" lsp-format-buffer "buffer")
+  ("r" lsp-format-region "range"))
+(defhydra my-hydra/lsp-folder (:color teal :columns 3)
+  "
+Language Server → Folder (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("a" lsp-workspace-folders-add "add")
+  ("r" lsp-workspace-folders-remove "remove")
+  ("b" lsp-workspace-blacklist-remove "un-blacklist"))
+(defhydra my-hydra/lsp-toggle (:color amaranth :columns 3)
+  "
+Language Server → Toggle (_q_: ←)"
+  ("q" my-hydra/lsp/body nil :exit t)
+  ("l" lsp-lens-mode "lens-mode")
+  ("L" lsp-toggle-trace-io "trace-io")
+  ("h" lsp-toggle-symbol-highlight "symbol-highlight")
+  ("b" lsp-headerline-breadcrumb-mode "headerline-breadcrumb")
+  ("s" lsp-toggle-signature-auto-activate "signature-help")
+  ("f" lsp-toggle-on-type-formatting "on-type-formatting"))
+(defhydra my-hydra/lsp-goto (:color teal :columns 3)
+  "
+Language Server → Goto (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("j" (lambda ()
+         (interactive)
+         (if (fboundp 'imenu-list-smart-toggle)
+             (imenu-list-smart-toggle)
+           (message "Requires imenu-list"))) "imenu")
+  ("g" lsp-find-definition "definition")
+  ("r" lsp-find-references "references")
+  ("i" lsp-find-implementation "implementation")
+  ("t" lsp-find-type-definition "type-implementation")
+  ("d" lsp-find-declaration "declaration")
+  ("a" xref-find-apropos "workspace-symbol"))
+(defhydra my-hydra/lsp-help (:color teal :columns 3)
+  "
+Language Server → Help (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("h" lsp-describe-thing-at-point "describe")
+  ("s" lsp-signature-activate "signature-activate"))
+(defhydra my-hydra/lsp-refactor (:color teal :columns 3)
+  "
+Language Server → Refactor (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("r" lsp-rename "rename")
+  ("o" lsp-organize-imports "organize-imports"))
+(defhydra my-hydra/lsp-actions (:color teal :columns 3)
+  "
+Language Server → Actions (_q_: ←)"
+  ("q" my-hydra/lsp/body nil)
+  ("a" lsp-execute-code-action "execute-code-action")
+  ("l" lsp-avy-lens "avy-lens")
+  ("h" lsp-document-highlight "document-highlight"))
+
+;; bind lsp-mode hydra
+(with-eval-after-load 'lsp-mode
+  (define-key lsp-mode-map (kbd "C-c C-M-l") #'my-hydra/lsp/body))
+#+end_src
+
+** dap-mode Debug Adaptor Protocol client                             :melpa:
+
+[[https://github.com/emacs-lsp/dap-mode][dap-mode]] is a Debug Adaptor Protocol client.
+
+#+name: dap-mode
+#+begin_src emacs-lisp
+;; client for Debug Adaptor Protocol servers
+(use-package dap-mode
+  :after lsp-mode
+  :bind (:map lsp-mode-map
+         ("C-c C-M-d d" . dap-debug)
+         ("C-c C-M-d D" . dap-debug-edit-template))
+  :config
+  (add-hook 'dap-stopped-hook
+            (lambda (arg) (call-interactively #'dap-hydra))))
 #+end_src
 
 ** Clojure
@@ -5169,144 +5370,58 @@ Enable the Flymake DevSkim back when editing Python buffers (see
     (add-hook 'python-mode-hook #'flymake-devskim-setup)))
 #+end_src
 
-*** Microsoft Python Language Server support using eglot           :external:
+*** Microsoft Python Language Server support with lsp-mode            :melpa:
 
-Use ~eglot~ as a client for the Microsoft Python Language Server.
+Use ~lsp-mode~ as a client for the Microsoft Python Language Server.
 
-Uses functions from the ~el-patch~ package, so make sure that package
-is loaded before this code block.
-
-*Installing the Microsoft Python Language Server*:
-- Building from source
-
-*Configuration*:
-- Assumes the binary for the Microsoft Python Language Server is at
-  =~/.local/bin/Microsoft.Python.LanguageServer=.
-- Assumes the directory containing the [[https://github.com/python/typeshed][typeshed]] project (external type
-  annotations used for static analysis) is at =~/Packages/typeshed/=.
-  Microsoft Python Language Server comes with a copy, but it can
-  also be git cloned from the project source.
-
-#+begin_example
-$ mkdir -p ~/Packages
-$ cd ~/Packages
-$ git clone https://github.com/python/typeshed.git
-#+end_example
-
-#+name: python-eglot
+#+name: lsp-python-ms
 #+begin_src emacs-lisp
-;; set path to Microsoft Python Language Server binary
-(setq mspyls-path (expand-file-name "~/.local/bin/Microsoft.Python.LanguageServer"))
-
-;; set path to typeshed containing Python external type annotations
-;; which comes with MS Python Language Server
-;; or clone https://github.com/python/typeshed
-(setq typeshed-path (expand-file-name "~/Packages/typeshed/"))
-
-;; eglot Python settings
-;; cobbled together from the following sources:
-;; https://github.com/joaotavora/eglot/issues/144#issuecomment-557229445
-;; https://www.reddit.com/r/emacs/comments/do2z6y/i_am_moving_from_lspmode_to_eglot/f87p7hb/
-(with-eval-after-load 'eglot
-  ;; patch to ignore format-markup errors.
-  ;; Workaround for MS Python language server which can send empty values.
-  (el-patch-defun eglot--format-markup (markup)
-    "Format MARKUP according to LSP's spec."
-    (pcase-let ((`(,string ,mode)
-                 (if (stringp markup) (list (string-trim markup)
-                                            (intern "gfm-view-mode"))
-                   (list (plist-get markup :value)
-                         major-mode))))
-      (el-patch-swap
-        (with-temp-buffer
-          (insert string)
-          (ignore-errors (funcall mode))
-          (font-lock-ensure)
-          (buffer-string))
-        (when string
-          (with-temp-buffer
-            (insert string)
-            (ignore-errors (funcall mode))
-            (font-lock-ensure)
-            (buffer-string))))))
-
-  (setq-default eglot-workspace-configuration
-                (cons '(:python :autoComplete (:extraPaths nil)
-                        :analysis (:autoSearchPaths :json-false
-                                   :usePYTHONPATH :json-false))
-                      eglot-workspace-configuration))
-
-  (defun eglot-pyls--get-python-version ()
-    (with-temp-buffer
-      (call-process
-       (executable-find python-shell-interpreter) nil t nil
-       "-c" "import sys; print(\"%s.%s\" % (sys.version_info[0], sys.version_info[1]))")
-      (car (split-string (buffer-string) "\n"))))
-
-  (defclass eglot-pyls (eglot-lsp-server) ()
-    :documentation
-    "Microsoft Python Language Server.")
-
-  (cl-defmethod eglot-initialization-options ((server eglot-pyls))
-    "Passes through required pyls initialization options."
-    `(:interpreter (:properties
-                    (:UseDefaultDatabase t
-                     :InterpreterPath ,(executable-find python-shell-interpreter)
-                     :Version ,(eglot-pyls--get-python-version)))
-      ;; preferredFormat should be "markdown" or "plaintext"
-      :displayOptions (:preferredFormat "markdown"
-                       :trimDocumentationLines :json-false
-                       :maxDocumentationLineLength 0
-                       :trimDocumentationText :json-false
-                       :maxDocumentationTextLength 0)
-      :analysisUpdates t
-      :asyncStartup t
-      :logLevel "Error"
-      :typeStubSearchPaths ,(vector typeshed-path)))
-
-  (add-to-list 'eglot-server-programs
-               `(python-mode eglot-pyls ,mspyls-path)))
-
-;; setup binding to Eglot hydra in Python mode
-(eglot--setup-hydra-bindings python-mode-map)
+;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
+(use-package lsp-python-ms
+  ;; append lsp-mode hooks
+  :config (add-hook 'python-mode-hook
+                    (lambda ()
+                      ;; load packages if deferred
+                      (require 'lsp-mode)
+                      (require 'lsp-python-ms)
+                      ;; start LSP client
+                      (lsp-mode))
+                    t))
 #+end_src
 
-*Note*: The correct flags to feed into Microsoft's Python Language
-Server can be a moving target, and the [[https://github.com/emacs-lsp/lsp-python-ms][lsp-python-ms]] issues page can
-give good insights into how to adjust accordingly. (~lsp-python-ms~ is
-a package for extending ~lsp-mode~, an alternative to Eglot, to
-support the Microsoft Python Language Server.)
-
 **** Installing the Microsoft Python Language Server               :external:
+- Using ~M-x lsp-python-ms-update-server~ to download it into the
+  =.cache/lsp= subdirectory within ~user-emacs-directory~, which can
+  be automated by setting ~lsp-python-auto-install-server~ to ~t~.
+- Building from [[https://github.com/Microsoft/python-language-server][source]] and setting ~lsp-python-ms-executable~ to the
+  path of the compiled binary during Emacs initialization.
 
-The easiest way is to use the ~get-mspyls-nupkg.py~ script in this
-folder to download the newest binary.
-This ~nupkg~ file can be unzipped using ~unzip~ to the desired
-directory and the binary needed by the Language Server Protocol
-client is =Microsoft.Python.LanguageServer=.
+*** Microsoft Python DAP Server support with dap-mode
 
-Make sure the latest release of [[https://dotnet.microsoft.com/][.NET]] is installed.
-To do this, download a *SDK binary release* of [[https://dotnet.microsoft.com/download/dotnet-core][.NET Core]],
-extract it to some directory and add the directory containing
-the ~dotnet~ binary to the system path.
+#+name: dap-python
+#+begin_src emacs-lisp
+(add-hook 'python-mode-hook
+          (lambda ()
+            (require 'dap-python))
+          t)
+#+end_src
 
-Go to a target directory within which to build the source.
+**** Installing the Microsoft Python debugger for Visual Studio Code
+
+Microsoft's Python debugger for Visual Studio Code supports the Debug
+Adaptor Protocol, and is available from [[https://pypi.org/][PyPI]] as the ~ptvsd~ package.
 
 #+begin_example
-$ git clone https://github.com/Microsoft/python-language-server.git
-$ cd python-language-server/src/LanguageServer/Impl
-$ dotnet publish -c Release -r osx-x64
-$ cd ../../../output/bin/Release/osx-x64/publish
-$ chmod a+x Microsoft.Python.LanguageServer
+$ pip install "ptvsd>=4.2"
 #+end_example
 
-The binary is installed at
-=/path/to/python-language-server/output/bin/Release/osx-x64/publish/Microsoft.Python.LanguageServer=
-where =/path/to/= is directory from where the above commands were
-begun.
+If using conda, ~ptvsd~ is available from the ~conda-forge~ channel.
+Make sure to install it within the environment where code to be
+debugged will be run.
 
-Additionally, a softlink to ~Microsoft.Python.LanguageServer~ can be
-created in a directory on the system path for easier access.
+#+begin_example
+$ conda install -c conda-forge ptvsd
+#+end_example
 
 ** R
 
@@ -5652,6 +5767,47 @@ historical versions of Git-controlled files.
   :bind ("C-c C-M-g t" . git-timemachine))
 #+end_src
 
+** Treemacs                                                           :melpa:
+
+[[https://github.com/Alexander-Miller/treemacs][Treemacs]] is a per-project file tree explorer for Emacs.
+
+#+name: treemacs
+#+begin_src emacs-lisp
+;; per-project file trees
+(use-package treemacs
+  :bind ("C-c C-M-t" . treemacs)
+  :init
+  ;; resize treemacs icon sizes to 75% of line-height
+  (add-hook 'after-init-hook
+            (lambda ()
+              (when (and (display-graphic-p)
+                         (eq system-type 'darwin))
+                (treemacs-resize-icons
+                 (truncate (* (line-pixel-height) 0.75)))))))
+#+end_src
+
+*** Treemacs Projectile integration
+
+Allows quick addition of Projectile projects to Treemacs workspaces.
+
+#+name: treemacs-projectile
+#+begin_src emacs-lisp
+;; treemacs projectile integration
+(use-package treemacs-projectile
+  :after (treemacs projectile))
+#+end_src
+
+*** Treemacs Magit integration
+
+Have Magit operations be reflected automatically in Treemacs.
+
+#+name: treemacs-magit
+#+begin_src emacs-lisp
+;; treemacs magit integration
+(use-package treemacs-magit
+  :after (treemacs magit))
+#+end_src
+
 * Reference management
 
 ** ebib for managing BibTeX databases                                 :melpa:
@@ -5990,391 +6146,6 @@ Notdeft is mainly used for searching notes and not for creating them.
   (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
 #+end_src
 
-* Web
-
-** Browsing
-
-*** Emacs Web Wowser
-
-[[https://www.gnu.org/software/emacs/manual/html_mono/eww.html][Emacs Web Wowser]] (~eww~) is a built-in Emacs web browser.
-It supports text and images, but not webfonts or Javascript.
-
-*Customizations*:
-- Use the lightweight version of [[https://duckduckgo.com/][DuckDuckGo]] for web searches by default.
-- Don't render images by default.
-
-#+name: eww
-#+begin_src emacs-lisp
-;; built-in Emacs text web browser
-(use-package eww
-  :ensure nil ;; built-in
-  :commands (eww eww-follow-link)
-  :bind (:map eww-mode-map
-         ("I" . my-eww-toggle-images))
-  :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
-  ;; don't render images in HTML pages by default
-  :config (setq-default shr-inhibit-images t))
-#+end_src
-
-*** Emacs Web Wowser hydra                                            :hydra:
-
-Major mode-specific hydra for Emacs Web Wowser (~eww~).
-
-#+name: eww-hydra
-#+begin_src emacs-lisp
-;; hydra for Emacs Web Wowser
-(defhydra my-hydra/eww-mode (:color teal :columns 3)
-  "
-Emacs Web Wowser (_q_: quit)"
-  ("q" nil nil)
-  ("d" eww-download "download-link")
-  ("G" eww "search")
-  ("o" eww-open-file "open-file")
-  ("l" eww-back-url "back")
-  ("r" eww-forward-url "forward")
-  ("g" eww-reload "reload")
-  ("v" eww-view-source "view-source")
-  ("w" eww-copy-url "copy-url")
-  ("&" eww-browse-with-external-browser "browse-ext")
-  ("b" eww-add-bookmark "bookmark-page")
-  ("B" eww-list-bookmarks "bookmark-list")
-  ("R" eww-readable "readable-only")
-  ("F" eww-toggle-fonts "toggle-fonts")
-  ("I" my-eww-toggle-images "toggle-images")
-  ("M-C" eww-toggle-colors "toggle-colors")
-  ("D" eww-toggle-paragraph-direction "toggle-text-dir")
-  ("s" eww-switch-to-buffer "eww-switch-buf")
-  ("S" eww-list-buffers "eww-list-buf")
-  ("H" eww-list-histories "history")
-  ("C" url-cookie-list "cookie-list"))
-
-;; binding
-(with-eval-after-load 'eww
-  (define-key eww-mode-map (kbd "C-c C-M-m") #'my-hydra/eww-mode/body))
-#+end_src
-
-**** Helper functions for Emacs Web Wowser hydra
-
-Helper functions for ~eww~:
-- Toggle images in ~eww-mode~.
-
-#+name: eww-hydra-helper-functions
-#+begin_src emacs-lisp
-;; helper function for toggling images in Emacs Web Wowser
-(defun my-eww-toggle-images ()
-  "Toggle displaying of images when rendering HTML."
-  (interactive)
-  (setq-local shr-inhibit-images (not shr-inhibit-images))
-  (eww-reload)
-  (message "Images are now %s" (if shr-inhibit-images "off" "on")))
-#+end_src
-
-** REST development tools
-
-*** restclient.el                                                     :melpa:
-
-[[https://github.com/pashky/restclient.el][restclient.el]] provides a major mode for interacting with HTTP queries
-stored in text files, in particular editing and sending them.
-
-*Customizations*:
-- Load the major mode automatically when opening files with a ~.http~ suffix.
-- When the response to a sent HTTP query is received, the request is
-  pulsed once in the buffer to give visual feedback on which query the
-  response is for (adapted from [[https://github.com/jordonbiondo/.emacs.d/blob/master/init.el][here]]).
-
-#+name: restclient
-#+begin_src emacs-lisp
-(use-package restclient
-  :defer t
-  ;; assume request source files have ".http" suffix
-  :mode ("\\.http\\'" . restclient-mode)
-  :config
-  ;; pulse *HTTP Response* buffer after receiving request response
-  ;; adapted from https://github.com/jordonbiondo/.emacs.d/blob/master/init.el
-  (defun my-restclient-pulse-buffer ()
-    "Pulses the current buffer."
-    (save-excursion
-      (goto-char (point-min))
-      (pulse-momentary-highlight-region (point-min) (point-max))))
-  (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
-#+end_src
-
-*** restclient.el hydra                                               :hydra:
-
-Major mode-specific hydra for ~restclient-mode~.
-The head for pretty printing the JSON response requires the
-~json-mode~ package be installed.
-
-#+name: restclient-hydra
-#+begin_src emacs-lisp
-;; hydra for restclient
-(defhydra my-hydra/restclient-mode (:color teal :columns 3)
-  "
-REST client (_q_: quit)"
-  ("q" nil nil)
-  ("c" restclient-http-send-current "send")
-  ("r" restclient-http-send-current-raw "send-raw")
-  ("v" restclient-http-send-current-stay-in-window "send-bg")
-  ("n" restclient-jump-next "next" :exit nil)
-  ("p" restclient-jump-prev "prev" :exit nil)
-  ("." restclient-mark-current "mark")
-  ("u" restclient-copy-curl-command "copy-curl")
-  ("N"
-   (lambda ()
-     (interactive)
-     (if (buffer-narrowed-p)
-         (widen)
-       (restclient-narrow-to-current)))
-   "narrow" :exit nil)
-  ("f"
-   (lambda ()
-     (interactive)
-     (require 'json-mode nil t)
-     (if (fboundp 'json-mode-pretty-print-dwim)
-         (call-interactively 'json-mode-pretty-print-dwim)
-       (message "Requires the `json-mode' package be installed.")))
-   "fmt-json-rgn"))
-
-;; binding for restclient hydra
-(with-eval-after-load 'restclient
-  (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
-#+end_src
-
-** Network security
-
-Increased network security settings.
-
-#+name: network-security
-#+begin_src emacs-lisp
-;; increase network security settings
-(setq gnutls-verify-error t)
-(setq gnutls-min-prime-bits 1024)
-(setq network-security-level 'high)
-(setq nsm-save-host-names t)
-#+end_src
-
-** HTTP requests privacy
-
-More private HTTP requests.
-
-#+name: http-requests-privacy
-#+begin_src emacs-lisp
-;; HTTP requests privacy settings
-(setq url-cookie-untrusted-urls '(".*")) ;; no cookies
-(setq url-privacy-level 'paranoid) ;; more private HTTP requests
-(url-setup-privacy-info) ;; apply `url-privacy-level'
-#+end_src
-
-* Writing
-
-** Writing hydra                                                      :hydra:
-
-Hydra for writing functions.
-
-#+name: writing-hydra
-#+begin_src emacs-lisp
-;; hydra for writing functions
-(defhydra my-hydra/writing (:color amaranth :hint nil
-                            :pre (require 'flyspell))
-  "
-Writing (_q_: quit)
-Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
-"
-  ("q" nil :exit t)
-  ("f" flyspell-mode)
-  ("F" flyspell-prog-mode))
-
-;; bindings for writing hydra
-(global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
-#+end_src
-
-** Spell checking
-
-*** Flyspell for spell checking in Emacs
-
-[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Spelling.html][Flyspell]] is a built-in spell checker that comes in two flavors:
-- ~flyspell-mode~ checks spelling anywhere in the buffer.
-- ~flyspell-prog-mode~ checks spelling only in comments and strings.
-
-When one of the modes is active, unrecognized words are highlighted.
-To maintain performance, it only checks words that are newly typed or
-that the pointer moves across.
-
-Activating the mode also enables a few bindings that act on
-unrecognized words:
-- ~C-c $~ pops up menu of corrections for the word before the pointer.
-- ~C-.~ corrects the current word. Pressing it repeatedly will propose
-  successive correction candidates.
-- ~C-;~ corrects the previous word. Pressing it repeated will propose
-  successively correction candidates.
-- ~C-,~ jumps to the next unrecognized word.
-
-*Note*: Flyspell uses as its backend a spell checker like Aspell, so
-one needs to be installed on system. An appropriate dictionary or
-dictionaries for the spell checker should also be installed.
-
-*** Aspell command-line spell checker                              :external:
-
-[[http://aspell.net/][Aspell]] is a spell checker. There are a number of alternatives but
-they are either deprecated ([[https://www.cs.hmc.edu/~geoff/ispell.html][Ispell]]), similar ([[https://en.wikipedia.org/wiki/Hunspell][Hunspell]]), or
-language-specific ([[https://voikko.puimula.org/][Voikko]] for Finnish).
-
-This or another supported spell checker has to be installed in order
-for Flyspell to work. Additionally, a dictionary for the spell checker
-should also be intalled.
-
-If using MacPorts, installation instructions follow for Aspell and its
-English dictionary.
-
-#+begin_example
-$ sudo port install aspell
-$ sudo port install aspell-dict-en
-#+end_example
-
-** dictionary.el for looking up word definitions                      :melpa:
-
-[[https://github.com/myrkr/dictionary-el][dictionary.el]] provides a frontend for accessing a local or online
-dictionary server that implements [[https://en.wikipedia.org/wiki/DICT][RFC 2229]].
-
-#+name: dictionary
-#+begin_src emacs-lisp
-;; provides word lookups from a dictionary server
-;; `dictionary-server' can be set to "localhost" to use a local
-;; dictionary server like dictd or GNU Dico that implements RFC 2229
-(use-package dictionary
-  :init (setq dictionary-server "dict.org"
-              dictionary-default-dictionary "*"))
-#+end_src
-
-*** dictionary.el hydra                                               :hydra:
-
-#+name: dictionary-hydra
-#+begin_src emacs-lisp
-;; add dictionary entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
-    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
-")
-    ("s" dictionary-search :exit t)
-    ("m" dictionary-match-words :exit t)))
-#+end_src
-
-*** GNU Collaborative International Dictionary of English
-
-The [[https://gcide.gnu.org.ua/][GNU Collaborative International Dictionary of English]] (GCIDE) is a free dictionary derived from the Webster's 1913 dictionary (which provides definitions that are fuller and more descriptive than more modern dictionaries) supplemented with newer definitions from Wordnet and other sources.
-
-It is available as a source on [[http://www.dict.org/][dict.org]] which can be accessed by
-~dictionary.el~ functions.
-
-Downloads are available for use with a local dictionary server.
-One local dictionary server that has good GCIDE support is [[https://www.gnu.org.ua/software/dico/][GNU Dico]],
-which has a bundled [[http://puszcza.gnu.org.ua/software/dico/manual/html_section/gcide.html][interface module]] for the dictionary.
-
-** Synosaurus in-editor thesaurus                                     :melpa:
-
-[[https://github.com/hpdeifel/synosaurus][Synosaurus]] provides a thesaurus frontend with pluggable backends.
-Supported backends are limited to:
-- [[https://www.openthesaurus.de/][OpenThesaurus]] (German), which the package can access via HTTP
-  requests.
-- [[https://wordnet.princeton.edu/][WordNet]] (English), which requires the command-line tool ~wn~ be
-  installed locally.
-
-To install WordNet on Mac OS X using MacPorts, do the following.
-
-#+begin_example
-$ sudo port install wordnet
-#+end_example
-
-#+name: synosaurus
-#+begin_src emacs-lisp
-;; thesaurus functions using Synosaurus
-(use-package synosaurus
-  :init (setq synosaurus-choose-method 'default
-              synosaurus-backend 'synosaurus-backend-wordnet))
-#+end_src
-
-*** Synosaurus hydra                                                  :hydra:
-
-Hydra for Synosaurus.
-
-#+name: synosaurus-hydra
-#+begin_src emacs-lisp
-;; add synosaurus entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
-    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
-")
-    ("S" synosaurus-mode :exit nil)
-    ("L" synosaurus-lookup :exit t)
-    ("R" synosaurus-choose-and-replace :exit t)
-    ("I" synosaurus-choose-and-insert :exit t)))
-#+end_src
-
-** LanguageTool for grammar checking
-
-[[https://languagetool.org/][LanguageTool]] ([[https://github.com/languagetool-org/languagetool][Github]]) provides a standalone open-source grammar checking tool that can be used on the command line or run as a HTTP server.
-
-*** Installing LanguageTool                                        :external:
-
-Make sure a working Java distribution is installed on the system.
-The following shows the installing of OpenJDK 8 using MacPorts.
-
-#+begin_example
-$ sudo port install openjdk8
-#+end_example
-
-[[https://languagetool.org/#standalone][Download]] the standalone desktop version of LanguageTool for offline use
-which comes in a zip file and extract it to some directory.
-The following assumes the zip file was downloaded to =~/Downloads= and
-extracts its contents to =~/build= (change paths as appropriate as well
-as the zip filename).
-
-#+begin_example
-$ unzip ~/Downloads/LanguageTool-4.9.1.zip -d ~/build
-#+end_example
-
-Optionally, softlink the JAR files to be used to a common storage folder like =~/jars= for easier access (change paths as appropriate).
-
-#+begin_example
-$ cd ~/jars
-$ ln -s ~/build/LanguageTool-4.9.1/languagetool-commandline.jar
-#+end_example
-
-*** LanguageTool basic Emacs configuration                            :melpa:
-
-[[https://github.com/mhayashi1120/Emacs-langtool][langtool]] provides support for using LanguageTool in Emacs as a grammar checking backend.
-
-The configuration here is for using the command-line version of LanguageTool.
-See the website for setting up the HTTP server version.
-
-#+name: langtool
-#+begin_src emacs-lisp
-;; grammar checking functions using LanguageTool
-(use-package langtool
-  :init (setq langtool-default-language "en-US"
-              langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
-#+end_src
-
-**** LanguageTool hydra                                               :hydra:
-
-Hydra for ~langtool~.
-
-#+name: langtool-hydra
-#+begin_src emacs-lisp
-;; add langtool functions to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
-    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
-")
-    ("w" langtool-check nil :exit nil)
-    ("W" langtool-check-done nil :exit nil)
-    ("l" langtool-switch-default-language nil :exit nil)
-    ("c" langtool-correct-buffer nil :exit nil)))
-#+end_src
-
 * Visual
 
 ** Decorations                                                        :early:
@@ -6399,8 +6170,10 @@ Use custom ~ereader~ theme in ~lisp/ereader-theme.el~.
 
 #+name: load-custom-theme
 #+begin_src emacs-lisp
-;; use local eReader theme from ~/.emacs.d/lisp/ereader-theme.el
-(require 'ereader-theme)
+;; use local eReader theme from ~/.emacs.d/themes/ereader-theme.el
+(add-to-list 'custom-theme-load-path
+             (file-name-as-directory
+              (expand-file-name "themes" user-emacs-directory)))
 (load-theme 'ereader t)
 #+end_src
 
@@ -6484,7 +6257,10 @@ or manually by installing the TTF fonts from [[https://github.com/domtronn/all-t
 ;; font icons
 (when (display-graphic-p)
   (use-package all-the-icons
-    :config (setq all-the-icons-color-icons nil)))
+    :config (setq all-the-icons-color-icons nil
+                  ;; workaround for doom-modeline getting truncated in certain conditions
+                  ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
+                  all-the-icons-scale-factor 1.1)))
 #+end_src
 
 ** Fancy mode line using doom-modeline                      :semiearly:melpa:
@@ -6500,11 +6276,25 @@ Requires the ~all-the-icons~ package.
   (use-package doom-modeline
     :after all-the-icons
     :config
-    (setq doom-modeline-buffer-file-name-style 'auto
+    (setq doom-modeline-buffer-file-name-style 'buffer-name
           doom-modeline-env-version nil
           doom-modeline-height 23 ;; change this based on mode-line face height
+          doom-modeline-icon (display-graphic-p)
+          doom-modeline-irc nil
           doom-modeline-minor-modes t
+          doom-modeline-persp-name nil
           doom-modeline-unicode-fallback t)
+    ;; workaround for modeline getting truncated in certain conditions
+    ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
+    (doom-modeline-def-modeline 'main
+      '(" " workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
+      '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker " "))
+    ;; hide left margin indicator bar
+    (set-face-background 'doom-modeline-bar
+                         (face-background 'mode-line))
+    (set-face-background 'doom-modeline-bar-inactive
+                         (face-background 'mode-line-inactive))
+    ;; enable mode line
     (doom-modeline-mode 1)))
 #+end_src
 
@@ -6910,6 +6700,391 @@ Show matching parentheses while editing without delay.
 (show-paren-mode 1)
 #+end_src
 
+* Web
+
+** Browsing
+
+*** Emacs Web Wowser
+
+[[https://www.gnu.org/software/emacs/manual/html_mono/eww.html][Emacs Web Wowser]] (~eww~) is a built-in Emacs web browser.
+It supports text and images, but not webfonts or Javascript.
+
+*Customizations*:
+- Use the lightweight version of [[https://duckduckgo.com/][DuckDuckGo]] for web searches by default.
+- Don't render images by default.
+
+#+name: eww
+#+begin_src emacs-lisp
+;; built-in Emacs text web browser
+(use-package eww
+  :ensure nil ;; built-in
+  :commands (eww eww-follow-link)
+  :bind (:map eww-mode-map
+         ("I" . my-eww-toggle-images))
+  :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
+  ;; don't render images in HTML pages by default
+  :config (setq-default shr-inhibit-images t))
+#+end_src
+
+*** Emacs Web Wowser hydra                                            :hydra:
+
+Major mode-specific hydra for Emacs Web Wowser (~eww~).
+
+#+name: eww-hydra
+#+begin_src emacs-lisp
+;; hydra for Emacs Web Wowser
+(defhydra my-hydra/eww-mode (:color teal :columns 3)
+  "
+Emacs Web Wowser (_q_: quit)"
+  ("q" nil nil)
+  ("d" eww-download "download-link")
+  ("G" eww "search")
+  ("o" eww-open-file "open-file")
+  ("l" eww-back-url "back")
+  ("r" eww-forward-url "forward")
+  ("g" eww-reload "reload")
+  ("v" eww-view-source "view-source")
+  ("w" eww-copy-url "copy-url")
+  ("&" eww-browse-with-external-browser "browse-ext")
+  ("b" eww-add-bookmark "bookmark-page")
+  ("B" eww-list-bookmarks "bookmark-list")
+  ("R" eww-readable "readable-only")
+  ("F" eww-toggle-fonts "toggle-fonts")
+  ("I" my-eww-toggle-images "toggle-images")
+  ("M-C" eww-toggle-colors "toggle-colors")
+  ("D" eww-toggle-paragraph-direction "toggle-text-dir")
+  ("s" eww-switch-to-buffer "eww-switch-buf")
+  ("S" eww-list-buffers "eww-list-buf")
+  ("H" eww-list-histories "history")
+  ("C" url-cookie-list "cookie-list"))
+
+;; binding
+(with-eval-after-load 'eww
+  (define-key eww-mode-map (kbd "C-c C-M-m") #'my-hydra/eww-mode/body))
+#+end_src
+
+**** Helper functions for Emacs Web Wowser hydra
+
+Helper functions for ~eww~:
+- Toggle images in ~eww-mode~.
+
+#+name: eww-hydra-helper-functions
+#+begin_src emacs-lisp
+;; helper function for toggling images in Emacs Web Wowser
+(defun my-eww-toggle-images ()
+  "Toggle displaying of images when rendering HTML."
+  (interactive)
+  (setq-local shr-inhibit-images (not shr-inhibit-images))
+  (eww-reload)
+  (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+#+end_src
+
+** REST development tools
+
+*** restclient.el                                                     :melpa:
+
+[[https://github.com/pashky/restclient.el][restclient.el]] provides a major mode for interacting with HTTP queries
+stored in text files, in particular editing and sending them.
+
+*Customizations*:
+- Load the major mode automatically when opening files with a ~.http~ suffix.
+- When the response to a sent HTTP query is received, the request is
+  pulsed once in the buffer to give visual feedback on which query the
+  response is for (adapted from [[https://github.com/jordonbiondo/.emacs.d/blob/master/init.el][here]]).
+
+#+name: restclient
+#+begin_src emacs-lisp
+(use-package restclient
+  :defer t
+  ;; assume request source files have ".http" suffix
+  :mode ("\\.http\\'" . restclient-mode)
+  :config
+  ;; pulse *HTTP Response* buffer after receiving request response
+  ;; adapted from https://github.com/jordonbiondo/.emacs.d/blob/master/init.el
+  (defun my-restclient-pulse-buffer ()
+    "Pulses the current buffer."
+    (save-excursion
+      (goto-char (point-min))
+      (pulse-momentary-highlight-region (point-min) (point-max))))
+  (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
+#+end_src
+
+*** restclient.el hydra                                               :hydra:
+
+Major mode-specific hydra for ~restclient-mode~.
+The head for pretty printing the JSON response requires the
+~json-mode~ package be installed.
+
+#+name: restclient-hydra
+#+begin_src emacs-lisp
+;; hydra for restclient
+(defhydra my-hydra/restclient-mode (:color teal :columns 3)
+  "
+REST client (_q_: quit)"
+  ("q" nil nil)
+  ("c" restclient-http-send-current "send")
+  ("r" restclient-http-send-current-raw "send-raw")
+  ("v" restclient-http-send-current-stay-in-window "send-bg")
+  ("n" restclient-jump-next "next" :exit nil)
+  ("p" restclient-jump-prev "prev" :exit nil)
+  ("." restclient-mark-current "mark")
+  ("u" restclient-copy-curl-command "copy-curl")
+  ("N"
+   (lambda ()
+     (interactive)
+     (if (buffer-narrowed-p)
+         (widen)
+       (restclient-narrow-to-current)))
+   "narrow" :exit nil)
+  ("f"
+   (lambda ()
+     (interactive)
+     (require 'json-mode nil t)
+     (if (fboundp 'json-mode-pretty-print-dwim)
+         (call-interactively 'json-mode-pretty-print-dwim)
+       (message "Requires the `json-mode' package be installed.")))
+   "fmt-json-rgn"))
+
+;; binding for restclient hydra
+(with-eval-after-load 'restclient
+  (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
+#+end_src
+
+** Network security
+
+Increased network security settings.
+
+#+name: network-security
+#+begin_src emacs-lisp
+;; increase network security settings
+(setq gnutls-verify-error t)
+(setq gnutls-min-prime-bits 1024)
+(setq network-security-level 'high)
+(setq nsm-save-host-names t)
+#+end_src
+
+** HTTP requests privacy
+
+More private HTTP requests.
+
+#+name: http-requests-privacy
+#+begin_src emacs-lisp
+;; HTTP requests privacy settings
+(setq url-cookie-untrusted-urls '(".*")) ;; no cookies
+(setq url-privacy-level 'paranoid) ;; more private HTTP requests
+(url-setup-privacy-info) ;; apply `url-privacy-level'
+#+end_src
+
+* Writing
+
+** Writing hydra                                                      :hydra:
+
+Hydra for writing functions.
+
+#+name: writing-hydra
+#+begin_src emacs-lisp
+;; hydra for writing functions
+(defhydra my-hydra/writing (:color amaranth :hint nil
+                            :pre (require 'flyspell))
+  "
+Writing (_q_: quit)
+Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
+"
+  ("q" nil :exit t)
+  ("f" flyspell-mode)
+  ("F" flyspell-prog-mode))
+
+;; bindings for writing hydra
+(global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
+#+end_src
+
+** Spell checking
+
+*** Flyspell for spell checking in Emacs
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Spelling.html][Flyspell]] is a built-in spell checker that comes in two flavors:
+- ~flyspell-mode~ checks spelling anywhere in the buffer.
+- ~flyspell-prog-mode~ checks spelling only in comments and strings.
+
+When one of the modes is active, unrecognized words are highlighted.
+To maintain performance, it only checks words that are newly typed or
+that the pointer moves across.
+
+Activating the mode also enables a few bindings that act on
+unrecognized words:
+- ~C-c $~ pops up menu of corrections for the word before the pointer.
+- ~C-.~ corrects the current word. Pressing it repeatedly will propose
+  successive correction candidates.
+- ~C-;~ corrects the previous word. Pressing it repeated will propose
+  successively correction candidates.
+- ~C-,~ jumps to the next unrecognized word.
+
+*Note*: Flyspell uses as its backend a spell checker like Aspell, so
+one needs to be installed on system. An appropriate dictionary or
+dictionaries for the spell checker should also be installed.
+
+*** Aspell command-line spell checker                              :external:
+
+[[http://aspell.net/][Aspell]] is a spell checker. There are a number of alternatives but
+they are either deprecated ([[https://www.cs.hmc.edu/~geoff/ispell.html][Ispell]]), similar ([[https://en.wikipedia.org/wiki/Hunspell][Hunspell]]), or
+language-specific ([[https://voikko.puimula.org/][Voikko]] for Finnish).
+
+This or another supported spell checker has to be installed in order
+for Flyspell to work. Additionally, a dictionary for the spell checker
+should also be intalled.
+
+If using MacPorts, installation instructions follow for Aspell and its
+English dictionary.
+
+#+begin_example
+$ sudo port install aspell
+$ sudo port install aspell-dict-en
+#+end_example
+
+** dictionary.el for looking up word definitions                      :melpa:
+
+[[https://github.com/myrkr/dictionary-el][dictionary.el]] provides a frontend for accessing a local or online
+dictionary server that implements [[https://en.wikipedia.org/wiki/DICT][RFC 2229]].
+
+#+name: dictionary
+#+begin_src emacs-lisp
+;; provides word lookups from a dictionary server
+;; `dictionary-server' can be set to "localhost" to use a local
+;; dictionary server like dictd or GNU Dico that implements RFC 2229
+(use-package dictionary
+  :init (setq dictionary-server "dict.org"
+              dictionary-default-dictionary "*"))
+#+end_src
+
+*** dictionary.el hydra                                               :hydra:
+
+#+name: dictionary-hydra
+#+begin_src emacs-lisp
+;; add dictionary entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
+    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
+")
+    ("s" dictionary-search :exit t)
+    ("m" dictionary-match-words :exit t)))
+#+end_src
+
+*** GNU Collaborative International Dictionary of English
+
+The [[https://gcide.gnu.org.ua/][GNU Collaborative International Dictionary of English]] (GCIDE) is a free dictionary derived from the Webster's 1913 dictionary (which provides definitions that are fuller and more descriptive than more modern dictionaries) supplemented with newer definitions from Wordnet and other sources.
+
+It is available as a source on [[http://www.dict.org/][dict.org]] which can be accessed by
+~dictionary.el~ functions.
+
+Downloads are available for use with a local dictionary server.
+One local dictionary server that has good GCIDE support is [[https://www.gnu.org.ua/software/dico/][GNU Dico]],
+which has a bundled [[http://puszcza.gnu.org.ua/software/dico/manual/html_section/gcide.html][interface module]] for the dictionary.
+
+** Synosaurus in-editor thesaurus                                     :melpa:
+
+[[https://github.com/hpdeifel/synosaurus][Synosaurus]] provides a thesaurus frontend with pluggable backends.
+Supported backends are limited to:
+- [[https://www.openthesaurus.de/][OpenThesaurus]] (German), which the package can access via HTTP
+  requests.
+- [[https://wordnet.princeton.edu/][WordNet]] (English), which requires the command-line tool ~wn~ be
+  installed locally.
+
+To install WordNet on Mac OS X using MacPorts, do the following.
+
+#+begin_example
+$ sudo port install wordnet
+#+end_example
+
+#+name: synosaurus
+#+begin_src emacs-lisp
+;; thesaurus functions using Synosaurus
+(use-package synosaurus
+  :init (setq synosaurus-choose-method 'default
+              synosaurus-backend 'synosaurus-backend-wordnet))
+#+end_src
+
+*** Synosaurus hydra                                                  :hydra:
+
+Hydra for Synosaurus.
+
+#+name: synosaurus-hydra
+#+begin_src emacs-lisp
+;; add synosaurus entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
+    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
+")
+    ("S" synosaurus-mode :exit nil)
+    ("L" synosaurus-lookup :exit t)
+    ("R" synosaurus-choose-and-replace :exit t)
+    ("I" synosaurus-choose-and-insert :exit t)))
+#+end_src
+
+** LanguageTool for grammar checking
+
+[[https://languagetool.org/][LanguageTool]] ([[https://github.com/languagetool-org/languagetool][Github]]) provides a standalone open-source grammar checking tool that can be used on the command line or run as a HTTP server.
+
+*** Installing LanguageTool                                        :external:
+
+Make sure a working Java distribution is installed on the system.
+The following shows the installing of OpenJDK 8 using MacPorts.
+
+#+begin_example
+$ sudo port install openjdk8
+#+end_example
+
+[[https://languagetool.org/#standalone][Download]] the standalone desktop version of LanguageTool for offline use
+which comes in a zip file and extract it to some directory.
+The following assumes the zip file was downloaded to =~/Downloads= and
+extracts its contents to =~/build= (change paths as appropriate as well
+as the zip filename).
+
+#+begin_example
+$ unzip ~/Downloads/LanguageTool-4.9.1.zip -d ~/build
+#+end_example
+
+Optionally, softlink the JAR files to be used to a common storage folder like =~/jars= for easier access (change paths as appropriate).
+
+#+begin_example
+$ cd ~/jars
+$ ln -s ~/build/LanguageTool-4.9.1/languagetool-commandline.jar
+#+end_example
+
+*** LanguageTool basic Emacs configuration                            :melpa:
+
+[[https://github.com/mhayashi1120/Emacs-langtool][langtool]] provides support for using LanguageTool in Emacs as a grammar checking backend.
+
+The configuration here is for using the command-line version of LanguageTool.
+See the website for setting up the HTTP server version.
+
+#+name: langtool
+#+begin_src emacs-lisp
+;; grammar checking functions using LanguageTool
+(use-package langtool
+  :init (setq langtool-default-language "en-US"
+              langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
+#+end_src
+
+**** LanguageTool hydra                                               :hydra:
+
+Hydra for ~langtool~.
+
+#+name: langtool-hydra
+#+begin_src emacs-lisp
+;; add langtool functions to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
+    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
+")
+    ("w" langtool-check nil :exit nil)
+    ("W" langtool-check-done nil :exit nil)
+    ("l" langtool-switch-default-language nil :exit nil)
+    ("c" langtool-correct-buffer nil :exit nil)))
+#+end_src
+
 * Other
 
 ** Auth sources
@@ -7002,7 +7177,7 @@ improve quality-of-life while using Emacs.
   (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line))
 #+end_src
 
-*** Crux hydra                                                        :hydra:
+*** CRUX hydra                                                        :hydra:
 
 Access most of CRUX functionality through a hydra, to reduce
 conflicts with global or mode-specific bindings.
@@ -7626,6 +7801,8 @@ The main configuration file.
 
 <<helm>>
 
+<<helm-treemacs-icons>>
+
 ;; <<icomplete>>
 
 <<hydra>>
@@ -7642,7 +7819,7 @@ The main configuration file.
 
 <<minions>>
 
-<<which-func>>
+;; <<which-func>>
 
 ;; Backups
 
@@ -7753,6 +7930,8 @@ The main configuration file.
 <<dired-filter-hydra>>
 
 <<all-the-icons-dired>>
+
+;; <<treemacs-icons-dired>>
 
 ;; Editing text
 
@@ -7869,7 +8048,7 @@ The main configuration file.
 
 <<org-graphical-customizations>>
 
-<<org-which-func>>
+;; <<org-which-func>>
 
 <<org-bullets>>
 
@@ -7890,6 +8069,8 @@ The main configuration file.
 <<ox-md>>
 
 <<org-noter>>
+
+<<org-super-agenda>>
 
 ;; Outlines
 
@@ -7917,11 +8098,17 @@ The main configuration file.
 
 <<conda-hydra>>
 
-;; Programming / Eglot Language Server Protocol client
+;; Programming / lsp-mode Language Server Protocol client
 
-<<eglot>>
+<<lsp-mode>>
 
-<<eglot-hydra>>
+<<company-lsp>>
+
+<<lsp-mode-hydra>>
+
+;; Programming / dap-mode Debug Adaptor Protocol client
+
+<<dap-mode>>
 
 ;; Programming / Emacs Lisp
 
@@ -7951,11 +8138,13 @@ The main configuration file.
 
 <<python-flymake>>
 
-<<python-which-func-imenu>>
+;; <<python-which-func-imenu>>
 
 <<python-devskim-flymake>>
 
-<<python-eglot>>
+<<lsp-python-ms>>
+
+<<dap-python>>
 
 ;; Programming / R
 
@@ -7987,6 +8176,12 @@ The main configuration file.
 
 <<git-timemachine>>
 
+<<treemacs>>
+
+<<treemacs-projectile>>
+
+<<treemacs-magit>>
+
 ;; Reference management
 
 <<ebib>>
@@ -8012,6 +8207,30 @@ The main configuration file.
 <<notdeft>>
 
 <<notdeft-hydra>>
+
+;; Visual (part 2)
+
+<<visual-hydra>>
+
+<<darkroom>>
+
+<<darkroom-hydra>>
+
+<<prism>>
+
+<<prism-hydra>>
+
+<<color-identifiers-mode>>
+
+<<color-identifiers-mode-hydra>>
+
+<<outline-hydra>>
+
+<<whitespace-hydra>>
+
+<<show-column-number>>
+
+<<show-matching-parentheses>>
 
 ;; Web
 
@@ -8044,30 +8263,6 @@ The main configuration file.
 <<langtool>>
 
 <<langtool-hydra>>
-
-;; Visual (part 2)
-
-<<visual-hydra>>
-
-<<darkroom>>
-
-<<darkroom-hydra>>
-
-<<prism>>
-
-<<prism-hydra>>
-
-<<color-identifiers-mode>>
-
-<<color-identifiers-mode-hydra>>
-
-<<outline-hydra>>
-
-<<whitespace-hydra>>
-
-<<show-column-number>>
-
-<<show-matching-parentheses>>
 
 ;; Other
 
@@ -8178,6 +8373,12 @@ or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 
 ** Non-programming files
 
+*** [#B] neuron-mode                                         :external:melpa:
+
+[[https://github.com/felko/neuron-mode][neuron-mode]] is a mode for editing [[https://neuron.zettel.page/][neuron]] Zettelkasten notes.
+
+Requires that neuron be installed, which may require [[https://nixos.org/][nixpkg]]. 
+
 *** Nix configuration files
 
 **** [#C] nix-mode for editing Nix configuration files                :melpa:
@@ -8202,7 +8403,7 @@ export shortcut keys so they align with the default LaTeX export ones.
 Additionally, use the ~ETbb~ package from CTAN for the font instead
 of the look-alike in the old code.
 
-*** [#A] Org-roam                                            :external:melpa:
+*** [#B] Org-roam                                            :external:melpa:
 
 [[https://github.com/org-roam/org-roam][Org-roam]] is a [[https://www.roamresearch.com/][Roam]] replica built atop Org-mode.
 
@@ -8311,7 +8512,7 @@ processing.
 Note that an alternate Webpage to Mercury Reader to Markdown workflow
 could use [[https://github.com/zyocum/reader][reader]] instead or [[http://fuckyeahmarkdown.com/][Markdownifier]] (web API) for conversion.
 
-*** [#B] org-reveal or org-re-reveal                                  :melpa:
+*** [#C] org-reveal or org-re-reveal                                  :melpa:
 
 [[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] and [[https://github.com/yjwen/org-reveal][org-reveal]] are comparable packages support
 exporting Org documents to [[https://revealjs.com/#/][reveal.js]] presentations.
@@ -8329,7 +8530,7 @@ cutting-edge features implemented.
 References:
 - [[http://www.zhangjiee.com/blog/2019/emacs-slide.html][Emacs 基于 org-reveal 做幻灯片]]
 
-*** [#C] ox-hugo                                             :external:melpa:
+*** [#B] ox-hugo                                             :external:melpa:
 
 [[https://github.com/kaushalmodi/ox-hugo][GitHub - kaushalmodi/ox-hugo: A carefully crafted Org exporter back-end for Hugo]]
 
@@ -8497,6 +8698,39 @@ packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://g
 
 [[https://github.com/rnkn/fountain-mode][Fountain Mode]] provides a major mode for editing [[https://fountain.io/][Fountain]] plain-text
 markup.
+
+** Other
+*** [#B] Password management and storage
+
+https://milosophical.me/blog/2018/keepass-and-password-store.html
+
+On iOS, use [[https://github.com/mssun/passforios][Pass for iOS]].
+
+**** [#B] password-store.el
+
+https://git.zx2c4.com/password-store/tree/contrib/emacs
+
+Probably best to go for this as the main interface.
+
+**** [#C] helm-pass                                                   :melpa:
+
+[[https://github.com/emacs-helm/helm-pass][GitHub - emacs-helm/helm-pass: Emacs Helm interface for pass]]
+
+Wrapper on top of password-store.el and auth-source-pass for easier
+password searching.
+
+Doesn't quite handle creating new entries, so use password-store.el
+for that.
+
+**** [#C] auth-source-pass
+
+[[https://github.com/DamienCassou/auth-password-store][GitHub - DamienCassou/auth-password-store: Integrate Emacs' auth-source with pass]]
+
+Built-in to Emacs and integrates [[https://www.passwordstore.org/][pass]] with ~auth-source~.
+
+**** [#C] pass
+
+https://github.com/NicolasPetton/pass
 
 * Local Variables                                                  :noexport:
 

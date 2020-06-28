@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jun 21 18:36:30 2020
+;; Generated: Sun Jun 28 18:12:36 2020
 
 ;;; Commentary:
 
@@ -72,8 +72,10 @@
          (fboundp 'menu-bar-mode))
     (menu-bar-mode -1))
 
-;; use local eReader theme from ~/.emacs.d/lisp/ereader-theme.el
-(require 'ereader-theme)
+;; use local eReader theme from ~/.emacs.d/themes/ereader-theme.el
+(add-to-list 'custom-theme-load-path
+             (file-name-as-directory
+              (expand-file-name "themes" user-emacs-directory)))
 (load-theme 'ereader t)
 
 ;; set typefaces for graphical Emacs

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jun 28 18:12:36 2020
+;; Generated: Sun Jun 28 19:18:05 2020
 
 ;;; Commentary:
 
@@ -410,14 +410,16 @@ Buffer (_q_: quit)"
         '(("default"
            ("Emacs" (or (name . "^\\*scratch\\*$")
                         (name . "^\\*Messages\\*$")))
+           ("Programming" (derived-mode . prog-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)))
-           ("Org" (or (mode . org-mode)
+           ("Org" (or (derived-mode . org-mode)
                       (mode . org-agenda-mode)))
-           ("Web Browsing" (mode . eww-mode))
-           ("Programming" (derived-mode . prog-mode))
+           ("Text" (derived-mode . text-mode))
            ("Dired" (mode . dired-mode))
+           ("Web" (or (mode . eww-mode)
+                      (mode . eww-bookmark-mode)))
            ("Magit" (or (name . "\*magit.*\\*")
                         (mode . magit-mode)))
            ("Help" (or (derived-mode . apropos-mode)

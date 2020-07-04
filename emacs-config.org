@@ -1198,7 +1198,11 @@ manually and automatically.
 ;; and locks are saved to ~/.emacs.d/.emacs.desktop.lock
 ;; - enable desktop-save-mode to save on timer and exit, load on entry
 ;; - set `desktop-autosave-timeout' to nil to disable timer auto-saves
-(setq desktop-auto-save-timeout nil)
+;; - restore frames to their original displays
+;; - don't re-use frames
+(setq desktop-auto-save-timeout nil
+      desktop-restore-in-current-display nil
+      desktop-restore-reuses-frames t)
 (desktop-save-mode 1)
 #+end_src
 
@@ -3356,13 +3360,17 @@ CSV (_q_: quit)"
   :mode (("README\\.md\\'" . gfm-mode)
          ("\\.md\\'" . markdown-mode)
          ("\\.markdown\\'" . markdown-mode))
-  :config
+  :init
   ;; place header markup only at the start of a line
   ;; syntax highlighting in fenced code blocks
   ;; use underscores for italics instead of asterisks
   (setq markdown-asymmetric-header t
         markdown-fontify-code-blocks-natively t
         markdown-italic-underscore t)
+  ;; if available, use pandoc for converting markdown files
+  (when (executable-find "pandoc")
+    (setq markdown-command "pandoc --from markdown --to html"
+          markdown-command-needs-filename t))
   ;; render mathematical expressions in HTML previews
   (setq markdown-xhtml-header-content
         (concat "<script type=\"text/x-mathjax-config\">"
@@ -3460,6 +3468,145 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
 (use-package yaml-mode
   :commands yaml-mode
   :mode ("\\.ya?ml\\'" . yaml-mode))
+#+end_src
+
+** neuron-mode                                               :external:melpa:
+
+[[https://github.com/felko/neuron-mode][neuron-mode]] is a mode for editing [[https://neuron.zettel.page/][neuron]] zettelkasten notes.
+
+Assumes that neuron Zettelkasten files are stored in the
+=~/zettelkasten= directory.
+
+Requires that neuron be installed, which currently requires [[https://nixos.org/][nixpkg]].
+
+#+name: neuron-mode
+#+begin_src emacs-lisp
+;; neuron-mode, settings adapted from
+;; https://gist.github.com/felko/cdb3fc19b3a60db27eb3c5bd319fc479
+(use-package neuron-mode
+  :init
+  (defface neuron-stub-face
+    '((((class color) (min-colors 88) (background dark)) :foreground "#C16069" :underline "#C16069")
+      (((class color) (min-colors 88) (background light)) :foreground "#C16069" :underline "#C16069")
+      (((class color) :foreground "Red" :underline "Red"))
+      (t :inherit neuron-title-overlay-face))
+    "Face for stub links."
+    :group 'neuron-faces)
+  (setq neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
+        neuron-default-tags '("stub")
+        neuron-id-format 'hash
+        neuron-tag-specific-title-faces '(("stub" neuron-stub-face))))
+#+end_src
+
+*** Installing neuron
+
+Install Nix. The following instructions show how to install Nix
+in single-user mode; see the [[https://nixos.org/nix/manual/][official documentation]] for a multi-user
+install.
+
+#+begin_example
+$ sudo mkdir /nix
+$ sudo chown $USER /nix
+$ curl -O https://nixos.org/nix/install
+$ bash install --no-daemon
+#+end_example
+
+Note that the Nix =install= script can be safely removed after this.
+
+Install neuron following [[https://neuron.zettel.page/2011501.html][instructions]] on the official website.
+
+Install [[https://cachix.org/][Cachix]] if haven't already done so.
+
+#+begin_example
+$ nix-env -iA cachix -f https://cachix.org/api/v1/install
+#+end_example
+
+Use the cache to fetch binaries instead of compiling most packages.
+
+#+begin_example
+$ cachix use srid
+#+end_example
+
+Install Neuron.
+
+#+begin_example
+$ nix-env -if https://github.com/srid/neuron/archive/master.tar.gz
+#+end_example
+
+*** Upgrading neuron
+
+Neuron upgrades can be done using the same command for installing it.
+
+#+begin_example
+$ nix-env -if https://github.com/srid/neuron/archive/master.tar.gz
+#+end_example
+
+*** neuron-mode hydras                                                :hydra:
+
+Hydras for interacting with the configured neuron Zettelkasten, and
+when editing neuron zettels.
+
+#+name: neuron-hydra
+#+begin_src emacs-lisp
+;; entrypoint hydra into neuron Zettelkasten
+(defhydra my-hydra/neuron (:color teal :columns 4)
+  "
+Neuron Zettelkasten (_q_: quit)"
+  ("q" nil nil)
+  ("z" neuron-new-zettel "new")
+  ("e" neuron-edit-zettel "edit")
+  ("o" neuron-open-zettel "open")
+  ("O" neuron-open-index "index")
+  ("j" neuron-open-daily-notes "daily")
+  ("t" neuron-query-tags "query-tags")
+  ("g" neuron-refresh "refresh")
+  ("c" neuron-edit-zettelkasten-configuration "config")
+  ("rw" neuron-rib-watch "rib-watch")
+  ("rg" neuron-rib-generate "rib-gen")
+  ("rs" neuron-rib-serve "rib-serve")
+  ("ro" neuron-rib-open-zettel "rib-open")
+  ("rz" neuron-rib-open-z-index "rib-z-idx")
+  ("rk" neuron-rib-kill "rib-kill"))
+
+;; binding for neuron entrypoint hydra
+(with-eval-after-load 'neuron-mode
+  (global-set-key (kbd "C-c C-M-z") #'my-hydra/neuron/body))
+#+end_src
+
+#+name: neuron-mode-hydra
+#+begin_src emacs-lisp
+;; mode-specific hydra for neuron-mode
+(defhydra my-hydra/neuron-mode (:color teal :columns 3)
+  "
+Neuron mode (_q_: quit)"
+  ("q" nil nil)
+  ("u" neuron-edit-uplink "edit-uplink")
+  ("t" neuron-add-tag "add-tag")
+  ("T" neuron-add-tags "add-tags")
+  ("l" neuron-create-and-insert-zettel-link "create-link")
+  ("L" neuron-create-zettel-from-selected-title "create-selected")
+  ("s" neuron-insert-static-link "insert-static-link")
+  ("c" neuron-toggle-connection-type "toggle-conn-type")
+  ("r" neuron-open-current-zettel "open-current")
+  ("o" neuron-follow-thing-at-point "follow"))
+
+;; wrapper hydra for accessing markdown and neuron-mode hydras from
+;; mode-specific entrypoint
+(defhydra my-hydra/markdown-neuron-mode-wrapper (:color teal)
+  "
+Markdown mode hydra / Neuron mode hydra (_q_: quit)
+"
+  ("q" nil nil)
+  ("m" my-hydra/markdown-mode/body "markdown-mode")
+  ("z" my-hydra/neuron-mode/body "neuron-mode"))
+
+;; binding for mode-specific wrapper hydra for markdown/neuron modes
+(with-eval-after-load 'neuron-mode
+  (add-hook 'neuron-mode-hook
+            (lambda ()
+              (use-local-map (copy-keymap markdown-mode-map))
+              (local-set-key (kbd "C-c C-M-m")
+                             #'my-hydra/markdown-neuron-mode-wrapper/body))))
 #+end_src
 
 * Org-mode
@@ -3615,23 +3762,24 @@ Restore the window configuration after capturing the task.
                       ("nonurgent" . ?4)
                       (:endgroup)
                       (:startgroup) ;; location
-                      ("@home" . ?H)
-                      ("@office" . ?O)
-                      ("@travel" . ?V)
-                      ("@errands" . ?E)
+                      ("@home" . ?7)
+                      ("@office" . ?8)
+                      ("@travel" . ?9)
+                      ("@errands" . ?0)
                       (:endgroup)
                       (:startgroup) ;; export
                       ("export" . ?e)
-                      ("noexport" . ?x)
+                      ("noexport" . ?E)
                       (:endgroup)
                       ;; ungrouped
+                      ("meeting" . ?m)
                       ("note" . ?n)
                       ;; work-related relationship category
-                      ("hiring" . ?h)
-                      ("managing" . ?m)
-                      ("vendor" . ?v)
-                      ("partner" . ?p)
-                      ("client" . ?c)
+                      ("hiring" . ?H)
+                      ("managing" . ?M)
+                      ("vendor" . ?V)
+                      ("partner" . ?P)
+                      ("client" . ?C)
                       ;; work-related project category
                       ("internal" . ?\^n) ; C-n
                       ("healthcare" . ?\^h) ;; C-h
@@ -4086,74 +4234,6 @@ Org documents like code and tables.
         (set-face-attribute curr-face nil :family fixed-pitch-family)))))
 #+end_src
 
-** Display the outline path at point in Org-mode using which-func
-
-Use ~which-func~ to display the outline path where the point is within
-the Org-mode document.
-
-This depends on some of the ~which-func~ customization set up in
-\S[[Display function or outline node at point using which-func]]
-so make sure the code there is loaded first.
-
-#+name: org-which-func
-#+begin_src emacs-lisp
-(with-eval-after-load 'org
-  ;; display the outline path at point using which-func
-  (with-eval-after-load 'which-func
-    (add-to-list 'which-func-modes 'org-mode)
-    (defun my-org-which-function-string-shortener (str &optional maxlen)
-      "Shortens STR if it is longer than MAXLEN chars."
-      (let* ((len (length str))
-             (maxlen (or maxlen 40)) ;; default maxlen of 40
-             (num-left-chars (/ maxlen 2))
-             (num-right-chars (- maxlen num-left-chars 3)))
-        (if (> len maxlen)
-            (concat (substring str 0 num-left-chars)
-                    "..."
-                    (substring str (- len num-right-chars) len))
-          str)))
-    (defun my-org-which-function ()
-      "Returns current outline path."
-      (if (eq major-mode 'org-mode)
-        (condition-case nil
-            (mapconcat #'my-org-which-function-string-shortener
-                       (org-get-outline-path t)
-                       " > ")
-          (error nil))))
-    (add-to-list 'which-func-functions #'my-org-which-function)
-    ;; Org-specific which-func header
-    (defun my-org-narrow-to-subtree-toggle ()
-      "Toggle org-narrow-to-subtree."
-      (interactive)
-      (if (buffer-narrowed-p)
-          (widen)
-        (org-narrow-to-subtree)))
-    (defvar my-which-func-header-keymap-org
-      (let ((map (make-sparse-keymap)))
-        (define-key map [header-line mouse-1] 'my-org-narrow-to-subtree-toggle)
-        ;; work around mouse-1 mapping to mouse-2 when cursor is on org bullet
-        (define-key map [header-line mouse-2] 'my-org-narrow-to-subtree-toggle)
-        (define-key map [header-line mouse-3] 'outline-up-heading)
-        (define-key map [header-line wheel-up] 'org-backward-heading-same-level)
-        (define-key map [header-line wheel-down] 'org-forward-heading-same-level)
-        map)
-      "Keymap for header line which-func.")
-    (defvar my-which-func-header-keymap-help-text-org
-      "mouse-1 : toggle rest visibility\n\
-mouse-3 : go up one heading\n\
-wheel-u : next same-level heading\n\
-wheel-d : prev same-level heading"
-      "Help text for `my-which-fun-header-keymap-org'.")
-    (defvar my-which-func-header-format-org
-            `(:propertize which-func-current
-                          local-map ,my-which-func-header-keymap-org
-                          face which-func
-                          mouse-face mode-line-highlight
-                          help-echo my-which-func-header-keymap-help-text-org))
-    ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
-    (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
-#+end_src
-
 ** org-bullets for nicer header bullets in Org-mode                   :melpa:
 
 *TODO*: migrate to [[https://github.com/integral-dw/org-superstar-mode][org-superstar]].
@@ -4274,7 +4354,8 @@ pasting/yanking the Org link in the todo using ~C-c C-l~.
           "* %(format-time-string org-journal-time-format)%?\n%i")
         org-capture-templates)
   (setq org-journal-date-prefix "#+TITLE: Daily Journal "
-        org-journal-file-format "%Y%m%d.org"
+        ;; separate journal files into folders by year
+        org-journal-file-format "%Y/%Y%m%d.org"
         org-journal-file-type 'daily
         ;; don't carry over TODO items from a previous days
         org-journal-carryover-items nil
@@ -4544,148 +4625,97 @@ and automatically closes the imenu-list.
 
 * Programming
 
-** Flymake syntax checker
+** Flycheck syntax checker                                            :melpa:
 
-[[https://elpa.gnu.org/packages/flymake.html][Flymake]] is a built-in on-the-fly syntax checker, with updated versions
-available from the GNU ELPA repository.
+[[https://www.flycheck.org/en/latest/][FlyCheck]] ([[https://github.com/flycheck/flycheck][Github]]) is an on-the-fly syntax checker for Emacs that is a
+popular alternative to the built-in [[https://elpa.gnu.org/packages/flymake.html][Flymake]] package.
 
-To display the error message at point in the minibuffer, do ~C-h .~
-while the point is over an error.
+If using this, it is typical to not enable Flymake.
 
-To define new Flymake backend, refer to the docstring of
-~flymake-diagnostic-functions~, the [[https://www.gnu.org/software/emacs/manual/html_node/flymake/index.html][Flymake manual]] or the code of
-existing backends.
-
-#+name: flymake
+#+name: flycheck
 #+begin_src emacs-lisp
-;; basic Flymake customizations
-(setq flymake-no-changes-timeout 0.5 ;; auto check buffer change wait time
-      flymake-start-on-save-buffer nil) ;; don't run checks when saving
-
-;; deferred Flymake customizations
-(with-eval-after-load 'flymake
-  ;; don't use legacy Flymake checker
-  (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake)
-  ;; function for toggling Flymake diagnostics window
-  (defun my-toggle-flymake-diagnostics ()
-    "Toggles flymake diagnostics window for current buffer."
-    (interactive)
-    (if flymake-mode
-        (let* ((buf-name (buffer-name (current-buffer)))
-               (flymake-winds (condition-case nil
-                                  (get-buffer-window-list
-                                   (concat "*Flymake diagnostics for " buf-name "*"))
-                                (error nil))))
-          (if flymake-winds
-              (dolist (wind flymake-winds) (quit-window nil wind))
-            (flymake-show-diagnostics-buffer)))))
-  ;; shorten mode line symbol in when running Emacs in the TTY
-  (when (not (display-graphic-p))
-    ;; Truncate Flymake mode-line symbol
-    (defun my-flymake-modeline-filter (ret)
-      "Filter function for `flymake--mode-line-format`."
-      (setf (seq-elt (car ret) 1) " FlyM")
-      ret)
-    (advice-add #'flymake--mode-line-format
-                :filter-return #'my-flymake-modeline-filter))
-  ;; convenience bindings
-  (define-key flymake-mode-map (kbd "C-c ! n") #'flymake-goto-next-error)
-  (define-key flymake-mode-map (kbd "C-c ! p") #'flymake-goto-prev-error)
-  (define-key flymake-mode-map (kbd "C-c ! l") #'my-toggle-flymake-diagnostics))
-
-;; enable Flymake when editing Emacs Lisp buffers
-(add-hook 'emacs-lisp-mode-hook #'flymake-mode)
+;; linting support, used in place of FlyMake
+(use-package flycheck
+  :init
+  ;; customizations:
+  ;; - remove newlines from events triggering linting checks
+  ;; - don't mark error lines in fringe or margin
+  (setq flycheck-check-syntax-automatically '(save
+                                              idle-change
+                                              mode-line)
+        flycheck-indication-mode nil)
+  :config
+  ;; automatically adjust idle delay before automatically checking the
+  ;; buffer depending on whether there are outstanding syntax errors;
+  ;; check less frequently if there were no errors, and check more
+  ;; frequently if there were errors; have this behavior be per-buffer
+  (make-variable-buffer-local 'flycheck-idle-change-delay)
+  (defun flycheck--adjust-flycheck-idle-change-delay ()
+    "Adjust `flycheck-idle-change-delay' to check less frequently
+when buffer is clean, and more frequently when it has errors."
+    (setq flycheck-idle-change-delay (if flycheck-current-errors
+                                         0.5
+                                       3.0)))
+  (add-hook 'flycheck-after-syntax-check-hook
+            #'flycheck--adjust-flycheck-idle-change-delay)
+  ;; default modes within which to use FlyCheck
+  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode))
 #+end_src
 
-*** Flymake hydra                                                     :hydra:
+*** Flycheck hydra                                                    :hydra:
 
-Hydra for Flymake.
+Hydra for FlyCheck.
 
-#+name: flymake-hydra
+#+name: flycheck-hydra
 #+begin_src emacs-lisp
-;; hydra for Flymake
-(defhydra my-hydra/flymake (:color amaranth :columns 4)
+;; flycheck hydra
+(defhydra my-hydra/flycheck (:color amaranth :columns 3)
   "
-Flymake (_q_: quit)"
+FlyCheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"default\")] (_q_: quit)"
   ("q" nil nil :exit t)
-  ("p" flymake-goto-prev-error "prev-err")
-  ("n" flymake-goto-next-error "next-err")
-  ("l" my-toggle-flymake-diagnostics "list")
-  ("s" flymake-start "start-check"))
+  ("c" flycheck-buffer "run")
+  ("C" flycheck-clear "clear")
+  ("C-c" flycheck-compile "compile")
+  ("n" flycheck-next-error "next")
+  ("p" flycheck-previous-error "previous")
+  ("l" (condition-case nil (quit-windows-on "*Flycheck errors*" t)
+         (error (flycheck-list-errors))) "list")
+  ("H" display-local-help "local-help")
+  ("h" flycheck-display-error-at-point "display-at-pt")
+  ("e" flycheck-explain-error-at-point "explain-at-pt")
+  ("s" flycheck-select-checker "select-checker")
+  ("?" flycheck-describe-checker "describe-checker" :exit t)
+  ("v" flycheck-verify-setup "verify-setup" :exit t)
+  ("C-w" flycheck-copy-errors-as-kill "copy-errors")
+  ("i" flycheck-manual "web-manual" :exit t))
 
-;; binding for Flymake hydra
-(with-eval-after-load 'flymake
-  (define-key flymake-mode-map (kbd "C-c C-M-e e") #'my-hydra/flymake/body))
+;; binding for flycheck hydra
+(with-eval-after-load 'flycheck
+  (define-key flycheck-mode-map (kbd "C-c C-M-e e") #'my-hydra/flycheck/body))
 #+end_src
 
-*** flymake-quickdef for defining Flymake backends                    :melpa:
+** Security linting using DevSkim and FlyCheck                     :external:
 
-[[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]] provides a macro for quickly defining Flymake backends.
-See the [[https://github.com/karlotness/flymake-quickdef/blob/master/flymake-quickdef.el#L56-L158][documentation]] for how to use this macro.
+[[https://github.com/Microsoft/DevSkim/][DevSkim]] is a collection of static analyzers that does code security
+analysis.
 
-#+name: flymake-quickdef
+If it is installed on the system, there is a FlyCheck [[https://github.com/microsoft/DevSkim/tree/main/flycheck][backend]]
+distributed with the official codebase (add to a directory in
+~load-path~ and load it when initializing Emacs). It does not run by
+default for the supported modes (C, C++ and Python), and has to be
+chained to the checker that is run for those modes. For example,
+~(flycheck-add-next-checker 'lsp 'devskim)~ if using ~lsp-mode~ is
+used as the main checker for the mode.
+
+#+name: flycheck-devskim
 #+begin_src emacs-lisp
-(use-package flymake-quickdef
-  :demand t)
-#+end_src
-
-** Security linting using DevSkim and Flymake                      :external:
-
-[[https://github.com/Microsoft/DevSkim/][DevSkim]] is a collection of static analyzers that does code security analysis.
-
-If it is installed on the system, Flymake backend can be defined to
-use it to provide security linting.
-
-Flymake-Quickdef (see above) can be used for defining this backend.
-
-To use this backend in for specific programming language, call the
-custom setup function ~flymake-devskim-setup~ before ~flymake-mode~
-is enabled.
-
-One way to ensure the order is to add ~flymake-mode~ to a programming
-mode's hook by appending instead of pushing, for example by doing
-~(add-hook 'python-mode-hook #'flymake-mode t)~.
-
-#+name: devskim-flymake
-#+begin_src emacs-lisp
-;; Code security analysis using devskim, https://github.com/microsoft/DevSkim
-;; A Flymake backend for it is defined here, and can be used by calling
-;; `flymake-devskim-setup' before `flymake-mode' in a given mode's hook, e.g.
-;;   (add-hook 'python-mode-hook 'flymake-devskim-setup)
-;;   (add-hook 'python-mode-hook 'flymake-mode t)
-;; For more info on the different severity types, see
-;; https://github.com/microsoft/DevSkim/wiki/Rule-Object-Schema
-(with-eval-after-load 'flymake-quickdef
-  (flymake-quickdef-backend flymake-devskim-backend
-    :pre-let ((devskim-exec (executable-find "devskim")))
-    :pre-check (unless devskim-exec (error "Cannot find devskim executable"))
-    :write-type 'file
-    :proc-form (list devskim-exec
-                     "analyze"
-                     "-f" "text"
-                     "-o" "%L:%C: %S : [%R] %N"
-                     fmqd-temp-file)
-    :search-regexp
-    "\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\) : \\(.+\\)$"
-    :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
-                            (lcol (string-to-number (match-string 2)))
-                            (severity (downcase (match-string 3)))
-                            (msg (match-string 4))
-                            (pos (flymake-diag-region fmqd-source lnum lcol))
-                            (beg (car pos))
-                            (end (cdr pos))
-                            (type (cond
-                                    ((string= severity "critical") :error)
-                                    ((string= severity "important") :error)
-                                    ((string= severity "moderate") :warning)
-                                    ((string= severity "best-practice") :note)
-                                    ((string= severity "manual-review") :note)
-                                    (t :note))))
-                       (list fmqd-source beg end type msg)))
-  ;; define function for enabling the Flymake backend
-  (defun flymake-devskim-setup ()
-    "Enable devskim backend for Flymake."
-    (add-hook 'flymake-diagnostic-functions #'flymake-devskim-backend nil t)))
+(when (executable-find "devskim")
+  (use-package flycheck-devskim
+    :ensure nil ;; in site-lisp subfolder within user emacs directory
+    :config
+    (setq flycheck-devskim-executable "devskim")
+    (with-eval-after-load 'lsp-mode
+      (flycheck-add-next-checker 'lsp 'devskim))))
 #+end_src
 
 ** Conda package and environment manager                              :melpa:
@@ -4755,19 +4785,8 @@ It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglo
               lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
               lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
-              lsp-diagnostic-package :flymake ;; use Flymake for syntax checking
-              lsp-signature-auto-activate nil) ;; don't automatically show signature
-  :config
-  ;; TODO: may be fixed with newer Flymake or newer Emacs
-  ;; redefine lsp--flymake to work around scenarios where the LS sends
-  ;; diagnostics before Flymake changes the reporting function and new
-  ;; diagnostics are ignored while old errors continue being reported
-  ;; https://github.com/emacs-lsp/lsp-mode/pull/1423
-  (defun lsp--flymake-backend (report-fn &rest _args)
-    "Flymake backend."
-    (let ((first-run (null lsp--flymake-report-fn)))
-      (setq lsp--flymake-report-fn report-fn)
-      (lsp--flymake-update-diagnostics))))
+              lsp-diagnostic-package :flycheck ;; use FlyCheck for syntax checking
+              lsp-signature-auto-activate nil)) ;; don't automatically show signature
 #+end_src
 
 *** company-mode support for lsp-mode                                 :melpa:
@@ -5024,44 +5043,21 @@ CIDER → REPL (_q_: ←)"
   (define-key clojure-mode-map (kbd "C-c C-M-m") #'my-hydra/cider/body))
 #+end_src
 
-*** Clojure linting using clj-kondo                                :external:
+*** flycheck-clj-kondo for Clojure linting using clj-kondo   :melpa:external:
 
-Add a Flymake backend for [[https://github.com/borkdude/clj-kondo][clj-kondo]], a linter for Clojure code.
-Enable this backend automatically when editing Clojure buffers.
+[[https://github.com/borkdude/flycheck-clj-kondo][flycheck-clj-kondo]] provides [[https://github.com/borkdude/clj-kondo][clj-kondo]] (a linter for Clojure code)
+integration with FlyCheck.
 
-#+name: flymake-clj-kondo
+#+name: flycheck-clj-kondo
 #+begin_src emacs-lisp
-;; linting, requires clj-kondo be installed on the system
-;; see https://github.com/borkdude/clj-kondo for install instructions
+;; clojure linting, requires clj-kondo be installed on the system
 (when (executable-find "clj-kondo")
-  ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
-  (with-eval-after-load 'flymake-quickdef
-    (flymake-quickdef-backend flymake-clj-kondo-backend
-      :pre-let ((clj-kondo-exec (executable-find "clj-kondo")))
-      :pre-check (unless clj-kondo-exec (error "Cannot find clj-kondo executable"))
-      :write-type 'pipe
-      :proc-form (list clj-kondo-exec "--lint" "-")
-      :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
-      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
-                              (lcol (string-to-number (match-string 2)))
-                              (severity (match-string 3))
-                              (msg (match-string 4))
-                              (pos (flymake-diag-region fmqd-source lnum lcol))
-                              (beg (car pos))
-                              (end (cdr pos))
-                              (type (cond
-                                     ((string= severity "error") :error)
-                                     ((string= severity "warning") :warning)
-                                     ((string= severity "info") :note)
-                                     (t :note))))
-                         (list fmqd-source beg end type msg)))
-    (defun flymake-clj-kondo-setup ()
-      "Enable clj-kondo backend for Flymake."
-      (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
-    ;; enable Flymake with clj-kondo backend when editing Clojure
-    (with-eval-after-load 'clojure-mode
-      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
-      (add-hook 'clojure-mode-hook 'flymake-mode))))
+  (use-package flycheck-clj-kondo
+    :after (flycheck clojure-mode)
+    :config
+    (require 'flycheck-clj-kondo)
+    ;; start flycheck-mode
+    (add-hook 'clojure-mode-hook (lambda () (flycheck-mode 1)) t)))
 #+end_src
 
 ** Emacs Lisp
@@ -5335,41 +5331,15 @@ Python (_q_: quit)"
   (define-key python-mode-map (kbd "C-c C-M-m") #'my-hydra/python-mode/body))
 #+end_src
 
-*** Enable Flymake mode when editing Python backends
+*** Enable FlyCheck mode when editing Python files
 
-Enable Flymake mode as the last function in the Python mode hook.
+Enable FlyCheck mode as the last function in the Python mode hook.
+When using ~lsp-mode~ in Python buffers, this is unnecessary as
+~lsp-mode~ starts ~flycheck-mode~ automatically.
 
-#+name: python-flymake
+#+name: python-flycheck
 #+begin_src emacs-lisp
-(add-hook 'python-mode-hook #'flymake-mode t)
-#+end_src
-
-*** Enable which-func and Imenu menubar entry in Python buffers
-
-When editing Python buffers, enable which-func and add an Imenu
-entry to the menubar.
-
-#+name: python-which-func-imenu
-#+begin_src emacs-lisp
-;; show function at point
-(with-eval-after-load 'which-func
-  (add-to-list 'which-func-modes 'python-mode))
-
-;; add Imenu index to menubar
-(with-eval-after-load 'imenu
-  (add-hook 'python-mode-hook 'imenu-add-menubar-index))
-#+end_src
-
-*** Enable Flymake DevSkim backend when editing Python buffers     :external:
-
-Enable the Flymake DevSkim back when editing Python buffers (see
-\S[[Security linting using DevSkim and Flymake]]).
-
-#+name: python-devskim-flymake
-#+begin_src emacs-lisp
-(when (executable-find "devskim")
-  (with-eval-after-load 'flymake-quickdef
-    (add-hook 'python-mode-hook #'flymake-devskim-setup)))
+(add-hook 'python-mode-hook #'flycheck-mode t)
 #+end_src
 
 *** Microsoft Python Language Server support with lsp-mode            :melpa:
@@ -5429,16 +5399,34 @@ $ conda install -c conda-forge ptvsd
 
 *** Emacs Speaks Statistics                                           :melpa:
 
-R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]], more commonly known by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
+R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]], more commonly known
+by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
+
+If linting using FlyCheck or Flymake, it might be necessary to install
+the r-lintr CRAN package and also create the =~/.R/lintr_cache~=
+directory (see [[https://emacs.stackexchange.com/questions/53018/flycheck-r-lintr-doesnt-find-anything][StackOverflow issue]]).
+
+#+begin_example
+# if using conda, replace my-renv with the proper environment name
+# if not using conda, install via install.packages() instead
+$ conda activate my-renv
+$ conda install r-lintr
+# ensure lintr cache directory exists
+$ mkdir ~/.R/lintr_cache
+#+end_example
 
 #+name: ess
 #+begin_src emacs-lisp
 ;; support for R language using Emacs Speaks Statistics
+;; linting is configured here to use FlyCheck
 (use-package ess
   :mode ("\\.R$" . R-mode)
   :commands (R-mode ess-switch-to-ESS)
   :init (setq ess-eval-visibly 'nowait
-              ess-default-style 'RStudio))
+              ess-default-style 'RStudio
+              ;; disable ESS auto-use of Flymake since using FlyCheck
+              ess-use-flymake nil)
+  :config (add-hook 'ess-r-mode-hook (lambda () (flycheck-mode 1)) t))
 #+end_src
 
 *** Shortcuts for commonly used R operators
@@ -6289,8 +6277,8 @@ Requires the ~all-the-icons~ package.
     ;; workaround for modeline getting truncated in certain conditions
     ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
     (doom-modeline-def-modeline 'main
-      '(" " workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
-      '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker " "))
+      '("  " workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
+      '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker "  "))
     ;; hide left margin indicator bar
     (set-face-background 'doom-modeline-bar
                          (face-background 'mode-line))
@@ -6315,87 +6303,6 @@ Hide minor modes by default using the [[https://github.com/tarsius/minions][mini
       (setq minions-direct '(overwrite-mode view-mode)
             minions-mode-line-lighter "☰")
       (minions-mode 1)))
-#+end_src
-
-** Display function or outline node at point using which-func     :semiearly:
-
-Display current function or outline node at point using [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Which-Function.html][Which Function mode]].
-The mode is customized from its defaults as follows:
-- The current function or outline node is displayed in the header line
-  instead of the mode line.
-- Mouse mappings for the which func part in the header line are
-  modified to better support trackpads and support narrowing to the
-  current definition or outline node.
-
-#+name: which-func
-#+begin_src emacs-lisp
-;; display function or outline node at point
-(setq which-func-modes '() ;; use `which-func-mode' only for given modes
-      which-func-unknown "n/a")
-
-;; enable minor mode
-(which-function-mode)
-
-;; modify to show current function in header instead of in mode line
-
-(defun my-narrow-to-defun-toggle ()
-  "Toggle narrow to defun."
-  (interactive)
-  (if (buffer-narrowed-p)
-      (widen)
-    (narrow-to-defun)))
-
-(defvar my-which-func-header-keymap-default
-  (let ((map (make-sparse-keymap)))
-    (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
-    (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
-    (define-key map [header-line wheel-up] 'beginning-of-defun)
-    (define-key map [header-line wheel-down] 'end-of-defun)
-    map)
-  "Keymap for header line which-func.")
-
-(defvar my-which-func-header-keymap-help-text-default
-  "mouse-2 : toggle rest visibility\n\
-wheel-u : go to beginning\n\
-wheel-d : go to end"
-  "Help text for `my-which-fun-header-keymap-default'.")
-
-(defvar my-which-func-header-format-default
-  `(:propertize which-func-current
-                local-map ,my-which-func-header-keymap-default
-                face which-func
-                mouse-face mode-line-highlight
-                help-echo my-which-func-header-keymap-help-text-default)
-  "Default header format for which-func part.")
-
-;; remove which-func part from the mode line
-(setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
-
-;; see Org mode section for a mode-specific example for Org-mode
-(defvar my-which-func-header-formats
-  `((nil . ,my-which-func-header-format-default))
-  "Association list for looking up mode-specific which-func header-lines.
-Keys should be major mode symbols and values should unevaluated
-mode-line constructs, see
-https://www.gnu.org/software/emacs/manual/html_node/elisp/Mode-Line-Data.html
-for more info.")
-
-(defun my-which-func-get-header-format ()
-  "Gets `header-line-format' associated with the current major mode in `my-which-func-header-formats'."
-  (cdr (or (assoc major-mode my-which-func-header-formats) ;; mode-specific
-           (assoc nil my-which-func-header-formats)))) ;; default
-
-(defun which-func-ff-hook--add-which-func-to-header-line ()
-  "Add which-func part to header line for major modes in `which-func-modes'."
-  (when (memq major-mode which-func-modes)
-    (add-to-list 'header-line-format
-                 '(which-function-mode
-                   (which-func-mode
-                    ("[ " (:eval (my-which-func-get-header-format)) " ]"))))))
-
-;; run `which-func-ff-hook--add-which-func-to-header-line' after `which-func-ff-hook'
-(advice-add 'which-func-ff-hook
-            :after #'which-func-ff-hook--add-which-func-to-header-line)
 #+end_src
 
 ** Visual hydra                                                       :hydra:
@@ -7821,8 +7728,6 @@ The main configuration file.
 
 <<minions>>
 
-;; <<which-func>>
-
 ;; Backups
 
 <<backup-files-directory>>
@@ -8016,6 +7921,12 @@ The main configuration file.
 
 <<yaml-mode>>
 
+<<neuron-mode>>
+
+<<neuron-hydra>>
+
+<<neuron-mode-hydra>>
+
 ;; Org-mode
 
 <<org>>
@@ -8050,8 +7961,6 @@ The main configuration file.
 
 <<org-graphical-customizations>>
 
-;; <<org-which-func>>
-
 <<org-bullets>>
 
 <<org-cliplink>>
@@ -8082,17 +7991,15 @@ The main configuration file.
 
 <<imenu-list>>
 
-;; Programming / Flymake syntax checker
+;; Programming / FlyCheck syntax checker
 
-<<flymake>>
+<<flycheck>>
 
-<<flymake-hydra>>
+<<flycheck-hydra>>
 
-<<flymake-quickdef>>
+;; Programming / DevSkim and FlyCheck
 
-;; Programming / DevSkim and FlyMake
-
-<<devskim-flymake>>
+<<flycheck-devskim>>
 
 ;; Programming / Conda package and environment manager
 
@@ -8132,17 +8039,13 @@ The main configuration file.
 
 <<cider-hydra>>
 
-<<flymake-clj-kondo>>
+<<flycheck-clj-kondo>>
 
 ;; Programming / Python
 
 <<python-hydra>>
 
-<<python-flymake>>
-
-;; <<python-which-func-imenu>>
-
-<<python-devskim-flymake>>
+;; <<python-flycheck>>
 
 <<lsp-python-ms>>
 
@@ -8375,12 +8278,6 @@ or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 
 ** Non-programming files
 
-*** [#B] neuron-mode                                         :external:melpa:
-
-[[https://github.com/felko/neuron-mode][neuron-mode]] is a mode for editing [[https://neuron.zettel.page/][neuron]] Zettelkasten notes.
-
-Requires that neuron be installed, which may require [[https://nixos.org/][nixpkg]]. 
-
 *** Nix configuration files
 
 **** [#C] nix-mode for editing Nix configuration files                :melpa:
@@ -8592,7 +8489,9 @@ Install via MacPorts.
 
 [[https://github.com/koalaman/shellcheck][GitHub - koalaman/shellcheck]]
 
-Flymake support. Should be in MELPA.
+FlyCheck has built-in support.
+
+MELPA has a package for Flymake support.
 Or can define using ~flymake-quickdef~.
 
 [[https://github.com/federicotdn/flymake-shellcheck][GitHub - federicotdn/flymake-shellcheck]]
@@ -8686,11 +8585,7 @@ a more informative display.
 [[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
 packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://github.com/sp1ff/elfeed-score][elfeed-score]].
 
-*** [#B] Slack                                                        :melpa:
-
-[[https://github.com/yuya373/emacs-slack][emacs-slack]]
-
-*** [#C] Promnesia remembrance agent for web browser               :external:
+*** [#B] Promnesia remembrance agent for web browser               :external:
 
 [[https://github.com/karlicoss/promnesia][GitHub - karlicoss/promnesia: Another piece of your extended mind]]
 
@@ -8733,6 +8628,410 @@ Built-in to Emacs and integrates [[https://www.passwordstore.org/][pass]] with ~
 **** [#C] pass
 
 https://github.com/NicolasPetton/pass
+
+* DONE Deprecated
+
+** Org-mode
+
+*** Display the outline path at point in Org-mode using which-func
+
+Use ~which-func~ to display the outline path where the point is within
+the Org-mode document.
+
+This depends on some of the ~which-func~ customization set up in
+\S[[Display function or outline node at point using which-func]]
+so make sure the code there is loaded first.
+
+#+name: org-which-func
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  ;; display the outline path at point using which-func
+  (with-eval-after-load 'which-func
+    (add-to-list 'which-func-modes 'org-mode)
+    (defun my-org-which-function-string-shortener (str &optional maxlen)
+      "Shortens STR if it is longer than MAXLEN chars."
+      (let* ((len (length str))
+             (maxlen (or maxlen 40)) ;; default maxlen of 40
+             (num-left-chars (/ maxlen 2))
+             (num-right-chars (- maxlen num-left-chars 3)))
+        (if (> len maxlen)
+            (concat (substring str 0 num-left-chars)
+                    "..."
+                    (substring str (- len num-right-chars) len))
+          str)))
+    (defun my-org-which-function ()
+      "Returns current outline path."
+      (if (eq major-mode 'org-mode)
+        (condition-case nil
+            (mapconcat #'my-org-which-function-string-shortener
+                       (org-get-outline-path t)
+                       " > ")
+          (error nil))))
+    (add-to-list 'which-func-functions #'my-org-which-function)
+    ;; Org-specific which-func header
+    (defun my-org-narrow-to-subtree-toggle ()
+      "Toggle org-narrow-to-subtree."
+      (interactive)
+      (if (buffer-narrowed-p)
+          (widen)
+        (org-narrow-to-subtree)))
+    (defvar my-which-func-header-keymap-org
+      (let ((map (make-sparse-keymap)))
+        (define-key map [header-line mouse-1] 'my-org-narrow-to-subtree-toggle)
+        ;; work around mouse-1 mapping to mouse-2 when cursor is on org bullet
+        (define-key map [header-line mouse-2] 'my-org-narrow-to-subtree-toggle)
+        (define-key map [header-line mouse-3] 'outline-up-heading)
+        (define-key map [header-line wheel-up] 'org-backward-heading-same-level)
+        (define-key map [header-line wheel-down] 'org-forward-heading-same-level)
+        map)
+      "Keymap for header line which-func.")
+    (defvar my-which-func-header-keymap-help-text-org
+      "mouse-1 : toggle rest visibility\n\
+mouse-3 : go up one heading\n\
+wheel-u : next same-level heading\n\
+wheel-d : prev same-level heading"
+      "Help text for `my-which-fun-header-keymap-org'.")
+    (defvar my-which-func-header-format-org
+            `(:propertize which-func-current
+                          local-map ,my-which-func-header-keymap-org
+                          face which-func
+                          mouse-face mode-line-highlight
+                          help-echo my-which-func-header-keymap-help-text-org))
+    ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
+    (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
+#+end_src
+
+** Programming
+
+*** Flymake syntax checker
+
+[[https://elpa.gnu.org/packages/flymake.html][Flymake]] is a built-in on-the-fly syntax checker, with updated versions
+available from the GNU ELPA repository.
+
+To display the error message at point in the minibuffer, do ~C-h .~
+while the point is over an error.
+
+To define new Flymake backend, refer to the docstring of
+~flymake-diagnostic-functions~, the [[https://www.gnu.org/software/emacs/manual/html_node/flymake/index.html][Flymake manual]] or the code of
+existing backends.
+
+If using this, it is typical not enable FlyCheck.
+
+#+name: flymake
+#+begin_src emacs-lisp
+;; basic Flymake customizations
+(setq flymake-no-changes-timeout 0.5 ;; auto check buffer change wait time
+      flymake-start-on-save-buffer nil) ;; don't run checks when saving
+
+;; deferred Flymake customizations
+(with-eval-after-load 'flymake
+  ;; don't use legacy Flymake checker
+  (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake)
+  ;; function for toggling Flymake diagnostics window
+  (defun my-toggle-flymake-diagnostics ()
+    "Toggles flymake diagnostics window for current buffer."
+    (interactive)
+    (if flymake-mode
+        (let* ((buf-name (buffer-name (current-buffer)))
+               (flymake-winds (condition-case nil
+                                  (get-buffer-window-list
+                                   (concat "*Flymake diagnostics for " buf-name "*"))
+                                (error nil))))
+          (if flymake-winds
+              (dolist (wind flymake-winds) (quit-window nil wind))
+            (flymake-show-diagnostics-buffer)))))
+  ;; shorten mode line symbol in when running Emacs in the TTY
+  (when (not (display-graphic-p))
+    ;; Truncate Flymake mode-line symbol
+    (defun my-flymake-modeline-filter (ret)
+      "Filter function for `flymake--mode-line-format`."
+      (setf (seq-elt (car ret) 1) " FlyM")
+      ret)
+    (advice-add #'flymake--mode-line-format
+                :filter-return #'my-flymake-modeline-filter))
+  ;; convenience bindings
+  (define-key flymake-mode-map (kbd "C-c ! n") #'flymake-goto-next-error)
+  (define-key flymake-mode-map (kbd "C-c ! p") #'flymake-goto-prev-error)
+  (define-key flymake-mode-map (kbd "C-c ! l") #'my-toggle-flymake-diagnostics))
+
+;; enable Flymake when editing Emacs Lisp buffers
+(add-hook 'emacs-lisp-mode-hook #'flymake-mode)
+#+end_src
+
+**** Flymake hydra                                                    :hydra:
+
+Hydra for Flymake.
+
+#+name: flymake-hydra
+#+begin_src emacs-lisp
+;; hydra for Flymake
+(defhydra my-hydra/flymake (:color amaranth :columns 4)
+  "
+Flymake (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("p" flymake-goto-prev-error "prev-err")
+  ("n" flymake-goto-next-error "next-err")
+  ("l" my-toggle-flymake-diagnostics "list")
+  ("s" flymake-start "start-check"))
+
+;; binding for Flymake hydra
+(with-eval-after-load 'flymake
+  (define-key flymake-mode-map (kbd "C-c C-M-e e") #'my-hydra/flymake/body))
+#+end_src
+
+**** flymake-quickdef for defining Flymake backends                   :melpa:
+
+[[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]] provides a macro for quickly defining Flymake backends.
+See the [[https://github.com/karlotness/flymake-quickdef/blob/master/flymake-quickdef.el#L56-L158][documentation]] for how to use this macro.
+
+#+name: flymake-quickdef
+#+begin_src emacs-lisp
+(use-package flymake-quickdef
+  :demand t)
+#+end_src
+
+*** Security linting using DevSkim and Flymake                     :external:
+
+[[https://github.com/Microsoft/DevSkim/][DevSkim]] is a collection of static analyzers that does code security analysis.
+
+If it is installed on the system, Flymake backend can be defined to
+use it to provide security linting.
+
+Flymake-Quickdef (see above) can be used for defining this backend.
+
+To use this backend in for specific programming language, call the
+custom setup function ~flymake-devskim-setup~ before ~flymake-mode~
+is enabled.
+
+One way to ensure the order is to add ~flymake-mode~ to a programming
+mode's hook by appending instead of pushing, for example by doing
+~(add-hook 'python-mode-hook #'flymake-mode t)~.
+
+#+name: devskim-flymake
+#+begin_src emacs-lisp
+;; Code security analysis using devskim, https://github.com/microsoft/DevSkim
+;; A Flymake backend for it is defined here, and can be used by calling
+;; `flymake-devskim-setup' before `flymake-mode' in a given mode's hook, e.g.
+;;   (add-hook 'python-mode-hook 'flymake-devskim-setup)
+;;   (add-hook 'python-mode-hook 'flymake-mode t)
+;; For more info on the different severity types, see
+;; https://github.com/microsoft/DevSkim/wiki/Rule-Object-Schema
+(with-eval-after-load 'flymake-quickdef
+  (flymake-quickdef-backend flymake-devskim-backend
+    :pre-let ((devskim-exec (executable-find "devskim")))
+    :pre-check (unless devskim-exec (error "Cannot find devskim executable"))
+    :write-type 'file
+    :proc-form (list devskim-exec
+                     "analyze"
+                     "-f" "text"
+                     "-o" "%L:%C: %S : [%R] %N"
+                     fmqd-temp-file)
+    :search-regexp
+    "\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\) : \\(.+\\)$"
+    :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
+                            (lcol (string-to-number (match-string 2)))
+                            (severity (downcase (match-string 3)))
+                            (msg (match-string 4))
+                            (pos (flymake-diag-region fmqd-source lnum lcol))
+                            (beg (car pos))
+                            (end (cdr pos))
+                            (type (cond
+                                    ((string= severity "critical") :error)
+                                    ((string= severity "important") :error)
+                                    ((string= severity "moderate") :warning)
+                                    ((string= severity "best-practice") :note)
+                                    ((string= severity "manual-review") :note)
+                                    (t :note))))
+                       (list fmqd-source beg end type msg)))
+  ;; define function for enabling the Flymake backend
+  (defun flymake-devskim-setup ()
+    "Enable devskim backend for Flymake."
+    (add-hook 'flymake-diagnostic-functions #'flymake-devskim-backend nil t)))
+#+end_src
+
+*** lsp-mode Language Server Protocol Client                          :melpa:
+
+**** Workaround for stale Flymake error reports
+
+In certain scenarios, the language server diagnostics before Flymake changes the reporting function and new diagnostics are ignored while old errors continue being reported, leading to stale error reports. See [[https://github.com/emacs-lsp/lsp-mode/pull/1423][Github issue]].
+
+#+name: lsp-mode-flymake-stale-errors-workaround
+#+begin_src emacs-lisp
+;; redefine lsp--flymake to work around scenarios where the LS sends
+;; diagnostics before Flymake changes the reporting function and new
+;; diagnostics are ignored while old errors continue being reported
+;; https://github.com/emacs-lsp/lsp-mode/pull/1423
+(with-eval-after-load 'lsp-mode
+  (defun lsp--flymake-backend (report-fn &rest _args)
+    "Flymake backend."
+    (let ((first-run (null lsp--flymake-report-fn)))
+      (setq lsp--flymake-report-fn report-fn)
+      (lsp--flymake-update-diagnostics))))
+#+end_src
+
+*** Clojure
+
+**** Clojure linting using clj-kondo                               :external:
+
+Add a Flymake backend for [[https://github.com/borkdude/clj-kondo][clj-kondo]], a linter for Clojure code.
+Enable this backend automatically when editing Clojure buffers.
+
+#+name: flymake-clj-kondo
+#+begin_src emacs-lisp
+;; linting, requires clj-kondo be installed on the system
+;; see https://github.com/borkdude/clj-kondo for install instructions
+(when (executable-find "clj-kondo")
+  ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
+  (with-eval-after-load 'flymake-quickdef
+    (flymake-quickdef-backend flymake-clj-kondo-backend
+      :pre-let ((clj-kondo-exec (executable-find "clj-kondo")))
+      :pre-check (unless clj-kondo-exec (error "Cannot find clj-kondo executable"))
+      :write-type 'pipe
+      :proc-form (list clj-kondo-exec "--lint" "-")
+      :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
+      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
+                              (lcol (string-to-number (match-string 2)))
+                              (severity (match-string 3))
+                              (msg (match-string 4))
+                              (pos (flymake-diag-region fmqd-source lnum lcol))
+                              (beg (car pos))
+                              (end (cdr pos))
+                              (type (cond
+                                     ((string= severity "error") :error)
+                                     ((string= severity "warning") :warning)
+                                     ((string= severity "info") :note)
+                                     (t :note))))
+                         (list fmqd-source beg end type msg)))
+    (defun flymake-clj-kondo-setup ()
+      "Enable clj-kondo backend for Flymake."
+      (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
+    ;; enable Flymake with clj-kondo backend when editing Clojure
+    (with-eval-after-load 'clojure-mode
+      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
+      (add-hook 'clojure-mode-hook 'flymake-mode))))
+#+end_src
+
+*** Python
+
+**** Enable Flymake mode when editing Python backends
+
+Enable Flymake mode as the last function in the Python mode hook.
+
+#+name: python-flymake
+#+begin_src emacs-lisp
+(add-hook 'python-mode-hook #'flymake-mode t)
+#+end_src
+
+**** Enable Flymake DevSkim backend when editing Python buffers    :external:
+
+Enable the Flymake DevSkim back when editing Python buffers (see
+\S[[Security linting using DevSkim and Flymake]]).
+
+#+name: python-devskim-flymake
+#+begin_src emacs-lisp
+(when (executable-find "devskim")
+  (with-eval-after-load 'flymake-quickdef
+    (add-hook 'python-mode-hook #'flymake-devskim-setup)))
+#+end_src
+
+**** Enable which-func and Imenu menubar entry in Python buffers
+
+When editing Python buffers, enable which-func and add an Imenu
+entry to the menubar.
+
+#+name: python-which-func-imenu
+#+begin_src emacs-lisp
+;; show function at point
+(with-eval-after-load 'which-func
+  (add-to-list 'which-func-modes 'python-mode))
+
+;; add Imenu index to menubar
+(with-eval-after-load 'imenu
+  (add-hook 'python-mode-hook 'imenu-add-menubar-index))
+#+end_src
+
+** Visual
+
+*** Display function or outline node at point using which-func    :semiearly:
+
+Display current function or outline node at point using [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Which-Function.html][Which Function mode]].
+The mode is customized from its defaults as follows:
+- The current function or outline node is displayed in the header line
+  instead of the mode line.
+- Mouse mappings for the which func part in the header line are
+  modified to better support trackpads and support narrowing to the
+  current definition or outline node.
+
+#+name: which-func
+#+begin_src emacs-lisp
+;; display function or outline node at point
+(setq which-func-modes '() ;; use `which-func-mode' only for given modes
+      which-func-unknown "n/a")
+
+;; enable minor mode
+(which-function-mode)
+
+;; modify to show current function in header instead of in mode line
+
+(defun my-narrow-to-defun-toggle ()
+  "Toggle narrow to defun."
+  (interactive)
+  (if (buffer-narrowed-p)
+      (widen)
+    (narrow-to-defun)))
+
+(defvar my-which-func-header-keymap-default
+  (let ((map (make-sparse-keymap)))
+    (define-key map [header-line s-mouse-1] 'my-narrow-to-defun-toggle) ;; trackpad workaround
+    (define-key map [header-line mouse-2] 'my-narrow-to-defun-toggle)
+    (define-key map [header-line wheel-up] 'beginning-of-defun)
+    (define-key map [header-line wheel-down] 'end-of-defun)
+    map)
+  "Keymap for header line which-func.")
+
+(defvar my-which-func-header-keymap-help-text-default
+  "mouse-2 : toggle rest visibility\n\
+wheel-u : go to beginning\n\
+wheel-d : go to end"
+  "Help text for `my-which-fun-header-keymap-default'.")
+
+(defvar my-which-func-header-format-default
+  `(:propertize which-func-current
+                local-map ,my-which-func-header-keymap-default
+                face which-func
+                mouse-face mode-line-highlight
+                help-echo my-which-func-header-keymap-help-text-default)
+  "Default header format for which-func part.")
+
+;; remove which-func part from the mode line
+(setq mode-line-misc-info (assq-delete-all 'which-function-mode mode-line-misc-info))
+
+;; see Org mode section for a mode-specific example for Org-mode
+(defvar my-which-func-header-formats
+  `((nil . ,my-which-func-header-format-default))
+  "Association list for looking up mode-specific which-func header-lines.
+Keys should be major mode symbols and values should unevaluated
+mode-line constructs, see
+https://www.gnu.org/software/emacs/manual/html_node/elisp/Mode-Line-Data.html
+for more info.")
+
+(defun my-which-func-get-header-format ()
+  "Gets `header-line-format' associated with the current major mode in `my-which-func-header-formats'."
+  (cdr (or (assoc major-mode my-which-func-header-formats) ;; mode-specific
+           (assoc nil my-which-func-header-formats)))) ;; default
+
+(defun which-func-ff-hook--add-which-func-to-header-line ()
+  "Add which-func part to header line for major modes in `which-func-modes'."
+  (when (memq major-mode which-func-modes)
+    (add-to-list 'header-line-format
+                 '(which-function-mode
+                   (which-func-mode
+                    ("[ " (:eval (my-which-func-get-header-format)) " ]"))))))
+
+;; run `which-func-ff-hook--add-which-func-to-header-line' after `which-func-ff-hook'
+(advice-add 'which-func-ff-hook
+            :after #'which-func-ff-hook--add-which-func-to-header-line)
+#+end_src
 
 * Local Variables                                                  :noexport:
 

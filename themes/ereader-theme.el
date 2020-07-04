@@ -233,8 +233,8 @@
    `(compilation-error ((t (:inherit error))))
 
    ;; flycheck
-   `(flycheck-error ((t (:inherit error))))
-   `(flycheck-warning ((t (:inherit warning))))
+   ;; `(flycheck-error ((t (:inherit error))))
+   ;; `(flycheck-warning ((t (:inherit warning))))
 
    ;; dired
    `(dired-directory ((t (:inherit default))))
@@ -324,9 +324,9 @@
    `(evil-ex-substitute-matches ((t (:background ,bg-highlight-2))))
    `(evil-ex-substitute-replacement ((t (:background ,bg-highlight :underline nil :foreground ,fg))))))
 
-(custom-theme-set-variables
- 'ereader
- `(default-frame-alist (add-to-list 'default-frame-alist '(internal-border-width . ,(if (eq system-type 'darwin) 12 6)))))
+;; (custom-theme-set-variables
+;;  'ereader
+;;  `(default-frame-alist (add-to-list 'default-frame-alist '(internal-border-width . ,(if (eq system-type 'darwin) 12 6)))))
 
 ;;;###autoload
 (when (and (boundp 'custom-theme-load-path) load-file-name)

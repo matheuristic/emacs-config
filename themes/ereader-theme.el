@@ -132,7 +132,7 @@
 
    ;; org-super-agenda
    `(org-super-agenda-header ((t (:foreground ,fg :weight semi-bold))))
-   
+
    ;; powerline
    `(powerline-active1 ((t (:background "gray22" :foreground ,bg :inherit mode-line))))
    `(powerline-active2 ((t (:background "gray40" :foreground ,bg :inherit mode-line))))
@@ -204,7 +204,7 @@
    `(doom-modeline-battery-error ((t (:inherit error :weight normal))))
    `(doom-modeline-buffer-timemachine
      ((t (:inherit (doom-modeline-buffer-file italic underline)))))
-   
+
    ;; magit
    `(magit-header ((t (:weight semi-bold))))
    `(magit-item-mark ((t (:background ,bg-highlight))))
@@ -310,6 +310,23 @@
 
    ;; markdown-mode
    `(markdown-code-face ((t (:inherit fixed-pitch :foreground ,fg :background "#ffffe0" :extend t))))
+
+   ;; vterm
+   ;; - since the theme is light, black and white colors are inverted
+   ;;   and bright colors are shifted lighter
+   ;; - `vterm-color-<colorname>' for <colorname> != default treats
+   ;;   foreground color as the base color for that colorname and
+   ;;   background color as the bright color for that colorname
+   `(vterm-color-default ((t (:inherit default :foreground ,fg :background ,bg :extend t))))
+   ;; `(vterm-color-default ((t (:inherit default :foreground "#111111" :background "fbfbf8" :extend t))))
+   `(vterm-color-black ((t (:inherit term-color-white :foreground "#888888" :background "#a2a2a2"))))
+   `(vterm-color-red ((t (:inherit term-color-red :foreground "#eb6c6c" :background "#f19999"))))
+   `(vterm-color-green ((t (:inherit term-color-green :foreground "#86a93d" :background "#9fc257"))))
+   `(vterm-color-yellow ((t (:inherit term-color-yellow :foreground "#eabe2d" :background "#efcc5b"))))
+   `(vterm-color-blue ((t (:inherit term-color-blue :foreground "#2181e0" :background "#4e9ae6"))))
+   `(vterm-color-magenta ((t (:inherit term-color-magenta :foreground "#9163c3" :background "#ab88d1"))))
+   `(vterm-color-cyan ((t (:inherit term-color-cyan :foreground "#5aa79d" :background "#7bb9b1"))))
+   `(vterm-color-white ((t (:inherit term-color-black :foreground "#292929" :background "#424242"))))
 
    ;; evil-quickscope
    `(evil-quickscope-first-face ((t (:foreground ,fg :background "#eeeee8"))))

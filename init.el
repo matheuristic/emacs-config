@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jul  3 22:45:54 2020
+;; Generated: Sun Jul  5 15:38:45 2020
 
 ;;; Commentary:
 
@@ -345,7 +345,8 @@ Buffer (_q_: quit)"
            ("Programming" (derived-mode . prog-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
-                        (mode . term-mode)))
+                        (mode . term-mode)
+                        (name . "^vterm .*")))
            ("Org" (or (derived-mode . org-mode)
                       (mode . org-agenda-mode)))
            ("Text" (derived-mode . text-mode))
@@ -613,14 +614,19 @@ Frame (_q_: quit)"
 ;; settings for desktop.el
 ;; desktops are saved to ~/.emacs.d/.emacs.desktop
 ;; and locks are saved to ~/.emacs.d/.emacs.desktop.lock
-;; - enable desktop-save-mode to save on timer and exit, load on entry
+;; - enable desktop-save-mode to save on exit and load on entry;
+;;   this is added to `after-init-hook' to avoid a prompt on startup
+;;   warning about the desktop file being in use that occurs when
+;;   `desktop-save-mode' is enabled before initialization is done,
+;;   even though the Emacs process PID is the owner of the lock file;
+;;   might be specific to emacs-mac port
 ;; - set `desktop-autosave-timeout' to nil to disable timer auto-saves
 ;; - restore frames to their original displays
 ;; - don't re-use frames
 (setq desktop-auto-save-timeout nil
       desktop-restore-in-current-display nil
       desktop-restore-reuses-frames t)
-(desktop-save-mode 1)
+(add-hook 'after-init-hook (lambda () (desktop-save-mode 1)))
 
 ;; hydra for workspace management
 (defhydra my-hydra/workspace (:color teal :columns 3)
@@ -678,9 +684,6 @@ provided, the default interactive `eshell' command is run."
         (progn
           (eshell 42)
           (rename-buffer (concat "*eshell*<" my-es-buf-name ">")))))))
-
-;; binding for spawning or switching to a named Eshell buffer
-(global-set-key (kbd "C-c C-M-e s") #'my-eshell-with-name)
 
 ;; history autosuggestions
 ;; <right> or C-f completes fully, <M-right> or M-f completes partially
@@ -742,6 +745,39 @@ Term (_q_: quit)"
 (with-eval-after-load 'term
   (define-key term-mode-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body)
   (define-key term-raw-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body))
+
+(use-package vterm
+  :if (and module-file-suffix
+           (executable-find "cmake")
+           (executable-find "libtool"))
+  :init
+  (setq vterm-buffer-name-string "vterm %s"
+        vterm-clear-scrollback-when-clearing t
+        vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
+        vterm-kill-buffer-on-exit t
+        vterm-shell (executable-find "fish")))
+
+(defun vterm--switch-to-buffer ()
+  "Call `switch-to-buffer' but only for vterm buffers."
+  (interactive)
+  (let ((completion-regexp-list '("\\`vterm .*")))
+    (call-interactively #'switch-to-buffer)))
+
+(with-eval-after-load 'vterm
+  (define-key vterm-mode-map (kbd "C-c C-b") #'vterm--switch-to-buffer))
+
+;; hydra providing entry points into shell tools
+(defhydra my-hydra/shell (:color teal :columns 3)
+  "
+Shell tools (_q_: quit)"
+  ("q" nil nil)
+  ("v" vterm "vterm")
+  ("V" vterm-other-window "vterm-other")
+  ("C-v" vterm--switch-to-buffer "vterm-switchb")
+  ("e" my-eshell-with-name "eshell"))
+
+;; binding for spawning or switching to a named Eshell buffer
+(global-set-key (kbd "C-c C-M-e s") #'my-hydra/shell/body)
 
 ;; Comparison tools
 
@@ -3166,7 +3202,7 @@ Python (_q_: quit)"
 ;; Programming / R
 
 ;; support for R language using Emacs Speaks Statistics
-;; linting is configured here to use FlyCheck 
+;; linting is configured here to use FlyCheck
 (use-package ess
   :mode ("\\.R$" . R-mode)
   :commands (R-mode ess-switch-to-ESS)
@@ -3766,7 +3802,9 @@ Whitespace (_q_: quit)"
   ("w" whitespace-mode "show-whitespace" :exit nil)
   ("t" (lambda () (interactive)
          (setq-local show-trailing-whitespace
-                     (not show-trailing-whitespace)))
+                     (not show-trailing-whitespace))
+         (message "show-trailing-whitespace: %s"
+                  (if show-trailing-whitespace "yes" "no")))
    "show-trailing" :exit nil)
   ("n" whitespace-newline-mode "show-newline" :exit nil)
   ("c" whitespace-cleanup "cleanup")

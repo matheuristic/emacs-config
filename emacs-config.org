@@ -827,7 +827,8 @@ Set default rules for grouping files in Ibuffer.
            ("Programming" (derived-mode . prog-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
-                        (mode . term-mode)))
+                        (mode . term-mode)
+                        (name . "^vterm .*")))
            ("Org" (or (derived-mode . org-mode)
                       (mode . org-agenda-mode)))
            ("Text" (derived-mode . text-mode))
@@ -1196,14 +1197,19 @@ manually and automatically.
 ;; settings for desktop.el
 ;; desktops are saved to ~/.emacs.d/.emacs.desktop
 ;; and locks are saved to ~/.emacs.d/.emacs.desktop.lock
-;; - enable desktop-save-mode to save on timer and exit, load on entry
+;; - enable desktop-save-mode to save on exit and load on entry;
+;;   this is added to `after-init-hook' to avoid a prompt on startup
+;;   warning about the desktop file being in use that occurs when
+;;   `desktop-save-mode' is enabled before initialization is done,
+;;   even though the Emacs process PID is the owner of the lock file;
+;;   might be specific to emacs-mac port
 ;; - set `desktop-autosave-timeout' to nil to disable timer auto-saves
 ;; - restore frames to their original displays
 ;; - don't re-use frames
 (setq desktop-auto-save-timeout nil
       desktop-restore-in-current-display nil
       desktop-restore-reuses-frames t)
-(desktop-save-mode 1)
+(add-hook 'after-init-hook (lambda () (desktop-save-mode 1)))
 #+end_src
 
 *** Workspace hydra                                                   :hydra:
@@ -1319,9 +1325,6 @@ provided, the default interactive `eshell' command is run."
         (progn
           (eshell 42)
           (rename-buffer (concat "*eshell*<" my-es-buf-name ">")))))))
-
-;; binding for spawning or switching to a named Eshell buffer
-(global-set-key (kbd "C-c C-M-e s") #'my-eshell-with-name)
 #+end_src
 
 *** Eshell fish-like history autosuggestions                          :melpa:
@@ -1434,7 +1437,7 @@ Major mode-specific hydra for [[https://www.gnu.org/software/emacs/manual/html_n
 (mostly similar to a regular terminal emulator) and line mode (which
 acts like [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#Shell-Mode][Shell mode]]).
 
-#+name: term-hydra
+#+name: term-mode-hydra
 #+begin_src emacs-lisp
 ;; hydra for term-mode for toggling between char and line modes
 (defhydra my-hydra/term-mode (:color amaranth :columns 4)
@@ -1449,6 +1452,173 @@ Term (_q_: quit)"
 (with-eval-after-load 'term
   (define-key term-mode-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body)
   (define-key term-raw-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body))
+#+end_src
+
+** vterm
+
+[[https://github.com/akermu/emacs-libvterm][emacs-libvterm]] (vterm) is full terminal emulator run inside Emacs
+using [[https://launchpad.net/libvterm][libvterm]].
+
+The default behavior of emacs-libvterm is to compile libvterm from
+source on the first run.
+
+The following instructions show steps needed on Mac OS to set up the
+compile dependencies using MacPorts.
+
+#+begin_example
+$ sudo port install cmake libtool
+#+end_example
+
+*Configuration*:
+- Use shell title to populate buffer name.
+- Clearing the screen also clears scrollback history.
+- Limit the automatically eval'ed vterm commands in shell output to
+  further limit attack vectors for arbitrary code execution.
+- Kill vterm buffer automatically on exit.
+
+#+name: vterm
+#+begin_src emacs-lisp
+(use-package vterm
+  :if (and module-file-suffix
+           (executable-find "cmake")
+           (executable-find "libtool"))
+  :init
+  (setq vterm-buffer-name-string "vterm %s"
+        vterm-clear-scrollback-when-clearing t
+        vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
+        vterm-kill-buffer-on-exit t
+        vterm-shell (executable-find "fish")))
+#+end_src
+
+*Updating compiled modules*: ~M-x vterm-module-compile~ recompiles
+vterm-module, so run it to update to newer versions of libvterm.
+
+*** Shell-side configuration required for specific vterm features
+
+If desired, vterm also has a number of Emacs and shell integration
+features (directory tracking, prompt tracking, message parsing, etc)
+that require some [[https://github.com/akermu/emacs-libvterm#shell-side-configuration][shell-side configuration]].
+
+Most of these shell-side configurations require a ~vterm_printf~
+helper function. For fish, put the following in a
+=~/.config/fish/functions/vterm_printf= file.
+
+#+begin_example
+# Helper function for sending info from shell to vterm using escape sequences.
+# https://github.com/akermu/emacs-libvterm#shell-side-configuration
+if [ "$INSIDE_EMACS" = "vterm" ]
+    function vterm_printf
+        if [ -n "$TMUX" ]
+            # tell tmux to pass the escape sequences through
+            # (Source: http://permalink.gmane.org/gmane.comp.terminal-emulators.tmux.user/1324)
+            printf "\ePtmux;\e\e]%s\007\e\\" "$argv"
+        else if string match -q -- "screen*" "$TERM"
+            # GNU screen (screen, screen-256color, screen-256color-bce)
+            printf "\eP\e]%s\007\e\\" "$argv"
+        else
+            printf "\e]%s\e\\" "$argv"
+        end
+    end
+end
+#+end_example
+
+**** Directory and prompt tracking
+
+Enables using ~C-c C-n~ and ~C-c C-p~ to go the next and previous
+prompts respectively while in vterm.
+
+Also allows ~vterm-beginning-of-line~ and ~vterm-at-prompt-p~
+functions to better detect prompts.
+
+For fish, create a =~/.config/fish/functions/vterm_prompt_end.fish=
+file with the following.
+
+#+begin_example
+# Helper function for redefining prompt in config.fish to enable directory
+# and prompt tracking in emacs-libvterm
+# https://github.com/akermu/emacs-libvterm#directory-tracking-and-prompt-tracking
+if [ "$INSIDE_EMACS" = "vterm" ]
+    function vterm_prompt_end
+        vterm_printf '51;A'(whoami)'@'(hostname)':'(pwd)
+    end
+end
+#+end_example
+
+Next, add the following near the end of the
+=~/.config/fish/config.fish= file.
+
+#+begin_example
+# Redefine the prompt for directory and prompt tracking in emacs-libvterm
+# https://github.com/akermu/emacs-libvterm#directory-tracking-and-prompt-tracking
+if [ "$INSIDE_EMACS" = "vterm" ]
+    functions -c fish_prompt vterm_old_fish_prompt
+    function fish_prompt --description 'Write out the prompt; do not replace this. Instead, put this at end of your file.'
+        # Remove the trailing newline from the original prompt. This is done
+        # using the string builtin from fish, but to make sure any escape codes
+        # are correctly interpreted, use %b for printf.
+        printf "%b" (string join "\n" (vterm_old_fish_prompt))
+        vterm_prompt_end
+    end
+end
+#+end_example
+
+**** vterm-clear-scrollback-when-clearing support
+
+Required for ~vterm-clear-scrollback-when-clearing~ to work properly
+when it is set to non-nil. This automatically clears the scrollback as well
+on ~vterm-clear~, which bound to ~C-l~ by default.
+
+Create a =~/.config/fish/functions/clear.fish= file with the following
+contents.
+
+#+begin_example
+# Redefine clear function to also clear scrollback history in emacs-libvterm
+# https://github.com/akermu/emacs-libvterm#vterm-clear-scrollback
+if [ "$INSIDE_EMACS" = "vterm" ]
+    function clear
+        vterm_printf "51;Evterm-clear-scrollback"
+        tput clear
+    end
+end
+#+end_example
+
+*** vterm-specific switch-to-buffer
+
+Define a ~switch-to-buffer~ variant restricted to vterm buffers and
+the most recently selected buffer besides the current one (this is the
+buffer return by ~other-buffer~, and allows for toggling between the
+code and vterm), and bind it to ~C-c C-b~ when in ~vterm-mode~.
+
+#+name: vterm-switchb
+#+begin_src emacs-lisp
+(defun vterm--switch-to-buffer ()
+  "Call `switch-to-buffer' but only for vterm buffers."
+  (interactive)
+  (let ((completion-regexp-list '("\\`vterm .*")))
+    (call-interactively #'switch-to-buffer)))
+
+(with-eval-after-load 'vterm
+  (define-key vterm-mode-map (kbd "C-c C-b") #'vterm--switch-to-buffer))
+#+end_src
+
+** Shell entry point hydra
+
+Hydra providing entry points into Eshell and vterm.
+
+#+name: shell-hydra
+#+begin_src emacs-lisp
+;; hydra providing entry points into shell tools
+(defhydra my-hydra/shell (:color teal :columns 3)
+  "
+Shell tools (_q_: quit)"
+  ("q" nil nil)
+  ("v" vterm "vterm")
+  ("V" vterm-other-window "vterm-other")
+  ("C-v" vterm--switch-to-buffer "vterm-switchb")
+  ("e" my-eshell-with-name "eshell"))
+
+;; binding for spawning or switching to a named Eshell buffer
+(global-set-key (kbd "C-c C-M-e s") #'my-hydra/shell/body)
 #+end_src
 
 * Comparison tools
@@ -6580,7 +6750,9 @@ Whitespace (_q_: quit)"
   ("w" whitespace-mode "show-whitespace" :exit nil)
   ("t" (lambda () (interactive)
          (setq-local show-trailing-whitespace
-                     (not show-trailing-whitespace)))
+                     (not show-trailing-whitespace))
+         (message "show-trailing-whitespace: %s"
+                  (if show-trailing-whitespace "yes" "no")))
    "show-trailing" :exit nil)
   ("n" whitespace-newline-mode "show-newline" :exit nil)
   ("c" whitespace-cleanup "cleanup")
@@ -7810,7 +7982,13 @@ The main configuration file.
 
 <<kill-term-buffers-with-q-after-end>>
 
-<<term-hydra>>
+<<term-mode-hydra>>
+
+<<vterm>>
+
+<<vterm-switchb>>
+
+<<shell-hydra>>
 
 ;; Comparison tools
 

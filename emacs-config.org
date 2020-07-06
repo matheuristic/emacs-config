@@ -1459,6 +1459,10 @@ Term (_q_: quit)"
 [[https://github.com/akermu/emacs-libvterm][emacs-libvterm]] (vterm) is full terminal emulator run inside Emacs
 using [[https://launchpad.net/libvterm][libvterm]].
 
+Note this requires Emacs be compiled with modules support enabled
+(using the ~--with-modules~ option). If so, ~module-fix-suffix~ will
+be non-nil.
+
 The default behavior of emacs-libvterm is to compile libvterm from
 source on the first run.
 
@@ -2804,18 +2808,7 @@ tag based on the entry at the beginning of the region."
       (interactive)
       (if (member "trash" (notmuch-tree-get-tags))
           (notmuch-tree-tag (list "-trash"))
-        (notmuch-tree-tag (list "+trash" "-inbox"))))
-    ;; set up Gmail-style citations in replies
-    ;; https://emacs.stackexchange.com/questions/14625/how-to-control-quoting-of-original-message-when-replying
-    (setq notmuch-mua-cite-function 'message-cite-original
-          message-fill-column nil ;; don't break paragraphs
-          message-citation-line-function 'message-insert-formatted-citation-line
-          message-cite-reply-position 'above
-          ;; message-yank-prefix "    "
-          ;; message-yank-cited-prefix "    "
-          ;; message-yank-empty-prefix "    "
-          message-citation-line-format "On %a, %b %e, %Y at %l:%M %p %f wrote:
-")))
+        (notmuch-tree-tag (list "+trash" "-inbox"))))))
 #+end_src
 
 ** Shortening names in Search view for threads with multiple authors
@@ -3132,91 +3125,7 @@ by (by default, it is off).
                    notmuch-search-mode-map
                    notmuch-show-mode-map
                    notmuch-tree-mode-map))
-      (define-key map (kbd "M") #'org-msg-mode))
-    ;; modify HTML text to use Gmail blockquotes in place of '>'
-    (defun my-gmail-quote-html (htmltext)
-      "Modify HTMLTEXT to use Gmail blockquotes."
-      (let ((blockquote-begin
-             (concat "<blockquote type=\"gmail_quote\" "
-                     "style=\"margin:0px 0px 0px 0.8ex;"
-                     "border-left:1px solid rgb(204,204,204);"
-                     "padding-left:1ex\""
-                     ">\n"))
-            (blockquote-end "</blockquote>\n"))
-        (with-temp-buffer
-          ;; change message citation line HTML from a <p> element to a
-          ;; <div> element with class 'gmail_quote'
-          (insert (replace-regexp-in-string
-                   (concat "<p[^\n\r]*>[\n\r]"
-                           "\\([^\r\n]*\\)"
-                           "</p>"
-                           "\\([\n\r]*<p[^\n\r]*>[\n\r]*&gt;\\)")
-                   "<br/><div class=\"gmail_quote\">\\1</div>\\2"
-                   htmltext))
-          ;; process one line at a time to traverse blockquote levels
-          ;; using the number of leading '>' characters in each line
-          (goto-char (point-min))
-          (let ((blockquote-level 0))
-            (while (not (eobp))
-              (let ((line-level 0))
-                (while (looking-at "&gt;[[:blank:]]*")
-                  (replace-match "")
-                  (cl-incf line-level))
-                (while (< blockquote-level line-level)
-                  (insert blockquote-begin)
-                  (cl-incf blockquote-level))
-                (while (> blockquote-level line-level)
-                  (insert blockquote-end)
-                  (cl-decf blockquote-level)))
-              (forward-line)))
-          (buffer-string))))
-    (defun org-msg-preview (arg)
-      "Create a temporary mail and open it with `browse-url'.
-With the prefix argument ARG set, it calls
-`xwidget-webkit-browse-url' instead of `browse-url'.
-Modified copy of original using Gmail blockquotes."
-      (interactive "P")
-      (save-window-excursion
-        (let ((browse-url-browser-function (if arg
-                                               'xwidget-webkit-browse-url
-                                             browse-url-browser-function))
-              (tmp-file (make-temp-file "org-msg" nil ".html"))
-              (mail (org-msg-build)))
-          (with-temp-buffer
-            ;; following line modified from original
-            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
-            (write-file tmp-file))
-          (browse-url (concat "file://" tmp-file)))))
-    (defun org-msg-prepare-to-send ()
-      "Convert the current OrgMsg buffer into `mml' content.
-This function is a hook for `message-send-hook'.
-Modified copy of original using Gmail blockquotes."
-      (save-window-excursion
-        (when (eq major-mode 'org-msg-edit-mode)
-          (let ((mail (org-msg-build))
-                (attachments (org-msg-get-prop "attachment")))
-            (dolist (file attachments)
-              (unless (file-exists-p file)
-                (error "File '%s' does not exist" file)))
-            (setq org-msg-attachment attachments)
-            (when org-msg-text-plain-alternative
-              (setq org-msg-text-plain (org-msg-org-to-text-plain)))
-            (goto-char (org-msg-start))
-            (delete-region (org-msg-start) (point-max))
-            (when (org-msg-mml-recursive-support)
-              (when attachments
-                (mml-insert-multipart "mixed")
-                (dolist (file attachments)
-                  (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
-                                  'filename file 'disposition "attachment")))
-              (when org-msg-text-plain-alternative
-                (mml-insert-multipart "alternative")
-                (mml-insert-part "text/plain")
-                (insert org-msg-text-plain)
-                (forward-line)))
-            (mml-insert-part "text/html")
-            ;; following line modified from original
-            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
+      (define-key map (kbd "M") #'org-msg-mode))))
 #+end_src
 
 *** OrgMsg hydra                                                      :hydra:
@@ -3250,52 +3159,6 @@ OrgMsg (_q_: quit)"
   ;; binding for org-msg-edit-mode
   (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
     #'my-hydra/org-msg-edit-mode/body))
-#+end_src
-
-*** Modifying the org-msg setup function to not remove quoted text
-
-Redefine ~org-msg-post-setup~ ([[https://github.com/jeremy-compostella/org-msg/blob/master/org-msg.el#L872-L908][link to source]]) so that quoted text is
-not removed when replying to emails, much like Gmail and other modern
-mail programs.
-
-#+name: org-msg-post-setup-no-remove-quote-text
-#+begin_src emacs-lisp
-;; redefine `org-msg-post-setup' so quoted text is not removed when
-;; replying to emails like in Gmail and other modern mail programs
-;; https://github.com/jeremy-compostella/org-msg/blob/master/org-msg.el#L872-L908
-(with-eval-after-load 'org-msg
-  (defun org-msg-post-setup (&rest _args)
-   "Transform the current `message' buffer into a OrgMsg buffer.
-If the current `message' buffer is a reply, the
-`org-msg-separator' string is inserted at the end of the editing
-area."
-   (unless (eq major-mode 'org-msg-edit-mode)
-     (message-goto-body)
-     (let ((new (not (org-msg-message-fetch-field "subject")))
-           (with-original (not (= (point) (point-max))))
-           (reply-to))
-       (when (or new (org-msg-mua-call 'article-htmlp))
-         (unless new
-           (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
-         (insert (org-msg-header reply-to))
-         (when org-msg-greeting-fmt
-           (insert (format org-msg-greeting-fmt
-                           (if new
-                               ""
-                             (org-msg-get-to-first-name)))))
-         (save-excursion
-           (insert "\n\n")
-           (when with-original
-             (org-escape-code-in-region (point) (point-max)))
-           (save-excursion
-             (end-of-buffer)
-             (when org-msg-signature
-               (insert org-msg-signature)))
-           (org-msg-edit-mode))
-         (set-buffer-modified-p nil))
-       (if (org-msg-message-fetch-field "to")
-           (recenter)
-         (message-goto-to))))))
 #+end_src
 
 ** Link to notmuch messages in Org-mode documents                  :external:
@@ -5425,6 +5288,19 @@ Lisp function does not specify a special indentation."
            (t $else)))))))
 #+end_src
 
+** fish shell scripts
+
+*** fish-mode
+
+[[https://github.com/wwwjfy/emacs-fish][fish-mode]] is a major-mode for working with [[https://fishshell.com/][fish shell]] scripts.
+
+#+name: fish-mode
+#+begin_src emacs-lisp
+(use-package fish-mode
+  :init (setq fish-enable-auto-indent t
+              fish-indent-offset 4))
+#+end_src
+
 ** Python
 
 *** Developing
@@ -7315,80 +7191,6 @@ Help (_q_: quit)"
 (global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
 #+end_src
 
-** Hyperspace launcher for Emacs                                      :melpa:
-
-[[https://github.com/ieure/hyperspace-el][Hyperspace]] is a launcher for Emacs, much like Alfred or Quicksilver
-for Mac OS X.
-
-On calling ~hyperspace~, a ~HS:~ prompt will appear in the minibuffer
-and the user is expected to provide an input.
-The input should be composed of a /keyword/ and an /query/.
-The first part of the input (typically the first word) is assumed to be
-the keyword, and the remainder of the input is used as the query.
-
-Keywords are mapped to defined actions in ~hyperspace-actions~, which
-are either Elisp function symbols or strings.
-If the mapped action is an Elisp function symbol, the function is
-called with the query as the first argument.
-If the mapped action is a string, ~browse-url~ is called with ~(format
-ACTION QUERY)~ as the parameter (which typically opens the the
-parameter as a URL in the default web browser).
-
-As example, ~ac stuff~ could run the action ~apropos-command~ mapped
-to ~ac~ with ~"stuff"~ as the parameter, evaluating the Elisp
-expression ~(apropos-command "stuff")~.
-
-As another example, ~g stuff~ could run the action
-="https://www.google.com/search?q=%s"= with ~"stuff"~ as the
-parameter, opening to the URL
-="https://www.google.com/search?q=stuff"= with the default web
-browser.
-
-#+name: hyperspace
-#+begin_src emacs-lisp
-;; launcher for Emacs like Alfred or Quicksilver
-;; for example, calling `hyperspace' then "ac stuff"
-;; does an apropos command search for "stuff"
-(use-package hyperspace
-  :demand t
-  :init
-  (setq hyperspace-actions
-        `(("ac" . apropos-command)
-          ("af" . (lambda (query) (apropos-command query t)))
-          ("av" . apropos-variable)
-          ("az" . "https://www.amazon.com/s?k=%s")
-          ("bb" . bbdb-search-name)
-          ;; TODO : change to https once slow HTTPS queries are fixed in Emacs
-          ("e"  . (lambda (query)
-                    (eww (format "http://duckduckgo.com/lite?q=%s" query))))
-          ("el" . (apply-partially #'hyperspace-action->info "(elisp)Top"))
-          ("c"  . "https://anaconda.org/search?q=%s")
-          ("d"  . "https://duckduckgo.com/?q=%s")
-          ("di" . "https://duckduckgo.com/?q=%s&iax=images&ia=images")
-          ("g"  . "https://www.google.com/search?q=%s")
-          ("gd" . "https://datasetsearch.research.google.com/search?query=%s")
-          ("gm" . "https://maps.google.com/maps?q=%s")
-          ("gi" . "https://www.google.com/search?tbm=isch&q=%s")
-          ("gt" . "https://trends.google.com/trends/explore?q=%s")
-          ("m"  . "https://melpa.org/#/?q=%s")
-          ("py" . "https://pypi.org/search/?q=%s")
-          ("r"  . "https://www.reddit.com/search.compact?q=%s")
-          ("w"  . ,(concat "https://en.wikipedia.org/w/index.php?search=%s"
-                           "&title=Special:Search&go=Go"))
-          ("y"  . "https://yandex.com/search/?text=%s")
-          ("yi" . "https://yandex.com/images/search?text=%s")))
-  ;; default action if the keyword of the input is not an action
-  ;; comment to use the default setting (first entry of `hyperspace-actions')
-  (setq hyperspace-default-action "e")
-  :bind (:map hyperspace-minor-mode-map
-         ("C-M-S-SPC" . hyperspace))
-  :config
-  ;; unbind default keys
-  (unbind-key "H-SPC" hyperspace-minor-mode-map)
-  (unbind-key "<H-return>" hyperspace-minor-mode-map)
-  (hyperspace-minor-mode))
-#+end_src
-
 ** Scratch buffer default mode set to fundamental-mode
 
 Set the initial mode of the scratch buffer to ~fundamental-mode~,
@@ -8071,8 +7873,6 @@ The main configuration file.
 
 <<org-msg-edit-mode-hydra>>
 
-<<org-msg-post-setup-no-remove-quote-text>>
-
 <<ol-notmuch>>
 
 ;; Non-programming files
@@ -8219,6 +8019,10 @@ The main configuration file.
 
 <<flycheck-clj-kondo>>
 
+;; Programming / fish shell scripts
+
+<<fish-mode>>
+
 ;; Programming / Python
 
 <<python-hydra>>
@@ -8361,8 +8165,6 @@ The main configuration file.
 <<crux-hydra>>
 
 <<help-hydra>>
-
-<<hyperspace>>
 
 <<scratch-buffer-initial-mode>>
 
@@ -8809,6 +8611,162 @@ https://github.com/NicolasPetton/pass
 
 * DONE Deprecated
 
+** Email
+
+*** OrgMsg for composing HTML emails
+
+**** Modifying the org-msg setup function to not remove quoted text
+
+Redefine ~org-msg-post-setup~ ([[https://github.com/jeremy-compostella/org-msg/blob/master/org-msg.el#L872-L908][link to source]]) so that quoted text is
+not removed when replying to emails, much like Gmail and other modern
+mail programs.
+
+#+name: org-msg-post-setup-no-remove-quote-text
+#+begin_src emacs-lisp
+;; redefine `org-msg-post-setup' so quoted text is not removed when
+;; replying to emails like in Gmail and other modern mail programs
+;; https://github.com/jeremy-compostella/org-msg/blob/master/org-msg.el#L872-L908
+(with-eval-after-load 'org-msg
+  (defun org-msg-post-setup (&rest _args)
+   "Transform the current `message' buffer into a OrgMsg buffer.
+If the current `message' buffer is a reply, the
+`org-msg-separator' string is inserted at the end of the editing
+area."
+   (unless (eq major-mode 'org-msg-edit-mode)
+     (message-goto-body)
+     (let ((new (not (org-msg-message-fetch-field "subject")))
+           (with-original (not (= (point) (point-max))))
+           (reply-to))
+       (when (or new (org-msg-mua-call 'article-htmlp))
+         (unless new
+           (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
+         (insert (org-msg-header reply-to))
+         (when org-msg-greeting-fmt
+           (insert (format org-msg-greeting-fmt
+                           (if new
+                               ""
+                             (org-msg-get-to-first-name)))))
+         (save-excursion
+           (insert "\n\n")
+           (when with-original
+             (org-escape-code-in-region (point) (point-max)))
+           (save-excursion
+             (end-of-buffer)
+             (when org-msg-signature
+               (insert org-msg-signature)))
+           (org-msg-edit-mode))
+         (set-buffer-modified-p nil))
+       (if (org-msg-message-fetch-field "to")
+           (recenter)
+         (message-goto-to))))))
+#+end_src
+
+**** Use Gmail blockquotes for quoted text in OrgMsg replies
+
+Try to replicate Gmail-style blockquotes for quoted text.
+
+#+name: org-msg-use-gmail-blockquotes
+#+begin_src emacs-lisp
+;; set up Gamil-style citations in replies
+(with-eval-after-load 'notmuch
+  (with-eval-after-load 'org-msg
+    ;; configure message-mode citation settings to be more Gmail-like
+    ;; https://emacs.stackexchange.com/questions/14625/how-to-control-quoting-of-original-message-when-replying
+    (setq notmuch-mua-cite-function 'message-cite-original
+          message-fill-column nil ;; don't break paragraphs
+          message-citation-line-function 'message-insert-formatted-citation-line
+          message-cite-reply-position 'above
+          ;; message-yank-prefix "    "
+          ;; message-yank-cited-prefix "    "
+          ;; message-yank-empty-prefix "    "
+          message-citation-line-format "On %a, %b %e, %Y at %l:%M %p %f wrote:
+")
+    ;; modify HTML text to use Gmail blockquotes in place of '>'
+    (defun my-gmail-quote-html (htmltext)
+      "Modify HTMLTEXT to use Gmail blockquotes."
+      (let ((blockquote-begin
+             (concat "<blockquote type=\"gmail_quote\" "
+                     "style=\"margin:0px 0px 0px 0.8ex;"
+                     "border-left:1px solid rgb(204,204,204);"
+                     "padding-left:1ex\""
+                     ">\n"))
+            (blockquote-end "</blockquote>\n"))
+        (with-temp-buffer
+          ;; change message citation line HTML from a <p> element to a
+          ;; <div> element with class 'gmail_quote'
+          (insert (replace-regexp-in-string
+                   (concat "<p[^\n\r]*>[\n\r]"
+                           "\\([^\r\n]*\\)"
+                           "</p>"
+                           "\\([\n\r]*<p[^\n\r]*>[\n\r]*&gt;\\)")
+                   "<br/><div class=\"gmail_quote\">\\1</div>\\2"
+                   htmltext))
+          ;; process one line at a time to traverse blockquote levels
+          ;; using the number of leading '>' characters in each line
+          (goto-char (point-min))
+          (let ((blockquote-level 0))
+            (while (not (eobp))
+              (let ((line-level 0))
+                (while (looking-at "&gt;[[:blank:]]*")
+                  (replace-match "")
+                  (cl-incf line-level))
+                (while (< blockquote-level line-level)
+                  (insert blockquote-begin)
+                  (cl-incf blockquote-level))
+                (while (> blockquote-level line-level)
+                  (insert blockquote-end)
+                  (cl-decf blockquote-level)))
+              (forward-line)))
+          (buffer-string))))
+    (defun org-msg-preview (arg)
+      "Create a temporary mail and open it with `browse-url'.
+With the prefix argument ARG set, it calls
+`xwidget-webkit-browse-url' instead of `browse-url'.
+Modified copy of original using Gmail blockquotes."
+      (interactive "P")
+      (save-window-excursion
+        (let ((browse-url-browser-function (if arg
+                                               'xwidget-webkit-browse-url
+                                             browse-url-browser-function))
+              (tmp-file (make-temp-file "org-msg" nil ".html"))
+              (mail (org-msg-build)))
+          (with-temp-buffer
+            ;; following line modified from original
+            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
+            (write-file tmp-file))
+          (browse-url (concat "file://" tmp-file)))))
+    (defun org-msg-prepare-to-send ()
+      "Convert the current OrgMsg buffer into `mml' content.
+This function is a hook for `message-send-hook'.
+Modified copy of original using Gmail blockquotes."
+      (save-window-excursion
+        (when (eq major-mode 'org-msg-edit-mode)
+          (let ((mail (org-msg-build))
+                (attachments (org-msg-get-prop "attachment")))
+            (dolist (file attachments)
+              (unless (file-exists-p file)
+                (error "File '%s' does not exist" file)))
+            (setq org-msg-attachment attachments)
+            (when org-msg-text-plain-alternative
+              (setq org-msg-text-plain (org-msg-org-to-text-plain)))
+            (goto-char (org-msg-start))
+            (delete-region (org-msg-start) (point-max))
+            (when (org-msg-mml-recursive-support)
+              (when attachments
+                (mml-insert-multipart "mixed")
+                (dolist (file attachments)
+                  (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
+                                  'filename file 'disposition "attachment")))
+              (when org-msg-text-plain-alternative
+                (mml-insert-multipart "alternative")
+                (mml-insert-part "text/plain")
+                (insert org-msg-text-plain)
+                (forward-line)))
+            (mml-insert-part "text/html")
+            ;; following line modified from original
+            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
+#+end_src
+
 ** Org-mode
 
 *** Display the outline path at point in Org-mode using which-func
@@ -9209,6 +9167,82 @@ for more info.")
 ;; run `which-func-ff-hook--add-which-func-to-header-line' after `which-func-ff-hook'
 (advice-add 'which-func-ff-hook
             :after #'which-func-ff-hook--add-which-func-to-header-line)
+#+end_src
+
+** Other
+
+** Hyperspace launcher for Emacs                                      :melpa:
+
+[[https://github.com/ieure/hyperspace-el][Hyperspace]] is a launcher for Emacs, much like Alfred or Quicksilver
+for Mac OS X.
+
+On calling ~hyperspace~, a ~HS:~ prompt will appear in the minibuffer
+and the user is expected to provide an input.
+The input should be composed of a /keyword/ and an /query/.
+The first part of the input (typically the first word) is assumed to be
+the keyword, and the remainder of the input is used as the query.
+
+Keywords are mapped to defined actions in ~hyperspace-actions~, which
+are either Elisp function symbols or strings.
+If the mapped action is an Elisp function symbol, the function is
+called with the query as the first argument.
+If the mapped action is a string, ~browse-url~ is called with ~(format
+ACTION QUERY)~ as the parameter (which typically opens the the
+parameter as a URL in the default web browser).
+
+As example, ~ac stuff~ could run the action ~apropos-command~ mapped
+to ~ac~ with ~"stuff"~ as the parameter, evaluating the Elisp
+expression ~(apropos-command "stuff")~.
+
+As another example, ~g stuff~ could run the action
+="https://www.google.com/search?q=%s"= with ~"stuff"~ as the
+parameter, opening to the URL
+="https://www.google.com/search?q=stuff"= with the default web
+browser.
+
+#+name: hyperspace
+#+begin_src emacs-lisp
+;; launcher for Emacs like Alfred or Quicksilver
+;; for example, calling `hyperspace' then "ac stuff"
+;; does an apropos command search for "stuff"
+(use-package hyperspace
+  :demand t
+  :init
+  (setq hyperspace-actions
+        `(("ac" . apropos-command)
+          ("af" . (lambda (query) (apropos-command query t)))
+          ("av" . apropos-variable)
+          ("az" . "https://www.amazon.com/s?k=%s")
+          ("bb" . bbdb-search-name)
+          ;; TODO : change to https once slow HTTPS queries are fixed in Emacs
+          ("e"  . (lambda (query)
+                    (eww (format "http://duckduckgo.com/lite?q=%s" query))))
+          ("el" . (apply-partially #'hyperspace-action->info "(elisp)Top"))
+          ("c"  . "https://anaconda.org/search?q=%s")
+          ("d"  . "https://duckduckgo.com/?q=%s")
+          ("di" . "https://duckduckgo.com/?q=%s&iax=images&ia=images")
+          ("g"  . "https://www.google.com/search?q=%s")
+          ("gd" . "https://datasetsearch.research.google.com/search?query=%s")
+          ("gm" . "https://maps.google.com/maps?q=%s")
+          ("gi" . "https://www.google.com/search?tbm=isch&q=%s")
+          ("gt" . "https://trends.google.com/trends/explore?q=%s")
+          ("m"  . "https://melpa.org/#/?q=%s")
+          ("py" . "https://pypi.org/search/?q=%s")
+          ("r"  . "https://www.reddit.com/search.compact?q=%s")
+          ("w"  . ,(concat "https://en.wikipedia.org/w/index.php?search=%s"
+                           "&title=Special:Search&go=Go"))
+          ("y"  . "https://yandex.com/search/?text=%s")
+          ("yi" . "https://yandex.com/images/search?text=%s")))
+  ;; default action if the keyword of the input is not an action
+  ;; comment to use the default setting (first entry of `hyperspace-actions')
+  (setq hyperspace-default-action "e")
+  :bind (:map hyperspace-minor-mode-map
+         ("C-M-S-SPC" . hyperspace))
+  :config
+  ;; unbind default keys
+  (unbind-key "H-SPC" hyperspace-minor-mode-map)
+  (unbind-key "<H-return>" hyperspace-minor-mode-map)
+  (hyperspace-minor-mode))
 #+end_src
 
 * Local Variables                                                  :noexport:

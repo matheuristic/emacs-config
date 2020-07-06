@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul  5 15:38:45 2020
+;; Generated: Sun Jul  5 21:24:08 2020
 
 ;;; Commentary:
 
@@ -1302,18 +1302,7 @@ tag based on the entry at the beginning of the region."
       (interactive)
       (if (member "trash" (notmuch-tree-get-tags))
           (notmuch-tree-tag (list "-trash"))
-        (notmuch-tree-tag (list "+trash" "-inbox"))))
-    ;; set up Gmail-style citations in replies
-    ;; https://emacs.stackexchange.com/questions/14625/how-to-control-quoting-of-original-message-when-replying
-    (setq notmuch-mua-cite-function 'message-cite-original
-          message-fill-column nil ;; don't break paragraphs
-          message-citation-line-function 'message-insert-formatted-citation-line
-          message-cite-reply-position 'above
-          ;; message-yank-prefix "    "
-          ;; message-yank-cited-prefix "    "
-          ;; message-yank-empty-prefix "    "
-          message-citation-line-format "On %a, %b %e, %Y at %l:%M %p %f wrote:
-")))
+        (notmuch-tree-tag (list "+trash" "-inbox"))))))
 
 ;; advise `notmuch-search-insert-authors' so that when a thread has
 ;; multiple authors, only the first and last message authors are
@@ -1544,91 +1533,7 @@ Assumes "
                    notmuch-search-mode-map
                    notmuch-show-mode-map
                    notmuch-tree-mode-map))
-      (define-key map (kbd "M") #'org-msg-mode))
-    ;; modify HTML text to use Gmail blockquotes in place of '>'
-    (defun my-gmail-quote-html (htmltext)
-      "Modify HTMLTEXT to use Gmail blockquotes."
-      (let ((blockquote-begin
-             (concat "<blockquote type=\"gmail_quote\" "
-                     "style=\"margin:0px 0px 0px 0.8ex;"
-                     "border-left:1px solid rgb(204,204,204);"
-                     "padding-left:1ex\""
-                     ">\n"))
-            (blockquote-end "</blockquote>\n"))
-        (with-temp-buffer
-          ;; change message citation line HTML from a <p> element to a
-          ;; <div> element with class 'gmail_quote'
-          (insert (replace-regexp-in-string
-                   (concat "<p[^\n\r]*>[\n\r]"
-                           "\\([^\r\n]*\\)"
-                           "</p>"
-                           "\\([\n\r]*<p[^\n\r]*>[\n\r]*&gt;\\)")
-                   "<br/><div class=\"gmail_quote\">\\1</div>\\2"
-                   htmltext))
-          ;; process one line at a time to traverse blockquote levels
-          ;; using the number of leading '>' characters in each line
-          (goto-char (point-min))
-          (let ((blockquote-level 0))
-            (while (not (eobp))
-              (let ((line-level 0))
-                (while (looking-at "&gt;[[:blank:]]*")
-                  (replace-match "")
-                  (cl-incf line-level))
-                (while (< blockquote-level line-level)
-                  (insert blockquote-begin)
-                  (cl-incf blockquote-level))
-                (while (> blockquote-level line-level)
-                  (insert blockquote-end)
-                  (cl-decf blockquote-level)))
-              (forward-line)))
-          (buffer-string))))
-    (defun org-msg-preview (arg)
-      "Create a temporary mail and open it with `browse-url'.
-With the prefix argument ARG set, it calls
-`xwidget-webkit-browse-url' instead of `browse-url'.
-Modified copy of original using Gmail blockquotes."
-      (interactive "P")
-      (save-window-excursion
-        (let ((browse-url-browser-function (if arg
-                                               'xwidget-webkit-browse-url
-                                             browse-url-browser-function))
-              (tmp-file (make-temp-file "org-msg" nil ".html"))
-              (mail (org-msg-build)))
-          (with-temp-buffer
-            ;; following line modified from original
-            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))
-            (write-file tmp-file))
-          (browse-url (concat "file://" tmp-file)))))
-    (defun org-msg-prepare-to-send ()
-      "Convert the current OrgMsg buffer into `mml' content.
-This function is a hook for `message-send-hook'.
-Modified copy of original using Gmail blockquotes."
-      (save-window-excursion
-        (when (eq major-mode 'org-msg-edit-mode)
-          (let ((mail (org-msg-build))
-                (attachments (org-msg-get-prop "attachment")))
-            (dolist (file attachments)
-              (unless (file-exists-p file)
-                (error "File '%s' does not exist" file)))
-            (setq org-msg-attachment attachments)
-            (when org-msg-text-plain-alternative
-              (setq org-msg-text-plain (org-msg-org-to-text-plain)))
-            (goto-char (org-msg-start))
-            (delete-region (org-msg-start) (point-max))
-            (when (org-msg-mml-recursive-support)
-              (when attachments
-                (mml-insert-multipart "mixed")
-                (dolist (file attachments)
-                  (mml-insert-tag 'part 'type (org-msg-file-mime-type file)
-                                  'filename file 'disposition "attachment")))
-              (when org-msg-text-plain-alternative
-                (mml-insert-multipart "alternative")
-                (mml-insert-part "text/plain")
-                (insert org-msg-text-plain)
-                (forward-line)))
-            (mml-insert-part "text/html")
-            ;; following line modified from original
-            (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
+      (define-key map (kbd "M") #'org-msg-mode))))
 
 ;; major mode-specific hydra for OrgMsg edit mode
 (with-eval-after-load 'org-msg
@@ -1651,43 +1556,6 @@ OrgMsg (_q_: quit)"
   ;; binding for org-msg-edit-mode
   (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
     #'my-hydra/org-msg-edit-mode/body))
-
-;; redefine `org-msg-post-setup' so quoted text is not removed when
-;; replying to emails like in Gmail and other modern mail programs
-;; https://github.com/jeremy-compostella/org-msg/blob/master/org-msg.el#L872-L908
-(with-eval-after-load 'org-msg
-  (defun org-msg-post-setup (&rest _args)
-   "Transform the current `message' buffer into a OrgMsg buffer.
-If the current `message' buffer is a reply, the
-`org-msg-separator' string is inserted at the end of the editing
-area."
-   (unless (eq major-mode 'org-msg-edit-mode)
-     (message-goto-body)
-     (let ((new (not (org-msg-message-fetch-field "subject")))
-           (with-original (not (= (point) (point-max))))
-           (reply-to))
-       (when (or new (org-msg-mua-call 'article-htmlp))
-         (unless new
-           (setq reply-to (org-msg-mua-call 'save-article-for-reply)))
-         (insert (org-msg-header reply-to))
-         (when org-msg-greeting-fmt
-           (insert (format org-msg-greeting-fmt
-                           (if new
-                               ""
-                             (org-msg-get-to-first-name)))))
-         (save-excursion
-           (insert "\n\n")
-           (when with-original
-             (org-escape-code-in-region (point) (point-max)))
-           (save-excursion
-             (end-of-buffer)
-             (when org-msg-signature
-               (insert org-msg-signature)))
-           (org-msg-edit-mode))
-         (set-buffer-modified-p nil))
-       (if (org-msg-message-fetch-field "to")
-           (recenter)
-         (message-goto-to))))))
 
 (condition-case nil
     (require 'ol-notmuch)
@@ -3149,6 +3017,12 @@ CIDER → REPL (_q_: ←)"
     ;; start flycheck-mode
     (add-hook 'clojure-mode-hook (lambda () (flycheck-mode 1)) t)))
 
+;; Programming / fish shell scripts
+
+(use-package fish-mode
+  :init (setq fish-enable-auto-indent t
+              fish-indent-offset 4))
+
 ;; Programming / Python
 
 ;; mode-specific hydra for Python mode
@@ -4065,48 +3939,6 @@ Help (_q_: quit)"
 
 ;; bind help hydra
 (global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
-
-;; launcher for Emacs like Alfred or Quicksilver
-;; for example, calling `hyperspace' then "ac stuff"
-;; does an apropos command search for "stuff"
-(use-package hyperspace
-  :demand t
-  :init
-  (setq hyperspace-actions
-        `(("ac" . apropos-command)
-          ("af" . (lambda (query) (apropos-command query t)))
-          ("av" . apropos-variable)
-          ("az" . "https://www.amazon.com/s?k=%s")
-          ("bb" . bbdb-search-name)
-          ;; TODO : change to https once slow HTTPS queries are fixed in Emacs
-          ("e"  . (lambda (query)
-                    (eww (format "http://duckduckgo.com/lite?q=%s" query))))
-          ("el" . (apply-partially #'hyperspace-action->info "(elisp)Top"))
-          ("c"  . "https://anaconda.org/search?q=%s")
-          ("d"  . "https://duckduckgo.com/?q=%s")
-          ("di" . "https://duckduckgo.com/?q=%s&iax=images&ia=images")
-          ("g"  . "https://www.google.com/search?q=%s")
-          ("gd" . "https://datasetsearch.research.google.com/search?query=%s")
-          ("gm" . "https://maps.google.com/maps?q=%s")
-          ("gi" . "https://www.google.com/search?tbm=isch&q=%s")
-          ("gt" . "https://trends.google.com/trends/explore?q=%s")
-          ("m"  . "https://melpa.org/#/?q=%s")
-          ("py" . "https://pypi.org/search/?q=%s")
-          ("r"  . "https://www.reddit.com/search.compact?q=%s")
-          ("w"  . ,(concat "https://en.wikipedia.org/w/index.php?search=%s"
-                           "&title=Special:Search&go=Go"))
-          ("y"  . "https://yandex.com/search/?text=%s")
-          ("yi" . "https://yandex.com/images/search?text=%s")))
-  ;; default action if the keyword of the input is not an action
-  ;; comment to use the default setting (first entry of `hyperspace-actions')
-  (setq hyperspace-default-action "e")
-  :bind (:map hyperspace-minor-mode-map
-         ("C-M-S-SPC" . hyperspace))
-  :config
-  ;; unbind default keys
-  (unbind-key "H-SPC" hyperspace-minor-mode-map)
-  (unbind-key "<H-return>" hyperspace-minor-mode-map)
-  (hyperspace-minor-mode))
 
 ;; set *scratch* buffer major-mode to fundamental-mode
 (setq initial-major-mode 'fundamental-mode)

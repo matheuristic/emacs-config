@@ -454,7 +454,7 @@ In most instances, use only this or Icomplete but not both.
   (define-key helm-map (kbd "C-z") #'helm-select-action))
 #+end_src
 
-*** Use Treemacs icons in Helm                                     :external:
+*** Use icons in Helm                                              :external:
 
 [[https://github.com/yyoncho/helm-treemacs-icons][helm-treemacs-icons]] shows file icons using those from Treemacs when
 using file-related Helm commands.
@@ -1454,7 +1454,7 @@ Term (_q_: quit)"
   (define-key term-raw-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body))
 #+end_src
 
-** vterm
+** vterm                                                              :melpa:
 
 [[https://github.com/akermu/emacs-libvterm][emacs-libvterm]] (vterm) is full terminal emulator run inside Emacs
 using [[https://launchpad.net/libvterm][libvterm]].
@@ -4606,56 +4606,6 @@ When annotating in the split-screen mode:
   (org-super-agenda-mode 1))
 #+end_src
 
-* Outlines
-
-** Imenu
-
-[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Imenu.html][Imenu]] allows jumping to major definitions in a file by name.
-Have Imenu automatically rescan whenever the content changes.
-
-#+name: imenu-auto-rescan
-#+begin_src emacs-lisp
-(setq imenu-auto-rescan t)
-#+end_src
-
-** Imenu extension to all open buffers using imenu-anywhere    :melpa:
-
-[[https://github.com/vspinu/imenu-anywhere][imenu-anywhere]] provides an Imenu extension that lists major
-definitions across all open buffers.
-
-#+name: imenu-anywhere
-#+begin_src emacs-lisp
-;; menu list of major definitions across several buffers
-(use-package imenu-anywhere
-  :defer t
-  :after imenu
-  :bind ("C-c C-M-j" . imenu-anywhere))
-#+end_src
-
-** Imenu extension to list headings in a side buffer                  :melpa:
-
-[[https://github.com/bmag/imenu-list][imenu-list]] is an Imenu extension that opens up a side buffer
-listing the major definitions and headings in the current buffer.
-This configuration customizes it such that on jumping to a
-definition or heading, it pulses the destination line once
-and automatically closes the imenu-list.
-
-#+name: imenu-list
-#+begin_src emacs-lisp
-;; show imenu as a list in a side buffer
-(use-package imenu-list
-  :defer t
-  :after imenu
-  :bind ("C-c C-M-'" . imenu-list-smart-toggle)
-  :config
-  (setq imenu-list-focus-after-activation t)
-  ;; pulse target after selecting
-  (add-hook 'imenu-list-after-jump-hook
-            (lambda () (pulse-momentary-highlight-one-line (point))))
-  ;; close imenu list after going to entry
-  (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
-#+end_src
-
 * Programming
 
 ** Flycheck syntax checker                                            :melpa:
@@ -5290,7 +5240,7 @@ Lisp function does not specify a special indentation."
 
 ** fish shell scripts
 
-*** fish-mode
+*** fish-mode                                                         :melpa:
 
 [[https://github.com/wwwjfy/emacs-fish][fish-mode]] is a major-mode for working with [[https://fishshell.com/][fish shell]] scripts.
 
@@ -5302,6 +5252,64 @@ Lisp function does not specify a special indentation."
 #+end_src
 
 ** Python
+
+*** Use jupyter or ipython as the Python interpreter when available :external:
+
+Create a POSIX shell script =py= with the following contents somewhere
+on the system path, like =~/.local/bin/py= for example.
+
+#+begin_example
+#!/bin/sh
+
+# Wrapper script to use jupyter or ipython, if available, over python
+
+PY_CMD="python"
+PY_EXTRA_ARGS=""
+
+if command -v jupyter-console
+then
+  PY_CMD="jupyter-console"
+  if echo "$INSIDE_EMACS" | grep -q -e ",comint$"
+  then
+    PY_EXTRA_ARGS="$PY_EXTRA_ARGS --simple-prompt"
+  fi
+elif command -v ipython
+then
+  PY_CMD="ipython"
+  if echo "$INSIDE_EMACS" | grep -q -e ",comint$"
+  then
+    PY_EXTRA_ARGS="$PY_EXTRA_ARGS --simple-prompt -i"
+  fi
+else  # python
+  if echo "$INSIDE_EMACS" | grep -q -e ",comint$"
+  then
+    PY_EXTRA_ARGS="$PY_EXTRA_ARGS -i"
+  fi
+fi
+
+$PY_CMD $PY_EXTRA_ARGS $@
+#+end_example
+
+Make sure it is set to executable.
+
+#+begin_example
+$ chmod +x ~/.local/bin/py
+#+end_example
+
+Set the Emacs Python interpreter command and options to the script.
+
+#+name: python-shell-interpreter
+#+begin_src emacs-lisp
+(setq python-shell-interpreter "py"
+      python-shell-interpreter-args ""
+      python-shell-prompt-detect-failure-warning nil)
+
+(add-to-list 'python-shell-completion-native-disabled-interpreters "py")
+#+end_src
+
+*Limitations*:
+- Completion in the inferior shell does not work on object attributes
+  (see [[https://github.com/jorgenschaefer/elpy/issues/1545][link]]).
 
 *** Developing
 
@@ -5965,35 +5973,36 @@ Search (_q_: quit)"
   ("oo" occur "occur")
   ("om" multi-occur "multi-occur")
   ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
-  ("oO" org-occur "org-occur")
   ("rs" query-replace "replace string")
   ("rr" query-replace-regexp "replace regexp")
   ("kg" kill-grep "kill-grep"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
 #+end_src
 
-** Ripgrep support                                           :hydra:external:
+** Ripgrep support with rg.el                                :external:melpa:
 
-Support for [[https://github.com/BurntSushi/ripgrep][ripgrep]], an alternative for the grep search tool that is
+[[https://github.com/dajva/rg.el][rg.el]] provides support for [[https://github.com/BurntSushi/ripgrep][ripgrep]], an alternative for the grep search tool that is
 extremely fast.
-Besides having its own binding, also add a hydra head for calling it
-to the [[Search hydra]].
 
-It has an editing mode ~deadgrep-edit-mode~ (still not mature) that
-can can be enabled within deadgrep buffers somewhat like [[https://github.com/mhayashi1120/Emacs-wgrep][wgrep.el]].
-This allows the direct editing of the deadgrep buffer, after which
-running ~M-x deadgrep-mode~ propogates the changes back to the
-files and the buffer is switched back to ~deadgrep-mode~.
+It supports inline editing of search results via [[https://github.com/mhayashi1120/Emacs-wgrep][wgrep]], accessed
+through ~e~ while on the search results page.
 
-#+name: ripgrep-support
+#+name: rg
 #+begin_src emacs-lisp
-;; support for ripgrep if installed on the system
 (when (executable-find "rg")
-  (use-package deadgrep
-    :defer t
-    :bind ("<f5>" . deadgrep))
+  (use-package rg
+    :bind ("<f5>" . rg-menu)))
+#+end_src
+
+*** rg.el entrypoint in search hydra                                  :hydra:
+
+Add rg.el entrypoint to the search hydra.
+
+#+name: search-hydra-rg
+#+begin_src emacs-lisp
+(when (executable-find "rg")
   (defhydra+ my-hydra/search nil
-    ("gR" deadgrep "ripgrep" :exit t)))
+    ("R" rg-menu "ripgrep" :exit t)))
 #+end_src
 
 ** Show match counts with Anzu                                        :melpa:
@@ -6180,6 +6189,54 @@ Notdeft is mainly used for searching notes and not for creating them.
 (autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
 (with-eval-after-load 'notdeft
   (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
+#+end_src
+
+** Imenu
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Imenu.html][Imenu]] allows jumping to major definitions in a file by name.
+Have Imenu automatically rescan whenever the content changes.
+
+#+name: imenu-auto-rescan
+#+begin_src emacs-lisp
+(setq imenu-auto-rescan t)
+#+end_src
+
+*** Imenu extension to all open buffers using imenu-anywhere          :melpa:
+
+[[https://github.com/vspinu/imenu-anywhere][imenu-anywhere]] provides an Imenu extension that lists major
+definitions across all open buffers.
+
+#+name: imenu-anywhere
+#+begin_src emacs-lisp
+;; menu list of major definitions across several buffers
+(use-package imenu-anywhere
+  :defer t
+  :after imenu
+  :bind ("C-c C-M-j" . imenu-anywhere))
+#+end_src
+
+*** Imenu extension to list headings in a side buffer                 :melpa:
+
+[[https://github.com/bmag/imenu-list][imenu-list]] is an Imenu extension that opens up a side buffer
+listing the major definitions and headings in the current buffer.
+This configuration customizes it such that on jumping to a
+definition or heading, it pulses the destination line once
+and automatically closes the imenu-list.
+
+#+name: imenu-list
+#+begin_src emacs-lisp
+;; show imenu as a list in a side buffer
+(use-package imenu-list
+  :defer t
+  :after imenu
+  :bind ("C-c C-M-'" . imenu-list-smart-toggle)
+  :config
+  (setq imenu-list-focus-after-activation t)
+  ;; pulse target after selecting
+  (add-hook 'imenu-list-after-jump-hook
+            (lambda () (pulse-momentary-highlight-one-line (point))))
+  ;; close imenu list after going to entry
+  (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
 #+end_src
 
 * Visual
@@ -6614,6 +6671,29 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   ("o" my-hydra/visual/outline/body "→ Outline" :exit t))
 #+end_src
 
+** Tab-cycling of folds in outline-minor-mode with outline-magic :melpa:
+
+[[https://github.com/tj64/outline-magic][outline-magic]] extends outline-mode and outline-minor-mode with
+visibility cycling and structural editing.
+
+Emulate the node visibility cycling of Org mode, where pressing ~TAB~
+while on an outline heading with cycle its subtree visibility.
+
+#+name: outline-magic
+#+begin_src emacs-lisp
+;; <tab> cycles the folding of the current node in outline-minor-mode
+;; https://www.reddit.com/r/emacs/comments/a6tu8y/outlineminormode_for_emacs_maybe_useful/eby6c2r/
+(use-package outline-magic
+  :config
+  (add-hook 'outline-minor-mode-hook
+            (lambda ()
+              (define-key outline-minor-mode-map (kbd "TAB")
+                '(menu-item "" nil :filter
+                            (lambda (&optional _)
+                              (when (outline-on-heading-p)
+                                #'outline-cycle)))))))
+#+end_src
+
 ** Whitespace visualization and cleanup hydra                         :hydra:
 
 #+name: whitespace-hydra
@@ -6681,6 +6761,17 @@ It supports text and images, but not webfonts or Javascript.
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
   ;; don't render images in HTML pages by default
   :config (setq-default shr-inhibit-images t))
+#+end_src
+
+*** Add eww entry point to search hydra                               :hydra:
+
+Add entry point into eww from search hydra.
+
+#+name: search-hydra-eww
+#+begin_src emacs-lisp
+;; add eww entry point to search hydra
+(defhydra+ my-hydra/search nil
+  ("w" eww "eww" :exit t))
 #+end_src
 
 *** Emacs Web Wowser hydra                                            :hydra:
@@ -7961,14 +8052,6 @@ The main configuration file.
 
 <<org-super-agenda>>
 
-;; Outlines
-
-<<imenu-auto-rescan>>
-
-<<imenu-anywhere>>
-
-<<imenu-list>>
-
 ;; Programming / FlyCheck syntax checker
 
 <<flycheck>>
@@ -8025,6 +8108,8 @@ The main configuration file.
 
 ;; Programming / Python
 
+<<python-shell-interpreter>>
+
 <<python-hydra>>
 
 ;; <<python-flycheck>>
@@ -8079,7 +8164,9 @@ The main configuration file.
 
 <<search-hydra>>
 
-<<ripgrep-support>>
+<<rg>>
+
+<<search-hydra-rg>>
 
 <<anzu>>
 
@@ -8094,6 +8181,12 @@ The main configuration file.
 <<notdeft>>
 
 <<notdeft-hydra>>
+
+<<imenu-auto-rescan>>
+
+<<imenu-anywhere>>
+
+<<imenu-list>>
 
 ;; Visual (part 2)
 
@@ -8113,6 +8206,8 @@ The main configuration file.
 
 <<outline-hydra>>
 
+<<outline-magic>>
+
 <<whitespace-hydra>>
 
 <<show-column-number>>
@@ -8122,6 +8217,8 @@ The main configuration file.
 ;; Web
 
 <<eww>>
+
+<<search-hydra-eww>>
 
 <<eww-hydra>>
 
@@ -8215,6 +8312,14 @@ The main configuration file.
 
 ** Backend and frontend frameworks for building user interfaces
 
+*** Helm
+
+**** Use icons in Helm                                                :melpa:
+
+Update ~helm-treemacs-icons~ to ~helm-icons~ when it supports all-the-icons.
+
+[[https://github.com/yyoncho/helm-icons][GitHub - yyoncho/helm-icons: Integration between helm and icon packages]]
+
 *** [#C] Transient                                                    :melpa:
 
 [[https://github.com/magit/transient][Transient]] provides transient keymaps, like Hydra.
@@ -8256,9 +8361,21 @@ only letting it display specific kinds of buffers.
 or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 (specifically the two functions add and remove ~ibuffer-auto-mode~).
 
+** Command-line interaction
+
+*** Eshell
+
+**** [#A] eshell-z                                                    :melpa:
+
+[[https://github.com/xuchunyang/eshell-z][GitHub - xuchunyang/eshell-z: cd to frequent directory in eshell, Emacs port ...]]
+
+**** [#B] eshell-prompt-extras                                        :melpa:
+
+[[https://github.com/zwild/eshell-prompt-extras][GitHub - zwild/eshell-prompt-extras: Display extra information and color for ...]]
+
 ** Non-programming files
 
-*** Nix configuration files
+*** [#C] Nix configuration files
 
 **** [#C] nix-mode for editing Nix configuration files                :melpa:
 
@@ -8269,6 +8386,10 @@ or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 [[https://github.com/jwiegley/nix-update-el][GitHub - jwiegley/nix-update-el]] ([[https://melpa.org/#/nix-update][MELPA]])
 
 *** [#B] PlantUML                                                     :melpa:
+
+*** [#C] Gnuplot                                                      :melpa:
+
+[[https://github.com/emacsorphanage/gnuplot][GitHub - emacsorphanage/gnuplot: A major mode for Emacs for interacting with Gnuplot]]
 
 ** Org-mode
 
@@ -8282,7 +8403,7 @@ export shortcut keys so they align with the default LaTeX export ones.
 Additionally, use the ~ETbb~ package from CTAN for the font instead
 of the look-alike in the old code.
 
-*** [#B] Org-roam                                            :external:melpa:
+*** [#C] Org-roam                                            :external:melpa:
 
 [[https://github.com/org-roam/org-roam][Org-roam]] is a [[https://www.roamresearch.com/][Roam]] replica built atop Org-mode.
 
@@ -8461,6 +8582,10 @@ alternative is Memacs.
 
 ** Programming
 
+*** [#C] helm-dash                                                    :melpa:
+
+[[https://github.com/dash-docs-el/helm-dash][GitHub - dash-docs-el/helm-dash: Browse Dash docsets inside emacs]]
+
 *** Bash
 
 **** [#C] Static analysis using ShellCheck                         :external:
@@ -8475,6 +8600,22 @@ MELPA has a package for Flymake support.
 Or can define using ~flymake-quickdef~.
 
 [[https://github.com/federicotdn/flymake-shellcheck][GitHub - federicotdn/flymake-shellcheck]]
+
+*** Docker
+
+**** [#A] Docker manager                                              :melpa:
+
+[[https://github.com/Silex/docker.el][GitHub - Silex/docker.el: Manage docker from Emacs.]]
+
+*** Python
+
+**** [#B] yapfify for formatting Python buffers with yapf             :melpa:
+
+[[https://github.com/JorisE/yapfify][GitHub - JorisE/yapfify: Yapf for Emacs]]
+
+**** [#B] Live coding in Python                                       :melpa:
+
+[[https://github.com/donkirkby/live-py-plugin][GitHub - donkirkby/live-py-plugin: Live coding in Python with PyCharm, Emacs,...]]
 
 *** SQL
 
@@ -8518,6 +8659,10 @@ Quick overview of using Forge in a typical open-source contribution workflow.
 environments using Nix.
 
 - Using nix-buffer for file-local environments ([[https://blog.jethro.dev/posts/nix_buffer_emacs/][link]])
+
+*** [#B] Generic session manager                                      :melpa:
+
+[[https://github.com/vspinu/sesman][GitHub - vspinu/sesman: Session manager for Emacs based IDEs.]]
 
 ** Reference management
 
@@ -8577,6 +8722,14 @@ packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://g
 markup.
 
 ** Other
+*** [#C] literate-calc-mode
+
+[[https://github.com/sulami/literate-calc-mode.el][GitHub - sulami/literate-calc-mode.el]]
+
+This package supports literate programming for calculations,
+automatically picking up calculations and inserting the results as
+overlays.
+
 *** [#B] Password management and storage
 
 https://milosophical.me/blog/2018/keepass-and-password-store.html
@@ -8609,7 +8762,23 @@ Built-in to Emacs and integrates [[https://www.passwordstore.org/][pass]] with ~
 
 https://github.com/NicolasPetton/pass
 
+*** [#C] org-trello for syncing between Org buffers and Trello boards
+
+[[https://github.com/org-trello/org-trello][GitHub - org-trello/org-trello: Org minor mode - 2-way sync org & trello]]
+
 * DONE Deprecated
+
+** Backend and frontend frameworks for building user interfaces
+
+*** Company front-end with icons                                      :melpa:
+
+[[https://github.com/sebastiencs/company-box][company-box]] provides a fancy front-end for Company with icons.
+
+#+name: company-box
+#+begin_src emacs-lisp
+(use-package company-box
+  :hook (company-mode . company-box-mode))
+#+end_src
 
 ** Email
 
@@ -9086,6 +9255,34 @@ entry to the menubar.
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
 #+end_src
 
+** Search and navigation
+
+*** Ripgrep support                                          :hydra:external:
+
+Support for [[https://github.com/BurntSushi/ripgrep][ripgrep]], an alternative for the grep search tool that is
+extremely fast.
+Besides having its own binding, also add a hydra head for calling it
+to the [[Search hydra]].
+
+It has an editing mode ~deadgrep-edit-mode~ (still not mature) that
+can can be enabled within deadgrep buffers somewhat like [[https://github.com/mhayashi1120/Emacs-wgrep][wgrep.el]].
+This allows the direct editing of the deadgrep buffer, after which
+running ~M-x deadgrep-mode~ propogates the changes back to the
+files and the buffer is switched back to ~deadgrep-mode~.
+
+#+name: ripgrep-support
+#+begin_src emacs-lisp
+;; support for ripgrep if installed on the system
+(when (executable-find "rg")
+  (use-package deadgrep
+    :defer t
+    :bind ("<f5>" . deadgrep))
+  (defhydra+ my-hydra/search nil
+    ("gR" deadgrep "ripgrep" :exit t)))
+#+end_src
+
+
+
 ** Visual
 
 *** Display function or outline node at point using which-func    :semiearly:
@@ -9171,7 +9368,7 @@ for more info.")
 
 ** Other
 
-** Hyperspace launcher for Emacs                                      :melpa:
+*** Hyperspace launcher for Emacs                                     :melpa:
 
 [[https://github.com/ieure/hyperspace-el][Hyperspace]] is a launcher for Emacs, much like Alfred or Quicksilver
 for Mac OS X.

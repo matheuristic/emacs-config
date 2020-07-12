@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul  5 21:24:08 2020
+;; Generated: Sun Jul 12 17:33:36 2020
 
 ;;; Commentary:
 
@@ -2509,29 +2509,6 @@ Org-mode → Download (_q_: ←)"
                                    :todo "HOLD")))
   (org-super-agenda-mode 1))
 
-;; Outlines
-
-(setq imenu-auto-rescan t)
-
-;; menu list of major definitions across several buffers
-(use-package imenu-anywhere
-  :defer t
-  :after imenu
-  :bind ("C-c C-M-j" . imenu-anywhere))
-
-;; show imenu as a list in a side buffer
-(use-package imenu-list
-  :defer t
-  :after imenu
-  :bind ("C-c C-M-'" . imenu-list-smart-toggle)
-  :config
-  (setq imenu-list-focus-after-activation t)
-  ;; pulse target after selecting
-  (add-hook 'imenu-list-after-jump-hook
-            (lambda () (pulse-momentary-highlight-one-line (point))))
-  ;; close imenu list after going to entry
-  (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
-
 ;; Programming / FlyCheck syntax checker
 
 ;; linting support, used in place of FlyMake
@@ -3025,6 +3002,12 @@ CIDER → REPL (_q_: ←)"
 
 ;; Programming / Python
 
+(setq python-shell-interpreter "py"
+      python-shell-interpreter-args ""
+      python-shell-prompt-detect-failure-warning nil)
+
+(add-to-list 'python-shell-completion-native-disabled-interpreters "py")
+
 ;; mode-specific hydra for Python mode
 (defhydra my-hydra/python-mode (:color teal :columns 4)
   "
@@ -3408,19 +3391,18 @@ Search (_q_: quit)"
   ("oo" occur "occur")
   ("om" multi-occur "multi-occur")
   ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
-  ("oO" org-occur "org-occur")
   ("rs" query-replace "replace string")
   ("rr" query-replace-regexp "replace regexp")
   ("kg" kill-grep "kill-grep"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
 
-;; support for ripgrep if installed on the system
 (when (executable-find "rg")
-  (use-package deadgrep
-    :defer t
-    :bind ("<f5>" . deadgrep))
+  (use-package rg
+    :bind ("<f5>" . rg-menu)))
+
+(when (executable-find "rg")
   (defhydra+ my-hydra/search nil
-    ("gR" deadgrep "ripgrep" :exit t)))
+    ("R" rg-menu "ripgrep" :exit t)))
 
 ;; show current and total search matches, and preview query replace results
 (use-package anzu
@@ -3492,6 +3474,27 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 (autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
 (with-eval-after-load 'notdeft
   (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
+
+(setq imenu-auto-rescan t)
+
+;; menu list of major definitions across several buffers
+(use-package imenu-anywhere
+  :defer t
+  :after imenu
+  :bind ("C-c C-M-j" . imenu-anywhere))
+
+;; show imenu as a list in a side buffer
+(use-package imenu-list
+  :defer t
+  :after imenu
+  :bind ("C-c C-M-'" . imenu-list-smart-toggle)
+  :config
+  (setq imenu-list-focus-after-activation t)
+  ;; pulse target after selecting
+  (add-hook 'imenu-list-after-jump-hook
+            (lambda () (pulse-momentary-highlight-one-line (point))))
+  ;; close imenu list after going to entry
+  (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
 
 ;; Visual (part 2)
 
@@ -3668,6 +3671,18 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 (defhydra+ my-hydra/visual nil
   ("o" my-hydra/visual/outline/body "→ Outline" :exit t))
 
+;; <tab> cycles the folding of the current node in outline-minor-mode
+;; https://www.reddit.com/r/emacs/comments/a6tu8y/outlineminormode_for_emacs_maybe_useful/eby6c2r/
+(use-package outline-magic
+  :config
+  (add-hook 'outline-minor-mode-hook
+            (lambda ()
+              (define-key outline-minor-mode-map (kbd "TAB")
+                '(menu-item "" nil :filter
+                            (lambda (&optional _)
+                              (when (outline-on-heading-p)
+                                #'outline-cycle)))))))
+
 ;; hydra for whitespace visualization and cleanup
 (defhydra my-hydra/whitespace (:color teal :columns 3)
   "
@@ -3703,6 +3718,10 @@ Whitespace (_q_: quit)"
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
   ;; don't render images in HTML pages by default
   :config (setq-default shr-inhibit-images t))
+
+;; add eww entry point to search hydra
+(defhydra+ my-hydra/search nil
+  ("w" eww "eww" :exit t))
 
 ;; hydra for Emacs Web Wowser
 (defhydra my-hydra/eww-mode (:color teal :columns 3)

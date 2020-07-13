@@ -312,21 +312,15 @@
    `(markdown-code-face ((t (:inherit fixed-pitch :foreground ,fg :background "#ffffe0" :extend t))))
 
    ;; vterm
-   ;; - since the theme is light, black and white colors are inverted
-   ;;   and bright colors are shifted lighter
-   ;; - `vterm-color-<colorname>' for <colorname> != default treats
-   ;;   foreground color as the base color for that colorname and
-   ;;   background color as the bright color for that colorname
    `(vterm-color-default ((t (:inherit default :foreground ,fg :background ,bg :extend t))))
-   ;; `(vterm-color-default ((t (:inherit default :foreground "#111111" :background "fbfbf8" :extend t))))
-   `(vterm-color-black ((t (:inherit term-color-white :foreground "#888888" :background "#a2a2a2"))))
-   `(vterm-color-red ((t (:inherit term-color-red :foreground "#eb6c6c" :background "#f19999"))))
-   `(vterm-color-green ((t (:inherit term-color-green :foreground "#86a93d" :background "#9fc257"))))
-   `(vterm-color-yellow ((t (:inherit term-color-yellow :foreground "#eabe2d" :background "#efcc5b"))))
-   `(vterm-color-blue ((t (:inherit term-color-blue :foreground "#2181e0" :background "#4e9ae6"))))
-   `(vterm-color-magenta ((t (:inherit term-color-magenta :foreground "#9163c3" :background "#ab88d1"))))
-   `(vterm-color-cyan ((t (:inherit term-color-cyan :foreground "#5aa79d" :background "#7bb9b1"))))
-   `(vterm-color-white ((t (:inherit term-color-black :foreground "#292929" :background "#424242"))))
+   `(vterm-color-black ((t (:inherit term-color-black))))
+   `(vterm-color-red ((t (:inherit term-color-red))))
+   `(vterm-color-green ((t (:inherit term-color-green))))
+   `(vterm-color-yellow ((t (:inherit term-color-yellow))))
+   `(vterm-color-blue ((t (:inherit term-color-blue))))
+   `(vterm-color-magenta ((t (:inherit term-color-magenta))))
+   `(vterm-color-cyan ((t (:inherit term-color-cyan))))
+   `(vterm-color-white ((t (:inherit term-color-white))))
 
    ;; evil-quickscope
    `(evil-quickscope-first-face ((t (:foreground ,fg :background "#eeeee8"))))

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul 12 17:33:36 2020
+;; Generated: Fri Jul 17 23:12:33 2020
 
 ;;; Commentary:
 
@@ -107,10 +107,10 @@
   (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-z") #'helm-select-action))
 
-(use-package helm-treemacs-icons
+(use-package helm-icons
   :after helm
   :ensure nil ;; in site-lisp subdirectory
-  :config (helm-treemacs-icons-enable))
+  :config (helm-icons-enable))
 
 ;; ;; use Icomplete as the completion backend
 ;; ;; emulate ido behavior where possible
@@ -486,8 +486,16 @@ Window (_q_: quit)"
   ("q" nil nil :exit t)
   ("u" winner-undo "winner-undo")
   ("r" winner-redo "winner-redo")
-  ("n" next-window-any-frame "next")
-  ("p" previous-window-any-frame "previous")
+  ("n"
+   (condition-case nil
+       (next-window-any-frame)
+     (error (next-multiframe-window)))
+   "next")
+  ("p"
+   (condition-case nil
+       (previous-window-any-frame)
+     (error (previous-multiframe-window)))
+   "previous")
   ("v" split-window-right "split-v")
   ("s" split-window-below "split-h")
   ("<left>" windmove-left "left")
@@ -554,6 +562,23 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (defhydra+ my-hydra/window nil
   ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
   ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
+
+;; auto-close special buffers like *Completions* and *compilation*
+(use-package popwin
+  :config (popwin-mode 1))
+
+;; window navigation and management
+(use-package ace-window
+  :config
+  (setq aw-background t
+        aw-char-position 'left
+        aw-ignore-current nil
+        aw-scope 'frame)
+  (global-set-key (kbd "M-O") #'ace-window))
+
+;; add `ace-window' entry point to window hydra
+(defhydra+ my-hydra/window nil
+  ("a" ace-window "ace-window"))
 
 ;; Buffers, windows, frames, workspaces / Frame management
 
@@ -716,6 +741,9 @@ provided, the default interactive `eshell' command is run."
 ;;     :after eshell
 ;;     :config (when (not (featurep 'helm))
 ;;               (add-hook 'eshell-mode-hook #'fish-completion-mode))))
+
+(use-package eshell-z
+  :after eshell)
 
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
@@ -1966,8 +1994,10 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
                       ("vendor" . ?V)
                       ("partner" . ?P)
                       ("client" . ?C)
+                      ;; work-related meeting type
+                      ("internal" . ?I)
+                      ("external" . ?X)
                       ;; work-related project category
-                      ("internal" . ?\^n) ; C-n
                       ("healthcare" . ?\^h) ;; C-h
                       ("retail" . ?\^r))) ;; C-r
 
@@ -3008,6 +3038,11 @@ CIDER → REPL (_q_: ←)"
 
 (add-to-list 'python-shell-completion-native-disabled-interpreters "py")
 
+;; modify Python syntax table to keep underscores within a word
+;; boundary when editing Python buffers
+(with-eval-after-load 'python
+  (modify-syntax-entry ?_ "w" python-mode-syntax-table))
+
 ;; mode-specific hydra for Python mode
 (defhydra my-hydra/python-mode (:color teal :columns 4)
   "
@@ -3036,6 +3071,13 @@ Python (_q_: quit)"
 ;; binding for Python hydra
 (with-eval-after-load 'python
   (define-key python-mode-map (kbd "C-c C-M-m") #'my-hydra/python-mode/body))
+
+;; convenience functions for running yapf on Python buffers/regions
+(use-package yapfify)
+
+;; add entry point to yapfify in python-mode hydra
+(defhydra+ my-hydra/python-mode nil
+  ("y" yapfify-region-or-buffer "yapf" :exit t))
 
 ;; (add-hook 'python-mode-hook #'flycheck-mode t)
 
@@ -3395,6 +3437,11 @@ Search (_q_: quit)"
   ("rr" query-replace-regexp "replace regexp")
   ("kg" kill-grep "kill-grep"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
+
+;; "C-c C-p" in grep bufs allow writing with changes pushed to files
+(use-package wgrep
+  :config (setq wgrep-auto-save-buffer nil
+                wgrep-too-many-file-length 10))
 
 (when (executable-find "rg")
   (use-package rg
@@ -3996,6 +4043,35 @@ Help (_q_: quit)"
 (defhydra+ my-hydra/buffer nil
   ("l" so-long-mode "so-long")
   ("L" so-long-minor-mode "so-long-mm"))
+
+;; minor-mode to input ctrl/meta key sequences without modifier keys
+(use-package god-mode
+  :bind (("<escape>" . god-mode-all)
+         ;; easier window manipulation in god-mode
+         ("C-x C-1" . delete-other-windows)
+         ("C-x C-2" . split-window-below)
+         ("C-x C-3" . split-window-right)
+         ("C-x C-0" . delete-window)
+         :map god-local-mode-map
+         ("." . repeat)
+         :map god-mode-isearch-map
+         ("<escape>" . god-mode-isearch-disable)
+         :map isearch-mode-map
+         ("<escape>" . god-mode-isearch-activate))
+  :config
+  ;; enable in isearch
+  (require 'god-mode-isearch)
+  ;; use cursor to indicate if in god-mode
+  (defun god-mode--update-cursor ()
+    "Sets cursor to a box in `god-mode' or read-only buf, else a bar."
+    (setq cursor-type (if (or god-local-mode buffer-read-only)
+                          'box
+                        'bar)))
+  (add-hook 'god-mode-enabled-hook #'god-mode--update-cursor)
+  (add-hook 'god-mode-disabled-hook #'god-mode--update-cursor)
+  ;; enable which-key integration
+  (with-eval-after-load 'which-key
+    (which-key-enable-god-mode-support)))
 
 ;; OS-specific / Mac OS X
 

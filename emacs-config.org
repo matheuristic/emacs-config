@@ -97,6 +97,7 @@ Literate configs, package lists, and so on and so forth.
 - [[https://uwabami.github.io/cc-env/Emacs.html][Emacs の設定 | Youhei SASAKI’s official site]].
 - [[https://github.com/emacs-tw/awesome-emacs][GitHub - emacs-tw/awesome-emacs]]
 - [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Change-Log-Commands.html][Change Log Commands - GNU Emacs Manual]]
+- [[https://two-wrongs.com/why-you-should-buy-into-the-emacs-platform][Why You Should Buy Into the Emacs Platform]]
 
 ** Useful Emacs Lisp references
 
@@ -456,23 +457,22 @@ In most instances, use only this or Icomplete but not both.
 
 *** Use icons in Helm                                              :external:
 
-[[https://github.com/yyoncho/helm-treemacs-icons][helm-treemacs-icons]] shows file icons using those from Treemacs when
-using file-related Helm commands.
+[[https://github.com/yyoncho/helm-icons][helm-icons]] shows file icons using those from Treemacs when using
+file-related Helm commands.
 
 Current not in MELPA, so it should be downloaded or cloned from the
 Github repo into some directory in the ~load-path~, for example its
 own folder in the =~/.emacs.d/site-lisp/= directory.
 
-*Note*: The maintainer of this package intends to rename it to
-~helm-icons~ in the future and integrate ~all-the-icons~ support
-prior to putting it on MELPA ([[https://github.com/melpa/melpa/pull/6853][link]]).
+*Note*: The maintainer of this package plans to support
+~all-the-icons~ prior to putting it on MELPA ([[https://github.com/melpa/melpa/pull/6853][link]]).
 
-#+name: helm-treemacs-icons
+#+name: helm-icons
 #+begin_src emacs-lisp
-(use-package helm-treemacs-icons
+(use-package helm-icons
   :after helm
   :ensure nil ;; in site-lisp subdirectory
-  :config (helm-treemacs-icons-enable))
+  :config (helm-icons-enable))
 #+end_src
 
 ** Minibuffer completion with Icomplete
@@ -1009,8 +1009,16 @@ Window (_q_: quit)"
   ("q" nil nil :exit t)
   ("u" winner-undo "winner-undo")
   ("r" winner-redo "winner-redo")
-  ("n" next-window-any-frame "next")
-  ("p" previous-window-any-frame "previous")
+  ("n"
+   (condition-case nil
+       (next-window-any-frame)
+     (error (next-multiframe-window)))
+   "next")
+  ("p"
+   (condition-case nil
+       (previous-window-any-frame)
+     (error (previous-multiframe-window)))
+   "previous")
   ("v" split-window-right "split-v")
   ("s" split-window-below "split-h")
   ("<left>" windmove-left "left")
@@ -1092,6 +1100,46 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (defhydra+ my-hydra/window nil
   ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
   ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
+#+end_src
+
+*** popwin for automatic management of special buffers                :melpa:
+
+[[https://github.com/emacsorphanage/popwin][popwin]] configures Emacs to show special buffers like ~*Help*~,
+~*Completions*~ and so on in a window that automatically gets closed
+on ~C-g~ or selection of another window.
+
+#+name: popwin
+#+begin_src emacs-lisp
+;; auto-close special buffers like *Completions* and *compilation*
+(use-package popwin
+  :config (popwin-mode 1))
+#+end_src
+
+*** ace-window
+
+[[https://github.com/abo-abo/ace-window][ace-window]] provides window navigation and manipulation functions.
+
+#+name: ace-window
+#+begin_src emacs-lisp
+;; window navigation and management
+(use-package ace-window
+  :config
+  (setq aw-background t
+        aw-char-position 'left
+        aw-ignore-current nil
+        aw-scope 'frame)
+  (global-set-key (kbd "M-O") #'ace-window))
+#+end_src
+
+**** Add ace-window entry point to window hydra
+
+Add entry point for calling ~ace-window~ to the window hydra.
+
+#+name: add-ace-window-to-window-hydra
+#+begin_src emacs-lisp
+;; add `ace-window' entry point to window hydra
+(defhydra+ my-hydra/window nil
+  ("a" ace-window "ace-window"))
 #+end_src
 
 ** Frame management
@@ -1398,6 +1446,17 @@ If using ~helm-fish-completion~, ~fish-completion-mode~ should be disabled.
     :after eshell
     :config (when (not (featurep 'helm))
               (add-hook 'eshell-mode-hook #'fish-completion-mode))))
+#+end_src
+
+*** eshell-z for jumping to frecent directories                       :melpa:
+
+[[https://github.com/xuchunyang/eshell-z][eshell-z]] is a port of [[https://github.com/rupa/z][z]] to Eshell, providing a shell facility for
+jumping to frecent directories.
+
+#+name: eshell-z
+#+begin_src emacs-lisp
+(use-package eshell-z
+  :after eshell)
 #+end_src
 
 ** Command interpreters for other shells
@@ -3813,8 +3872,10 @@ Restore the window configuration after capturing the task.
                       ("vendor" . ?V)
                       ("partner" . ?P)
                       ("client" . ?C)
+                      ;; work-related meeting type
+                      ("internal" . ?I)
+                      ("external" . ?X)
                       ;; work-related project category
-                      ("internal" . ?\^n) ; C-n
                       ("healthcare" . ?\^h) ;; C-h
                       ("retail" . ?\^r))) ;; C-r
 #+end_src
@@ -5349,11 +5410,27 @@ import pdb
 pdb.Pdb.complete=rlcompleter.Completer(locals()).complete
 #+end_example
 
+*** Python syntax table
+
+By default, Emacs uses ~_~ to demarcate word boundaries.
+
+However, using snake case for variable names (for example,
+~some_variable~) is idiomatic style in Python code, so modify the
+Python syntax table to keep underscores within a word boundary.
+
+#+name: python-mode-syntax-table
+#+begin_src emacs-lisp
+;; modify Python syntax table to keep underscores within a word
+;; boundary when editing Python buffers
+(with-eval-after-load 'python
+  (modify-syntax-entry ?_ "w" python-mode-syntax-table))
+#+end_src
+
 *** Python hydra                                                      :hydra:
 
 Mode-specific Hydra for Python mode.
 
-#+name: python-hydra
+#+name: python-mode-hydra
 #+begin_src emacs-lisp
 ;; mode-specific hydra for Python mode
 (defhydra my-hydra/python-mode (:color teal :columns 4)
@@ -5383,6 +5460,32 @@ Python (_q_: quit)"
 ;; binding for Python hydra
 (with-eval-after-load 'python
   (define-key python-mode-map (kbd "C-c C-M-m") #'my-hydra/python-mode/body))
+#+end_src
+
+*** yapfify for formatting Python buffers with yapf                   :melpa:
+
+[[https://github.com/JorisE/yapfify][yapfify]] creates a convenience functions ~yapfify-buffer~,
+~yapfify-region~ and ~yapfify-region-or-buffer~ for using [[https://github.com/google/yapf][yapf]] to
+format a Python buffer or region.
+
+It also provides a minor mode ~yapf-mode~ that automically runs ~yapf~
+prior to saving a file.
+
+#+name: yapfify
+#+begin_src emacs-lisp
+;; convenience functions for running yapf on Python buffers/regions
+(use-package yapfify)
+#+end_src
+
+**** Add yapfify commands to python-mode hydra                        :hydra:
+
+Add entry point to ~yapfify-buffer-or-region~ to python-mode hydra.
+
+#+name: add-yapfify-to-python-mode-hydra
+#+begin_src emacs-lisp
+;; add entry point to yapfify in python-mode hydra
+(defhydra+ my-hydra/python-mode nil
+  ("y" yapfify-region-or-buffer "yapf" :exit t))
 #+end_src
 
 *** Enable FlyCheck mode when editing Python files
@@ -5979,6 +6082,21 @@ Search (_q_: quit)"
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
 #+end_src
 
+** wgrep for writable grep buffers with changes pushed to files       :melpa:
+
+[[https://github.com/mhayashi1120/Emacs-wgrep][wgrep.el]] makes grep buffers writable with changes pushed to files.
+Enable with ~C-c C-p~ when in a ~*grep*~ buffer.
+
+Automatically installed by ~rg.el~.
+
+#+name: wgrep
+#+begin_src emacs-lisp
+;; "C-c C-p" in grep bufs allow writing with changes pushed to files
+(use-package wgrep
+  :config (setq wgrep-auto-save-buffer nil
+                wgrep-too-many-file-length 10))
+#+end_src
+
 ** Ripgrep support with rg.el                                :external:melpa:
 
 [[https://github.com/dajva/rg.el][rg.el]] provides support for [[https://github.com/BurntSushi/ripgrep][ripgrep]], an alternative for the grep search tool that is
@@ -6240,6 +6358,17 @@ and automatically closes the imenu-list.
 #+end_src
 
 * Visual
+
+** Change default cursor type                                         :early:
+
+Change cursor type to a non-blinking bar.
+
+#+name: cursor
+#+begin_src emacs-lisp
+;; set cursor after initialization
+(setq-default cursor-type 'bar)
+(blink-cursor-mode 0)
+#+end_src
 
 ** Decorations                                                        :early:
 
@@ -7432,6 +7561,43 @@ Extend buffer hydra with toggles for ~so-long-mode~ and
   ("L" so-long-minor-mode "so-long-mm"))
 #+end_src
 
+** god-mode                                                           :melpa:
+
+[[https://github.com/emacsorphanage/god-mode][god-mode]] is a minor-mode for entering Control and Meta key sequences
+without modifier keys.
+
+#+name: god-mode
+#+begin_src emacs-lisp
+;; minor-mode to input ctrl/meta key sequences without modifier keys
+(use-package god-mode
+  :bind (("<escape>" . god-mode-all)
+         ;; easier window manipulation in god-mode
+         ("C-x C-1" . delete-other-windows)
+         ("C-x C-2" . split-window-below)
+         ("C-x C-3" . split-window-right)
+         ("C-x C-0" . delete-window)
+         :map god-local-mode-map
+         ("." . repeat)
+         :map god-mode-isearch-map
+         ("<escape>" . god-mode-isearch-disable)
+         :map isearch-mode-map
+         ("<escape>" . god-mode-isearch-activate))
+  :config
+  ;; enable in isearch
+  (require 'god-mode-isearch)
+  ;; use cursor to indicate if in god-mode
+  (defun god-mode--update-cursor ()
+    "Sets cursor to a box in `god-mode' or read-only buf, else a bar."
+    (setq cursor-type (if (or god-local-mode buffer-read-only)
+                          'box
+                        'bar)))
+  (add-hook 'god-mode-enabled-hook #'god-mode--update-cursor)
+  (add-hook 'god-mode-disabled-hook #'god-mode--update-cursor)
+  ;; enable which-key integration
+  (with-eval-after-load 'which-key
+    (which-key-enable-god-mode-support)))
+#+end_src
+
 * OS-specific
 
 ** Mac OS X
@@ -7723,6 +7889,8 @@ Static UI customizations should go here to optimize startup time.
 
 ;; Visual user interface components
 
+<<cursor>>
+
 <<remove-decorations>>
 
 <<load-custom-theme>>
@@ -7775,7 +7943,7 @@ The main configuration file.
 
 <<helm>>
 
-<<helm-treemacs-icons>>
+<<helm-icons>>
 
 ;; <<icomplete>>
 
@@ -7837,6 +8005,12 @@ The main configuration file.
 
 <<rotate-window-buffers-hydra>>
 
+<<popwin>>
+
+<<ace-window>>
+
+<<add-ace-window-to-window-hydra>>
+
 ;; Buffers, windows, frames, workspaces / Frame management
 
 <<frame-hydra>>
@@ -7870,6 +8044,8 @@ The main configuration file.
 <<helm-fish-completion>>
 
 ;; <<fish-completion>>
+
+<<eshell-z>>
 
 <<comint-prompt-read-only>>
 
@@ -8110,7 +8286,13 @@ The main configuration file.
 
 <<python-shell-interpreter>>
 
-<<python-hydra>>
+<<python-mode-syntax-table>>
+
+<<python-mode-hydra>>
+
+<<yapfify>>
+
+<<add-yapfify-to-python-mode-hydra>>
 
 ;; <<python-flycheck>>
 
@@ -8163,6 +8345,8 @@ The main configuration file.
 ;; Search and navigation
 
 <<search-hydra>>
+
+<<wgrep>>
 
 <<rg>>
 
@@ -8281,6 +8465,8 @@ The main configuration file.
 
 <<so-long-hydra>>
 
+<<god-mode>>
+
 ;; OS-specific / Mac OS X
 
 <<mac>>
@@ -8316,7 +8502,7 @@ The main configuration file.
 
 **** Use icons in Helm                                                :melpa:
 
-Update ~helm-treemacs-icons~ to ~helm-icons~ when it supports all-the-icons.
+Update ~helm-icons~ configuration when it supports all-the-icons.
 
 [[https://github.com/yyoncho/helm-icons][GitHub - yyoncho/helm-icons: Integration between helm and icon packages]]
 
@@ -8360,18 +8546,6 @@ only letting it display specific kinds of buffers.
 *Note*: Some of the bulit-in extensions like ~purpose-x-code1-setup~
 or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 (specifically the two functions add and remove ~ibuffer-auto-mode~).
-
-** Command-line interaction
-
-*** Eshell
-
-**** [#A] eshell-z                                                    :melpa:
-
-[[https://github.com/xuchunyang/eshell-z][GitHub - xuchunyang/eshell-z: cd to frequent directory in eshell, Emacs port ...]]
-
-**** [#B] eshell-prompt-extras                                        :melpa:
-
-[[https://github.com/zwild/eshell-prompt-extras][GitHub - zwild/eshell-prompt-extras: Display extra information and color for ...]]
 
 ** Non-programming files
 
@@ -8609,10 +8783,6 @@ Or can define using ~flymake-quickdef~.
 
 *** Python
 
-**** [#B] yapfify for formatting Python buffers with yapf             :melpa:
-
-[[https://github.com/JorisE/yapfify][GitHub - JorisE/yapfify: Yapf for Emacs]]
-
 **** [#B] Live coding in Python                                       :melpa:
 
 [[https://github.com/donkirkby/live-py-plugin][GitHub - donkirkby/live-py-plugin: Live coding in Python with PyCharm, Emacs,...]]
@@ -8685,16 +8855,6 @@ Potentially useful complement to Ebib.
 
 [[https://github.com/org-roam/org-roam-bibtex][GitHub - org-roam/org-roam-bibtex]]
 
-** Search and navigation
-
-*** [#C] wgrep                                                        :melpa:
-
-Writable grep.
-
-~deadgrep~ has an editing mode like that although not yet mature
-already works fairly well, so this is not high priority for
-integration into the configuration.
-
 ** Visual
 
 *** [#C] Elegance theme                                            :external:
@@ -8732,15 +8892,24 @@ overlays.
 
 *** [#B] Password management and storage
 
+Use [[https://www.passwordstore.org/][password-store]] for password management.
+
 https://milosophical.me/blog/2018/keepass-and-password-store.html
 
 On iOS, use [[https://github.com/mssun/passforios][Pass for iOS]].
 
-**** [#B] password-store.el
+References:
+- [[https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1][The Definitive Guide to password-store | by Mathew Robinson | Medium]]
+
+**** [#A] password-store.el
 
 https://git.zx2c4.com/password-store/tree/contrib/emacs
 
 Probably best to go for this as the main interface.
+
+**** [#A] pass.el
+
+https://github.com/NicolasPetton/pass
 
 **** [#C] helm-pass                                                   :melpa:
 
@@ -8757,10 +8926,6 @@ for that.
 [[https://github.com/DamienCassou/auth-password-store][GitHub - DamienCassou/auth-password-store: Integrate Emacs' auth-source with pass]]
 
 Built-in to Emacs and integrates [[https://www.passwordstore.org/][pass]] with ~auth-source~.
-
-**** [#C] pass
-
-https://github.com/NicolasPetton/pass
 
 *** [#C] org-trello for syncing between Org buffers and Trello boards
 
@@ -8779,6 +8944,36 @@ https://github.com/NicolasPetton/pass
 (use-package company-box
   :hook (company-mode . company-box-mode))
 #+end_src
+
+** Buffers, windows, frames, workspaces
+*** Buffer management
+**** better-jumper to maintain and traverse jump-lists                :melpa:
+
+[[https://github.com/gilbertw1/better-jumper][better-jumper]] is a jump-list implementation useful for automatically
+building file jump lists and moving backwards and forwards through it.
+
+#+name: better-jumper
+#+begin_src emacs-lisp
+;; jump list implementation
+(use-package better-jumper
+  :config
+  (better-jumper-mode 1)
+  ;; manage marker stack with better-jumper instead of the default
+  (advice-add #'xref-push-marker-stack :around #'better-jumper-set-jump)
+  (global-set-key [remap xref-pop-marker-stack]
+                  #'better-jumper-jump-backward))
+#+end_src
+
+***** Add better-jumper calls to buffer hydra
+
+#+name: add-better-jumper-to-buffer-hydra
+#+begin_src emacs-lisp
+;; add better-jumper calls to buffer hydra
+(defhydra+ my-hydra/buffer nil
+  ("," better-jumper-jump-backward "jump-bwd")
+  ("." better-jumper-jump-forward "jump-fwd"))
+#+end_src
+
 
 ** Email
 
@@ -9280,8 +9475,6 @@ files and the buffer is switched back to ~deadgrep-mode~.
   (defhydra+ my-hydra/search nil
     ("gR" deadgrep "ripgrep" :exit t)))
 #+end_src
-
-
 
 ** Visual
 

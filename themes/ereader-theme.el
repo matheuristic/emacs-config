@@ -311,6 +311,9 @@
    ;; markdown-mode
    `(markdown-code-face ((t (:inherit fixed-pitch :foreground ,fg :background "#ffffe0" :extend t))))
 
+   ;; ace-window
+   `(aw-background-face ((t (:foreground "gray80"))))
+
    ;; vterm
    `(vterm-color-default ((t (:inherit default :foreground ,fg :background ,bg :extend t))))
    `(vterm-color-black ((t (:inherit term-color-black))))

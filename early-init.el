@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul 12 17:33:36 2020
+;; Generated: Fri Jul 17 23:12:33 2020
 
 ;;; Commentary:
 
@@ -62,6 +62,10 @@
   (when (file-directory-p project) (add-to-list 'load-path project)))
 
 ;; Visual user interface components
+
+;; set cursor after initialization
+(setq-default cursor-type 'bar)
+(blink-cursor-mode 0)
 
 ;; remove unused UI elements
 (if (fboundp 'scroll-bar-mode)

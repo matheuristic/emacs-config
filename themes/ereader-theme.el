@@ -42,7 +42,10 @@
       (fg-light "#b7b7b7")
       (bg-highlight "#fff1aa")
       (bg-highlight-2 "light cyan")
-      (bg-highlight-3 "light green"))
+      (bg-highlight-3 "light green")
+      (fg-dim "#909090")
+      (bg-region "#eeeee8")
+      (bg-search "#ffb347"))
 
   (custom-theme-set-faces
    'ereader
@@ -58,7 +61,7 @@
    `(font-latex-match-reference-keywords ((t (:foreground ,fg))))
    `(font-latex-match-variable-keywords ((t (:foreground ,fg))))
    `(font-latex-string-face ((t (:foreground "dark gray"))))
-   `(font-lock-builtin-face ((t (:background ,bg :foreground ,fg))))
+   `(font-lock-builtin-face ((t (:foreground ,fg))))
    `(font-lock-comment-delimiter-face ((t (:foreground ,fg :weight bold))))
    `(font-lock-comment-face ((t (:foreground ,fg :weight bold))))
    `(font-lock-constant-face ((t (:foreground ,fg))))
@@ -77,23 +80,21 @@
    `(gnus-header-name ((t (:foreground ,fg))))
    `(gnus-header-subject ((t (:foreground ,fg))))
    `(header-line ((t (:background ,bg :box (:line-width 1 :color ,fg)))))
-   `(highlight ((t (:background "#efecaf"))))
+   `(highlight ((t (:background "#fdf17a"))))
    `(hl-line ((t (:background "#fedcba"))))
    `(ido-first-match ((t (:foreground ,fg))))
    `(ido-only-match ((t (:foreground ,fg))))
    `(ido-subdir ((t (:foreground ,fg))))
-   `(isearch ((t (:background "#eeeee8" :foreground ,fg))))
+   `(isearch ((t (:background ,bg-search :foreground ,fg))))
    `(line-number ((t (:foreground "#cacaca" :weight light))))
    `(link ((t (:foreground ,fg :underline t))))
    `(minibuffer-prompt ((t (:foreground ,fg :weight bold))))
-   ;; `(mode-line ((t (:background ,bg-light :foreground ,fg))))
    `(mode-line ((t (:background ,bg :foreground ,fg :overline ,fg))))
    `(mode-line-buffer ((t (:foreground ,fg :weight bold))))
-   ;; `(mode-line-inactive ((t (:background ,bg-light :foreground "#909090"))))
-   `(mode-line-inactive ((t (:background ,bg :foreground "#909090" :overline ,fg))))
+   `(mode-line-inactive ((t (:background ,bg :foreground ,fg-dim :overline ,fg))))
    `(mode-line-minor-mode ((t (:weight ultra-light))))
    `(query-replace ((t (:strike-through t))))
-   `(region ((t (:background "#eeeee8" :foreground ,fg))))
+   `(region ((t (:background ,bg-region :foreground ,fg))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))
 
@@ -140,56 +141,36 @@
    ;; doom-modeline
    `(doom-modeline-spc-face ((t (:inherit mode-line))))
    `(doom-modeline-vspc-face ((t (:inherit variable-pitch))))
-   `(doom-modeline-buffer-path ((t (:inherit (mode-line-emphasis bold)
-                                    :weight normal))))
-   `(doom-modeline-buffer-file ((t (:inherit (mode-line-buffer-id bold)
-                                    :weight normal))))
-   `(doom-modeline-buffer-modified ((t (:inherit (error bold)
-                                        :background nil
-                                        :weight normal))))
-   `(doom-modeline-buffer-major-mode ((t (:inherit (mode-line-emphasis bold)
-                                          :weight normal))))
-   `(doom-modeline-buffer-minor-mode ((t (:inherit font-lock-doc-face
-                                          :slant normal
-                                          :weight normal))))
-   `(doom-modeline-project-parent-dir ((t (:inherit (font-lock-comment-face bold)
-                                           :weight normal))))
+   `(doom-modeline-buffer-path ((t (:inherit (mode-line-emphasis bold) :weight normal))))
+   `(doom-modeline-buffer-file ((t (:inherit (mode-line-buffer-id bold) :weight normal))))
+   `(doom-modeline-buffer-modified ((t (:inherit (error bold) :background nil :weight normal))))
+   `(doom-modeline-buffer-major-mode ((t (:inherit (mode-line-emphasis bold) :weight normal))))
+   `(doom-modeline-buffer-minor-mode ((t (:inherit font-lock-doc-face :slant normal :weight normal))))
+   `(doom-modeline-project-parent-dir ((t (:inherit (font-lock-comment-face bold) :weight normal))))
    `(doom-modeline-project-dir ((t (:inherit (font-lock-string-face bold)))))
-   `(doom-modeline-project-root-dir ((t (:inherit (mode-line-emphasis bold)
-                                         :weight normal))))
+   `(doom-modeline-project-root-dir ((t (:inherit (mode-line-emphasis bold) :weight normal))))
    `(doom-modeline-highlight ((t (:inherit mode-line-emphasis))))
    `(doom-modeline-panel ((t (:inherit mode-line-highlight))))
    `(doom-modeline-host ((t (:inherit italic))))
-   `(doom-modeline-input-method ((t (:inherit (mode-line-emphasis bold)
-                                     :weight normal))))
-   `(doom-modeline-input-method-alt ((t (:inherit (font-lock-doc-face bold)
-                                         :slant normal
-                                         :weight normal))))
-   `(doom-modeline-debug ((t (:inherit (font-lock-doc-face bold)
-                              :slant normal
-                              :weight normal))))
+   `(doom-modeline-input-method ((t (:inherit (mode-line-emphasis bold) :weight normal))))
+   `(doom-modeline-input-method-alt ((t (:inherit (font-lock-doc-face bold) :slant normal :weight normal))))
+   `(doom-modeline-debug ((t (:inherit (font-lock-doc-face bold) :slant normal :weight normal))))
    `(doom-modeline-info ((t (:inherit (success bold) :weight normal))))
    `(doom-modeline-warning ((t (:inherit (warning bold) :weight normal))))
    `(doom-modeline-urgent ((t (:inherit (error bold) :weight normal))))
    `(doom-modeline-unread-number ((t (:slant italic :weight normal))))
    `(doom-modeline-bar ((t (:inherit highlight))))
-   `(doom-modeline-bar-inactive ((t (:background ,(face-foreground
-                                                   'mode-line-inactive)))))
-   `(doom-modeline-debug-visual ((t (:background ,(face-foreground
-                                                   'mode-line)))))
-   `(doom-modeline-evil-emacs-state ((t (:inherit (font-lock-builtin-face
-                                                   bold)))))
-   `(doom-modeline-evil-insert-state ((t (:inherit (font-lock-keyword-face
-                                                    bold)))))
-   `(doom-modeline-evil-motion-state ((t :inherit (font-lock-doc-face bold)
-                                         :slant normal)))
+   `(doom-modeline-bar-inactive ((t (:background ,(face-foreground 'mode-line-inactive)))))
+   `(doom-modeline-debug-visual ((t (:background ,(face-foreground 'mode-line)))))
+   `(doom-modeline-evil-emacs-state ((t (:inherit (font-lock-builtin-face bold)))))
+   `(doom-modeline-evil-insert-state ((t (:inherit (font-lock-keyword-face bold)))))
+   `(doom-modeline-evil-motion-state ((t :inherit (font-lock-doc-face bold) :slant normal)))
    `(doom-modeline-evil-normal-state ((t (:inherit doom-modeline-info))))
    `(doom-modeline-evil-operator-state ((t (:inherit doom-modeline-buffer-file))))
    `(doom-modeline-evil-visual-state ((t (:inherit doom-modeline-warning))))
    `(doom-modeline-evil-replace-state ((t (:inherit doom-modeline-urgent))))
    `(doom-modeline-persp-name ((t (:inherit (font-lock-comment-face italic)))))
-   `(doom-modeline-persp-buffer-not-in-persp
-     ((t (:inherit (font-lock-doc-face italic)))))
+   `(doom-modeline-persp-buffer-not-in-persp ((t (:inherit (font-lock-doc-face italic)))))
    `(doom-modeline-repl-success ((t (:inherit success :weight normal))))
    `(doom-modeline-repl-warning ((t (:inherit warning :weight normal))))
    `(doom-modeline-lsp-success ((t (:inherit success :weight normal))))
@@ -202,8 +183,7 @@
    `(doom-modeline-battery-warning ((t (:inherit warning :weight normal))))
    `(doom-modeline-battery-critical ((t (:inherit error :weight normal))))
    `(doom-modeline-battery-error ((t (:inherit error :weight normal))))
-   `(doom-modeline-buffer-timemachine
-     ((t (:inherit (doom-modeline-buffer-file italic underline)))))
+   `(doom-modeline-buffer-timemachine ((t (:inherit (doom-modeline-buffer-file italic underline)))))
 
    ;; magit
    `(magit-header ((t (:weight semi-bold))))
@@ -304,7 +284,7 @@
 
    ;; misc
    `(idle-highlight ((t (:background ,bg-highlight))))
-   `(yas-field-highlight-face ((t (:background "#eeeee8" :foreground ,fg))))
+   `(yas-field-highlight-face ((t (:background ,bg-region :foreground ,fg))))
    `(eshell-prompt ((t (:foreground ,fg :weight bold))))
    `(cider-result-overlay-face ((t (:weight bold))))
 
@@ -312,7 +292,7 @@
    `(markdown-code-face ((t (:inherit fixed-pitch :foreground ,fg :background "#ffffe0" :extend t))))
 
    ;; ace-window
-   `(aw-background-face ((t (:foreground "gray80"))))
+   `(aw-background-face ((t (:foreground ,fg-dim))))
 
    ;; vterm
    `(vterm-color-default ((t (:inherit default :foreground ,fg :background ,bg :extend t))))
@@ -325,12 +305,17 @@
    `(vterm-color-cyan ((t (:inherit term-color-cyan))))
    `(vterm-color-white ((t (:inherit term-color-white))))
 
+   ;; nswbuff
+   `(nswbuff-default-face ((t (:foreground "red"))))
+   `(nswbuff-current-buffer-face ((t (:foreground "red" :weight bold :underline t))))
+   `(nswbuff-separator-face ((t (:inherit shadow))))
+
    ;; evil-quickscope
-   `(evil-quickscope-first-face ((t (:foreground ,fg :background "#eeeee8"))))
+   `(evil-quickscope-first-face ((t (:foreground ,fg :background ,bg-region))))
    `(evil-quickscope-second-face ((t (:foreground ,fg :background ,bg-highlight-3))))
 
    ;; evil-snipe
-   `(evil-snipe-first-match-face ((t (:foreground ,fg :background "#eeeee8"))))
+   `(evil-snipe-first-match-face ((t (:foreground ,fg :background ,bg-search))))
    `(evil-snipe-matches-face ((t (:foreground ,fg :background ,bg-highlight-3))))
 
    ;; evil

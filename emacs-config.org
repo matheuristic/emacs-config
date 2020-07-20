@@ -87,6 +87,16 @@ Host *
      ServerAliveInterval 5
 #+end_example
 
+** Jumping to function definitions and backtracking
+
+Jumping to the definition of a function under point can be done by
+calling ~xref-find-definition~ which is bound to ~M-.~ or by calling
+~dumb-jump-go~ if dump-jump is installed.
+
+Backtracking through a chain of jumps can be done by calling
+~xref-pop-marker-stack~ which is bound to ~M-,~ (this only works for
+jumps that push the jump origin onto the marker stack).
+
 ** Random useful Emacs links
 
 Literate configs, package lists, and so on and so forth.
@@ -453,6 +463,22 @@ In most instances, use only this or Icomplete but not both.
   (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-z") #'helm-select-action))
+#+end_src
+
+*** Helm occur bindings in search hydra                               :hydra:
+
+Bind over the ~occur~ entry in the search hydra. Since the search
+hydra is only defined later, the binding action is added to the
+post-initialization hook.
+
+#+name: add-helm-occur-to-search-hydra
+#+begin_src emacs-lisp
+;; bind over occur entry with helm-occur in search hydra
+(add-hook 'after-init-hook
+          (lambda ()
+            (defhydra+ my-hydra/search nil
+              ("oo" helm-occur "occur")
+              ("ov" helm-occur-visible-buffers "occur-visible"))))
 #+end_src
 
 *** Use icons in Helm                                              :external:
@@ -977,6 +1003,40 @@ Uses file icon API exposed by the ~all-the-icons~ package.
     :config (all-the-icons-ibuffer-mode 1)))
 #+end_src
 
+*** Fast buffer switching with nswbuff                                :melpa:
+
+[[https://github.com/joostkremers/nswbuff][nswbuff]] allows for quick switching between open buffers.
+
+It can be configured to integrate with Projectile to only switch
+between between those buffers associated with the current project.
+
+#+name: nswbuff
+#+begin_src emacs-lisp
+;; quick buffer switching (configured to be within a project)
+(use-package nswbuff
+  :after projectile
+  :bind (("<C-tab>" . nswbuff-switch-to-next-buffer)
+         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer))
+  :init
+  (setq nswbuff-buffer-list-function #'nswbuff-projectile-buffer-list
+        nswbuff-clear-delay 2
+        nswbuff-display-intermediate-buffers t
+        ;; exclude all internal buffers from the nswbuff switch list
+        nswbuff-exclude-buffer-regexps '("^ "
+                                         "^\\*.*\\*"
+                                         "org-src-fontification")
+        nswbuff-exclude-mode-regexp (mapconcat
+                                     'identity
+                                     '("dired-mode"
+                                       "gnus-mode")
+                                     "\\|")
+        nswbuff-start-with-current-centered nil)
+  :config
+  ;; unbind C-tab in org-mode to not conflict with nswbuff global binding
+  (with-eval-after-load 'org
+    (unbind-key "<C-tab>" org-mode-map)))
+#+end_src
+
 ** Window management
 
 *** Traverse window configuration history using Winner mode
@@ -1128,7 +1188,7 @@ on ~C-g~ or selection of another window.
         aw-char-position 'left
         aw-ignore-current nil
         aw-scope 'frame)
-  (global-set-key (kbd "M-O") #'ace-window))
+  (global-set-key (kbd "M-o") #'ace-window))
 #+end_src
 
 **** Add ace-window entry point to window hydra
@@ -1835,6 +1895,10 @@ ztree-diff (_q_: quit)"
 
 [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Dired.html][Dired]] is a built-in directory editor for Emacs.
 
+Additionally load some built-in extra Dired features, including a
+global binding ~C-x C-j~ to directly jump to a Dired buffer for the
+directory containing the current buffer.
+
 #+name: dired
 #+begin_src emacs-lisp
 (require 'dired-x) ;; extra features
@@ -1997,21 +2061,6 @@ Requires the ~all-the-icons~ package be loaded.
   ;; https://github.com/jtbm37/all-the-icons-dired/issues/10
   (advice-add 'all-the-icons-dired--setup :after
               (lambda () (setq-local tab-width 2))))
-#+end_src
-
-** Dired icons using treemacs-icons-dired                             :melpa:
-
-Add icons from [[https://github.com/Alexander-Miller/treemacs][Treemacs]] to Dired.
-
-Requires the ~treemacs~ package be installed.
-
-#+name: treemacs-icons-dired
-#+begin_src emacs-lisp
-;; use Treemacs icons in Dired
-(when (display-graphic-p)
-  (use-package treemacs-icons-dired
-    :after dired
-    :hook (dired-mode . treemacs-icons-dired-mode)))
 #+end_src
 
 * Editing text
@@ -2267,16 +2316,17 @@ Misc    _C-{_: number   _C-}_: letter
 ** Snippet expansion using YASnippet                                  :melpa:
 
 [[https://github.com/joaotavora/yasnippet/tree/5b1217ab085fab4abeb1118dccb260691b446703][YASnippet]] is a snippet expansion package for Emacs, which supports
-expanding abbreviations into templates.
+expanding abbreviations into templates. Snippets can defined and
+stored in the =snippets= folder within ~user-emacs-directory~.
 
-Two additional supporting packages are also loaded:
-- The YASnippet official snippet collections package, which contains
-  snippet definitions for multiple file types and languages.
+Two additional supporting packages can also be loaded:
+- The YASnippet official snippet collections package containing
+  definitions for multiple file types and languages. (Not enabled.)
 - The [[https://github.com/abo-abo/auto-yasnippet][Auto-YASnippet]] package, which enables temporary snippet
-  definitions that can optionally be persisted.
-  Persisted snippets are saved to ~aya-persist-snippet-dir~
-  (defaults to ~snippets~ in ~user-emacs-directory~) in a subfolder
-  corresponding to the major mode.
+  definitions that can optionally be persisted. Persisted snippets are
+  saved to ~aya-persist-snippet-dir~ (defaults to ~snippets~ in
+  ~user-emacs-directory~) in a subfolder corresponding to the major
+  mode. (Enabled.)
 
 #+name: yasnippet
 #+begin_src emacs-lisp
@@ -2284,7 +2334,7 @@ Two additional supporting packages are also loaded:
 (use-package yasnippet
   :defer 1 ;; load asynchronously after startup
   :config
-  (use-package yasnippet-snippets) ;; official snippets
+  ;; (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
   ;; remove default bindings to avoid conflicts with other packages
   ;; removing prefix bindings also removes bindings that use them
@@ -5955,107 +6005,6 @@ Have Magit operations be reflected automatically in Treemacs.
   :after (treemacs magit))
 #+end_src
 
-* Reference management
-
-** ebib for managing BibTeX databases                                 :melpa:
-
-[[http://joostkremers.github.io/ebib/][ebib]] provides support for managing BibTeX bibliographic databases
-(=.bib= files).
-
-*Configuration*:
-- ~C-c C-M-b e~ calls ~ebib~ globally.
-
-#+name: ebib
-#+begin_src emacs-lisp
-;; manager for BibTeX bibliographic databases
-(use-package ebib
-  :bind (("C-c C-M-b e" . ebib)))
-#+end_src
-
-*** Ebib Org-mode support
-
-Configure Org-mode support for Ebib.
-
-*Configuration*:
-- Add new Org link type supporting ebib key lookup and preamble,
-  pre-note and post-note text for the reference, with the format being
-  =[[ebib:key][Preamble text::Pre-note::Post-note]]= where
-  ~key~ should be a valid key in the =.bib= file currently open in ebib.
-- ~C-c C-M-b i~ calls ~ebib-insert-citation~ in Org-mode buffers.
-
-#+name: ebib-org-mode-config
-#+begin_src emacs-lisp
-;; configure Ebib Org-mode support
-;;
-;; this setup supports exporting Org to PDF with BibTeX bibliographies via
-;; lualatex and biber, so they will need to be installed on the system
-;;
-;; org-mode documents should include the LaTeX headers for
-;; bibliographies via "#+LATEX_HEADER:" structural markup elements,
-;; and "\printbibliography" should be added at the desired location
-;; for the bibliography (usually at the end of an article or book
-;; chapter or before the index)
-;;
-;; references to bibliography entries in org-mode can be inserted by
-;; pressing `i' when on an entry in ebib or by calling
-;; `ebib-insert-citation'
-;;
-;; to export references from Org to LaTeX, ebib needs to be opened with the
-;; bibliographies for the references that appear in the document
-;;
-;; use "::" in the Org link description to separate the preamble text,
-;; pre-note, and post-note elements (all optional) for export to LaTeX,
-;; i.e. "[[ebib:key][Preamble text::Pre-note::Post-note]]"
-;; will export to "Preamble text\cite[Pre-note][Post-note]{key}"
-;;
-;; example:
-;; ---
-;; ...
-;; #+LATEX_HEADER: \usepackage[backend=biber]{biblatex}
-;; #+LATEX_HEADER: \addbibresource{path/to/bibtex_file.bib}
-;; ...
-;; [[ebib:some_ebib_entry_key]]
-;; [[ebib:some_ebib_entry_key][Preamble]
-;; [[ebib:some_ebib_entry_key][Preamble::::Post-note]
-;; [[ebib:some_ebib_entry_key][Preamble::Pre-note::Post-note]]
-;; [[ebib:incognito_1970][::see::pg. 99]]
-;; ...
-;; \printbibliography
-;; ...
-;; ---
-;;
-(with-eval-after-load 'org
-  ;; ebib configuration for org-mode
-  (with-eval-after-load 'ebib
-    (require 'org-ebib)
-    (defun my-org-ebib-export (path desc format)
-      "Export an ebib link. See `org-link-parameters' for details about PATH, DESC and FORMAT."
-      (let* ((my-desc (or desc ""))
-             (desc-parts (split-string my-desc "::"))
-             (desc-name (car desc-parts))
-             (desc-pre-note (or (nth 1 desc-parts) ""))
-             (desc-post-note (mapconcat 'identity (nthcdr 2 desc-parts) "::")))
-        (cond
-         ((eq format 'html)
-          (if desc
-              (format "(%s<cite>%s</cite>%s)"
-                      (if (string= "" desc-pre-note) "" (concat desc-pre-note " "))
-                      (if (string= "" desc-name) path desc-name)
-                      (if (string= "" desc-post-note) "" (concat ", " desc-post-note)))
-            (format "(<cite>%s</cite>)" path)))
-         ((eq format 'latex)
-          (if desc
-              (format "%s\\cite%s%s{%s}"
-                      (concat desc-name " ")
-                      (if (string= "" desc-pre-note) "" (format "[%s]" desc-pre-note))
-                      (if (string= "" desc-post-note) "" (format "[%s]" desc-post-note))
-                      path)
-            (format "\\cite{%s}" path))))))
-    (org-link-set-parameters "ebib" :export 'my-org-ebib-export))
-  ;; binding for `ebib-insert-citation'
-  (define-key org-mode-map (kbd "C-c C-M-b i") #'ebib-insert-citation))
-#+end_src
-
 * Search and navigation
 
 ** Search hydra                                                       :hydra:
@@ -6217,7 +6166,7 @@ in a number of major modes using [[https://github.com/abo-abo/avy][avy]] as the 
 - Call default setup code, which binds ~o~ in ~compilation-mode~,
   ~Custom-mode~, ~eww-mode~, ~help-mode~, ~Info-mode~ and ~woman-mode~
   to the corresponding ace-link command.
-- ~M-o~ in ~org-mode-map~ calls the corresponding ace-link function.
+- ~M-O~ in ~org-mode-map~ calls the corresponding ace-link function.
 
 #+name: ace-link
 #+begin_src emacs-lisp
@@ -6227,11 +6176,11 @@ in a number of major modes using [[https://github.com/abo-abo/avy][avy]] as the 
   ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
   ;; eww-mode, help-mode, Info-mode and woman-mode
   (ace-link-setup-default)
-  ;; bind "M-o" to jump to link in Org mode
+  ;; bind "M-O" (Meta-CapitalOh) to jump to link in Org mode
   (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "M-o") #'ace-link-org))
+    (define-key org-mode-map (kbd "M-O") #'ace-link-org))
   (with-eval-after-load 'org-agenda
-    (define-key org-agenda-mode-map (kbd "M-o") #'ace-link-org-agenda)))
+    (define-key org-agenda-mode-map (kbd "M-O") #'ace-link-org-agenda)))
 #+end_src
 
 ** Notdeft for searching notes and other text files
@@ -6864,6 +6813,17 @@ Show matching parentheses while editing without delay.
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
+#+end_src
+
+** Temporarily highlight yanked text                                  :melpa:
+
+[[https://github.com/k-talo/volatile-highlights.el][volatile-highlights.el]] provides a minor mode that temporarily
+highlights yanked text.
+
+#+name: volatile-highlights
+#+begin_src emacs-lisp
+(use-package volatile-highlights
+  :hook (after-init . volatile-highlights-mode))
 #+end_src
 
 * Web
@@ -7561,43 +7521,6 @@ Extend buffer hydra with toggles for ~so-long-mode~ and
   ("L" so-long-minor-mode "so-long-mm"))
 #+end_src
 
-** god-mode                                                           :melpa:
-
-[[https://github.com/emacsorphanage/god-mode][god-mode]] is a minor-mode for entering Control and Meta key sequences
-without modifier keys.
-
-#+name: god-mode
-#+begin_src emacs-lisp
-;; minor-mode to input ctrl/meta key sequences without modifier keys
-(use-package god-mode
-  :bind (("<escape>" . god-mode-all)
-         ;; easier window manipulation in god-mode
-         ("C-x C-1" . delete-other-windows)
-         ("C-x C-2" . split-window-below)
-         ("C-x C-3" . split-window-right)
-         ("C-x C-0" . delete-window)
-         :map god-local-mode-map
-         ("." . repeat)
-         :map god-mode-isearch-map
-         ("<escape>" . god-mode-isearch-disable)
-         :map isearch-mode-map
-         ("<escape>" . god-mode-isearch-activate))
-  :config
-  ;; enable in isearch
-  (require 'god-mode-isearch)
-  ;; use cursor to indicate if in god-mode
-  (defun god-mode--update-cursor ()
-    "Sets cursor to a box in `god-mode' or read-only buf, else a bar."
-    (setq cursor-type (if (or god-local-mode buffer-read-only)
-                          'box
-                        'bar)))
-  (add-hook 'god-mode-enabled-hook #'god-mode--update-cursor)
-  (add-hook 'god-mode-disabled-hook #'god-mode--update-cursor)
-  ;; enable which-key integration
-  (with-eval-after-load 'which-key
-    (which-key-enable-god-mode-support)))
-#+end_src
-
 * OS-specific
 
 ** Mac OS X
@@ -7943,6 +7866,8 @@ The main configuration file.
 
 <<helm>>
 
+<<add-helm-occur-to-search-hydra>>
+
 <<helm-icons>>
 
 ;; <<icomplete>>
@@ -7996,6 +7921,8 @@ The main configuration file.
 <<all-the-icons-ibuffer>>
 
 ;; Buffers, windows, frames, workspaces / Window management
+
+<<nswbuff>>
 
 <<winner-mode>>
 
@@ -8084,8 +8011,6 @@ The main configuration file.
 <<dired-filter-hydra>>
 
 <<all-the-icons-dired>>
-
-;; <<treemacs-icons-dired>>
 
 ;; Editing text
 
@@ -8336,12 +8261,6 @@ The main configuration file.
 
 <<treemacs-magit>>
 
-;; Reference management
-
-<<ebib>>
-
-<<ebib-org-mode-config>>
-
 ;; Search and navigation
 
 <<search-hydra>>
@@ -8397,6 +8316,10 @@ The main configuration file.
 <<show-column-number>>
 
 <<show-matching-parentheses>>
+
+<<volatile-highlights>>
+
+<<auto-dim-other-buffers>>
 
 ;; Web
 
@@ -8464,8 +8387,6 @@ The main configuration file.
 <<so-long>>
 
 <<so-long-hydra>>
-
-<<god-mode>>
 
 ;; OS-specific / Mac OS X
 
@@ -8898,8 +8819,21 @@ https://milosophical.me/blog/2018/keepass-and-password-store.html
 
 On iOS, use [[https://github.com/mssun/passforios][Pass for iOS]].
 
+There is also a Go rewrite of pass called [[https://github.com/gopasspw/gopass][gopass]] that adds a number of
+useful features, but is also more complicated and less battle-tested.
+
 References:
 - [[https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1][The Definitive Guide to password-store | by Mathew Robinson | Medium]]
+
+**** Setting up pass
+
+- Generate master key
+- Generate subkey
+- Initialize pass store using ~pass init <gpg-key-email>~
+- Set up pass store as a Git repo using ~pass git init~
+- Generate passwords using ~pass generate <pass-filename> <length>~
+- Retrieve passwords using ~pass <pass-filename>~
+- Remove passwords using ~pass rm <pass-filename>~
 
 **** [#A] password-store.el
 
@@ -8973,7 +8907,6 @@ building file jump lists and moving backwards and forwards through it.
   ("," better-jumper-jump-backward "jump-bwd")
   ("." better-jumper-jump-forward "jump-fwd"))
 #+end_src
-
 
 ** Email
 
@@ -9199,6 +9132,23 @@ wheel-d : prev same-level heading"
                           help-echo my-which-func-header-keymap-help-text-org))
     ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
     (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
+#+end_src
+
+** Dired
+
+** Dired icons using treemacs-icons-dired                             :melpa:
+
+Add icons from [[https://github.com/Alexander-Miller/treemacs][Treemacs]] to Dired.
+
+Requires the ~treemacs~ package be installed.
+
+#+name: treemacs-icons-dired
+#+begin_src emacs-lisp
+;; use Treemacs icons in Dired
+(when (display-graphic-p)
+  (use-package treemacs-icons-dired
+    :after dired
+    :hook (dired-mode . treemacs-icons-dired-mode)))
 #+end_src
 
 ** Programming
@@ -9450,6 +9400,107 @@ entry to the menubar.
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
 #+end_src
 
+** Reference management
+
+*** ebib for managing BibTeX databases                                :melpa:
+
+[[http://joostkremers.github.io/ebib/][ebib]] provides support for managing BibTeX bibliographic databases
+(=.bib= files).
+
+*Configuration*:
+- ~C-c C-M-b e~ calls ~ebib~ globally.
+
+#+name: ebib
+#+begin_src emacs-lisp
+;; manager for BibTeX bibliographic databases
+(use-package ebib
+  :bind (("C-c C-M-b e" . ebib)))
+#+end_src
+
+**** Ebib Org-mode support
+
+Configure Org-mode support for Ebib.
+
+*Configuration*:
+- Add new Org link type supporting ebib key lookup and preamble,
+  pre-note and post-note text for the reference, with the format being
+  =[[ebib:key][Preamble text::Pre-note::Post-note]]= where
+  ~key~ should be a valid key in the =.bib= file currently open in ebib.
+- ~C-c C-M-b i~ calls ~ebib-insert-citation~ in Org-mode buffers.
+
+#+name: ebib-org-mode-config
+#+begin_src emacs-lisp
+;; configure Ebib Org-mode support
+;;
+;; this setup supports exporting Org to PDF with BibTeX bibliographies via
+;; lualatex and biber, so they will need to be installed on the system
+;;
+;; org-mode documents should include the LaTeX headers for
+;; bibliographies via "#+LATEX_HEADER:" structural markup elements,
+;; and "\printbibliography" should be added at the desired location
+;; for the bibliography (usually at the end of an article or book
+;; chapter or before the index)
+;;
+;; references to bibliography entries in org-mode can be inserted by
+;; pressing `i' when on an entry in ebib or by calling
+;; `ebib-insert-citation'
+;;
+;; to export references from Org to LaTeX, ebib needs to be opened with the
+;; bibliographies for the references that appear in the document
+;;
+;; use "::" in the Org link description to separate the preamble text,
+;; pre-note, and post-note elements (all optional) for export to LaTeX,
+;; i.e. "[[ebib:key][Preamble text::Pre-note::Post-note]]"
+;; will export to "Preamble text\cite[Pre-note][Post-note]{key}"
+;;
+;; example:
+;; ---
+;; ...
+;; #+LATEX_HEADER: \usepackage[backend=biber]{biblatex}
+;; #+LATEX_HEADER: \addbibresource{path/to/bibtex_file.bib}
+;; ...
+;; [[ebib:some_ebib_entry_key]]
+;; [[ebib:some_ebib_entry_key][Preamble]
+;; [[ebib:some_ebib_entry_key][Preamble::::Post-note]
+;; [[ebib:some_ebib_entry_key][Preamble::Pre-note::Post-note]]
+;; [[ebib:incognito_1970][::see::pg. 99]]
+;; ...
+;; \printbibliography
+;; ...
+;; ---
+;;
+(with-eval-after-load 'org
+  ;; ebib configuration for org-mode
+  (with-eval-after-load 'ebib
+    (require 'org-ebib)
+    (defun my-org-ebib-export (path desc format)
+      "Export an ebib link. See `org-link-parameters' for details about PATH, DESC and FORMAT."
+      (let* ((my-desc (or desc ""))
+             (desc-parts (split-string my-desc "::"))
+             (desc-name (car desc-parts))
+             (desc-pre-note (or (nth 1 desc-parts) ""))
+             (desc-post-note (mapconcat 'identity (nthcdr 2 desc-parts) "::")))
+        (cond
+         ((eq format 'html)
+          (if desc
+              (format "(%s<cite>%s</cite>%s)"
+                      (if (string= "" desc-pre-note) "" (concat desc-pre-note " "))
+                      (if (string= "" desc-name) path desc-name)
+                      (if (string= "" desc-post-note) "" (concat ", " desc-post-note)))
+            (format "(<cite>%s</cite>)" path)))
+         ((eq format 'latex)
+          (if desc
+              (format "%s\\cite%s%s{%s}"
+                      (concat desc-name " ")
+                      (if (string= "" desc-pre-note) "" (format "[%s]" desc-pre-note))
+                      (if (string= "" desc-post-note) "" (format "[%s]" desc-post-note))
+                      path)
+            (format "\\cite{%s}" path))))))
+    (org-link-set-parameters "ebib" :export 'my-org-ebib-export))
+  ;; binding for `ebib-insert-citation'
+  (define-key org-mode-map (kbd "C-c C-M-b i") #'ebib-insert-citation))
+#+end_src
+
 ** Search and navigation
 
 *** Ripgrep support                                          :hydra:external:
@@ -9633,6 +9684,43 @@ browser.
   (unbind-key "H-SPC" hyperspace-minor-mode-map)
   (unbind-key "<H-return>" hyperspace-minor-mode-map)
   (hyperspace-minor-mode))
+#+end_src
+
+*** god-mode                                                          :melpa:
+
+[[https://github.com/emacsorphanage/god-mode][god-mode]] is a minor-mode for entering Control and Meta key sequences
+without modifier keys.
+
+#+name: god-mode
+#+begin_src emacs-lisp
+;; minor-mode to input ctrl/meta key sequences without modifier keys
+(use-package god-mode
+  :bind (("<escape>" . god-mode-all)
+         ;; easier window manipulation in god-mode
+         ("C-x C-1" . delete-other-windows)
+         ("C-x C-2" . split-window-below)
+         ("C-x C-3" . split-window-right)
+         ("C-x C-0" . delete-window)
+         :map god-local-mode-map
+         ("." . repeat)
+         :map god-mode-isearch-map
+         ("<escape>" . god-mode-isearch-disable)
+         :map isearch-mode-map
+         ("<escape>" . god-mode-isearch-activate))
+  :config
+  ;; enable in isearch
+  (require 'god-mode-isearch)
+  ;; use cursor to indicate if in god-mode
+  (defun god-mode--update-cursor ()
+    "Sets cursor to a box in `god-mode' or read-only buf, else a bar."
+    (setq cursor-type (if (or god-local-mode buffer-read-only)
+                          'box
+                        'bar)))
+  (add-hook 'god-mode-enabled-hook #'god-mode--update-cursor)
+  (add-hook 'god-mode-disabled-hook #'god-mode--update-cursor)
+  ;; enable which-key integration
+  (with-eval-after-load 'which-key
+    (which-key-enable-god-mode-support)))
 #+end_src
 
 * Local Variables                                                  :noexport:

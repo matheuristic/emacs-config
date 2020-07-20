@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jul 17 23:12:33 2020
+;; Generated: Sun Jul 19 21:15:54 2020
 
 ;;; Commentary:
 
@@ -106,6 +106,13 @@
   (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-z") #'helm-select-action))
+
+;; bind over occur entry with helm-occur in search hydra
+(add-hook 'after-init-hook
+          (lambda ()
+            (defhydra+ my-hydra/search nil
+              ("oo" helm-occur "occur")
+              ("ov" helm-occur-visible-buffers "occur-visible"))))
 
 (use-package helm-icons
   :after helm
@@ -474,6 +481,30 @@ Ibuffer → Filter (_q_: ←)"
 
 ;; Buffers, windows, frames, workspaces / Window management
 
+;; quick buffer switching (configured to be within a project)
+(use-package nswbuff
+  :after projectile
+  :bind (("<C-tab>" . nswbuff-switch-to-next-buffer)
+         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer))
+  :init
+  (setq nswbuff-buffer-list-function #'nswbuff-projectile-buffer-list
+        nswbuff-clear-delay 2
+        nswbuff-display-intermediate-buffers t
+        ;; exclude all internal buffers from the nswbuff switch list
+        nswbuff-exclude-buffer-regexps '("^ "
+                                         "^\\*.*\\*"
+                                         "org-src-fontification")
+        nswbuff-exclude-mode-regexp (mapconcat
+                                     'identity
+                                     '("dired-mode"
+                                       "gnus-mode")
+                                     "\\|")
+        nswbuff-start-with-current-centered nil)
+  :config
+  ;; unbind C-tab in org-mode to not conflict with nswbuff global binding
+  (with-eval-after-load 'org
+    (unbind-key "<C-tab>" org-mode-map)))
+
 ;; traverse window config changes, C-c left/right to undo/redo
 ;; uncomment to not bind C-c left/right keys by default
 ;; (setq winner-dont-bind-my-keys t)
@@ -574,7 +605,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
         aw-char-position 'left
         aw-ignore-current nil
         aw-scope 'frame)
-  (global-set-key (kbd "M-O") #'ace-window))
+  (global-set-key (kbd "M-o") #'ace-window))
 
 ;; add `ace-window' entry point to window hydra
 (defhydra+ my-hydra/window nil
@@ -1041,12 +1072,6 @@ Dired → Filter (_q_: ←)"
   (advice-add 'all-the-icons-dired--setup :after
               (lambda () (setq-local tab-width 2))))
 
-;; ;; use Treemacs icons in Dired
-;; (when (display-graphic-p)
-;;   (use-package treemacs-icons-dired
-;;     :after dired
-;;     :hook (dired-mode . treemacs-icons-dired-mode)))
-
 ;; Editing text
 
 ;; indent with soft tabs; use C-q <TAB> for real tabs
@@ -1190,7 +1215,7 @@ Misc    _C-{_: number   _C-}_: letter
 (use-package yasnippet
   :defer 1 ;; load asynchronously after startup
   :config
-  (use-package yasnippet-snippets) ;; official snippets
+  ;; (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
   ;; remove default bindings to avoid conflicts with other packages
   ;; removing prefix bindings also removes bindings that use them
@@ -3343,82 +3368,6 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 (use-package treemacs-magit
   :after (treemacs magit))
 
-;; Reference management
-
-;; manager for BibTeX bibliographic databases
-(use-package ebib
-  :bind (("C-c C-M-b e" . ebib)))
-
-;; configure Ebib Org-mode support
-;;
-;; this setup supports exporting Org to PDF with BibTeX bibliographies via
-;; lualatex and biber, so they will need to be installed on the system
-;;
-;; org-mode documents should include the LaTeX headers for
-;; bibliographies via "#+LATEX_HEADER:" structural markup elements,
-;; and "\printbibliography" should be added at the desired location
-;; for the bibliography (usually at the end of an article or book
-;; chapter or before the index)
-;;
-;; references to bibliography entries in org-mode can be inserted by
-;; pressing `i' when on an entry in ebib or by calling
-;; `ebib-insert-citation'
-;;
-;; to export references from Org to LaTeX, ebib needs to be opened with the
-;; bibliographies for the references that appear in the document
-;;
-;; use "::" in the Org link description to separate the preamble text,
-;; pre-note, and post-note elements (all optional) for export to LaTeX,
-;; i.e. "[[ebib:key][Preamble text::Pre-note::Post-note]]"
-;; will export to "Preamble text\cite[Pre-note][Post-note]{key}"
-;;
-;; example:
-;; ---
-;; ...
-;; #+LATEX_HEADER: \usepackage[backend=biber]{biblatex}
-;; #+LATEX_HEADER: \addbibresource{path/to/bibtex_file.bib}
-;; ...
-;; [[ebib:some_ebib_entry_key]]
-;; [[ebib:some_ebib_entry_key][Preamble]
-;; [[ebib:some_ebib_entry_key][Preamble::::Post-note]
-;; [[ebib:some_ebib_entry_key][Preamble::Pre-note::Post-note]]
-;; [[ebib:incognito_1970][::see::pg. 99]]
-;; ...
-;; \printbibliography
-;; ...
-;; ---
-;;
-(with-eval-after-load 'org
-  ;; ebib configuration for org-mode
-  (with-eval-after-load 'ebib
-    (require 'org-ebib)
-    (defun my-org-ebib-export (path desc format)
-      "Export an ebib link. See `org-link-parameters' for details about PATH, DESC and FORMAT."
-      (let* ((my-desc (or desc ""))
-             (desc-parts (split-string my-desc "::"))
-             (desc-name (car desc-parts))
-             (desc-pre-note (or (nth 1 desc-parts) ""))
-             (desc-post-note (mapconcat 'identity (nthcdr 2 desc-parts) "::")))
-        (cond
-         ((eq format 'html)
-          (if desc
-              (format "(%s<cite>%s</cite>%s)"
-                      (if (string= "" desc-pre-note) "" (concat desc-pre-note " "))
-                      (if (string= "" desc-name) path desc-name)
-                      (if (string= "" desc-post-note) "" (concat ", " desc-post-note)))
-            (format "(<cite>%s</cite>)" path)))
-         ((eq format 'latex)
-          (if desc
-              (format "%s\\cite%s%s{%s}"
-                      (concat desc-name " ")
-                      (if (string= "" desc-pre-note) "" (format "[%s]" desc-pre-note))
-                      (if (string= "" desc-post-note) "" (format "[%s]" desc-post-note))
-                      path)
-            (format "\\cite{%s}" path))))))
-    (org-link-set-parameters "ebib" :export 'my-org-ebib-export))
-  ;; binding for `ebib-insert-citation'
-  (define-key org-mode-map (kbd "C-c C-M-b i") #'ebib-insert-citation))
-
 ;; Search and navigation
 
 (defhydra my-hydra/search (:color teal :columns 3)
@@ -3496,11 +3445,11 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
   ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
   ;; eww-mode, help-mode, Info-mode and woman-mode
   (ace-link-setup-default)
-  ;; bind "M-o" to jump to link in Org mode
+  ;; bind "M-O" (Meta-CapitalOh) to jump to link in Org mode
   (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "M-o") #'ace-link-org))
+    (define-key org-mode-map (kbd "M-O") #'ace-link-org))
   (with-eval-after-load 'org-agenda
-    (define-key org-agenda-mode-map (kbd "M-o") #'ace-link-org-agenda)))
+    (define-key org-agenda-mode-map (kbd "M-O") #'ace-link-org-agenda)))
 
 ;; load notdeft, make sure this comes after org-directory is set
 (require 'notdeft-autoloads)
@@ -3753,6 +3702,11 @@ Whitespace (_q_: quit)"
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
+
+(use-package volatile-highlights
+  :hook (after-init . volatile-highlights-mode))
+
+
 
 ;; Web
 
@@ -4043,35 +3997,6 @@ Help (_q_: quit)"
 (defhydra+ my-hydra/buffer nil
   ("l" so-long-mode "so-long")
   ("L" so-long-minor-mode "so-long-mm"))
-
-;; minor-mode to input ctrl/meta key sequences without modifier keys
-(use-package god-mode
-  :bind (("<escape>" . god-mode-all)
-         ;; easier window manipulation in god-mode
-         ("C-x C-1" . delete-other-windows)
-         ("C-x C-2" . split-window-below)
-         ("C-x C-3" . split-window-right)
-         ("C-x C-0" . delete-window)
-         :map god-local-mode-map
-         ("." . repeat)
-         :map god-mode-isearch-map
-         ("<escape>" . god-mode-isearch-disable)
-         :map isearch-mode-map
-         ("<escape>" . god-mode-isearch-activate))
-  :config
-  ;; enable in isearch
-  (require 'god-mode-isearch)
-  ;; use cursor to indicate if in god-mode
-  (defun god-mode--update-cursor ()
-    "Sets cursor to a box in `god-mode' or read-only buf, else a bar."
-    (setq cursor-type (if (or god-local-mode buffer-read-only)
-                          'box
-                        'bar)))
-  (add-hook 'god-mode-enabled-hook #'god-mode--update-cursor)
-  (add-hook 'god-mode-disabled-hook #'god-mode--update-cursor)
-  ;; enable which-key integration
-  (with-eval-after-load 'which-key
-    (which-key-enable-god-mode-support)))
 
 ;; OS-specific / Mac OS X
 

@@ -482,16 +482,18 @@ post-initialization hook.
               ("ov" helm-occur-visible-buffers "occur-visible"))))
 #+end_src
 
-*** Helm mark ring in bookmarks hydra                                 :hydra:
+*** Helm mark ring in buffer hydra                                    :hydra:
 
-Add entry point to ~helm-mark-ring~ in bookmarks hydra
+Add entry point to ~helm-mark-ring~ and ~helm-all-mark-rings~ in
+buffer hydra.
 
-#+name: add-helm-mark-ring-to-bookmarks-hydra
+#+name: add-helm-mark-ring-to-buffer-hydra
 #+begin_src emacs-lisp
 (add-hook 'after-init-hook
           (lambda ()
-            (defhydra+ my-hydra/bookmarks nil
-              ("m" helm-mark-ring "marks"))))
+            (defhydra+ my-hydra/buffer nil
+              ("m" helm-mark-ring "marks")
+              ("M" helm-all-mark-rings "marks-all"))))
 #+end_src
 
 *** Use icons in Helm                                              :external:
@@ -824,7 +826,7 @@ Buffer (_q_: quit)"
   ("B" bury-buffer "bury")
   ("U" unbury-buffer "unbury")
   ("s" save-buffer "save")
-  ("S" save-some-buffers "save-all")
+  ("S" save-some-buffers "save-all") ;; call with "1 S" to save all
   ("k" kill-this-buffer "kill")
   ("K" kill-matching-buffers "kill-match")
   ("c" tramp-cleanup-this-connection "tramp-clean")
@@ -2457,13 +2459,13 @@ a tree and can be navigated using the regular movement keys.
   :config (global-undo-tree-mode))
 #+end_src
 
-** Zap (up) to character
+** Zap up to character
 
 ~M-z~ is bound by default to ~zap-to-char~ that deletes from the point
 to (including) the next occurrence of a given character, which is like
 ~d f <char>~ in Vim.
 
-There is also more useful variant ~zap-up-to-char~ which deletes up
+There is also a more useful variant ~zap-up-to-char~ which deletes up
 to but /not including/ the next occurrence of a given character, which
 is like ~d t <char>~ in Vim.
 
@@ -2473,8 +2475,20 @@ is like ~d t <char>~ in Vim.
 
 #+name: zap-up-to-char
 #+begin_src emacs-lisp
-;; bind "M-z" to call `zap-up-to-char' and "M-Z" to `zap-to-char'
-(global-set-key (kbd "M-z") #'zap-up-to-char)
+;; bind over `zap-to-char' (defaults to "M-x") with `zap-up-to-char'
+(global-set-key [remap zap-to-char] #'zap-up-to-char)
+#+end_src
+
+** cycle-spacing
+
+Bind ~cycle-spacing~ in place of ~just-one-space~ as it is more
+versatile, utilizing a single command to cycle between one space
+around point, no spaces around point and original spacing by calling
+it consecutively.
+
+#+name: cycle-spacing
+#+begin_src emacs-lisp
+(global-set-key [remap just-one-space] #'cycle-spacing)
 #+end_src
 
 * Emacs as an edit server
@@ -6172,7 +6186,10 @@ It provides a minor mode ~dumb-jump-mode~ which enables three bindings:
 (use-package dumb-jump
   :config (setq dumb-jump-aggressive nil
                 dumb-jump-default-project "./"
-                dumb-jump-selector 'completing-read))
+                dumb-jump-prefer-searcher 'rg
+                dumb-jump-selector (if (fboundp 'helm)
+                                       'helm
+                                     'completing-read)))
 #+end_src
 
 *** dumb-jump hydra                                                   :hydra:
@@ -7660,18 +7677,6 @@ information.
       calc-highlight-selections-with-faces nil)
 #+end_src
 
-** cycle-spacing
-
-Bind ~cycle-spacing~ in place of ~just-one-space~ as it is more
-versatile, utilizing a single command to cycle between one space
-around point, no spaces around point and original spacing by calling
-it consecutively.
-
-#+name: cycle-spacing
-#+begin_src emacs-lisp
-(global-set-key [remap just-one-space] #'cycle-spacing)
-#+end_src
-
 ** Revert buffer using F5
 
 Buffers can be reverted using ~s-u~ but since the Super key is not on
@@ -8030,7 +8035,7 @@ The main configuration file.
 
 <<add-helm-occur-to-search-hydra>>
 
-<<add-helm-mark-ring-to-bookmarks-hydra>>
+<<add-helm-mark-ring-to-buffer-hydra>>
 
 <<helm-icons>>
 
@@ -8214,6 +8219,8 @@ The main configuration file.
 <<undo-tree>>
 
 <<zap-up-to-char>>
+
+<<cycle-spacing>>
 
 ;; Emacs as an edit server
 
@@ -8561,8 +8568,6 @@ The main configuration file.
 <<uniquify>>
 
 <<calc>>
-
-<<cycle-spacing>>
 
 <<revert-buffer>>
 

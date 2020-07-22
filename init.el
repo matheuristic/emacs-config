@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Jul 22 00:42:30 2020
+;; Generated: Wed Jul 22 09:26:30 2020
 
 ;;; Commentary:
 
@@ -116,8 +116,9 @@
 
 (add-hook 'after-init-hook
           (lambda ()
-            (defhydra+ my-hydra/bookmarks nil
-              ("m" helm-mark-ring "marks"))))
+            (defhydra+ my-hydra/buffer nil
+              ("m" helm-mark-ring "marks")
+              ("M" helm-all-mark-rings "marks-all"))))
 
 (use-package helm-icons
   :after helm
@@ -329,7 +330,7 @@ Buffer (_q_: quit)"
   ("B" bury-buffer "bury")
   ("U" unbury-buffer "unbury")
   ("s" save-buffer "save")
-  ("S" save-some-buffers "save-all")
+  ("S" save-some-buffers "save-all") ;; call with "1 S" to save all
   ("k" kill-this-buffer "kill")
   ("K" kill-matching-buffers "kill-match")
   ("c" tramp-cleanup-this-connection "tramp-clean")
@@ -1284,8 +1285,10 @@ YASnippet (_q_: quit)"
   :init (setq undo-tree-visualizer-relative-timestamps nil)
   :config (global-undo-tree-mode))
 
-;; bind "M-z" to call `zap-up-to-char' and "M-Z" to `zap-to-char'
-(global-set-key (kbd "M-z") #'zap-up-to-char)
+;; bind over `zap-to-char' (defaults to "M-x") with `zap-up-to-char'
+(global-set-key [remap zap-to-char] #'zap-up-to-char)
+
+(global-set-key [remap just-one-space] #'cycle-spacing)
 
 ;; Emacs as an edit server
 
@@ -3435,7 +3438,10 @@ Search (_q_: quit)"
 (use-package dumb-jump
   :config (setq dumb-jump-aggressive nil
                 dumb-jump-default-project "./"
-                dumb-jump-selector 'completing-read))
+                dumb-jump-prefer-searcher 'rg
+                dumb-jump-selector (if (fboundp 'helm)
+                                       'helm
+                                     'completing-read)))
 
 ;; hydra for dumb-jump
 ;; adapted from https://github.com/jacktasia/dumb-jump/blob/master/README.md
@@ -4051,8 +4057,6 @@ Help (_q_: quit)"
       calc-context-sensitive-enter t
       calc-undo-length 100
       calc-highlight-selections-with-faces nil)
-
-(global-set-key [remap just-one-space] #'cycle-spacing)
 
 (global-set-key (kbd "<f5>") #'revert-buffer)
 

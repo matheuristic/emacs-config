@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul 19 21:15:54 2020
+;; Generated: Wed Jul 22 00:42:30 2020
 
 ;;; Commentary:
 
@@ -113,6 +113,11 @@
             (defhydra+ my-hydra/search nil
               ("oo" helm-occur "occur")
               ("ov" helm-occur-visible-buffers "occur-visible"))))
+
+(add-hook 'after-init-hook
+          (lambda ()
+            (defhydra+ my-hydra/bookmarks nil
+              ("m" helm-mark-ring "marks"))))
 
 (use-package helm-icons
   :after helm
@@ -240,7 +245,7 @@ Bookmarks (_q_: quit)"
   ("I" bookmark-insert-location "insert-loc")
   ("L" bookmark-load "load")
   ("W" bookmark-write "write"))
-(global-set-key (kbd "C-c C-M-b m") 'my-hydra/bookmarks/body)
+(global-set-key (kbd "C-c C-M-j") 'my-hydra/bookmarks/body)
 
 ;; alternative interface for M-x
 (when (not (featurep 'helm))
@@ -313,10 +318,11 @@ Bookmarks (_q_: quit)"
 (add-hook 'kill-buffer-query-functions #'my-bury-unkillable-buffers)
 
 ;; hydra for basic buffer management
-(defhydra my-hydra/buffer (:color amaranth :columns 5)
+(defhydra my-hydra/buffer (:color amaranth :columns 4)
   "
 Buffer (_q_: quit)"
   ("q" nil nil :exit t)
+  ("b" switch-to-buffer "switch" :exit t)
   ("p" previous-buffer "previous")
   ("n" next-buffer "next")
   ("R" revert-buffer "revert")
@@ -326,8 +332,10 @@ Buffer (_q_: quit)"
   ("S" save-some-buffers "save-all")
   ("k" kill-this-buffer "kill")
   ("K" kill-matching-buffers "kill-match")
-  ("b" switch-to-buffer "switch" :exit t))
-(global-set-key (kbd "C-c C-M-b f") 'my-hydra/buffer/body)
+  ("c" tramp-cleanup-this-connection "tramp-clean")
+  ("C" tramp-cleanup-connection "tramp-clean-o")
+  ("T" tramp-cleanup-all-buffers "tramp-clean-all"))
+(global-set-key (kbd "C-c C-M-b") 'my-hydra/buffer/body)
 
 ;; advanced buffer management with Ibuffer
 (add-hook 'ibuffer-mode-hook
@@ -840,6 +848,9 @@ Shell tools (_q_: quit)"
 
 ;; Comparison tools
 
+;; always set up Ediff control window within the same frame as the diff
+(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+
 ;; hydra for Ediff
 (defhydra my-hydra/ediff (:color teal :hint nil)
   "
@@ -867,7 +878,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
 (defhydra my-hydra/smerge-mode (:color pink :hint nil)
   "
 Smerge (_q_: quit)
-Move   _n_   : next          _p_ : prev
+Move   _n_   : next          _p_   : prev
 Keep   _b_   : base          _u_   : upper         _l_   : lower
        _a_   : all           _RET_ : current
 Diff   _<_   : upper/base    _=_   : upper/lower   _>_   : base/lower
@@ -889,7 +900,14 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
   ("E" smerge-ediff)
   ("C" smerge-combine-with-next)
   ("r" smerge-resolve)
-  ("k" smerge-kill-current))
+  ("k" smerge-kill-current)
+  ;; emulate Vim's "ZZ" command to save and close current file
+  ("ZZ"
+   (lambda ()
+     (interactive)
+     (save-buffer)
+     (bury-buffer))
+   "Save and bury buffer" :exit t))
 ;; binding
 (with-eval-after-load 'smerge-mode
   (define-key smerge-mode-map (kbd "C-c C-M-m") #'my-hydra/smerge-mode/body))
@@ -1265,6 +1283,9 @@ YASnippet (_q_: quit)"
 (use-package undo-tree
   :init (setq undo-tree-visualizer-relative-timestamps nil)
   :config (global-undo-tree-mode))
+
+;; bind "M-z" to call `zap-up-to-char' and "M-Z" to `zap-to-char'
+(global-set-key (kbd "M-z") #'zap-up-to-char)
 
 ;; Emacs as an edit server
 
@@ -1844,7 +1865,11 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
   (setq neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
         neuron-default-tags '("stub")
         neuron-id-format 'hash
-        neuron-tag-specific-title-faces '(("stub" neuron-stub-face))))
+        neuron-tag-specific-title-faces '(("stub" neuron-stub-face)))
+  :config
+  ;; push location on to marker stack before following neuron link
+  ;; so backtracking is possible via `xref-pop-marker-stack' or "M-,"
+  (advice-add #'neuron-follow-thing-at-point :before #'xref-push-marker-stack))
 
 ;; entrypoint hydra into neuron Zettelkasten
 (defhydra my-hydra/neuron (:color teal :columns 4)
@@ -3394,7 +3419,7 @@ Search (_q_: quit)"
 
 (when (executable-find "rg")
   (use-package rg
-    :bind ("<f5>" . rg-menu)))
+    :bind ("<f6>" . rg-menu)))
 
 (when (executable-find "rg")
   (defhydra+ my-hydra/search nil
@@ -3477,7 +3502,7 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 (use-package imenu-anywhere
   :defer t
   :after imenu
-  :bind ("C-c C-M-j" . imenu-anywhere))
+  :bind ("C-c C-M-i" . imenu-anywhere))
 
 ;; show imenu as a list in a side buffer
 (use-package imenu-list
@@ -3693,7 +3718,12 @@ Whitespace (_q_: quit)"
    "show-trailing" :exit nil)
   ("n" whitespace-newline-mode "show-newline" :exit nil)
   ("c" whitespace-cleanup "cleanup")
-  ("r" whitespace-report "report"))
+  ("r" whitespace-report "report")
+  ("i" (lambda ()
+         "Indent the buffer."
+         (interactive)
+         (indent-region (point-min) (point-max)))
+   "indent-buf" :exit nil))
 (global-set-key (kbd "C-c C-M-w s") #'my-hydra/whitespace/body)
 
 ;; show pointer location column number in mode line
@@ -3706,7 +3736,21 @@ Whitespace (_q_: quit)"
 (use-package volatile-highlights
   :hook (after-init . volatile-highlights-mode))
 
+;; add visual indentation guides
+(use-package highlight-indent-guides
+  :hook (python-mode . highlight-indent-guides-mode)
+  :init (setq highlight-indent-guides-method 'character
+              highlight-indent-guides-responsive 'top
+              highlight-indent-guides-character ?\x2502))
 
+;; add `highlight-indent-guides-mode' toggle to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'highlight-indent-guides)))
+    ,(concat my-hydra/visual/docstring
+             "_I_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
+")
+    ("I" highlight-indent-guides-mode :exit nil)))
 
 ;; Web
 
@@ -3915,7 +3959,8 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
 ;; useful extensions
 (use-package crux
   :config
-  (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line))
+  (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
+  (global-set-key (kbd "C-S-j") #'crux-top-join-line))
 
 ;; hydra for CRUX commands
 (defhydra my-hydra/crux (:color teal :columns 3)
@@ -3997,6 +4042,19 @@ Help (_q_: quit)"
 (defhydra+ my-hydra/buffer nil
   ("l" so-long-mode "so-long")
   ("L" so-long-minor-mode "so-long-mm"))
+
+(require 'uniquify)
+(setq uniquify-buffer-name-style 'post-forward-angle-brackets)
+
+(setq calc-multiplication-has-precedence nil
+      calc-ensure-consistent-units t
+      calc-context-sensitive-enter t
+      calc-undo-length 100
+      calc-highlight-selections-with-faces nil)
+
+(global-set-key [remap just-one-space] #'cycle-spacing)
+
+(global-set-key (kbd "<f5>") #'revert-buffer)
 
 ;; OS-specific / Mac OS X
 

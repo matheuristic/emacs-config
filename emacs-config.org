@@ -105,6 +105,7 @@ Literate configs, package lists, and so on and so forth.
 - [[https://github.com/caisah/emacs.dz][Awesome emacs config files]].
 - [[https://so.nwalsh.com/2020/02/29/dot-emacs][My .emacs | SO… A WEBLOG BY NORM]] and [[https://so.nwalsh.com/2020/02/29-dotfiles][Dotfiles | SO… A WEBLOG BY NORM]].
 - [[https://uwabami.github.io/cc-env/Emacs.html][Emacs の設定 | Youhei SASAKI’s official site]].
+- [[https://www.bytedude.com/useful-emacs-shortcuts/][Useful Emacs Keybindings | Bytedude]]
 - [[https://github.com/emacs-tw/awesome-emacs][GitHub - emacs-tw/awesome-emacs]]
 - [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Change-Log-Commands.html][Change Log Commands - GNU Emacs Manual]]
 - [[https://two-wrongs.com/why-you-should-buy-into-the-emacs-platform][Why You Should Buy Into the Emacs Platform]]
@@ -481,6 +482,18 @@ post-initialization hook.
               ("ov" helm-occur-visible-buffers "occur-visible"))))
 #+end_src
 
+*** Helm mark ring in bookmarks hydra                                 :hydra:
+
+Add entry point to ~helm-mark-ring~ in bookmarks hydra
+
+#+name: add-helm-mark-ring-to-bookmarks-hydra
+#+begin_src emacs-lisp
+(add-hook 'after-init-hook
+          (lambda ()
+            (defhydra+ my-hydra/bookmarks nil
+              ("m" helm-mark-ring "marks"))))
+#+end_src
+
 *** Use icons in Helm                                              :external:
 
 [[https://github.com/yyoncho/helm-icons][helm-icons]] shows file icons using those from Treemacs when using
@@ -657,7 +670,7 @@ Bookmarks (_q_: quit)"
   ("I" bookmark-insert-location "insert-loc")
   ("L" bookmark-load "load")
   ("W" bookmark-write "write"))
-(global-set-key (kbd "C-c C-M-b m") 'my-hydra/bookmarks/body)
+(global-set-key (kbd "C-c C-M-j") 'my-hydra/bookmarks/body)
 #+end_src
 
 ** Minibuffer commands                                                :melpa:
@@ -800,10 +813,11 @@ Hydra for basic [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Buff
 #+name: buffer-hydra
 #+begin_src emacs-lisp
 ;; hydra for basic buffer management
-(defhydra my-hydra/buffer (:color amaranth :columns 5)
+(defhydra my-hydra/buffer (:color amaranth :columns 4)
   "
 Buffer (_q_: quit)"
   ("q" nil nil :exit t)
+  ("b" switch-to-buffer "switch" :exit t)
   ("p" previous-buffer "previous")
   ("n" next-buffer "next")
   ("R" revert-buffer "revert")
@@ -813,8 +827,10 @@ Buffer (_q_: quit)"
   ("S" save-some-buffers "save-all")
   ("k" kill-this-buffer "kill")
   ("K" kill-matching-buffers "kill-match")
-  ("b" switch-to-buffer "switch" :exit t))
-(global-set-key (kbd "C-c C-M-b f") 'my-hydra/buffer/body)
+  ("c" tramp-cleanup-this-connection "tramp-clean")
+  ("C" tramp-cleanup-connection "tramp-clean-o")
+  ("T" tramp-cleanup-all-buffers "tramp-clean-all"))
+(global-set-key (kbd "C-c C-M-b") 'my-hydra/buffer/body)
 #+end_src
 
 *** Advanced buffer management with Ibuffer
@@ -1746,10 +1762,23 @@ Shell tools (_q_: quit)"
 
 * Comparison tools
 
-** Ediff hydra                                                        :hydra:
+** Ediff
 
-Hydra for the built-in [[https://www.gnu.org/software/emacs/manual/html_mono/ediff.html][Ediff]], which visualizes the standard Unix [[https://en.wikipedia.org/wiki/Diff][diff]]
-and [[https://en.wikipedia.org/wiki/Patch_(Unix)][patch]] programs.
+[[https://www.gnu.org/software/emacs/manual/html_mono/ediff.html][Ediff]] is a built-in tool that visualizes the standard Unix [[https://en.wikipedia.org/wiki/Diff][diff]] and
+[[https://en.wikipedia.org/wiki/Patch_(Unix)][patch]] programs.
+
+*Configuration*:
+- Always set control window in the same frame as the diff'ed files.
+
+#+name: ediff
+#+begin_src emacs-lisp
+;; always set up Ediff control window within the same frame as the diff
+(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+#+end_src
+
+*** Ediff hydra                                                       :hydra:
+
+Hydra for Ediff.
 
 #+name: ediff-hydra
 #+begin_src emacs-lisp
@@ -1777,10 +1806,15 @@ Windows  _L_ : line-wise   _W_ : word-wise
 (global-set-key (kbd "C-c C-M-d f") #'my-hydra/ediff/body)
 #+end_src
 
+** Smerge
+
+[[https://github.com/emacs-mirror/emacs/blob/master/lisp/vc/smerge-mode.el][Smerge]] is a lightweight alternative to Ediff, and is the default merge
+tool called by [[Magit][Magit]] to resolve merge conflicts.
+
 ** Smerge hydra                                                       :hydra:
 
-Major mode-specific hydra for [[https://github.com/emacs-mirror/emacs/blob/master/lisp/vc/smerge-mode.el][Smerge]], a lightweight alternative to Ediff.
-It is the default merge tool called by [[Magit][Magit]] to resolve merge conflicts.
+Major mode-specific hydra for Smerge.
+Adapted from [[https://github.com/alphapapa/unpackaged.el#hydra][here]].
 
 #+name: smerge-hydra
 #+begin_src emacs-lisp
@@ -1788,7 +1822,7 @@ It is the default merge tool called by [[Magit][Magit]] to resolve merge conflic
 (defhydra my-hydra/smerge-mode (:color pink :hint nil)
   "
 Smerge (_q_: quit)
-Move   _n_   : next          _p_ : prev
+Move   _n_   : next          _p_   : prev
 Keep   _b_   : base          _u_   : upper         _l_   : lower
        _a_   : all           _RET_ : current
 Diff   _<_   : upper/base    _=_   : upper/lower   _>_   : base/lower
@@ -1810,7 +1844,14 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
   ("E" smerge-ediff)
   ("C" smerge-combine-with-next)
   ("r" smerge-resolve)
-  ("k" smerge-kill-current))
+  ("k" smerge-kill-current)
+  ;; emulate Vim's "ZZ" command to save and close current file
+  ("ZZ"
+   (lambda ()
+     (interactive)
+     (save-buffer)
+     (bury-buffer))
+   "Save and bury buffer" :exit t))
 ;; binding
 (with-eval-after-load 'smerge-mode
   (define-key smerge-mode-map (kbd "C-c C-M-m") #'my-hydra/smerge-mode/body))
@@ -2414,6 +2455,26 @@ a tree and can be navigated using the regular movement keys.
 (use-package undo-tree
   :init (setq undo-tree-visualizer-relative-timestamps nil)
   :config (global-undo-tree-mode))
+#+end_src
+
+** Zap (up) to character
+
+~M-z~ is bound by default to ~zap-to-char~ that deletes from the point
+to (including) the next occurrence of a given character, which is like
+~d f <char>~ in Vim.
+
+There is also more useful variant ~zap-up-to-char~ which deletes up
+to but /not including/ the next occurrence of a given character, which
+is like ~d t <char>~ in Vim.
+
+*Configuration*:
+- Rebind ~M-z~ to ~zap-up-to-char~. Use ~C-u ARG M-z~ to delete up to
+  the ~ARG~-th next occurrence of a character.
+
+#+name: zap-up-to-char
+#+begin_src emacs-lisp
+;; bind "M-z" to call `zap-up-to-char' and "M-Z" to `zap-to-char'
+(global-set-key (kbd "M-z") #'zap-up-to-char)
 #+end_src
 
 * Emacs as an edit server
@@ -3637,7 +3698,11 @@ Requires that neuron be installed, which currently requires [[https://nixos.org/
   (setq neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
         neuron-default-tags '("stub")
         neuron-id-format 'hash
-        neuron-tag-specific-title-faces '(("stub" neuron-stub-face))))
+        neuron-tag-specific-title-faces '(("stub" neuron-stub-face)))
+  :config
+  ;; push location on to marker stack before following neuron link
+  ;; so backtracking is possible via `xref-pop-marker-stack' or "M-,"
+  (advice-add #'neuron-follow-thing-at-point :before #'xref-push-marker-stack))
 #+end_src
 
 *** Installing neuron
@@ -6058,7 +6123,7 @@ through ~e~ while on the search results page.
 #+begin_src emacs-lisp
 (when (executable-find "rg")
   (use-package rg
-    :bind ("<f5>" . rg-menu)))
+    :bind ("<f6>" . rg-menu)))
 #+end_src
 
 *** rg.el entrypoint in search hydra                                  :hydra:
@@ -6279,7 +6344,7 @@ definitions across all open buffers.
 (use-package imenu-anywhere
   :defer t
   :after imenu
-  :bind ("C-c C-M-j" . imenu-anywhere))
+  :bind ("C-c C-M-i" . imenu-anywhere))
 #+end_src
 
 *** Imenu extension to list headings in a side buffer                 :melpa:
@@ -6790,7 +6855,12 @@ Whitespace (_q_: quit)"
    "show-trailing" :exit nil)
   ("n" whitespace-newline-mode "show-newline" :exit nil)
   ("c" whitespace-cleanup "cleanup")
-  ("r" whitespace-report "report"))
+  ("r" whitespace-report "report")
+  ("i" (lambda ()
+         "Indent the buffer."
+         (interactive)
+         (indent-region (point-min) (point-max)))
+   "indent-buf" :exit nil))
 (global-set-key (kbd "C-c C-M-w s") #'my-hydra/whitespace/body)
 #+end_src
 
@@ -6824,6 +6894,39 @@ highlights yanked text.
 #+begin_src emacs-lisp
 (use-package volatile-highlights
   :hook (after-init . volatile-highlights-mode))
+#+end_src
+
+** Highlight indentation levels                                       :melpa:
+
+[[https://github.com/DarthFennec/highlight-indent-guides][highlight-indent-guides]] adds dynamic indentation guides which are
+useful for languages where whitespace is important like Python.
+
+Use when editing Python files by default.
+
+#+name: highlight-indent-guides
+#+begin_src emacs-lisp
+;; add visual indentation guides
+(use-package highlight-indent-guides
+  :hook (python-mode . highlight-indent-guides-mode)
+  :init (setq highlight-indent-guides-method 'character
+              highlight-indent-guides-responsive 'top
+              highlight-indent-guides-character ?\x2502))
+#+end_src
+
+*** Add toggle for highlight-indent-guides-mode to visual hydra       :hydra:
+
+Add ~highlight-indent-guides-mode~ toggle entry point to visual hydra.
+
+#+name: add-highlight-indent-guides-toggle-to-visual-hydra
+#+begin_src emacs-lisp
+;; add `highlight-indent-guides-mode' toggle to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'highlight-indent-guides)))
+    ,(concat my-hydra/visual/docstring
+             "_I_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
+")
+    ("I" highlight-indent-guides-mode :exit nil)))
 #+end_src
 
 * Web
@@ -7306,12 +7409,16 @@ Emacs implementation (looking at Emacs Mac Port here).
 provides a number of useful interactive commands that can
 improve quality-of-life while using Emacs.
 
+~C-S-j~ is bound to ~crux-top-join-line~ globally, which joins the
+current line with the one below it like ~J~ in Vim.
+
 #+name:crux
 #+begin_src emacs-lisp
 ;; useful extensions
 (use-package crux
   :config
-  (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line))
+  (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
+  (global-set-key (kbd "C-S-j") #'crux-top-join-line))
 #+end_src
 
 *** CRUX hydra                                                        :hydra:
@@ -7519,6 +7626,61 @@ Extend buffer hydra with toggles for ~so-long-mode~ and
 (defhydra+ my-hydra/buffer nil
   ("l" so-long-mode "so-long")
   ("L" so-long-minor-mode "so-long-mm"))
+#+end_src
+
+** Uniquify file buffer names
+
+Disambiguate open file buffers with the same name but from different
+directories.
+
+#+name: uniquify
+#+begin_src emacs-lisp
+(require 'uniquify)
+(setq uniquify-buffer-name-style 'post-forward-angle-brackets)
+#+end_src
+
+** Calc built-in calculator
+
+[[https://www.gnu.org/software/emacs/manual/html_node/calc/index.html][Calc]] is a built-in calculator that uses [[https://en.wikipedia.org/wiki/Reverse_Polish_notation][Reverse Polish notation]] (RPN).
+Use ~C-x *~ to start a Calc dispatch on the expression under the
+point, for example:
+- ~C-x * c~ to call ~calc~ and open a Calc instance.
+- ~C-x * e~ to enter Embedded mode when the point is on a formula.
+- ~C-x * q~ to run a quick calculation.
+
+See the help buffer surfaced by ~C-h f calc-dispatch-help~ for more
+information.
+
+#+name: calc
+#+begin_src emacs-lisp
+(setq calc-multiplication-has-precedence nil
+      calc-ensure-consistent-units t
+      calc-context-sensitive-enter t
+      calc-undo-length 100
+      calc-highlight-selections-with-faces nil)
+#+end_src
+
+** cycle-spacing
+
+Bind ~cycle-spacing~ in place of ~just-one-space~ as it is more
+versatile, utilizing a single command to cycle between one space
+around point, no spaces around point and original spacing by calling
+it consecutively.
+
+#+name: cycle-spacing
+#+begin_src emacs-lisp
+(global-set-key [remap just-one-space] #'cycle-spacing)
+#+end_src
+
+** Revert buffer using F5
+
+Buffers can be reverted using ~s-u~ but since the Super key is not on
+all keyboards it is a good idea to bind it to a function key, which is
+~<f5>~ here.
+
+#+name: revert-buffer
+#+begin_src emacs-lisp
+(global-set-key (kbd "<f5>") #'revert-buffer)
 #+end_src
 
 * OS-specific
@@ -7868,6 +8030,8 @@ The main configuration file.
 
 <<add-helm-occur-to-search-hydra>>
 
+<<add-helm-mark-ring-to-bookmarks-hydra>>
+
 <<helm-icons>>
 
 ;; <<icomplete>>
@@ -7988,6 +8152,8 @@ The main configuration file.
 
 ;; Comparison tools
 
+<<ediff>>
+
 <<ediff-hydra>>
 
 <<smerge-hydra>>
@@ -8046,6 +8212,8 @@ The main configuration file.
 <<paredit>>
 
 <<undo-tree>>
+
+<<zap-up-to-char>>
 
 ;; Emacs as an edit server
 
@@ -8319,7 +8487,9 @@ The main configuration file.
 
 <<volatile-highlights>>
 
-<<auto-dim-other-buffers>>
+<<highlight-indent-guides>>
+
+<<add-highlight-indent-guides-toggle-to-visual-hydra>>
 
 ;; Web
 
@@ -8388,6 +8558,14 @@ The main configuration file.
 
 <<so-long-hydra>>
 
+<<uniquify>>
+
+<<calc>>
+
+<<cycle-spacing>>
+
+<<revert-buffer>>
+
 ;; OS-specific / Mac OS X
 
 <<mac>>
@@ -8421,7 +8599,7 @@ The main configuration file.
 
 *** Helm
 
-**** Use icons in Helm                                                :melpa:
+**** [#A] Use icons in Helm                                           :melpa:
 
 Update ~helm-icons~ configuration when it supports all-the-icons.
 
@@ -8811,7 +8989,7 @@ This package supports literate programming for calculations,
 automatically picking up calculations and inserting the results as
 overlays.
 
-*** [#B] Password management and storage
+*** [#A] Password management and storage
 
 Use [[https://www.passwordstore.org/][password-store]] for password management.
 
@@ -9136,7 +9314,7 @@ wheel-d : prev same-level heading"
 
 ** Dired
 
-** Dired icons using treemacs-icons-dired                             :melpa:
+*** Dired icons using treemacs-icons-dired                            :melpa:
 
 Add icons from [[https://github.com/Alexander-Miller/treemacs][Treemacs]] to Dired.
 
@@ -9321,7 +9499,7 @@ In certain scenarios, the language server diagnostics before Flymake changes the
 
 *** Clojure
 
-**** Clojure linting using clj-kondo                               :external:
+**** Clojure linting using clj-kondo with Flymake                  :external:
 
 Add a Flymake backend for [[https://github.com/borkdude/clj-kondo][clj-kondo]], a linter for Clojure code.
 Enable this backend automatically when editing Clojure buffers.
@@ -9408,13 +9586,13 @@ entry to the menubar.
 (=.bib= files).
 
 *Configuration*:
-- ~C-c C-M-b e~ calls ~ebib~ globally.
+- ~C-c C-M-S-b e~ calls ~ebib~ globally.
 
 #+name: ebib
 #+begin_src emacs-lisp
 ;; manager for BibTeX bibliographic databases
 (use-package ebib
-  :bind (("C-c C-M-b e" . ebib)))
+  :bind (("C-c C-M-S-b e" . ebib)))
 #+end_src
 
 **** Ebib Org-mode support
@@ -9426,7 +9604,7 @@ Configure Org-mode support for Ebib.
   pre-note and post-note text for the reference, with the format being
   =[[ebib:key][Preamble text::Pre-note::Post-note]]= where
   ~key~ should be a valid key in the =.bib= file currently open in ebib.
-- ~C-c C-M-b i~ calls ~ebib-insert-citation~ in Org-mode buffers.
+- ~C-c C-M-S-b i~ calls ~ebib-insert-citation~ in Org-mode buffers.
 
 #+name: ebib-org-mode-config
 #+begin_src emacs-lisp
@@ -9498,7 +9676,7 @@ Configure Org-mode support for Ebib.
             (format "\\cite{%s}" path))))))
     (org-link-set-parameters "ebib" :export 'my-org-ebib-export))
   ;; binding for `ebib-insert-citation'
-  (define-key org-mode-map (kbd "C-c C-M-b i") #'ebib-insert-citation))
+  (define-key org-mode-map (kbd "C-c C-M-S-b i") #'ebib-insert-citation))
 #+end_src
 
 ** Search and navigation

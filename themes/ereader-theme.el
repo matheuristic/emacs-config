@@ -93,7 +93,7 @@
    `(mode-line-buffer ((t (:foreground ,fg :weight bold))))
    `(mode-line-inactive ((t (:background ,bg :foreground ,fg-dim :overline ,fg))))
    `(mode-line-minor-mode ((t (:weight ultra-light))))
-   `(query-replace ((t (:strike-through t))))
+   `(query-replace ((t (:background ,bg-search :strike-through t))))
    `(region ((t (:background ,bg-region :foreground ,fg))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))
@@ -310,6 +310,20 @@
    `(nswbuff-current-buffer-face ((t (:foreground "red" :weight bold :underline t))))
    `(nswbuff-separator-face ((t (:inherit shadow))))
 
+   ;; highlight-indent-guides
+   `(highlight-indent-guides-odd-face ((t (:background "#e1e1df"))))
+   `(highlight-indent-guides-even-face ((t (:background "#c8c8c6"))))
+   `(highlight-indent-guides-character-face ((t (:foreground "#c8c8c6" :weight ultra-light))))
+   `(highlight-indent-guides-top-odd-face ((t (:background "#7d7d7c"))))
+   `(highlight-indent-guides-top-even-face ((t (:background "#646463"))))
+   `(highlight-indent-guides-top-character-face ((t (:foreground "#646463" :weight ultra-light))))
+   `(highlight-indent-guides-stack-odd-face ((t (:background "#afafad"))))
+   `(highlight-indent-guides-stack-even-face ((t (:background "#969694"))))
+   `(highlight-indent-guides-stack-character-face ((t (:foreground "#969694" :weight ultra-light))))
+
+   ;; volatile-highlights
+   `(vhl/default-face ((t (:background ,bg-highlight-3))))
+
    ;; evil-quickscope
    `(evil-quickscope-first-face ((t (:foreground ,fg :background ,bg-region))))
    `(evil-quickscope-second-face ((t (:foreground ,fg :background ,bg-highlight-3))))
@@ -326,6 +340,10 @@
 ;; (custom-theme-set-variables
 ;;  'ereader
 ;;  `(default-frame-alist (add-to-list 'default-frame-alist '(internal-border-width . ,(if (eq system-type 'darwin) 12 6)))))
+
+(custom-theme-set-variables
+ 'ereader
+ '(highlight-indent-guides-auto-enabled nil))
 
 ;;;###autoload
 (when (and (boundp 'custom-theme-load-path) load-file-name)

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Jul 23 19:22:56 2020
+;; Generated: Thu Jul 23 19:38:50 2020
 
 ;;; Commentary:
 
@@ -333,13 +333,11 @@ Buffer (_q_: quit)"
   ("S" save-some-buffers "save-all") ;; call with "1 S" to save all
   ("k" kill-this-buffer "kill")
   ("K" kill-matching-buffers "kill-match")
-  ("t" tramp-cleanup-this-connection "tramp-clean" :exit t)
-  ("T" tramp-cleanup-connection "tramp-clean-o" :exit t)
-  ("x" (lambda ()
+  ("t" (lambda ()
          (interactive)
-         (when (y-or-n-p "Cleanup all TRAMP buffers and connections?")
+         (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
            (tramp-cleanup-all-buffers)))
-   "tramp-clean-all" :exit t))
+   "tramp-cleanup" :exit t))
 (global-set-key (kbd "C-c C-M-b") 'my-hydra/buffer/body)
 
 ;; advanced buffer management with Ibuffer
@@ -521,8 +519,7 @@ Ibuffer → Filter (_q_: ←)"
 (defun my-kill-other-buffers ()
   "Kill all file buffers except the current one."
   (interactive)
-  (when (yes-or-no-p
-         "Kill all file buffers except the current one? ")
+  (when (y-or-n-p "Kill all file buffers except the current one? ")
     (seq-each
      #'kill-buffer
      (delete (current-buffer)

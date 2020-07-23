@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Jul 22 09:26:30 2020
+;; Generated: Thu Jul 23 19:22:56 2020
 
 ;;; Commentary:
 
@@ -117,8 +117,8 @@
 (add-hook 'after-init-hook
           (lambda ()
             (defhydra+ my-hydra/buffer nil
-              ("m" helm-mark-ring "marks")
-              ("M" helm-all-mark-rings "marks-all"))))
+              ("m" helm-mark-ring "marks" :exit t)
+              ("M" helm-all-mark-rings "marks-all" :exit t))))
 
 (use-package helm-icons
   :after helm
@@ -277,7 +277,7 @@ Bookmarks (_q_: quit)"
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
 ;; binding for recentf, use Helm version if available
-(global-set-key (kbd "C-c C-M-r f") #'recentf-open-files)
+(global-set-key (kbd "C-c C-M-r") #'recentf-open-files)
 
 ;; prefer helm-recentf to recentf-open-files
 (add-hook 'after-init-hook
@@ -333,9 +333,13 @@ Buffer (_q_: quit)"
   ("S" save-some-buffers "save-all") ;; call with "1 S" to save all
   ("k" kill-this-buffer "kill")
   ("K" kill-matching-buffers "kill-match")
-  ("c" tramp-cleanup-this-connection "tramp-clean")
-  ("C" tramp-cleanup-connection "tramp-clean-o")
-  ("T" tramp-cleanup-all-buffers "tramp-clean-all"))
+  ("t" tramp-cleanup-this-connection "tramp-clean" :exit t)
+  ("T" tramp-cleanup-connection "tramp-clean-o" :exit t)
+  ("x" (lambda ()
+         (interactive)
+         (when (y-or-n-p "Cleanup all TRAMP buffers and connections?")
+           (tramp-cleanup-all-buffers)))
+   "tramp-clean-all" :exit t))
 (global-set-key (kbd "C-c C-M-b") 'my-hydra/buffer/body)
 
 ;; advanced buffer management with Ibuffer
@@ -514,6 +518,49 @@ Ibuffer → Filter (_q_: ←)"
   (with-eval-after-load 'org
     (unbind-key "<C-tab>" org-mode-map)))
 
+(defun my-kill-other-buffers ()
+  "Kill all file buffers except the current one."
+  (interactive)
+  (when (yes-or-no-p
+         "Kill all file buffers except the current one? ")
+    (seq-each
+     #'kill-buffer
+     (delete (current-buffer)
+             (seq-filter #'buffer-file-name (buffer-list))))))
+
+;; add my-kill-other-buffers to buffer hydra
+(defhydra+ my-hydra/buffer nil
+  ("o" my-kill-other-buffers "only" :exit t))
+
+;; cleanup hydra
+(defhydra my-hydra/buffer/cleanup (:color amaranth :columns 3)
+  "
+Buffer → Cleanup (_q_: ←)"
+  ("q" my-hydra/buffer/body nil :exit t)
+  ("r" whitespace-report "whitespace-report")
+  ("w" whitespace-cleanup "whitespace-cleanup")
+  ("i" (lambda ()
+         "Indent a selected region, or the buffer otherwise."
+         (interactive)
+         (cond
+          ((use-region-p) (indent-region (region-beginning) (region-end)))
+          (t (indent-region (point-min) (point-max)))))
+   "indent")
+  ("t" (lambda ()
+         "Indent a selected region, or the buffer otherwise."
+         (interactive)
+         (cond
+          ((use-region-p) (untabify (region-beginning) (region-end)))
+          (t (untabify (point-min) (point-max)))))
+   "untabify"))
+
+;; add entry point to cleanup hydra to buffer hydra after
+;; initialization so that it appears as a later entry
+(add-hook 'after-init-hook
+          (lambda ()
+            (defhydra+ my-hydra/buffer nil
+              ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))))
+
 ;; traverse window config changes, C-c left/right to undo/redo
 ;; uncomment to not bind C-c left/right keys by default
 ;; (setq winner-dont-bind-my-keys t)
@@ -526,15 +573,13 @@ Window (_q_: quit)"
   ("q" nil nil :exit t)
   ("u" winner-undo "winner-undo")
   ("r" winner-redo "winner-redo")
-  ("n"
-   (condition-case nil
-       (next-window-any-frame)
-     (error (next-multiframe-window)))
+  ("n" (condition-case nil
+           (next-window-any-frame)
+         (error (next-multiframe-window)))
    "next")
-  ("p"
-   (condition-case nil
-       (previous-window-any-frame)
-     (error (previous-multiframe-window)))
+  ("p" (condition-case nil
+           (previous-window-any-frame)
+         (error (previous-multiframe-window)))
    "previous")
   ("v" split-window-right "split-v")
   ("s" split-window-below "split-h")
@@ -557,7 +602,7 @@ Window (_q_: quit)"
   ("o" delete-other-windows "only")
   ("d" delete-window "delete")
   ("D" kill-buffer-and-window "delete-buf"))
-(global-set-key (kbd "C-c C-M-w w") 'my-hydra/window/body)
+(global-set-key (kbd "C-c C-M-w") 'my-hydra/window/body)
 
 (defun my-transpose-windows (selector)
   "Call SELECTOR and transpose buffers between current and selected windows."
@@ -696,7 +741,7 @@ Frame (_q_: quit)"
 ;; hydra for workspace management
 (defhydra my-hydra/workspace (:color teal :columns 3)
   "
-Workspace (_q_: quit)"
+Emacs workspace (_q_: quit)"
   ("q" nil nil)
   ("dc" desktop-clear "desktop-clear")
   ("ds" desktop-save "desktop-save")
@@ -705,7 +750,7 @@ Workspace (_q_: quit)"
   ("dd" desktop-change-dir "desktop-dir"))
 
 ;; binding for workspace management hydra
-(global-set-key (kbd "C-c C-M-e w") 'my-hydra/workspace/body)
+(global-set-key (kbd "C-c C-M-e") 'my-hydra/workspace/body)
 
 ;; Command-line interaction
 
@@ -758,10 +803,10 @@ provided, the default interactive `eshell' command is run."
 
 (when (featurep 'helm)
   (add-hook 'eshell-mode-hook
-          (lambda ()
-            (eshell-cmpl-initialize)
-            (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
-            (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
+            (lambda ()
+              (eshell-cmpl-initialize)
+              (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
+              (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
 
 (when (and (executable-find "fish") (featurep 'helm))
   (use-package helm-fish-completion
@@ -791,13 +836,13 @@ provided, the default interactive `eshell' command is run."
 ;; kill term buffers with 'q' after session end
 (defun term-handle-exit--close-buffer-on-cmd (&rest args)
   "Kill term buffer with 'q' after session exit."
-   (when (null (get-buffer-process (current-buffer)))
-     (use-local-map (let ((map (make-sparse-keymap)))
-                      (define-key map (kbd "q")
-                        (lambda ()
-                          (interactive)
-                          (kill-buffer (current-buffer))))
-                      map))))
+  (when (null (get-buffer-process (current-buffer)))
+    (use-local-map (let ((map (make-sparse-keymap)))
+                     (define-key map (kbd "q")
+                       (lambda ()
+                         (interactive)
+                         (kill-buffer (current-buffer))))
+                     map))))
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 
 ;; hydra for term-mode for toggling between char and line modes
@@ -823,7 +868,7 @@ Term (_q_: quit)"
         vterm-clear-scrollback-when-clearing t
         vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
         vterm-kill-buffer-on-exit t
-        vterm-shell (executable-find "fish")))
+        vterm-shell (or (executable-find "fish") shell-file-name)))
 
 (defun vterm--switch-to-buffer ()
   "Call `switch-to-buffer' but only for vterm buffers."
@@ -845,7 +890,7 @@ Shell tools (_q_: quit)"
   ("e" my-eshell-with-name "eshell"))
 
 ;; binding for spawning or switching to a named Eshell buffer
-(global-set-key (kbd "C-c C-M-e s") #'my-hydra/shell/body)
+(global-set-key (kbd "C-c C-M-t") #'my-hydra/shell/body)
 
 ;; Comparison tools
 
@@ -873,7 +918,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
   ("W" ediff-windows-wordwise))
 
 ;; binding for Ediff hydra
-(global-set-key (kbd "C-c C-M-d f") #'my-hydra/ediff/body)
+(global-set-key (kbd "C-c C-M-=") #'my-hydra/ediff/body)
 
 ;; hydra for smerge-mode
 (defhydra my-hydra/smerge-mode (:color pink :hint nil)
@@ -903,11 +948,10 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
   ("r" smerge-resolve)
   ("k" smerge-kill-current)
   ;; emulate Vim's "ZZ" command to save and close current file
-  ("ZZ"
-   (lambda ()
-     (interactive)
-     (save-buffer)
-     (bury-buffer))
+  ("ZZ" (lambda ()
+          (interactive)
+          (save-buffer)
+          (bury-buffer))
    "Save and bury buffer" :exit t))
 ;; binding
 (with-eval-after-load 'smerge-mode
@@ -915,8 +959,7 @@ Other  _C_   : combine       _r_   : resolve       _k_   : kill current
 
 ;; view and compare directory trees, like Beyond Compare
 (use-package ztree
-  :bind (("C-c C-M-d z" . ztree-diff)
-         ("C-c C-M-d t" . ztree-dir))
+  :bind ("C-c C-M--" . ztree-diff)
   :config
   (setq ztree-dir-move-focus t ;; RET in ztree-dir also moves focus
         ztree-draw-unicode-lines t ;; unicode lines
@@ -983,11 +1026,10 @@ ztree-diff (_q_: quit)"
   "
 Dired (_q_: quit)"
   ("q" nil nil :exit t)
-  ("RET"
-   (progn
-     (dired-find-file)
-     (when (eq major-mode 'dired-mode)
-       (my-hydra/dired-mode/body)))
+  ("RET" (progn
+           (dired-find-file)
+           (when (eq major-mode 'dired-mode)
+             (my-hydra/dired-mode/body)))
    "open" :exit t)
   ("{" find-name-dired "find-name" :exit t)
   ("}" find-grep-dired "find-grep" :exit t)
@@ -1104,12 +1146,12 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
                     "Yank : " (cl-delete-duplicates kill-ring :test #'equal))))
     ;; delete selected buffer region if any
     (if (and to-insert (region-active-p))
-      (delete-region (region-beginning) (region-end)))
+        (delete-region (region-beginning) (region-end)))
     ;; insert the selected entry from the kill ring
     (insert to-insert)))
 
 ;; yank with completion key binding
-(global-set-key (kbd "C-c C-M-y y") #'my-yank-from-kill-ring)
+(global-set-key (kbd "C-c C-M-y") #'my-yank-from-kill-ring)
 
 ;; typing text replaces the active (i.e. selected) region, if any is selected
 (delete-selection-mode)
@@ -1163,11 +1205,11 @@ Registers (_q_: quit)"
   ("i" insert-register "insert")
   ("l" list-registers "list")
   ("v" view-register "view"))
-(global-set-key (kbd "C-c C-M-r r") 'my-hydra/registers/body)
+(global-set-key (kbd "C-c C-M-\"") 'my-hydra/registers/body)
 
 ;; display available bindings in popup
 (use-package which-key
-  :bind ("C-c C-M-w k" . which-key-show-top-level)
+  :bind ("C-c C-M-?" . which-key-show-top-level)
   :init
   (setq which-key-allow-multiple-replacements t
         which-key-compute-remaps t
@@ -1254,11 +1296,10 @@ YASnippet (_q_: quit)"
   ("v" yas-visit-snippet-file "visit-snippet") ;; visit snippet file
   ("w" aya-create "create-auto") ;; store temp snippet
   ("y" aya-expand "expand-auto") ;; paste temp snippet
-  ("?"
-   (message "Current auto-yasnippet:\n%s" aya-current)
+  ("?" (message "Current auto-yasnippet:\n%s" aya-current)
    "current-auto")) ;; show temp snippet
 (with-eval-after-load 'yasnippet
-  (define-key yas-minor-mode-map (kbd "C-c C-M-y s") #'my-hydra/yas-minor-mode/body))
+  (define-key yas-minor-mode-map (kbd "C-c C-M-,") #'my-hydra/yas-minor-mode/body))
 
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
@@ -1290,6 +1331,33 @@ YASnippet (_q_: quit)"
 
 (global-set-key [remap just-one-space] #'cycle-spacing)
 
+;; Join next line to end of current line, like "J" in Vim
+(defun my-join-next-line ()
+  "Join the next line to the end of the current line."
+  (interactive)
+  (let ((col (current-column)))
+    (join-line -1)
+    (move-to-column col)))
+
+(global-set-key (kbd "C-S-j") #'my-join-next-line)
+
+(defun my-open-line-below ()
+  "Open a new line below."
+  (interactive)
+  (end-of-line)
+  (newline-and-indent))
+
+(defun my-open-line-above ()
+  "Open a new line above."
+  (interactive)
+  (beginning-of-line)
+  (newline-and-indent)
+  (forward-line -1)
+  (indent-according-to-mode))
+
+(global-set-key (kbd "C-c o") #'my-open-line-below)
+(global-set-key (kbd "C-c O") #'my-open-line-above)
+
 ;; Emacs as an edit server
 
 ;; server mode restart safety valve
@@ -1314,7 +1382,7 @@ Server  [% 3`server-mode]   _s_ : toggle  _r_ : restart"
   ("r" restart-emacs-server))
 
 ;; binding for Emacs server hydra
-(global-set-key (kbd "C-c C-M-e c") #'my-hydra/emacs-client-server/body)
+(global-set-key (kbd "C-c C-M-S-s") #'my-hydra/emacs-client-server/body)
 
 ;; Email
 
@@ -1440,7 +1508,7 @@ using `notmuch--abbreviate-person-name' and calls ORIG-FUN
 replacing the original authors with their abbreviated names.
 Assumes ', ' is used to separate authors and names are not of the
 form 'Lastname, Firstname'."
-    (seq-let (format-string authors) args
+    (seq-let [format-string authors] args
       (save-match-data
         (let ((author-list (mapcar (lambda (s) (replace-regexp-in-string
                                                 "'" "" s)) ;; no single quotes
@@ -1510,17 +1578,17 @@ removed."
 to filter search tags from the displayed tags like in Gmail.
 ORIG-FUN should be `notmuch-search-insert-field' and ARGS are the
 original arguments passed to it."
-    (seq-let (field format-string result) args
+    (seq-let [field format-string result] args
       (if (string-equal field "tags")
           (let ((base-tags (plist-get result :tags))
                 (base-orig-tags (plist-get result :orig-tags))
                 (query (if (boundp 'notmuch-search-query-string)
                            notmuch-search-query-string
                          nil)))
-            (seq-let (tags orig-tags) (notmuch--filter-common-search-tags
+            (seq-let [tags orig-tags] (notmuch--filter-common-search-tags
                                        base-tags base-orig-tags query)
-             (insert (format format-string
-                             (notmuch-tag-format-tags tags orig-tags)))))
+              (insert (format format-string
+                              (notmuch-tag-format-tags tags orig-tags)))))
         (apply orig-fun args))))
 
   (defun notmuch-tree-format-field--filter-search-tags (orig-fun &rest args)
@@ -1528,7 +1596,7 @@ original arguments passed to it."
 to filter search tags from the displayed tags like in Gmail.
 ORIG-FUN should be `notmuch-tree-format-field' and ARGS are the
 original arguments passed to it."
-    (seq-let (field format-string msg) args
+    (seq-let [field format-string msg] args
       (cond ((listp field) (apply orig-fun args))
             ((string-equal field "tags")
              (let ((base-tags (plist-get msg :tags))
@@ -1539,7 +1607,7 @@ original arguments passed to it."
                    (query (if (boundp 'notmuch-tree-basic-query)
                               notmuch-tree-basic-query
                             nil)))
-               (seq-let (tags orig-tags) (notmuch--filter-common-search-tags
+               (seq-let [tags orig-tags] (notmuch--filter-common-search-tags
                                           base-tags base-orig-tags query)
                  (format format-string
                          (notmuch-tag-format-tags tags orig-tags face)))))
@@ -1715,17 +1783,17 @@ OrgMsg (_q_: quit)"
       ["Exit DocView Mode" doc-view-minor-mode])))
 
 (use-package csv-mode
-    :commands csv-mode
-    :bind (:map csv-mode-map
-           ("C-c C-M-m" . my-hydra/csv-mode/body)
-           ("C-c C-S-a" . csv-align-visible-fields))
-    :config
-    (setq csv-align-style 'auto) ;; `csv-align-fields' left/right-aligns text/numbers
-    (defun csv-align-visible-fields ()
-      "Align visible lines in `csv-mode'. Useful for large CSV files where
+  :commands csv-mode
+  :bind (:map csv-mode-map
+         ("C-c C-M-m" . my-hydra/csv-mode/body)
+         ("C-c C-S-a" . csv-align-visible-fields))
+  :config
+  (setq csv-align-style 'auto) ;; `csv-align-fields' left/right-aligns text/numbers
+  (defun csv-align-visible-fields ()
+    "Align visible lines in `csv-mode'. Useful for large CSV files where
 `csv-align-fields' can take a very long time to run."
-      (interactive)
-      (csv-align-fields nil (window-start) (window-end))))
+    (interactive)
+    (csv-align-fields nil (window-start) (window-end))))
 
 ;; major mode-specific hydra for csv-mode
 (defhydra my-hydra/csv-mode (:color teal :columns 4)
@@ -1949,6 +2017,8 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
       org-hide-leading-stars t
       org-highlight-latex-and-related '(latex script entities) ;; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
       org-image-actual-width (list (/ (display-pixel-width) 3)) ;; auto-resize displayed images to one-third of display width
+      org-link-file-path-type 'adaptive ;; use relative paths for links to files in Org file dir or subdirs, absolute otherwise
+      org-log-done 'time ;; log time that task was marked DONE
       org-log-into-drawer t
       org-outline-path-complete-in-steps nil
       org-pretty-entities t
@@ -2135,19 +2205,17 @@ Org-mode (_q_: quit)"
   ("<S-tab>" org-global-cycle "global-cycle")
   ("/" org-sparse-tree "sparse-tree")
   ("c" org-remove-occur-highlights "occur-clear")
-  ("p"
-   (lambda (n)
-     (interactive "p")
-     (if org-occur-highlights
-         (previous-error n)
-       (org-previous-visible-heading n)))
+  ("p" (lambda (n)
+         (interactive "p")
+         (if org-occur-highlights
+             (previous-error n)
+           (org-previous-visible-heading n)))
    "previous")
-  ("n"
-   (lambda (n)
-     (interactive "p")
-     (if org-occur-highlights
-         (next-error n)
-       (org-next-visible-heading n)))
+  ("n" (lambda (n)
+         (interactive "p")
+         (if org-occur-highlights
+             (next-error n)
+           (org-next-visible-heading n)))
    "next")
   ("g" org-goto "goto" :exit t)
   ("s" org-sort "sort" :exit t)
@@ -2409,8 +2477,8 @@ Org (_q_: quit)"
       (let ((filename (format "%s%s"
                               (format-time-string org-download-timestamp)
                               (file-name-nondirectory
-                                (car (url-path-and-query
-                                       (url-generic-parse-url link))))))
+                               (car (url-path-and-query
+                                     (url-generic-parse-url link))))))
             (dirname (file-name-sans-extension (buffer-name))))
         ;; create dir if it does not exist
         (unless (file-exists-p dirname)
@@ -2503,11 +2571,11 @@ Org-mode → Download (_q_: ←)"
     "Hide header and mode lines, and store originals in temporary variables."
     (interactive)
     (when mode-line-format
-        (setq-local my-orig-mode-line-format mode-line-format)
-        (setq-local mode-line-format nil))
+      (setq-local my-orig-mode-line-format mode-line-format)
+      (setq-local mode-line-format nil))
     (when header-line-format
-        (setq-local my-orig-header-line-format header-line-format)
-        (setq-local header-line-format nil)))
+      (setq-local my-orig-header-line-format header-line-format)
+      (setq-local header-line-format nil)))
   (defun my-unhide-header-and-mode-lines ()
     "Reset header and mode lines using originals in temporary variables."
     (interactive)
@@ -2644,7 +2712,7 @@ FlyCheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"defaul
 
 ;; binding for flycheck hydra
 (with-eval-after-load 'flycheck
-  (define-key flycheck-mode-map (kbd "C-c C-M-e e") #'my-hydra/flycheck/body))
+  (define-key flycheck-mode-map (kbd "C-c C-M-!") #'my-hydra/flycheck/body))
 
 ;; Programming / DevSkim and FlyCheck
 
@@ -2682,7 +2750,7 @@ conda (_q_: quit)"
   ("d" conda-env-deactivate "deactivate")
   ("l" conda-env-list "list"))
 (with-eval-after-load 'conda
-  (global-set-key (kbd "C-c C-M-v e") 'my-hydra/conda/body))
+  (global-set-key (kbd "C-c C-M-S-v") 'my-hydra/conda/body))
 
 ;; Programming / lsp-mode Language Server Protocol client
 
@@ -2794,8 +2862,8 @@ Language Server → Actions (_q_: ←)"
 (use-package dap-mode
   :after lsp-mode
   :bind (:map lsp-mode-map
-         ("C-c C-M-d d" . dap-debug)
-         ("C-c C-M-d D" . dap-debug-edit-template))
+         ("C-c C-M-d" . dap-debug)
+         ("C-c C-M-S-d" . dap-debug-edit-template))
   :config
   (add-hook 'dap-stopped-hook
             (lambda (arg) (call-interactively #'dap-hydra))))
@@ -2827,29 +2895,29 @@ Variables _vl_ : list variables to invoke debugger on change
   ("vc" cancel-debug-on-variable-change))
 
 ;; binding for debugger-settings hydra
-(global-set-key (kbd "C-c C-M-d e") 'my-hydra/debugger/body)
+(global-set-key (kbd "C-c C-M-S-e") 'my-hydra/debugger/body)
 
 ;; mode-specific hydra for debugger
 (defhydra my-hydra/debugger-mode (:color teal :columns 4)
-    "
+  "
 Emacs debugger (_q_: quit)"
-    ("q" nil nil)
-    ("c" debugger-continue "continue")
-    ("d" debugger-step-through "step")
-    ("b" debugger-frame "frame")
-    ("u" debugger-frame-clear "no-frame")
-    ("j" debugger-jump "jump")
-    ("e" debugger-eval-expression "eval-expr")
-    ("R" debugger-record-expression "record-expr")
-    ("Q" top-level "quit-to-top")
-    ("r" debugger-return-value "return-val")
-    ("l" debugger-list-functions "list-funs")
-    ("v" debugger-toggle-locals "list-vars")
-    ("h" describe-mode "help"))
+  ("q" nil nil)
+  ("c" debugger-continue "continue")
+  ("d" debugger-step-through "step")
+  ("b" debugger-frame "frame")
+  ("u" debugger-frame-clear "no-frame")
+  ("j" debugger-jump "jump")
+  ("e" debugger-eval-expression "eval-expr")
+  ("R" debugger-record-expression "record-expr")
+  ("Q" top-level "quit-to-top")
+  ("r" debugger-return-value "return-val")
+  ("l" debugger-list-functions "list-funs")
+  ("v" debugger-toggle-locals "list-vars")
+  ("h" describe-mode "help"))
 
 ;; binding for debugger hydra
 (with-eval-after-load 'debug
- (define-key debugger-mode-map (kbd "C-c C-M-m") #'my-hydra/debugger-mode/body))
+  (define-key debugger-mode-map (kbd "C-c C-M-m") #'my-hydra/debugger-mode/body))
 
 ;; hydra for built-in Emacs Lisp profiler
 (defhydra my-hydra/profiler (:color teal :columns 3
@@ -2862,7 +2930,7 @@ Emacs profiler [CPU=%(profiler-running-p) MEM=%(profiler-memory-running-p)] (_q_
   ("e" profiler-stop "stop" :exit nil))
 
 ;; binding for profiler hydra
-(global-set-key (kbd "C-c C-M-e p") 'my-hydra/profiler/body)
+(global-set-key (kbd "C-c C-M-S-p") 'my-hydra/profiler/body)
 
 (use-package el-patch
   :demand t)
@@ -3339,8 +3407,8 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 
 ;; binding for calling Magit
 (use-package magit
-    :commands magit-status
-    :bind ("C-c C-M-g s" . magit-status))
+  :commands magit-status
+  :bind ("C-c C-M-g" . magit-status))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
@@ -3366,7 +3434,7 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 (use-package git-identity
   :after magit
   :bind (:map magit-status-mode-map
-              ("I" . git-identity-info))
+         ("I" . git-identity-info))
   :config
   (require 'git-identity-magit)
   (git-identity-magit-mode 1))
@@ -3374,11 +3442,11 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 ;; Browse older versions of Git-controlled files
 (use-package git-timemachine
   :commands git-timemachine
-  :bind ("C-c C-M-g t" . git-timemachine))
+  :bind ("C-c C-M-S-g" . git-timemachine))
 
 ;; per-project file trees
 (use-package treemacs
-  :bind ("C-c C-M-t" . treemacs)
+  :bind ("C-c C-M-S-t" . treemacs)
   :init
   ;; resize treemacs icon sizes to 75% of line-height
   (add-hook 'after-init-hook
@@ -3456,8 +3524,8 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
   ("x" dumb-jump-go-prefer-external-other-window "go-ext-other")
   ("i" dumb-jump-go-prompt "prompt")
   ("l" dumb-jump-quick-look "peek")
-  ("b" dumb-jump-back "back")
-  ("m" dumb-jump-mode "toggle-mode"))
+  ("b" dumb-jump-back "back" :exit nil)
+  ("m" dumb-jump-mode "toggle-mode" :exit nil))
 
 ;; add entrypoint for dumb-jump hydra in my-hydra/search
 (defhydra+ my-hydra/search nil
@@ -3532,15 +3600,17 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
                                   (require 'hilit-chg)
                                   (require 'hl-line)
                                   (require 'display-line-numbers)
-                                  (require 'face-remap)))
+                                  (require 'face-remap)
+                                  (require 'whitespace)))
   "
 Visual (_q_: quit)
-_b_ : blink-cursor [% 5`blink-cursor-mode]   _F_ : follow       [% 5`follow-mode]   _f_ : font-lock    [% 5`font-lock-mode]
-_H_ : hl-changes   [% 5`highlight-changes-mode]   _h_ : hl-line      [% 5`hl-line-mode]   _l_ : line-nums    [% 5`display-line-numbers-mode]
-_p_ : show-paren   [% 5`show-paren-mode]   _s_ : scroll-bar   [% 5(frame-parameter nil 'vertical-scroll-bars)]   _S_ : hscroll-bar  [% 5(frame-parameter nil 'horizontal-scroll-bars)]
-_T_ : transient-mk [% 5`transient-mark-mode]   _t_ : truncate-lns [% 5`truncate-lines]   _v_ : visual-line  [% 5`visual-line-mode]
-_nr_ / _np_ / _nd_ / _nw_ : narrow to-region / to-page / to-defun / widen      [% 5(buffer-narrowed-p)]
-_+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 5(if text-scale-mode text-scale-mode-amount nil)]
+_b_ : blink-cursor [% 5`blink-cursor-mode]^^^^^   _F_ : follow       [% 5`follow-mode]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _f_ : font-lock    [% 5`font-lock-mode]
+_H_ : hl-changes   [% 5`highlight-changes-mode]   _h_ : hl-line      [% 5`hl-line-mode]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _l_ : line-nums    [% 5`display-line-numbers-mode]
+_p_ : show-paren   [% 5`show-paren-mode]^^^^^^^   _s_ : scroll-bar   [% 5(frame-parameter nil 'vertical-scroll-bars)]   _S_ : hscroll-bar  [% 5(frame-parameter nil 'horizontal-scroll-bars)]
+_T_ : transient-mk [% 5`transient-mark-mode]^^^   _t_ : truncate-lns [% 5`truncate-lines]^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _v_ : visual-line  [% 5`visual-line-mode]
+_W_ : whitespace   [% 5`whitespace-mode]^^^^^^^   _w_ : trailing-ws  [% 5`show-trailing-whitespace]
+_nr_ / _np_ / _nd_ / _nw_ : narrow to-region / to-page / to-defun / widen      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[% 5(buffer-narrowed-p)]
+_+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[% 5(if text-scale-mode text-scale-mode-amount nil)]
 "
   ("q" nil :exit t)
   ("b" blink-cursor-mode)
@@ -3555,6 +3625,12 @@ _+_  / _-_  / _0_       : zoom   in        / out     / reset                 [% 
   ("T" transient-mark-mode)
   ("t" toggle-truncate-lines)
   ("v" visual-line-mode)
+  ("W" whitespace-mode)
+  ("w" (lambda () (interactive)
+         (setq-local show-trailing-whitespace
+                     (not show-trailing-whitespace))
+         (message "show-trailing-whitespace: %s"
+                  (if show-trailing-whitespace "yes" "no"))))
   ("nr" narrow-to-region)
   ("np" narrow-to-page)
   ("nd" narrow-to-defun)
@@ -3605,7 +3681,7 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
           'font-lock-doc-face))))
 
 ;; bind visual hydra
-(global-set-key (kbd "C-c C-M-v i") 'my-hydra/visual/body)
+(global-set-key (kbd "C-c C-M-v") 'my-hydra/visual/body)
 
 ;; add entrypoint to visual emphasis hydra to visual hydra
 (defhydra+ my-hydra/visual nil
@@ -3629,22 +3705,22 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
 (use-package prism
   :config
   (prism-set-colors :num 16
-                    :desaturations (cl-loop for i from 0 below 16
-                                            collect (* i 2.5))
-                    :lightens (cl-loop for i from 0 below 16
-                                       collect (* i 2.5))
-                    :colors (list "saddle brown"
-                                  "midnight blue"
-                                  "dark green")
-                    :comments-fn
-                    (lambda (color)
-                      (prism-blend color
-                                   (face-attribute 'font-lock-comment-face
-                                                   :foreground)
-                                   0.25))
-                    :strings-fn
-                    (lambda (color)
-                      (prism-blend color "white" 0.5))))
+    :desaturations (cl-loop for i from 0 below 16
+                            collect (* i 2.5))
+    :lightens (cl-loop for i from 0 below 16
+                       collect (* i 2.5))
+    :colors (list "saddle brown"
+                  "midnight blue"
+                  "dark green")
+    :comments-fn
+    (lambda (color)
+      (prism-blend color
+                   (face-attribute 'font-lock-comment-face
+                                   :foreground)
+                   0.25))
+    :strings-fn
+    (lambda (color)
+      (prism-blend color "white" 0.5))))
 
 ;; extend visual hydra to support prism-mode and prism-whitespace-mode
 (eval
@@ -3710,28 +3786,6 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
                               (when (outline-on-heading-p)
                                 #'outline-cycle)))))))
 
-;; hydra for whitespace visualization and cleanup
-(defhydra my-hydra/whitespace (:color teal :columns 3)
-  "
-Whitespace (_q_: quit)"
-  ("q" nil nil)
-  ("w" whitespace-mode "show-whitespace" :exit nil)
-  ("t" (lambda () (interactive)
-         (setq-local show-trailing-whitespace
-                     (not show-trailing-whitespace))
-         (message "show-trailing-whitespace: %s"
-                  (if show-trailing-whitespace "yes" "no")))
-   "show-trailing" :exit nil)
-  ("n" whitespace-newline-mode "show-newline" :exit nil)
-  ("c" whitespace-cleanup "cleanup")
-  ("r" whitespace-report "report")
-  ("i" (lambda ()
-         "Indent the buffer."
-         (interactive)
-         (indent-region (point-min) (point-max)))
-   "indent-buf" :exit nil))
-(global-set-key (kbd "C-c C-M-w s") #'my-hydra/whitespace/body)
-
 ;; show pointer location column number in mode line
 (setq column-number-mode t)
 
@@ -3744,10 +3798,12 @@ Whitespace (_q_: quit)"
 
 ;; add visual indentation guides
 (use-package highlight-indent-guides
-  :hook (python-mode . highlight-indent-guides-mode)
   :init (setq highlight-indent-guides-method 'character
               highlight-indent-guides-responsive 'top
-              highlight-indent-guides-character ?\x2502))
+              highlight-indent-guides-character ?\x2502)
+  :config
+  (add-hook 'python-mode-hook (lambda ()
+                                (highlight-indent-guides-mode 1))))
 
 ;; add `highlight-indent-guides-mode' toggle to visual hydra
 (eval
@@ -3838,20 +3894,18 @@ REST client (_q_: quit)"
   ("p" restclient-jump-prev "prev" :exit nil)
   ("." restclient-mark-current "mark")
   ("u" restclient-copy-curl-command "copy-curl")
-  ("N"
-   (lambda ()
-     (interactive)
-     (if (buffer-narrowed-p)
-         (widen)
-       (restclient-narrow-to-current)))
+  ("N" (lambda ()
+         (interactive)
+         (if (buffer-narrowed-p)
+             (widen)
+           (restclient-narrow-to-current)))
    "narrow" :exit nil)
-  ("f"
-   (lambda ()
-     (interactive)
-     (require 'json-mode nil t)
-     (if (fboundp 'json-mode-pretty-print-dwim)
-         (call-interactively 'json-mode-pretty-print-dwim)
-       (message "Requires the `json-mode' package be installed.")))
+  ("f" (lambda ()
+         (interactive)
+         (require 'json-mode nil t)
+         (if (fboundp 'json-mode-pretty-print-dwim)
+             (call-interactively 'json-mode-pretty-print-dwim)
+           (message "Requires the `json-mode' package be installed.")))
    "fmt-json-rgn"))
 
 ;; binding for restclient hydra
@@ -3883,7 +3937,7 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
   ("F" flyspell-prog-mode))
 
 ;; bindings for writing hydra
-(global-set-key (kbd "C-c C-M-w r") #'my-hydra/writing/body)
+(global-set-key (kbd "C-c C-M-S-w") #'my-hydra/writing/body)
 
 ;; provides word lookups from a dictionary server
 ;; `dictionary-server' can be set to "localhost" to use a local
@@ -3962,31 +4016,6 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
            mouse-wheel-tilt-scroll t))
    t))
 
-;; useful extensions
-(use-package crux
-  :config
-  (global-set-key [remap move-beginning-of-line] #'crux-move-beginning-of-line)
-  (global-set-key (kbd "C-S-j") #'crux-top-join-line))
-
-;; hydra for CRUX commands
-(defhydra my-hydra/crux (:color teal :columns 3)
-  "
-CRUX (_q_: quit)"
-  ("q" nil nil)
-  ("M-o" crux-smart-open-line "newline" :exit nil)
-  ("C-M-o" crux-smart-open-line-above "newline-above" :exit nil)
-  ("J" crux-top-join-line "join-line" :exit nil)
-  ("C-y" crux-duplicate-current-line-or-region "duplicate")
-  ("C-;" crux-duplicate-and-comment-current-line-or-region "duplicate+comment")
-  ("C" crux-cleanup-buffer-or-region "cleanup-buf/rgn")
-  ("R" crux-rename-file-and-buffer "rename-file+buf")
-  ("D" crux-delete-file-and-buffer "delete-file+buf")
-  ("K" crux-kill-other-buffers "kill-other-bufs")
-  ("S" crux-reopen-as-root "sudo-edit")
-  ("V" crux-view-url "view-url")
-  ("o" crux-open-with "open-external"))
-(global-set-key (kbd "C-c C-M-x") #'my-hydra/crux/body)
-
 ;; hydra for help entrypoints
 (defhydra my-hydra/help (:color teal :columns 4)
   "
@@ -4058,6 +4087,14 @@ Help (_q_: quit)"
       calc-undo-length 100
       calc-highlight-selections-with-faces nil)
 
+;; Enable some functions disabled by default.
+(put 'scroll-left 'disabled nil)
+(put 'scroll-right 'disabled nil)
+(put 'narrow-to-region 'disabled nil)
+(put 'narrow-to-page 'disabled nil)
+(put 'downcase-region 'disabled nil)
+(put 'upcase-region 'disabled nil)
+
 (global-set-key (kbd "<f5>") #'revert-buffer)
 
 ;; OS-specific / Mac OS X
@@ -4122,8 +4159,8 @@ Help (_q_: quit)"
   (defun dired--mac-open-file-at-pt ()
     "Opens file at point in Dired using Mac OS X 'open' command."
     (interactive)
-      (let ((filename (dired-get-file-for-visit)))
-        (start-process "default-app" nil "open" filename)))
+    (let ((filename (dired-get-file-for-visit)))
+      (start-process "default-app" nil "open" filename)))
   (define-key dired-mode-map (kbd "z") #'dired--mac-open-file-at-pt)
   (defhydra+ my-hydra/dired-mode nil
     ("z" dired--mac-open-file-at-pt "mac-open")))

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Jul 23 19:38:50 2020
+;; Generated: Fri Jul 24 23:30:00 2020
 
 ;;; Commentary:
 
@@ -107,49 +107,9 @@
   (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
   (define-key helm-map (kbd "C-z") #'helm-select-action))
 
-;; bind over occur entry with helm-occur in search hydra
-(add-hook 'after-init-hook
-          (lambda ()
-            (defhydra+ my-hydra/search nil
-              ("oo" helm-occur "occur")
-              ("ov" helm-occur-visible-buffers "occur-visible"))))
-
-(add-hook 'after-init-hook
-          (lambda ()
-            (defhydra+ my-hydra/buffer nil
-              ("m" helm-mark-ring "marks" :exit t)
-              ("M" helm-all-mark-rings "marks-all" :exit t))))
-
 (use-package helm-icons
   :after helm
-  :ensure nil ;; in site-lisp subdirectory
   :config (helm-icons-enable))
-
-;; ;; use Icomplete as the completion backend
-;; ;; emulate ido behavior where possible
-;; (if (version< emacs-version "27")
-;;     ;; no `fido-mode' on older Emacs versions
-;;     (progn
-;;       (setq completion-category-defaults nil
-;;             icomplete-compute-delay 0
-;;             icomplete-hide-common-prefix nil
-;;             icomplete-prospects-height 2
-;;             icomplete-show-matches-on-no-input t
-;;             icomplete-tidy-shadowed-file-names t)
-;;       (icomplete-mode)
-;;       ;; C-s and C-r cycles through completion candidates like isearch
-;;       (define-key icomplete-minibuffer-map (kbd "C-s")
-;;         #'icomplete-forward-completions)
-;;       (define-key icomplete-minibuffer-map (kbd "C-r")
-;;         #'icomplete-backward-completions)
-;;       ;; RET selects current completion candidate like ido
-;;       ;; M-j uses input as is, e.g. to create new files or new dirs
-;;       (define-key icomplete-minibuffer-map (kbd "RET")
-;;         #'icomplete-force-complete-and-exit)
-;;       (define-key icomplete-minibuffer-map (kbd "M-j")
-;;         #'exit-minibuffer))
-;;   ;; enable `fido-mode'
-;;   (fido-mode))
 
 ;; framework for defining temporary, repeatable bindings
 ;; see https://github.com/abo-abo/hydra
@@ -248,15 +208,9 @@ Bookmarks (_q_: quit)"
   ("W" bookmark-write "write"))
 (global-set-key (kbd "C-c C-M-j") 'my-hydra/bookmarks/body)
 
-;; alternative interface for M-x
-(when (not (featurep 'helm))
-  (use-package amx
-    :bind ("M-X" . amx-major-mode-commands)
-    :init (amx-mode)))
-
 ;; recently opened files
 (setq recentf-max-menu-items 10
-      recentf-max-saved-items 50
+      recentf-max-saved-items 100
       recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
 (recentf-mode 1)
 ;; exclude source code files in installed packages from ELPA-compatible repos
@@ -529,6 +483,11 @@ Ibuffer → Filter (_q_: ←)"
 (defhydra+ my-hydra/buffer nil
   ("o" my-kill-other-buffers "only" :exit t))
 
+(with-eval-after-load 'helm
+  (defhydra+ my-hydra/buffer nil
+    ("m" helm-mark-ring "marks" :exit t)
+    ("M" helm-all-mark-rings "marks-all" :exit t)))
+
 ;; cleanup hydra
 (defhydra my-hydra/buffer/cleanup (:color amaranth :columns 3)
   "
@@ -551,12 +510,9 @@ Buffer → Cleanup (_q_: ←)"
           (t (untabify (point-min) (point-max)))))
    "untabify"))
 
-;; add entry point to cleanup hydra to buffer hydra after
-;; initialization so that it appears as a later entry
-(add-hook 'after-init-hook
-          (lambda ()
-            (defhydra+ my-hydra/buffer nil
-              ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))))
+;; add entry point to cleanup hydra to buffer hydra
+(defhydra+ my-hydra/buffer nil
+  ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))
 
 ;; traverse window config changes, C-c left/right to undo/redo
 ;; uncomment to not bind C-c left/right keys by default
@@ -817,13 +773,6 @@ provided, the default interactive `eshell' command is run."
                 (define-key eshell-mode-map (kbd "<tab>")
                   #'helm-fish-completion)))))
 
-;; ;; extend pcomplete with fish shell
-;; (when (executable-find "fish")
-;;   (use-package fish-completion
-;;     :after eshell
-;;     :config (when (not (featurep 'helm))
-;;               (add-hook 'eshell-mode-hook #'fish-completion-mode))))
-
 (use-package eshell-z
   :after eshell)
 
@@ -891,8 +840,10 @@ Shell tools (_q_: quit)"
 
 ;; Comparison tools
 
-;; always set up Ediff control window within the same frame as the diff
-(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+;; always set up Ediff control window in the same frame as the diff,
+;; open with horizontal window split instead of the default vertical
+(setq ediff-split-window-function 'split-window-horizontally
+      ediff-window-setup-function 'ediff-setup-windows-plain)
 
 ;; hydra for Ediff
 (defhydra my-hydra/ediff (:color teal :hint nil)
@@ -1006,6 +957,12 @@ ztree-diff (_q_: quit)"
 (with-eval-after-load 'ztree-diff
   (define-key ztreediff-mode-map (kbd "C-c C-M-m") #'my-hydra/ztreediff-mode/body))
 
+;; DevOps
+
+(when (executable-find "docker")
+  (use-package docker
+    :bind ("C-c C-M-d" . docker)))
+
 ;; Dired
 
 (require 'dired-x) ;; extra features
@@ -1078,6 +1035,25 @@ Dired (_q_: quit)"
     (dired-kill-subdir)
     (dired-goto-subdir parent-dir)
     (search-forward search-term)))
+
+;; have recentf track dired buffers as well
+;; from https://www.emacswiki.org/emacs/RecentFiles#toc21
+
+(defun recentd-track-opened-file ()
+  "Insert the name of the directory just opened into the recent list."
+  (and (derived-mode-p 'dired-mode) default-directory
+       (recentf-add-file default-directory))
+  ;; Must return nil because it is run from `write-file-functions'.
+  nil)
+
+(defun recentd-track-closed-file ()
+  "Update the recent list when a dired buffer is killed.
+That is, remove a non kept dired from the recent list."
+  (and (derived-mode-p 'dired-mode) default-directory
+       (recentf-remove-if-non-kept default-directory)))
+
+(add-hook 'dired-after-readin-hook 'recentd-track-opened-file)
+(add-hook 'kill-buffer-hook 'recentd-track-closed-file)
 
 (use-package dired-filter
   :bind (:map dired-mode-map
@@ -2614,16 +2590,6 @@ Org-mode → Download (_q_: ←)"
              (if in-present-mode (org-present-quit) (org-present))))
    "org-present" :exit t))
 
-;; Org TODOs for projectile projects
-;; use `org-capture' to capture and store TODOs for the current project
-;; in `org-projectile-per-project-filepath' at the project's root directory
-(use-package org-projectile
-  :after (org projectile)
-  :config
-  (org-projectile-per-project)
-  (setq org-projectile-per-project-filepath "TODO.org")
-  (push (org-projectile-project-todo-entry) org-capture-templates))
-
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
   (require 'ox-md))
@@ -2858,12 +2824,14 @@ Language Server → Actions (_q_: ←)"
 ;; client for Debug Adaptor Protocol servers
 (use-package dap-mode
   :after lsp-mode
-  :bind (:map lsp-mode-map
-         ("C-c C-M-d" . dap-debug)
-         ("C-c C-M-S-d" . dap-debug-edit-template))
-  :config
-  (add-hook 'dap-stopped-hook
-            (lambda (arg) (call-interactively #'dap-hydra))))
+  :config (add-hook 'dap-stopped-hook
+                    (lambda (arg) (call-interactively #'dap-hydra))))
+
+;; add dap-mode debugging function entry points to lsp-mode hydra
+(with-eval-after-load 'lsp-mode
+  (defhydra+ my-hydra/lsp nil
+    ("d" dap-debug "dap-debug" :exit t)
+    ("D" dap-debug-edit-template "dap-template" :exit t)))
 
 ;; Programming / Emacs Lisp
 
@@ -2892,7 +2860,7 @@ Variables _vl_ : list variables to invoke debugger on change
   ("vc" cancel-debug-on-variable-change))
 
 ;; binding for debugger-settings hydra
-(global-set-key (kbd "C-c C-M-S-e") 'my-hydra/debugger/body)
+(global-set-key (kbd "C-c C-M-S-d") 'my-hydra/debugger/body)
 
 ;; mode-specific hydra for debugger
 (defhydra my-hydra/debugger-mode (:color teal :columns 4)
@@ -3197,8 +3165,6 @@ Python (_q_: quit)"
 (defhydra+ my-hydra/python-mode nil
   ("y" yapfify-region-or-buffer "yapf" :exit t))
 
-;; (add-hook 'python-mode-hook #'flycheck-mode t)
-
 ;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
 (use-package lsp-python-ms
   ;; append lsp-mode hooks
@@ -3402,6 +3368,16 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 (with-eval-after-load 'projectile
   (define-key projectile-mode-map (kbd "C-c C-M-p") #'my-hydra/projectile-mode/body))
 
+;; Org TODOs for projectile projects
+;; use `org-capture' to capture and store TODOs for the current project
+;; in `org-projectile-per-project-filepath' at the project's root directory
+(use-package org-projectile
+  :after (org projectile)
+  :config
+  (org-projectile-per-project)
+  (setq org-projectile-per-project-filepath "TODO.org")
+  (push (org-projectile-project-todo-entry) org-capture-templates))
+
 ;; binding for calling Magit
 (use-package magit
   :commands magit-status
@@ -3480,6 +3456,12 @@ Search (_q_: quit)"
   ("kg" kill-grep "kill-grep"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
 
+;; bind over occur entry with helm-occur in search hydra
+(with-eval-after-load 'helm
+  (defhydra+ my-hydra/search nil
+    ("oo" helm-occur "occur")
+    ("ov" helm-occur-visible-buffers "occur-visible")))
+
 ;; "C-c C-p" in grep bufs allow writing with changes pushed to files
 (use-package wgrep
   :config (setq wgrep-auto-save-buffer nil
@@ -3550,10 +3532,10 @@ Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
 ;; load notdeft, make sure this comes after org-directory is set
 (require 'notdeft-autoloads)
 (setq notdeft-directories `(,(concat org-directory "journal/")
-                            ,(concat org-directory "scratchpad/"))
+                            ,(concat org-directory "scratch/"))
       notdeft-extension "org"
       notdeft-secondary-extensions '("md" "txt")
-      notdeft-directory (concat org-directory "scratchpad/")
+      notdeft-directory (concat org-directory "scratch/")
       notdeft-xapian-program (concat (file-name-directory
                                       (file-truename
                                        (locate-library "notdeft")))
@@ -3739,9 +3721,9 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
  `(defhydra+ my-hydra/visual
     ,(append my-hydra/visual/params '(:pre (require 'color-identifiers-mode)))
     ,(concat my-hydra/visual/docstring
-             "_C_  : color-identifiers-mode   [% 3`color-identifiers-mode]
+             "_c_  : color-identifiers-mode   [% 3`color-identifiers-mode]
 ")
-    ("C" color-identifiers-mode :exit nil)))
+    ("c" color-identifiers-mode :exit nil)))
 
 ;; hydra for toggling outline-minor-mode and running its commands
 (defhydra my-hydra/visual/outline (:color amaranth :hint nil
@@ -3783,6 +3765,11 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
                               (when (outline-on-heading-p)
                                 #'outline-cycle)))))))
 
+;; display line numbers by default when editing code
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (display-line-numbers-mode 1)))
+
 ;; show pointer location column number in mode line
 (setq column-number-mode t)
 
@@ -3807,9 +3794,9 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
  `(defhydra+ my-hydra/visual
     ,(append my-hydra/visual/params '(:pre (require 'highlight-indent-guides)))
     ,(concat my-hydra/visual/docstring
-             "_I_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
+             "_i_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
 ")
-    ("I" highlight-indent-guides-mode :exit nil)))
+    ("i" highlight-indent-guides-mode :exit nil)))
 
 ;; Web
 
@@ -3983,6 +3970,17 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
     ("W" langtool-check-done nil :exit nil)
     ("l" langtool-switch-default-language nil :exit nil)
     ("c" langtool-correct-buffer nil :exit nil)))
+
+(use-package typo)
+
+;; add toggle for typo-mode to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'typo)))
+    ,(concat my-hydra/writing/docstring
+             "Typography [% 4`typo-mode]   _t_ : toggle
+")
+    ("t" typo-mode :exit nil)))
 
 ;; Other
 

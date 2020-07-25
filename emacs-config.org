@@ -26,10 +26,10 @@ $ open -n /Applications/Emacs.app \
 
 ** Optimizing startup times
 
-1. Profile using the ~esup~ package (~M-x esup~).
+1. Install [[https://github.com/jschaf/esup][ESUP]] and use it to profile load times (~M-x esup~).
 2. Defer loading of packages when possible, for example use-package's
-   ~:defer N~ with ~N~ set to ~1~ (second) for higher priority packages and
-   ~2~ for lower priority ones.
+   ~:defer N~ with ~N~ set to ~1~ (second) for higher priority
+   packages and ~2~ for lower priority ones.
 3. Avoid helper functions that can cause eager loads.
 
 ** Trying packages before installing them
@@ -469,36 +469,6 @@ In most instances, use only this or Icomplete but not both.
   (define-key helm-map (kbd "C-z") #'helm-select-action))
 #+end_src
 
-*** Helm occur bindings in search hydra                               :hydra:
-
-Bind over the ~occur~ entry in the search hydra. Since the search
-hydra is only defined later, the binding action is added to the
-post-initialization hook.
-
-#+name: add-helm-occur-to-search-hydra
-#+begin_src emacs-lisp
-;; bind over occur entry with helm-occur in search hydra
-(add-hook 'after-init-hook
-          (lambda ()
-            (defhydra+ my-hydra/search nil
-              ("oo" helm-occur "occur")
-              ("ov" helm-occur-visible-buffers "occur-visible"))))
-#+end_src
-
-*** Helm mark ring in buffer hydra                                    :hydra:
-
-Add entry point to ~helm-mark-ring~ and ~helm-all-mark-rings~ in
-buffer hydra.
-
-#+name: add-helm-mark-ring-to-buffer-hydra
-#+begin_src emacs-lisp
-(add-hook 'after-init-hook
-          (lambda ()
-            (defhydra+ my-hydra/buffer nil
-              ("m" helm-mark-ring "marks" :exit t)
-              ("M" helm-all-mark-rings "marks-all" :exit t))))
-#+end_src
-
 *** Use icons in Helm                                              :external:
 
 [[https://github.com/yyoncho/helm-icons][helm-icons]] shows file icons using those from Treemacs when using
@@ -509,52 +479,13 @@ Github repo into some directory in the ~load-path~, for example its
 own folder in the =~/.emacs.d/site-lisp/= directory.
 
 *Note*: The maintainer of this package plans to support
-~all-the-icons~ prior to putting it on MELPA ([[https://github.com/melpa/melpa/pull/6853][link]]).
+~all-the-icons~ eventually.
 
 #+name: helm-icons
 #+begin_src emacs-lisp
 (use-package helm-icons
   :after helm
-  :ensure nil ;; in site-lisp subdirectory
   :config (helm-icons-enable))
-#+end_src
-
-** Minibuffer completion with Icomplete
-
-Use [[https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el][Icomplete]] as the completion backend, emulating [[https://www.gnu.org/software/emacs/manual/html_mono/ido.html][Ido]] where possible.
-In Emacs 27+, there is a ~fido-mode~ that very close emulates Ido.
-In prior versions, we configure Icomplete behavior directly (though
-not as thoroughly as ~fido-mode~).
-
-In most instances, use only this or Icomplete but not both.
-
-#+name: icomplete
-#+begin_src emacs-lisp
-;; use Icomplete as the completion backend
-;; emulate ido behavior where possible
-(if (version< emacs-version "27")
-    ;; no `fido-mode' on older Emacs versions
-    (progn
-      (setq completion-category-defaults nil
-            icomplete-compute-delay 0
-            icomplete-hide-common-prefix nil
-            icomplete-prospects-height 2
-            icomplete-show-matches-on-no-input t
-            icomplete-tidy-shadowed-file-names t)
-      (icomplete-mode)
-      ;; C-s and C-r cycles through completion candidates like isearch
-      (define-key icomplete-minibuffer-map (kbd "C-s")
-        #'icomplete-forward-completions)
-      (define-key icomplete-minibuffer-map (kbd "C-r")
-        #'icomplete-backward-completions)
-      ;; RET selects current completion candidate like ido
-      ;; M-j uses input as is, e.g. to create new files or new dirs
-      (define-key icomplete-minibuffer-map (kbd "RET")
-        #'icomplete-force-complete-and-exit)
-      (define-key icomplete-minibuffer-map (kbd "M-j")
-        #'exit-minibuffer))
-  ;; enable `fido-mode'
-  (fido-mode))
 #+end_src
 
 ** Hydra                                              :semiearly:melpa:hydra:
@@ -678,26 +609,6 @@ Bookmarks (_q_: quit)"
 (global-set-key (kbd "C-c C-M-j") 'my-hydra/bookmarks/body)
 #+end_src
 
-** Minibuffer commands                                                :melpa:
-
-Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~.
-
-It is compatible with most completion systems and provides the
-following enhancements:
-- Prioritizing most-used commands.
-- Showing keyboard shortcuts.
-
-*Note*: When Helm is enabled, use ~helm-M-x~ instead.
-
-#+name: amx
-#+begin_src emacs-lisp
-;; alternative interface for M-x
-(when (not (featurep 'helm))
-  (use-package amx
-    :bind ("M-X" . amx-major-mode-commands)
-    :init (amx-mode)))
-#+end_src
-
 ** Recent files
 
 The built in [[https://github.com/emacs-mirror/emacs/blob/master/lisp/recentf.el][recentf]] provides functionality to track and list recently
@@ -707,7 +618,7 @@ opened files.
 #+begin_src emacs-lisp
 ;; recently opened files
 (setq recentf-max-menu-items 10
-      recentf-max-saved-items 50
+      recentf-max-saved-items 100
       recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
 (recentf-mode 1)
 ;; exclude source code files in installed packages from ELPA-compatible repos
@@ -1085,6 +996,19 @@ Kill buffers other than the current one.
   ("o" my-kill-other-buffers "only" :exit t))
 #+end_src
 
+*** Helm mark ring in buffer hydra                                    :hydra:
+
+Add entry point to ~helm-mark-ring~ and ~helm-all-mark-rings~ in
+buffer hydra.
+
+#+name: add-helm-mark-ring-to-buffer-hydra
+#+begin_src emacs-lisp
+(with-eval-after-load 'helm
+  (defhydra+ my-hydra/buffer nil
+    ("m" helm-mark-ring "marks" :exit t)
+    ("M" helm-all-mark-rings "marks-all" :exit t)))
+#+end_src
+
 *** Buffer cleanup hydra                                              :hydra:
 
 Buffer cleanup hydra, configured as a subhydra for the buffer hydra.
@@ -1113,12 +1037,9 @@ Buffer → Cleanup (_q_: ←)"
           (t (untabify (point-min) (point-max)))))
    "untabify"))
 
-;; add entry point to cleanup hydra to buffer hydra after
-;; initialization so that it appears as a later entry
-(add-hook 'after-init-hook
-          (lambda ()
-            (defhydra+ my-hydra/buffer nil
-              ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))))
+;; add entry point to cleanup hydra to buffer hydra
+(defhydra+ my-hydra/buffer nil
+  ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))
 #+end_src
 
 ** Window management
@@ -1570,26 +1491,6 @@ If using this, ~fish-completion-mode~ should be disabled.
                   #'helm-fish-completion)))))
 #+end_src
 
-*** fish-completion of CLI options in Eshell                 :external:melpa:
-
-The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to power Eshell CLI
-option completions using [[https://fishshell.com/][fish]].
-
-This package requires that ~fish~ be installed on the system and
-be on the system path.
-
-If using ~helm-fish-completion~, ~fish-completion-mode~ should be disabled.
-
-#+name: fish-completion
-#+begin_src emacs-lisp
-;; extend pcomplete with fish shell
-(when (executable-find "fish")
-  (use-package fish-completion
-    :after eshell
-    :config (when (not (featurep 'helm))
-              (add-hook 'eshell-mode-hook #'fish-completion-mode))))
-#+end_src
-
 *** eshell-z for jumping to frecent directories                       :melpa:
 
 [[https://github.com/xuchunyang/eshell-z][eshell-z]] is a port of [[https://github.com/rupa/z][z]] to Eshell, providing a shell facility for
@@ -1838,8 +1739,10 @@ Shell tools (_q_: quit)"
 
 #+name: ediff
 #+begin_src emacs-lisp
-;; always set up Ediff control window within the same frame as the diff
-(setq ediff-window-setup-function 'ediff-setup-windows-plain)
+;; always set up Ediff control window in the same frame as the diff,
+;; open with horizontal window split instead of the default vertical
+(setq ediff-split-window-function 'split-window-horizontally
+      ediff-window-setup-function 'ediff-setup-windows-plain)
 #+end_src
 
 *** Ediff hydra                                                       :hydra:
@@ -1877,7 +1780,7 @@ Windows  _L_ : line-wise   _W_ : word-wise
 [[https://github.com/emacs-mirror/emacs/blob/master/lisp/vc/smerge-mode.el][Smerge]] is a lightweight alternative to Ediff, and is the default merge
 tool called by [[Magit][Magit]] to resolve merge conflicts.
 
-** Smerge hydra                                                       :hydra:
+*** Smerge hydra                                                      :hydra:
 
 Major mode-specific hydra for Smerge.
 Adapted from [[https://github.com/alphapapa/unpackaged.el#hydra][here]].
@@ -1996,6 +1899,20 @@ ztree-diff (_q_: quit)"
   (define-key ztreediff-mode-map (kbd "C-c C-M-m") #'my-hydra/ztreediff-mode/body))
 #+end_src
 
+* DevOps
+
+** docker.el for managing Docker from Emacs                           :melpa:
+
+[[https://github.com/Silex/docker.el][docker.el]] provides integration with Docker, allowing the management of
+Docker containers, images and volumes.
+
+#+name: docker
+#+begin_src emacs-lisp
+(when (executable-find "docker")
+  (use-package docker
+    :bind ("C-c C-M-d" . docker)))
+#+end_src
+
 * Dired
 
 [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Dired.html][Dired]] is a built-in directory editor for Emacs.
@@ -2091,6 +2008,34 @@ Helper functions for Dired hydra:
     (dired-kill-subdir)
     (dired-goto-subdir parent-dir)
     (search-forward search-term)))
+#+end_src
+
+** Have recentf also track dired buffers
+
+Have recentf track dired buffers as well. From [[https://www.emacswiki.org/emacs/RecentFiles#toc21][here]].
+
+Alternative is [[https://github.com/Vifon/dired-recent.el][dired-recent]].
+
+#+name: recentf-track-dired-buffers
+#+begin_src emacs-lisp
+;; have recentf track dired buffers as well
+;; from https://www.emacswiki.org/emacs/RecentFiles#toc21
+
+(defun recentd-track-opened-file ()
+  "Insert the name of the directory just opened into the recent list."
+  (and (derived-mode-p 'dired-mode) default-directory
+       (recentf-add-file default-directory))
+  ;; Must return nil because it is run from `write-file-functions'.
+  nil)
+
+(defun recentd-track-closed-file ()
+  "Update the recent list when a dired buffer is killed.
+That is, remove a non kept dired from the recent list."
+  (and (derived-mode-p 'dired-mode) default-directory
+       (recentf-remove-if-non-kept default-directory)))
+
+(add-hook 'dired-after-readin-hook 'recentd-track-opened-file)
+(add-hook 'kill-buffer-hook 'recentd-track-closed-file)
 #+end_src
 
 ** dired-filter extension to add Ibuffer-like filters to Dired        :melpa:
@@ -2526,7 +2471,7 @@ to (including) the next occurrence of a given character, which is like
 ~d f <char>~ in Vim.
 
 There is also a more useful variant ~zap-up-to-char~ which deletes up
-to but /not including/ the next occurrence of a given character, which
+to /but not including/ the next occurrence of a given character, which
 is like ~d t <char>~ in Vim.
 
 *Configuration*:
@@ -3823,6 +3768,39 @@ Requires that neuron be installed, which currently requires [[https://nixos.org/
 
 *** Installing neuron
 
+Some ways to install neuron:
+- Download a static Linux bundle that can run as is (Linux-only).
+- Install using [[https://nixos.org/][Nix]] (Linux, Mac, Windows via WSL).
+
+**** Linux bundle
+
+Nightly builds of static Linux bundles are available from [[https://github.com/srid/neuron/releases/tag/nightly][here]],
+generated using [[https://github.com/matthewbauer/nix-bundle][nix-bundle]]. These can simply be run directly.
+
+Download ~neuron-linux-bundle~ to some location on disk, say to the
+=/path/to/= directory.
+
+#+begin_example
+$ chmod +x neuron-linux-bundle
+$ ./neuron-linux-bundle --help
+#+end_example
+
+Symlink the bundle file to ~neuron~ a directory in ~$PATH~ (change
+=./local/bin= and =/path/to/neuron-linux-bundle= as necessary).
+
+#+begin_example
+$ cd .local/bin
+$ ln -s /path/to/neuron-linux-bundle neuron
+#+end_example
+
+Test that neuron is installed correctly.
+
+#+begin_example
+$ neuron --help
+#+end_example
+
+**** Nix installation
+
 Install Nix. The following instructions show how to install Nix
 in single-user mode; see the [[https://nixos.org/nix/manual/][official documentation]] for a multi-user
 install.
@@ -4809,28 +4787,6 @@ hydra.
    "org-present" :exit t))
 #+end_src
 
-** org-projectile for Projectile project Org TODOs                    :melpa:
-
-[[https://github.com/IvanMalison/org-projectile][org-projectile]] provides functions for creating Org TODOs for [[Projectile][Projectile]] projects.
-It can be set up to use one file for all projects (the default), or one file per
-project.
-Configure it to use one file per project, specifically a ~TODO.org~ file at the
-root directory of the project.
-Also add a corresponding entry type to ~org-capture-templates~.
-
-#+name: org-projectile
-#+begin_src emacs-lisp
-;; Org TODOs for projectile projects
-;; use `org-capture' to capture and store TODOs for the current project
-;; in `org-projectile-per-project-filepath' at the project's root directory
-(use-package org-projectile
-  :after (org projectile)
-  :config
-  (org-projectile-per-project)
-  (setq org-projectile-per-project-filepath "TODO.org")
-  (push (org-projectile-project-todo-entry) org-capture-templates))
-#+end_src
-
 ** ox-md for Org export backend to Markdown
 
 Load the [[https://github.com/emacsmirror/org/blob/master/lisp/ox-md.el][built-in Org backend]] for exporting Org documents to Markdown.
@@ -5176,12 +5132,21 @@ Language Server → Actions (_q_: ←)"
 ;; client for Debug Adaptor Protocol servers
 (use-package dap-mode
   :after lsp-mode
-  :bind (:map lsp-mode-map
-         ("C-c C-M-d" . dap-debug)
-         ("C-c C-M-S-d" . dap-debug-edit-template))
-  :config
-  (add-hook 'dap-stopped-hook
-            (lambda (arg) (call-interactively #'dap-hydra))))
+  :config (add-hook 'dap-stopped-hook
+                    (lambda (arg) (call-interactively #'dap-hydra))))
+#+end_src
+
+*** Add entry points for dap-mode functions to lsp hydra              :hydra:
+
+Add ~dap-debug~ and ~dap-debug-edit-template~ to main lsp hydra.
+
+#+name: add-dap-mode-funs-to-lsp-mode-hydra
+#+begin_src emacs-lisp
+;; add dap-mode debugging function entry points to lsp-mode hydra
+(with-eval-after-load 'lsp-mode
+  (defhydra+ my-hydra/lsp nil
+    ("d" dap-debug "dap-debug" :exit t)
+    ("D" dap-debug-edit-template "dap-template" :exit t)))
 #+end_src
 
 ** Clojure
@@ -5370,7 +5335,7 @@ Variables _vl_ : list variables to invoke debugger on change
   ("vc" cancel-debug-on-variable-change))
 
 ;; binding for debugger-settings hydra
-(global-set-key (kbd "C-c C-M-S-e") 'my-hydra/debugger/body)
+(global-set-key (kbd "C-c C-M-S-d") 'my-hydra/debugger/body)
 #+end_src
 
 #+name: debugger-mode-hydra
@@ -5719,17 +5684,6 @@ Add entry point to ~yapfify-buffer-or-region~ to python-mode hydra.
   ("y" yapfify-region-or-buffer "yapf" :exit t))
 #+end_src
 
-*** Enable FlyCheck mode when editing Python files
-
-Enable FlyCheck mode as the last function in the Python mode hook.
-When using ~lsp-mode~ in Python buffers, this is unnecessary as
-~lsp-mode~ starts ~flycheck-mode~ automatically.
-
-#+name: python-flycheck
-#+begin_src emacs-lisp
-(add-hook 'python-mode-hook #'flycheck-mode t)
-#+end_src
-
 *** Microsoft Python Language Server support with lsp-mode            :melpa:
 
 Use ~lsp-mode~ as a client for the Microsoft Python Language Server.
@@ -6061,9 +6015,27 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
   (define-key projectile-mode-map (kbd "C-c C-M-p") #'my-hydra/projectile-mode/body))
 #+end_src
 
-*** Projectile project TODO files                                     :melpa:
+*** org-projectile for Projectile project Org TODOs                   :melpa:
 
-See \S[[org-projectile for Projectile project Org TODOs]].
+[[https://github.com/IvanMalison/org-projectile][org-projectile]] provides functions for creating Org TODOs for [[Projectile][Projectile]] projects.
+It can be set up to use one file for all projects (the default), or one file per
+project.
+Configure it to use one file per project, specifically a ~TODO.org~ file at the
+root directory of the project.
+Also add a corresponding entry type to ~org-capture-templates~.
+
+#+name: org-projectile
+#+begin_src emacs-lisp
+;; Org TODOs for projectile projects
+;; use `org-capture' to capture and store TODOs for the current project
+;; in `org-projectile-per-project-filepath' at the project's root directory
+(use-package org-projectile
+  :after (org projectile)
+  :config
+  (org-projectile-per-project)
+  (setq org-projectile-per-project-filepath "TODO.org")
+  (push (org-projectile-project-todo-entry) org-capture-templates))
+#+end_src
 
 ** Magit                                                     :external:melpa:
 
@@ -6210,6 +6182,21 @@ Search (_q_: quit)"
   ("rr" query-replace-regexp "replace regexp")
   ("kg" kill-grep "kill-grep"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
+#+end_src
+
+** Helm occur bindings in search hydra                                :hydra:
+
+Bind over the ~occur~ entry in the search hydra. Since the search
+hydra is only defined later, the binding action is added to the
+post-initialization hook.
+
+#+name: add-helm-occur-to-search-hydra
+#+begin_src emacs-lisp
+;; bind over occur entry with helm-occur in search hydra
+(with-eval-after-load 'helm
+  (defhydra+ my-hydra/search nil
+    ("oo" helm-occur "occur")
+    ("ov" helm-occur-visible-buffers "occur-visible")))
 #+end_src
 
 ** wgrep for writable grep buffers with changes pushed to files       :melpa:
@@ -6403,7 +6390,7 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
 *** Configuring Notdeft
 
 *Configuration*:
-- Use the =journal= and =scratchpad= subdirectories in the Org
+- Use the =journal= and =scratch= subdirectories in the Org
   directory (specified by the ~org-directory~ variable).
 - Use Org documents as primary file format, supporting text and
   Markdown as secondary file formats.
@@ -6414,10 +6401,10 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
 ;; load notdeft, make sure this comes after org-directory is set
 (require 'notdeft-autoloads)
 (setq notdeft-directories `(,(concat org-directory "journal/")
-                            ,(concat org-directory "scratchpad/"))
+                            ,(concat org-directory "scratch/"))
       notdeft-extension "org"
       notdeft-secondary-extensions '("md" "txt")
-      notdeft-directory (concat org-directory "scratchpad/")
+      notdeft-directory (concat org-directory "scratch/")
       notdeft-xapian-program (concat (file-name-directory
                                       (file-truename
                                        (locate-library "notdeft")))
@@ -6888,9 +6875,9 @@ Extend visual hydra to allow toggling of ~color-identifiers-mode~.
  `(defhydra+ my-hydra/visual
     ,(append my-hydra/visual/params '(:pre (require 'color-identifiers-mode)))
     ,(concat my-hydra/visual/docstring
-             "_C_  : color-identifiers-mode   [% 3`color-identifiers-mode]
+             "_c_  : color-identifiers-mode   [% 3`color-identifiers-mode]
 ")
-    ("C" color-identifiers-mode :exit nil)))
+    ("c" color-identifiers-mode :exit nil)))
 #+end_src
 
 ** Outline minor mode hydra                                           :hydra:
@@ -6964,6 +6951,18 @@ while on an outline heading with cycle its subtree visibility.
                                 #'outline-cycle)))))))
 #+end_src
 
+** Display line numbers when editing code
+
+Display line numbers by default when editing code.
+
+#+name: display-line-numbers-when-editing-code
+#+begin_src emacs-lisp
+;; display line numbers by default when editing code
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (display-line-numbers-mode 1)))
+#+end_src
+
 ** Show pointer location column number in the mode line
 
 Show the column number of the pointer location in the mode line.
@@ -7026,9 +7025,9 @@ Add ~highlight-indent-guides-mode~ toggle entry point to visual hydra.
  `(defhydra+ my-hydra/visual
     ,(append my-hydra/visual/params '(:pre (require 'highlight-indent-guides)))
     ,(concat my-hydra/visual/docstring
-             "_I_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
+             "_i_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
 ")
-    ("I" highlight-indent-guides-mode :exit nil)))
+    ("i" highlight-indent-guides-mode :exit nil)))
 #+end_src
 
 * Web
@@ -7423,6 +7422,44 @@ Hydra for ~langtool~.
     ("W" langtool-check-done nil :exit nil)
     ("l" langtool-switch-default-language nil :exit nil)
     ("c" langtool-correct-buffer nil :exit nil)))
+#+end_src
+
+** typo.el for typographical editing
+
+[[https://github.com/jorgenschaefer/typoel][typo.el]] is a minor mode that makes insertion of typographically useful
+unicode characters easier.
+
+Enabling the buffer-local ~typo-mode~ does the following:
+- Automatically convert ~'~ to ~‘~ and ~’~, and ~"~ to ~“~ and ~”~.
+- Pressing ~'~, ~"~ and ~-~ cycles among their different variants.
+  For example, repeatedly pressing ~-~ cycles between en-dash,
+  em-dash, and other dash-like glyphs.
+- Three periods in a row get automatically replaced by an ellipsis.
+
+Enabling ~typo-global-mode~ does the following:
+- ~C-c 8~ brings up a unicode insertion dispatcher that is like the
+  standard ~C-x 8~ unicode insertion dispatcher but focused on a
+  different selection of commonly used typographical characters.
+
+#+name: typo
+#+begin_src emacs-lisp
+(use-package typo)
+#+end_src
+
+*** Add toggle for typo-mode to writing hydra
+
+Add a toggle for ~typo-mode~ to writing hydra.
+
+#+name: add-typo-mode-toggle-to-writing-hydra
+#+begin_src emacs-lisp
+;; add toggle for typo-mode to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'typo)))
+    ,(concat my-hydra/writing/docstring
+             "Typography [% 4`typo-mode]   _t_ : toggle
+")
+    ("t" typo-mode :exit nil)))
 #+end_src
 
 * Other
@@ -8093,13 +8130,7 @@ The main configuration file.
 
 <<helm>>
 
-<<add-helm-occur-to-search-hydra>>
-
-<<add-helm-mark-ring-to-buffer-hydra>>
-
 <<helm-icons>>
-
-;; <<icomplete>>
 
 <<hydra>>
 
@@ -8122,8 +8153,6 @@ The main configuration file.
 ;; Bookmarks and history
 
 <<bookmarks-hydra>>
-
-<<amx>>
 
 <<recentf>>
 
@@ -8156,6 +8185,8 @@ The main configuration file.
 <<my-kill-other-buffers>>
 
 <<add-my-kill-other-buffers-to-buffer-hydra>>
+
+<<add-helm-mark-ring-to-buffer-hydra>>
 
 <<buffer-cleanup-hydra>>
 
@@ -8205,8 +8236,6 @@ The main configuration file.
 
 <<helm-fish-completion>>
 
-;; <<fish-completion>>
-
 <<eshell-z>>
 
 <<comint-prompt-read-only>>
@@ -8235,6 +8264,10 @@ The main configuration file.
 
 <<ztree-diff-hydra>>
 
+;; DevOps
+
+<<docker>>
+
 ;; Dired
 
 <<dired>>
@@ -8242,6 +8275,8 @@ The main configuration file.
 <<dired-hydra>>
 
 <<dired-hydra-helper-functions>>
+
+<<recentf-track-dired-buffers>>
 
 <<dired-filter>>
 
@@ -8390,8 +8425,6 @@ The main configuration file.
 
 <<add-org-present-to-org-mode-hydra>>
 
-<<org-projectile>>
-
 <<ox-md>>
 
 <<org-noter>>
@@ -8425,6 +8458,8 @@ The main configuration file.
 ;; Programming / dap-mode Debug Adaptor Protocol client
 
 <<dap-mode>>
+
+<<add-dap-mode-funs-to-lsp-mode-hydra>>
 
 ;; Programming / Emacs Lisp
 
@@ -8464,8 +8499,6 @@ The main configuration file.
 
 <<add-yapfify-to-python-mode-hydra>>
 
-;; <<python-flycheck>>
-
 <<lsp-python-ms>>
 
 <<dap-python>>
@@ -8492,6 +8525,8 @@ The main configuration file.
 
 <<projectile-hydra>>
 
+<<org-projectile>>
+
 <<magit>>
 
 <<magit-ibuffer-integration>>
@@ -8509,6 +8544,8 @@ The main configuration file.
 ;; Search and navigation
 
 <<search-hydra>>
+
+<<add-helm-occur-to-search-hydra>>
 
 <<wgrep>>
 
@@ -8556,6 +8593,8 @@ The main configuration file.
 
 <<outline-magic>>
 
+<<display-line-numbers-when-editing-code>>
+
 <<show-column-number>>
 
 <<show-matching-parentheses>>
@@ -8599,6 +8638,10 @@ The main configuration file.
 <<langtool>>
 
 <<langtool-hydra>>
+
+<<typo>>
+
+<<add-typo-mode-toggle-to-writing-hydra>>
 
 ;; Other
 
@@ -8670,12 +8713,6 @@ The main configuration file.
 
 *** Helm
 
-**** [#A] Use icons in Helm                                           :melpa:
-
-Update ~helm-icons~ configuration when it supports all-the-icons.
-
-[[https://github.com/yyoncho/helm-icons][GitHub - yyoncho/helm-icons: Integration between helm and icon packages]]
-
 *** [#C] Transient                                                    :melpa:
 
 [[https://github.com/magit/transient][Transient]] provides transient keymaps, like Hydra.
@@ -8734,6 +8771,13 @@ or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 *** [#C] Gnuplot                                                      :melpa:
 
 [[https://github.com/emacsorphanage/gnuplot][GitHub - emacsorphanage/gnuplot: A major mode for Emacs for interacting with Gnuplot]]
+
+*** [#C] Ledger                                                       :melpa:
+
+Ledger is a plain text double-entry accounting system for the
+command-line.
+
+[[https://github.com/ledger/ledger-mode][ledger-mode]] provides a major mode for editing [[https://github.com/ledger/ledger][ledger]] files.
 
 ** Org-mode
 
@@ -8947,10 +8991,6 @@ Or can define using ~flymake-quickdef~.
 
 *** Docker
 
-**** [#A] Docker manager                                              :melpa:
-
-[[https://github.com/Silex/docker.el][GitHub - Silex/docker.el: Manage docker from Emacs.]]
-
 *** Python
 
 **** [#B] Live coding in Python                                       :melpa:
@@ -9003,6 +9043,16 @@ environments using Nix.
 *** [#B] Generic session manager                                      :melpa:
 
 [[https://github.com/vspinu/sesman][GitHub - vspinu/sesman: Session manager for Emacs based IDEs.]]
+
+*** [#C] EditorConfig                                                 :melpa:
+
+[[https://editorconfig.org/][EditorConfig]] [[https://github.com/editorconfig/editorconfig-emacs][plugin]] for Emacs.
+
+EditorConfig helps to maintain consistent coding styles when multiple
+developers work on a project. A code style file can be defined for a
+project and the editor is automatically configured (built-in for some
+editors, using a plugin for others) to adhere to that code style when
+working on that project.
 
 ** Reference management
 
@@ -9122,6 +9172,44 @@ Built-in to Emacs and integrates [[https://www.passwordstore.org/][pass]] with ~
 
 ** Backend and frontend frameworks for building user interfaces
 
+*** Minibuffer completion with Icomplete
+
+Use [[https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el][Icomplete]] as the completion backend, emulating [[https://www.gnu.org/software/emacs/manual/html_mono/ido.html][Ido]] where possible.
+In Emacs 27+, there is a ~fido-mode~ that very close emulates Ido.
+In prior versions, we configure Icomplete behavior directly (though
+not as thoroughly as ~fido-mode~).
+
+In most instances, use only this or Icomplete but not both.
+
+#+name: icomplete
+#+begin_src emacs-lisp
+;; use Icomplete as the completion backend
+;; emulate ido behavior where possible
+(if (version< emacs-version "27")
+    ;; no `fido-mode' on older Emacs versions
+    (progn
+      (setq completion-category-defaults nil
+            icomplete-compute-delay 0
+            icomplete-hide-common-prefix nil
+            icomplete-prospects-height 2
+            icomplete-show-matches-on-no-input t
+            icomplete-tidy-shadowed-file-names t)
+      (icomplete-mode)
+      ;; C-s and C-r cycles through completion candidates like isearch
+      (define-key icomplete-minibuffer-map (kbd "C-s")
+        #'icomplete-forward-completions)
+      (define-key icomplete-minibuffer-map (kbd "C-r")
+        #'icomplete-backward-completions)
+      ;; RET selects current completion candidate like ido
+      ;; M-j uses input as is, e.g. to create new files or new dirs
+      (define-key icomplete-minibuffer-map (kbd "RET")
+        #'icomplete-force-complete-and-exit)
+      (define-key icomplete-minibuffer-map (kbd "M-j")
+        #'exit-minibuffer))
+  ;; enable `fido-mode'
+  (fido-mode))
+#+end_src
+
 *** Company front-end with icons                                      :melpa:
 
 [[https://github.com/sebastiencs/company-box][company-box]] provides a fancy front-end for Company with icons.
@@ -9130,6 +9218,28 @@ Built-in to Emacs and integrates [[https://www.passwordstore.org/][pass]] with ~
 #+begin_src emacs-lisp
 (use-package company-box
   :hook (company-mode . company-box-mode))
+#+end_src
+
+** Bookmarks and history
+
+*** Minibuffer commands                                               :melpa:
+
+Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~.
+
+It is compatible with most completion systems and provides the
+following enhancements:
+- Prioritizing most-used commands.
+- Showing keyboard shortcuts.
+
+*Note*: When Helm is enabled, use ~helm-M-x~ instead.
+
+#+name: amx
+#+begin_src emacs-lisp
+;; alternative interface for M-x
+(when (not (featurep 'helm))
+  (use-package amx
+    :bind ("M-X" . amx-major-mode-commands)
+    :init (amx-mode)))
 #+end_src
 
 ** Buffers, windows, frames, workspaces
@@ -9159,6 +9269,47 @@ building file jump lists and moving backwards and forwards through it.
 (defhydra+ my-hydra/buffer nil
   ("," better-jumper-jump-backward "jump-bwd")
   ("." better-jumper-jump-forward "jump-fwd"))
+#+end_src
+
+** Command line interaction
+
+*** Eshell
+
+**** fish-completion of CLI options in Eshell                :external:melpa:
+
+The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to power Eshell CLI
+option completions using [[https://fishshell.com/][fish]].
+
+This package requires that ~fish~ be installed on the system and
+be on the system path.
+
+If using ~helm-fish-completion~, ~fish-completion-mode~ should be disabled.
+
+#+name: fish-completion
+#+begin_src emacs-lisp
+;; extend pcomplete with fish shell
+(when (executable-find "fish")
+  (use-package fish-completion
+    :after eshell
+    :config (when (not (featurep 'helm))
+              (add-hook 'eshell-mode-hook #'fish-completion-mode))))
+#+end_src
+
+** Dired
+
+*** Dired icons using treemacs-icons-dired                            :melpa:
+
+Add icons from [[https://github.com/Alexander-Miller/treemacs][Treemacs]] to Dired.
+
+Requires the ~treemacs~ package be installed.
+
+#+name: treemacs-icons-dired
+#+begin_src emacs-lisp
+;; use Treemacs icons in Dired
+(when (display-graphic-p)
+  (use-package treemacs-icons-dired
+    :after dired
+    :hook (dired-mode . treemacs-icons-dired-mode)))
 #+end_src
 
 ** Email
@@ -9387,23 +9538,6 @@ wheel-d : prev same-level heading"
     (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
 #+end_src
 
-** Dired
-
-*** Dired icons using treemacs-icons-dired                            :melpa:
-
-Add icons from [[https://github.com/Alexander-Miller/treemacs][Treemacs]] to Dired.
-
-Requires the ~treemacs~ package be installed.
-
-#+name: treemacs-icons-dired
-#+begin_src emacs-lisp
-;; use Treemacs icons in Dired
-(when (display-graphic-p)
-  (use-package treemacs-icons-dired
-    :after dired
-    :hook (dired-mode . treemacs-icons-dired-mode)))
-#+end_src
-
 ** Programming
 
 *** Flymake syntax checker
@@ -9615,6 +9749,17 @@ Enable this backend automatically when editing Clojure buffers.
 #+end_src
 
 *** Python
+
+**** Enable FlyCheck mode when editing Python files
+
+Enable FlyCheck mode as the last function in the Python mode hook.
+When using ~lsp-mode~ in Python buffers, this is unnecessary as
+~lsp-mode~ starts ~flycheck-mode~ automatically.
+
+#+name: python-flycheck
+#+begin_src emacs-lisp
+(add-hook 'python-mode-hook #'flycheck-mode t)
+#+end_src
 
 **** Enable Flymake mode when editing Python backends
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jul 24 23:30:00 2020
+;; Generated: Sat Jul 25 10:26:10 2020
 
 ;;; Commentary:
 
@@ -844,6 +844,37 @@ Shell tools (_q_: quit)"
 ;; open with horizontal window split instead of the default vertical
 (setq ediff-split-window-function 'split-window-horizontally
       ediff-window-setup-function 'ediff-setup-windows-plain)
+
+;; copy diff hunk from buffers A and B to C in 3-way Ediff
+;; adapted from https://stackoverflow.com/a/29757750
+(defun ediff-copy-A-and-B-to-C (arg)
+  "Copies ARGth diff region from both buffers A and B to C.
+ARG is a prefix argument.  If nil, copy the current difference region."
+  (interactive "P")
+  (ediff-barf-if-not-control-buffer)
+  (if (eq arg '-) (setq arg -1)) ;; translate neg arg to -1
+  (if (numberp arg) (ediff-jump-to-difference arg))
+  (ediff-copy-diff ediff-current-difference nil 'C nil
+                   (concat
+                    (ediff-get-region-contents ediff-current-difference
+                                               'A
+                                               ediff-control-buffer)
+                    (ediff-get-region-contents ediff-current-difference
+                                               'B
+                                               ediff-control-buffer)))
+  ;; recenter with rehighlighting, but no messages
+  (ediff-recenter))
+(add-hook 'ediff-keymap-setup-hook
+          (lambda ()
+            (when ediff-3way-job
+              (define-key ediff-mode-map "d" 'ediff-copy-A-and-B-to-C))))
+(with-eval-after-load 'ediff-help
+  (setq ediff-long-help-message-compare3
+        (concat ediff-long-help-message-compare3
+                "                                                 |"
+                "  d -copy A + B regions to C
+"
+)))
 
 ;; hydra for Ediff
 (defhydra my-hydra/ediff (:color teal :hint nil)

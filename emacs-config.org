@@ -6596,15 +6596,15 @@ For more information about fonts and fontsets in Emacs, see this [[https://idioc
 #+begin_src emacs-lisp
 ;; set typefaces for graphical Emacs
 ;; main fonts
-(set-face-attribute 'default nil :family "Iosevka Fixed SS08"
+(set-face-attribute 'default nil :family "Iosevka Term SS08"
                     :height 150 :weight 'normal :width 'normal)
-(set-face-attribute 'fixed-pitch nil :family "Iosevka Fixed SS08"
+(set-face-attribute 'fixed-pitch nil :family "Iosevka Term SS08"
                     :height 150 :weight 'normal :width 'normal)
 (set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
                     :height 150 :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line nil :family "Iosevka Fixed SS08"
+(set-face-attribute 'mode-line nil :family "Iosevka Term SS08"
                     :height 120 :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line-inactive nil :family "Iosevka Fixed SS08"
+(set-face-attribute 'mode-line-inactive nil :family "Iosevka Term SS08"
                     :height 120 :weight 'normal :width 'normal)
 ;; fallback font
 (set-fontset-font t nil "Symbola" nil 'append)

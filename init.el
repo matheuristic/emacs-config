@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul 26 23:57:15 2020
+;; Generated: Mon Jul 27 08:46:16 2020
 
 ;;; Commentary:
 
@@ -2674,6 +2674,13 @@ Org-mode → Download (_q_: ←)"
 ;; start server and load org-protocol
 (server-start)
 (require 'org-protocol)
+
+;; add capture template for web snippets
+(setq org-websnippet-capture-file "scratch/websnippets.org")
+(push `("W" "Capture web snippet using org-protocol" entry
+        (file+headline ,org-websnippet-capture-file "Unsorted")
+        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
+      org-capture-templates)
 
 ;; Programming / FlyCheck syntax checker
 

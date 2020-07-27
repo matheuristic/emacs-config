@@ -4958,6 +4958,31 @@ window and call `org-capture' with the query parameters.
 javascript:location.href='org-protocol://capture?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
 #+end_example
 
+*** Capturing web snippets
+
+One useful org-protocol use is to capture snippets from the web.
+
+Add the following bookmarklet to a web browser.
+
+#+begin_example
+javascript:location.href='org-protocol://capture?template=W&url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
+#+end_example
+
+Next configure the capture template used by the org-protocol bookmarklet.
+
+#+name: org-capture-websnippet
+#+begin_src emacs-lisp
+;; add capture template for web snippets
+(setq org-websnippet-capture-file "scratch/websnippets.org")
+(push `("W" "Capture web snippet using org-protocol" entry
+        (file+headline ,org-websnippet-capture-file "Unsorted")
+        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
+      org-capture-templates)
+#+end_src
+
+Clicking the bookmarklet will capture the selected text to the
+websnippets Org file.
+
 * Programming
 
 ** Flycheck syntax checker                                            :melpa:
@@ -7367,11 +7392,11 @@ More private HTTP requests.
 (url-setup-privacy-info) ;; apply `url-privacy-level'
 #+end_src
 
-** Read-it-later functionality to Org mode
+** Add read-it-later functionality to Org mode
 
-Add read-it-later functionality to Org mode, with keybindings bound to
-the prefix ~C-c o~ (use ~C-c o ?~ for the full set of available
-bindings).
+Add read-it-later functionality (bookmarking and archiving a webpage
+for later offline reading) to Org mode, with keybindings bound to the
+prefix ~C-c o~ (use ~C-c o ?~ for the full set of available bindings).
 
 By default this is configured to use [[https://github.com/Y2Z/monolith][monolith]] which can bundle a web
 page into single HTML file.
@@ -8676,6 +8701,8 @@ The main configuration file.
 <<org-super-agenda>>
 
 <<org-protocol>>
+
+<<org-capture-websnippet>>
 
 ;; Programming / FlyCheck syntax checker
 

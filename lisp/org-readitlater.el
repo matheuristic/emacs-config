@@ -192,7 +192,6 @@
 ;;  ** TODO Linkers (20-part series)
 ;;  :PROPERTIES:
 ;;  :URL:                       http://a3f.at/lists/linkers
-;;  :READITLATER_BACKEND_OPTIONS: --recursive -l 1 --span-hosts
 ;;  :END:
 ;;
 ;;  The `URL' property is a page that already lists the URL that you
@@ -204,7 +203,7 @@
 ;;  ** TODO Linkers (20-part series)
 ;;  :PROPERTIES:
 ;;  :URL:                       http://a3f.at/lists/linkers
-;;  :READITLATER_BACKEND_OPTIONS: --recursive -l 1 --span-hosts
+;;  :READITLATER_BACKEND_OPTIONS: --isolate
 ;;  :ID:                        D3BCE79F-C465-45D5-847E-7733684B9812
 ;;  :ARCHIVED_AT:               [2016-08-30-Tue-15-03-56]
 ;;  :END:
@@ -417,7 +416,7 @@ For interactive development of functions meant for
 `org-readitlater-after-archive-functions', see
 `org-readitlater-run-after-archive-function'.")
 
-(defcustom org-readitlater-backend-show-buffer t
+(defcustom org-readitlater-backend-show-buffer nil
   "Show the buffer with the backend output while it is running.
 
 If the backend exited abnormally, the buffer will be shown

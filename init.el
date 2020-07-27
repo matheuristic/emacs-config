@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Jul 27 08:46:16 2020
+;; Generated: Mon Jul 27 19:15:20 2020
 
 ;;; Commentary:
 
@@ -4198,6 +4198,22 @@ Help (_q_: quit)"
 (put 'upcase-region 'disabled nil)
 
 (global-set-key (kbd "<f5>") #'revert-buffer)
+
+(defun open-gnutls-stream--after-sleep-250ms (&rest args)
+  "Workaround for race condition bug in `open-gnutls-stream'.
+
+Adds 250ms to the opening of GnuTLS connections.
+
+ARGS is a list of the original arguments passed to
+`open-gnutls-stream' and is ignored.
+
+See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10
+for more information."
+  (sleep-for 0 250))
+
+;; add advice to `open-gnutls-stream' to have it sleep for 250ms
+;; as a workaround for GnuTLS race condition bug
+(advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
 
 ;; OS-specific / Mac OS X
 

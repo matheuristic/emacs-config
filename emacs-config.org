@@ -139,6 +139,8 @@ Literate configs, package lists, and so on and so forth.
 - ~melpa~: Uses a package from MELPA.
 - ~semiearly~: Configuration that should be loaded early in ~init.el~
   because other configuration code depend on them.
+- ~workaround~: Section contains a workaround for Emacs or package
+  bug, which can be removed if and when the issues are fixed upstream.
 
 * Front matter
 
@@ -2133,7 +2135,7 @@ Dired → Filter (_q_: ←)"
   ("/" my-hydra/dired-mode/filter/body "→ Filter" :exit t))
 #+end_src
 
-** Dired icons using all-the-icons-dired                              :melpa:
+** Dired icons using all-the-icons-dired                   :workaround:melpa:
 
 Add font icons from ~all-the-icons~ to Dired using [[https://github.com/jtbm37/all-the-icons-dired][all-the-icons-dired]].
 Requires the ~all-the-icons~ package be loaded.
@@ -3003,7 +3005,7 @@ To unload the mail sync job, do the following.
 $ launchctl unload ~/Library/LaunchAgents/local.notmuch.new.plist
 #+end_example
 
-** Reading email using notmuch.el                            :external:melpa:
+** Reading email using notmuch.el                 :workaround:external:melpa:
 
 Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
 
@@ -4684,7 +4686,7 @@ Org-mode → Download (_q_: ←)"
     ("d" my-hydra/org-mode/download/body "→ Download" :exit t)))
 #+end_src
 
-** org-journal for journaling using Org-mode                          :melpa:
+** org-journal for journaling using Org-mode               :workaround:melpa:
 
 [[https://github.com/bastibe/org-journal][org-journal]] extends journaling capabilities to Org-mode.
 
@@ -6712,7 +6714,7 @@ An example is shown below.
 (aset standard-display-table ?0 [?])
 #+end_example
 
-** Icon fonts using all-the-icons                  :semiearly:external:melpa:
+** Icon fonts using all-the-icons       :workaround:semiearly:external:melpa:
 
 Icon fonts can be enabled using the [[https://github.com/domtronn/all-the-icons.el][all-the-icons]] package.
 These are useful for a few scenarios:
@@ -6734,7 +6736,7 @@ or manually by installing the TTF fonts from [[https://github.com/domtronn/all-t
                   all-the-icons-scale-factor 1.1)))
 #+end_src
 
-** Fancy mode line using doom-modeline                      :semiearly:melpa:
+** Fancy mode line using doom-modeline           :workaround:semiearly:melpa:
 
 Use [[https://github.com/seagle0128/doom-modeline][doom-modeline]] when not using via a TTY.
 Requires the ~all-the-icons~ package.
@@ -8052,6 +8054,34 @@ all keyboards it is a good idea to bind it to a function key, which is
 (global-set-key (kbd "<f5>") #'revert-buffer)
 #+end_src
 
+** Hacky workaround for GnuTLS timing issues                     :workaround:
+
+The Emacs usage of GnuTLS has some timing-related issues, especially
+with ~url-retrieve-synchronously~ and on GUI Emacs. This appears to be
+a sort of race condition, and a bug reporter thinks that GnuTLS is not
+properly waiting for the server to write the initial greeting.
+
+See [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573][link]] for more information and a [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10][workaround]].
+
+#+name: open-gnutls-stream-workaround
+#+begin_src emacs-lisp
+(defun open-gnutls-stream--after-sleep-250ms (&rest args)
+  "Workaround for race condition bug in `open-gnutls-stream'.
+
+Adds 250ms to the opening of GnuTLS connections.
+
+ARGS is a list of the original arguments passed to
+`open-gnutls-stream' and is ignored.
+
+See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10
+for more information."
+  (sleep-for 0 250))
+
+;; add advice to `open-gnutls-stream' to have it sleep for 250ms
+;; as a workaround for GnuTLS race condition bug
+(advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
+#+end_src
+
 * OS-specific
 
 ** Mac OS X
@@ -8261,7 +8291,7 @@ scale images).
   (setq doc-view-resolution 300))
 #+end_src
 
-*** load-history-filename-element workaround
+*** load-history-filename-element workaround                     :workaround:
 
 For whatever reason, the ~load-history~ list gets polluted with
 symbols in Emacs 27+ on some systems, Mac OS X included (at least for
@@ -8960,6 +8990,8 @@ The main configuration file.
 <<enable-default-disabled-functions>>
 
 <<revert-buffer>>
+
+<<open-gnutls-stream-workaround>>
 
 ;; OS-specific / Mac OS X
 
@@ -9999,7 +10031,7 @@ mode's hook by appending instead of pushing, for example by doing
 
 *** lsp-mode Language Server Protocol Client                          :melpa:
 
-**** Workaround for stale Flymake error reports
+**** Workaround for stale Flymake error reports                  :workaround:
 
 In certain scenarios, the language server diagnostics before Flymake changes the reporting function and new diagnostics are ignored while old errors continue being reported, leading to stale error reports. See [[https://github.com/emacs-lsp/lsp-mode/pull/1423][Github issue]].
 

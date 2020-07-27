@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Jul 25 12:06:16 2020
+;; Generated: Sun Jul 26 23:57:15 2020
 
 ;;; Commentary:
 
@@ -493,7 +493,7 @@ Ibuffer → Filter (_q_: ←)"
   "
 Buffer → Cleanup (_q_: ←)"
   ("q" my-hydra/buffer/body nil :exit t)
-  ("r" whitespace-report "whitespace-report")
+  ("r" whitespace-report "whitespace-report" :exit t)
   ("w" whitespace-cleanup "whitespace-cleanup")
   ("i" (lambda ()
          "Indent a selected region, or the buffer otherwise."
@@ -1345,22 +1345,27 @@ YASnippet (_q_: quit)"
 
 (global-set-key (kbd "C-S-j") #'my-join-next-line)
 
-(defun my-open-line-below ()
-  "Open a new line below."
-  (interactive)
+(defun my-open-line-below (n)
+  "Open a new line below and go to it.
+With arg N, insert N newlines."
+  (interactive "*p")
   (end-of-line)
-  (newline-and-indent))
-
-(defun my-open-line-above ()
-  "Open a new line above."
-  (interactive)
-  (beginning-of-line)
-  (newline-and-indent)
-  (forward-line -1)
+  (newline n)
   (indent-according-to-mode))
 
-(global-set-key (kbd "C-c o") #'my-open-line-below)
-(global-set-key (kbd "C-c O") #'my-open-line-above)
+(defun my-open-line-above (n)
+  "Open a new line above and go to it.
+With arg N, insert N newlines."
+  (interactive "*p")
+  (beginning-of-line)
+  (newline n)
+  (forward-line (- n))
+  (indent-according-to-mode))
+
+;; bind over `open-line' ("C-o") with `my-open-line-below'
+(global-set-key [remap open-line] #'my-open-line-below)
+;; binding for `my-open-line-above
+(global-set-key (kbd "C-S-o") #'my-open-line-above)
 
 ;; Emacs as an edit server
 
@@ -2011,8 +2016,11 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ;; don't auto-indent when promoting/demoting
+      org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
+                                   (plain-list-item . nil)) ;; same as above
       org-catch-invisible-edits 'error
       org-confirm-babel-evaluate nil ;; don't confirm before evaluating code blocks in Org documents
+      org-cycle-separator-lines 2 ;; collapse single item separator lines when cycling
       org-edit-src-content-indentation 2
       org-fontify-done-headline t
       org-fontify-quote-and-verse-blocks t
@@ -2038,6 +2046,21 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
       org-treat-S-cursor-todo-selection-as-state-change nil
       org-use-fast-todo-selection t
       org-use-speed-commands nil)
+
+(defun my-org-open-line-below (n)
+  "Insert a new row in tables, call `my-open-line-below' elsewhere.
+If `org-special-ctrl-o' is nil, call `my-open-line-below' everywhere.
+As a special case, when a document starts with a table, allow to
+call `open-line' on the very first character."
+  (interactive "*p")
+  (if (and org-special-ctrl-o (/= (point) 1) (org-at-table-p))
+      (org-table-insert-row)
+    (my-open-line-below n)))
+
+;; bind over `org-open-line' to call `my-org-open-line-below' instead
+;; making it consistent with customized global-mode-map "C-o"
+(with-eval-after-load 'org-keys
+  (define-key org-mode-map (kbd "C-o") #'my-org-open-line-below))
 
 ;; Set possible Org task states
 ;; Diagram of possible task state transitions
@@ -2451,12 +2474,6 @@ Org (_q_: quit)"
                            org-verbatim))
         (set-face-attribute curr-face nil :family fixed-pitch-family)))))
 
-;; UTF-8 bullets in Org buffers
-(use-package org-bullets
-  :after org
-  :hook (org-mode . org-bullets-mode)
-  :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
-
 ;; insert urls from clipboard as links with title of page
 (when (display-graphic-p)
   (use-package org-cliplink
@@ -2653,6 +2670,10 @@ Org-mode → Download (_q_: ←)"
                                   (:name "On hold"
                                    :todo "HOLD")))
   (org-super-agenda-mode 1))
+
+;; start server and load org-protocol
+(server-start)
+(require 'org-protocol)
 
 ;; Programming / FlyCheck syntax checker
 
@@ -3647,7 +3668,8 @@ _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^
   ("nw" widen)
   ("+" text-scale-increase)
   ("-" text-scale-decrease)
-  ("0" (text-scale-adjust 0)))
+  ("0" (text-scale-adjust 0))
+  ("r" redraw-display "redraw"))
 
 (defvar-local my-hydra/visual/emphasis--face-remap-cookies '()
   "Alist storing cookies for `face-remap-add-relative' calls.")
@@ -3829,6 +3851,34 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 ")
     ("i" highlight-indent-guides-mode :exit nil)))
 
+;; add internal frame border
+(add-to-list 'default-frame-alist
+             `(internal-border-width . ,(if (eq system-type 'darwin)
+                                            12
+                                          6)))
+(defun my-default-frame-border-teardown ()
+  "Removes internal-border-width entries from `default-frame-alist'."
+  (setq default-frame-alist
+        (assq-delete-all 'internal-border-width default-frame-alist)))
+;; add teardown function to be run before closing Emacs, which needs
+;; to run early when closing so add it to the end of `after-init-hook'
+(add-hook 'after-init-hook
+          (lambda ()
+            (add-hook 'kill-emacs-hook #'my-default-frame-border-teardown))
+          t)
+
+;; add non-visisible bottom window dividers for mouse-based vertical resizing
+(setq window-divider-default-bottom-width (if (eq system-type 'darwin)
+                                              6
+                                            3)
+      window-divider-default-places 'bottom-only)
+(let ((fg-color (face-attribute 'default :foreground))
+      (bg-color (face-attribute 'default :background)))
+  (set-face-attribute 'window-divider nil :foreground bg-color)
+  (set-face-attribute 'window-divider-first-pixel nil :foreground bg-color)
+  (set-face-attribute 'window-divider-last-pixel nil :foreground bg-color))
+(window-divider-mode 1)
+
 ;; Web
 
 ;; built-in Emacs text web browser
@@ -3937,6 +3987,25 @@ REST client (_q_: quit)"
 (setq url-cookie-untrusted-urls '(".*")) ;; no cookies
 (setq url-privacy-level 'paranoid) ;; more private HTTP requests
 (url-setup-privacy-info) ;; apply `url-privacy-level'
+
+;; read-it-later functionality in Org mode
+;; custom package in the lisp subfolder of the user emacs directory
+(require 'org-readitlater)
+(define-key org-mode-map (kbd "C-c o") org-readitlater-keymap)
+
+;; add capture template for org-readitlater
+(setq org-readitlater-capture-file "readitlater/readitlater.org")
+(push `("a" "Archive page to read-it-later list" entry
+        (file+headline ,org-readitlater-capture-file "Unsorted")
+        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:END:\n%:initial\n\nAdded %U")
+      org-capture-templates)
+;; auto-download page after capturing with org-readitlater template
+(defun do-org-readitlater-dl-hook ()
+  (when (equal (buffer-name)
+               (concat "CAPTURE-"
+                       (file-name-nondirectory org-readitlater-capture-file)))
+    (org-readitlater-archive)))
+(add-hook 'org-capture-before-finalize-hook #'do-org-readitlater-dl-hook)
 
 ;; Writing
 

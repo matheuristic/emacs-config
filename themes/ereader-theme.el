@@ -53,7 +53,7 @@
    ;; generic stuff
    `(default ((t (:background ,bg :foreground ,fg))))
    `(button ((t (:foreground ,fg :underline t))))
-   `(cursor ((t (:background ,fg :foreground "white smoke"))))
+   `(cursor ((t (:background ,fg :foreground ,bg))))
    `(custom-variable-tag ((t (:foreground ,fg :weight bold))))
    `(default-italic ((t (:italic t))))
    `(font-latex-bold-face ((t (:foreground ,fg))))

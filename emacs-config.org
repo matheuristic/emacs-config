@@ -1020,7 +1020,7 @@ Buffer cleanup hydra, configured as a subhydra for the buffer hydra.
   "
 Buffer → Cleanup (_q_: ←)"
   ("q" my-hydra/buffer/body nil :exit t)
-  ("r" whitespace-report "whitespace-report")
+  ("r" whitespace-report "whitespace-report" :exit t)
   ("w" whitespace-cleanup "whitespace-cleanup")
   ("i" (lambda ()
          "Indent a selected region, or the buffer otherwise."
@@ -2562,22 +2562,27 @@ there, like ~o~/~O~ in Vim.
 
 #+name: my-open-line-below-and-above
 #+begin_src emacs-lisp
-(defun my-open-line-below ()
-  "Open a new line below."
-  (interactive)
+(defun my-open-line-below (n)
+  "Open a new line below and go to it.
+With arg N, insert N newlines."
+  (interactive "*p")
   (end-of-line)
-  (newline-and-indent))
-
-(defun my-open-line-above ()
-  "Open a new line above."
-  (interactive)
-  (beginning-of-line)
-  (newline-and-indent)
-  (forward-line -1)
+  (newline n)
   (indent-according-to-mode))
 
-(global-set-key (kbd "C-c o") #'my-open-line-below)
-(global-set-key (kbd "C-c O") #'my-open-line-above)
+(defun my-open-line-above (n)
+  "Open a new line above and go to it.
+With arg N, insert N newlines."
+  (interactive "*p")
+  (beginning-of-line)
+  (newline n)
+  (forward-line (- n))
+  (indent-according-to-mode))
+
+;; bind over `open-line' ("C-o") with `my-open-line-below'
+(global-set-key [remap open-line] #'my-open-line-below)
+;; binding for `my-open-line-above
+(global-set-key (kbd "C-S-o") #'my-open-line-above)
 #+end_src
 
 * Emacs as an edit server
@@ -3979,8 +3984,11 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ;; don't auto-indent when promoting/demoting
+      org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
+                                   (plain-list-item . nil)) ;; same as above
       org-catch-invisible-edits 'error
       org-confirm-babel-evaluate nil ;; don't confirm before evaluating code blocks in Org documents
+      org-cycle-separator-lines 2 ;; collapse single item separator lines when cycling
       org-edit-src-content-indentation 2
       org-fontify-done-headline t
       org-fontify-quote-and-verse-blocks t
@@ -4006,6 +4014,29 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
       org-treat-S-cursor-todo-selection-as-state-change nil
       org-use-fast-todo-selection t
       org-use-speed-commands nil)
+#+end_src
+
+** Bind over org-open-line with version calling my-org-open-line-below
+
+Bind over ~org-open-line~ with a variant that calls
+~my-open-line-below~ instead.
+
+#+name: my-org-open-line-below
+#+begin_src emacs-lisp
+(defun my-org-open-line-below (n)
+  "Insert a new row in tables, call `my-open-line-below' elsewhere.
+If `org-special-ctrl-o' is nil, call `my-open-line-below' everywhere.
+As a special case, when a document starts with a table, allow to
+call `open-line' on the very first character."
+  (interactive "*p")
+  (if (and org-special-ctrl-o (/= (point) 1) (org-at-table-p))
+      (org-table-insert-row)
+    (my-open-line-below n)))
+
+;; bind over `org-open-line' to call `my-org-open-line-below' instead
+;; making it consistent with customized global-mode-map "C-o"
+(with-eval-after-load 'org-keys
+  (define-key org-mode-map (kbd "C-o") #'my-org-open-line-below))
 #+end_src
 
 ** Org TODO keywords and task states
@@ -4579,22 +4610,6 @@ Org documents like code and tables.
         (set-face-attribute curr-face nil :family fixed-pitch-family)))))
 #+end_src
 
-** org-bullets for nicer header bullets in Org-mode                   :melpa:
-
-*TODO*: migrate to [[https://github.com/integral-dw/org-superstar-mode][org-superstar]].
-
-[[https://github.com/integral-dw/org-bullets][org-bullets]] mode replaces header stars in Org-mode with UTF-8
-characters that can be customized to differ by header leve.
-
-#+name: org-bullets
-#+begin_src emacs-lisp
-;; UTF-8 bullets in Org buffers
-(use-package org-bullets
-  :after org
-  :hook (org-mode . org-bullets-mode)
-  :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
-#+end_src
-
 ** org-cliplink for inserting URLs from the clipboard as Org-mode links :melpa:
 
 [[https://github.com/rexim/org-cliplink][org-cliplink]] provides support for inserting URLs from the clipboard as
@@ -4895,6 +4910,53 @@ When annotating in the split-screen mode:
                                    :todo "HOLD")))
   (org-super-agenda-mode 1))
 #+end_src
+
+** org-protocol
+
+Enable [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]] to allow intercepting calls to emacsclient and
+triggering custom actions.
+
+By default, Emacs Mac port for Mac OS registers itself as the
+handler for ~org-protocol://~ URLs.
+
+For other versions of Emacs, refer to [[https://github.com/alphapapa/org-protocol-capture-html#org-protocol-instructions][here]] or [[https://org-roam.readthedocs.io/en/master/roam_protocol/][here]] for instructions on
+setting up the protocol handler.
+
+#+name: org-protocol
+#+begin_src emacs-lisp
+;; start server and load org-protocol
+(server-start)
+(require 'org-protocol)
+#+end_src
+
+*** org-protocol-capture
+
+The org-protocol-capture API can accessed by calling the URL starting
+with ~org-protocol://capture~ and passing information through query
+parameters.
+
+org-protocol-capture supports a few URL query parameters:
+- ~url~ corresponding to ~%:link~ in the capture template.
+- ~title~ corresponding to ~%:description~ in the capture template.
+- ~body~ corresponding to ~%:initial~ in the capture template. Note
+  that in the bookmarklet below this is the selected text in the page.
+  For the entire page's text, use ~document.body.innerText~ instead of
+  ~window.getSelection()~.
+- ~template~ which automatically loads the template associated with
+  the parameter character, for example
+  ~javascript:location.href='org-protocol://capture?template=b'+ ...~
+  uses the template ?b automatically. Note that the template character
+  must be unquoted.
+For more info, see the docstring and code for ~org-protocol-capture~.
+
+As an example, the following bookmarklet can be created in any web
+browser and when clicked will send details about the current page to
+the org-protocol capture API. This will bring into focus the Emacs
+window and call `org-capture' with the query parameters.
+
+#+begin_example
+javascript:location.href='org-protocol://capture?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
+#+end_example
 
 * Programming
 
@@ -6749,7 +6811,8 @@ _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^
   ("nw" widen)
   ("+" text-scale-increase)
   ("-" text-scale-decrease)
-  ("0" (text-scale-adjust 0)))
+  ("0" (text-scale-adjust 0))
+  ("r" redraw-display "redraw"))
 
 (defvar-local my-hydra/visual/emphasis--face-remap-cookies '()
   "Alist storing cookies for `face-remap-add-relative' calls.")
@@ -7072,6 +7135,54 @@ Add ~highlight-indent-guides-mode~ toggle entry point to visual hydra.
     ("i" highlight-indent-guides-mode :exit nil)))
 #+end_src
 
+** Add frame padding
+
+Adding a default frame padding creates nicer typography at the cost of
+a few characters.
+
+#+name: frame-internal-border
+#+begin_src emacs-lisp
+;; add internal frame border
+(add-to-list 'default-frame-alist
+             `(internal-border-width . ,(if (eq system-type 'darwin)
+                                            12
+                                          6)))
+(defun my-default-frame-border-teardown ()
+  "Removes internal-border-width entries from `default-frame-alist'."
+  (setq default-frame-alist
+        (assq-delete-all 'internal-border-width default-frame-alist)))
+;; add teardown function to be run before closing Emacs, which needs
+;; to run early when closing so add it to the end of `after-init-hook'
+(add-hook 'after-init-hook
+          (lambda ()
+            (add-hook 'kill-emacs-hook #'my-default-frame-border-teardown))
+          t)
+#+end_src
+
+** Add non-visible bottom window dividers for easier mouse resizing
+
+By default for GUI Emacs (at least for the Emacs Mac port), right
+window dividers are rendered and can be dragged with the mouse to
+resize windows horizontally.
+
+Add non-visible bottom window dividers to also allow vertical window
+resizing by dragging the space between two up-down adjacent windows.
+
+#+name: add-bottom-window-dividers
+#+begin_src emacs-lisp
+;; add non-visisible bottom window dividers for mouse-based vertical resizing
+(setq window-divider-default-bottom-width (if (eq system-type 'darwin)
+                                              6
+                                            3)
+      window-divider-default-places 'bottom-only)
+(let ((fg-color (face-attribute 'default :foreground))
+      (bg-color (face-attribute 'default :background)))
+  (set-face-attribute 'window-divider nil :foreground bg-color)
+  (set-face-attribute 'window-divider-first-pixel nil :foreground bg-color)
+  (set-face-attribute 'window-divider-last-pixel nil :foreground bg-color))
+(window-divider-mode 1)
+#+end_src
+
 * Web
 
 ** Browsing
@@ -7254,6 +7365,95 @@ More private HTTP requests.
 (setq url-cookie-untrusted-urls '(".*")) ;; no cookies
 (setq url-privacy-level 'paranoid) ;; more private HTTP requests
 (url-setup-privacy-info) ;; apply `url-privacy-level'
+#+end_src
+
+** Read-it-later functionality to Org mode
+
+Add read-it-later functionality to Org mode, with keybindings bound to
+the prefix ~C-c o~ (use ~C-c o ?~ for the full set of available
+bindings).
+
+By default this is configured to use [[https://github.com/Y2Z/monolith][monolith]] which can bundle a web
+page into single HTML file.
+
+#+name: org-readitlater
+#+begin_src emacs-lisp
+;; read-it-later functionality in Org mode
+;; custom package in the lisp subfolder of the user emacs directory
+(require 'org-readitlater)
+(define-key org-mode-map (kbd "C-c o") org-readitlater-keymap)
+#+end_src
+
+*** Monolith
+
+[[https://github.com/Y2Z/monolith][Monolith]] is a CLI tool for saving complete webpages into a single HTML
+file with embedded images, CSS and JS.
+
+**** Installing monolith
+
+***** Pre-built binaries
+
+[[https://github.com/Y2Z/monolith/releases][Pre-built binaries]] are available for Linux (~x86_64~) and Windows.
+
+***** Building from source
+
+Install dependencies. The following example instructions are for
+MacPorts.
+
+#+begin_example
+$ sudo port install openssl
+$ sudo port install cargo
+$ sudo port install pkgconfig
+#+end_example
+
+Make sure =~/.cargo/bin= is in the shell ~$PATH~ ([[https://unix.stackexchange.com/questions/26047/how-to-correctly-add-a-path-to-path][bash]], [[https://fishshell.com/docs/current/tutorial.html#path][fish]]).
+
+Clone the monolith repo and build it.
+
+#+begin_example
+$ cd /path/to/build
+$ git clone https://github.com/Y2Z/monolith.git
+$ cd monolith
+$ make install
+#+end_example
+
+Test the built binary.
+
+#+begin_example
+$ monolith --help
+#+end_example
+
+**** Configure org-capture template for org-readitlater
+
+Configure an [[https://orgmode.org/manual/Capture.html][org-capture]] template for capturing org-readitlater
+entries to the =readitlater/readitlater.org= file in ~org-directory~,
+filing it under the "Unsorted" heading and automatically downloading
+the article.
+
+If org-protocol is enabled, the following bookmarklet can be added to
+a web browser to send the current page details (and any selected text)
+to the org-readitlater capture template associated with key ~a~ (the
+~template='a'~ query parameter triggers the automatic dispatch).
+
+#+begin_example
+javascript:location.href='org-protocol://capture?template=a&url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
+#+end_example
+
+#+name: org-capture-readitlater
+#+begin_src emacs-lisp
+;; add capture template for org-readitlater
+(setq org-readitlater-capture-file "readitlater/readitlater.org")
+(push `("a" "Archive page to read-it-later list" entry
+        (file+headline ,org-readitlater-capture-file "Unsorted")
+        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:END:\n%:initial\n\nAdded %U")
+      org-capture-templates)
+;; auto-download page after capturing with org-readitlater template
+(defun do-org-readitlater-dl-hook ()
+  (when (equal (buffer-name)
+               (concat "CAPTURE-"
+                       (file-name-nondirectory org-readitlater-capture-file)))
+    (org-readitlater-archive)))
+(add-hook 'org-capture-before-finalize-hook #'do-org-readitlater-dl-hook)
 #+end_src
 
 * Writing
@@ -8425,6 +8625,8 @@ The main configuration file.
 
 <<org>>
 
+<<my-org-open-line-below>>
+
 <<org-todo-keywords>>
 
 <<org-visual-line-mode>>
@@ -8455,8 +8657,6 @@ The main configuration file.
 
 <<org-graphical-customizations>>
 
-<<org-bullets>>
-
 <<org-cliplink>>
 
 <<org-download>>
@@ -8474,6 +8674,8 @@ The main configuration file.
 <<org-noter>>
 
 <<org-super-agenda>>
+
+<<org-protocol>>
 
 ;; Programming / FlyCheck syntax checker
 
@@ -8649,6 +8851,10 @@ The main configuration file.
 
 <<add-highlight-indent-guides-toggle-to-visual-hydra>>
 
+<<frame-internal-border>>
+
+<<add-bottom-window-dividers>>
+
 ;; Web
 
 <<eww>>
@@ -8666,6 +8872,10 @@ The main configuration file.
 <<network-security>>
 
 <<http-requests-privacy>>
+
+<<org-readitlater>>
+
+<<org-capture-readitlater>>
 
 ;; Writing
 
@@ -9129,6 +9339,20 @@ a more informative display.
 
 ** Web
 
+*** [#A] org-board for bookmarking and web archival                   :melpa:
+
+[[https://github.com/scallywag/org-board][org-board]] extends Org mode to support bookmarking and archival of web pages,
+much like read-it-later applications like Instapaper and Pocket.
+
+Configure it to use [[https://github.com/Y2Z/monolith][monolith]] if it is on the system path, and set up a
+capture template for [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]].
+
+#+name: org-board
+#+begin_src emacs-lisp
+(use-package org-board
+  :bind ("C-c o" . org-board-keymap))
+#+end_src
+
 *** [#A] Elfeed                                                       :melpa:
 
 [[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
@@ -9513,6 +9737,22 @@ Modified copy of original using Gmail blockquotes."
 #+end_src
 
 ** Org-mode
+
+*** org-bullets for nicer header bullets in Org-mode                  :melpa:
+
+*TODO*: migrate to [[https://github.com/integral-dw/org-superstar-mode][org-superstar]].
+
+[[https://github.com/integral-dw/org-bullets][org-bullets]] mode replaces header stars in Org-mode with UTF-8
+characters that can be customized to differ by header leve.
+
+#+name: org-bullets
+#+begin_src emacs-lisp
+;; UTF-8 bullets in Org buffers
+(use-package org-bullets
+  :after org
+  :hook (org-mode . org-bullets-mode)
+  :config (setq org-bullets-bullet-list '("■" "◆" "▲" "▶")))
+#+end_src
 
 *** Display the outline path at point in Org-mode using which-func
 

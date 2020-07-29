@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Jul 28 20:18:03 2020
+;; Generated: Tue Jul 28 20:43:55 2020
 
 ;;; Commentary:
 
@@ -2670,7 +2670,6 @@ Org-mode → Download (_q_: ←)"
 (use-package org-superstar
   :hook (org-mode . org-superstar-mode)
   :init (setq org-superstar-headline-bullets-list '("◉" "🞛" "○" "▷")
-              org-superstar-leading-bullets ?\s ;; hide leading stars
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 

@@ -4908,7 +4908,6 @@ header star replacements are configured.
 (use-package org-superstar
   :hook (org-mode . org-superstar-mode)
   :init (setq org-superstar-headline-bullets-list '("◉" "🞛" "○" "▷")
-              org-superstar-leading-bullets ?\s ;; hide leading stars
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 #+end_src

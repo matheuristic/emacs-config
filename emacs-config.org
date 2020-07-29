@@ -1173,11 +1173,18 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ~*Completions*~ and so on in a window that automatically gets closed
 on ~C-g~ or selection of another window.
 
+It can also be used to popup temporary buffers, and that functionality
+can be accessed through ~popwin:keymap~ which is configured to
+the ~C-z~ prefix (use ~C-x C-z~ to call ~suspend-frame~ instead).
+
 #+name: popwin
 #+begin_src emacs-lisp
-;; auto-close special buffers like *Completions* and *compilation*
+;; popup window manager, also auto-closes special buffers like
+;; *compilation* and *Completions*
 (use-package popwin
-  :config (popwin-mode 1))
+  :config
+  (popwin-mode 1)
+  (global-set-key (kbd "C-z") popwin:keymap))
 #+end_src
 
 *** ace-window
@@ -1709,6 +1716,35 @@ code and vterm), and bind it to ~C-c C-b~ when in ~vterm-mode~.
   (define-key vterm-mode-map (kbd "C-c C-b") #'vterm--switch-to-buffer))
 #+end_src
 
+** tmux interaction convenenience functions
+
+Define some convenience functions for interaction with the currently active tmux session.
+- ~tmux-send~ prompts for a command to send and sends it.
+- ~tmux-resend~ resends the previously sent command from the current buffer.
+
+#+name: tmux-send
+#+begin_src emacs-lisp
+;; convenience functions for sent commands to an active tmux session
+;; adapted from https://explog.in/notes/tmux.html
+
+;; track previously sent tmux commands on per-buffer basis
+(setq tmux-send--last-command nil)
+(make-variable-buffer-local 'tmux-send--last-command)
+
+(defun tmux-send (command)
+  "Sends the specified COMMAND to the currently active tmux pane."
+  (interactive "sCommand: ")
+  (setq tmux-send--last-command command)
+  (call-process "tmux" nil nil nil "send-keys" command "Enter"))
+
+(defun tmux-resend ()
+  "Resends previously sent command to currently active tmux pane."
+  (interactive)
+  (if tmux-send--last-command
+      (call-process "tmux" nil nil nil "send-keys" tmux-send--last-command "Enter")
+    (message "No previously sent command from the current buffer!")))
+#+end_src
+
 ** Shell entry point hydra
 
 Hydra providing entry points into Eshell and vterm.
@@ -1723,7 +1759,9 @@ Shell tools (_q_: quit)"
   ("v" vterm "vterm")
   ("V" vterm-other-window "vterm-other")
   ("C-v" vterm--switch-to-buffer "vterm-switchb")
-  ("e" my-eshell-with-name "eshell"))
+  ("e" my-eshell-with-name "eshell")
+  ("t" tmux-send "tmux-send")
+  ("T" tmux-resend "tmux-resend"))
 
 ;; binding for spawning or switching to a named Eshell buffer
 (global-set-key (kbd "C-c C-M-t") #'my-hydra/shell/body)
@@ -3996,7 +4034,7 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
       org-fontify-quote-and-verse-blocks t
       org-fontify-whole-heading-line t
       org-hide-emphasis-markers nil
-      org-hide-leading-stars t
+      org-hide-leading-stars nil
       org-highlight-latex-and-related '(latex script entities) ;; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
       org-image-actual-width (list (/ (display-pixel-width) 3)) ;; auto-resize displayed images to one-third of display width
       org-link-file-path-type 'adaptive ;; use relative paths for links to files in Org file dir or subdirs, absolute otherwise
@@ -4855,6 +4893,24 @@ Load the [[https://github.com/emacsmirror/org/blob/master/lisp/ox-md.el][built-i
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
   (require 'ox-md))
+#+end_src
+
+** org-superstar for nicer headings and plain lists
+
+[[https://github.com/integral-dw/org-superstar-mode][org-superstar]] provides a minor mode that replaces header stars and
+plain lists in Org-mode with UTF-8 characters.
+
+Replace plain list bullets can be slow when lists are long, so only
+header star replacements are configured.
+
+#+name: org-superstar
+#+begin_src emacs-lisp
+(use-package org-superstar
+  :hook (org-mode . org-superstar-mode)
+  :init (setq org-superstar-headline-bullets-list '("◉" "🞛" "○" "▷")
+              org-superstar-leading-bullets ?\s ;; hide leading stars
+              ;; don't prettify plain lists, which can be slow
+              org-superstar-prettify-item-bullets nil))
 #+end_src
 
 ** org-noter for document annotation                                  :melpa:
@@ -6827,7 +6883,8 @@ _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^
   ("t" toggle-truncate-lines)
   ("v" visual-line-mode)
   ("W" whitespace-mode)
-  ("w" (lambda () (interactive)
+  ("w" (lambda ()
+         (interactive)
          (setq-local show-trailing-whitespace
                      (not show-trailing-whitespace))
          (message "show-trailing-whitespace: %s"
@@ -6839,7 +6896,15 @@ _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^
   ("+" text-scale-increase)
   ("-" text-scale-decrease)
   ("0" (text-scale-adjust 0))
-  ("r" redraw-display "redraw"))
+  ("r" (lambda ()
+         (interactive)
+         ;; refocus doom-modeline just in case
+         (when (and (boundp 'doom-modeline-mode)
+                    doom-modeline-mode)
+           (doom-modeline-focus))
+         ;; redraw display
+         (redraw-display))
+   "redraw"))
 
 (defvar-local my-hydra/visual/emphasis--face-remap-cookies '()
   "Alist storing cookies for `face-remap-add-relative' calls.")
@@ -7403,6 +7468,12 @@ prefix ~C-c o~ (use ~C-c o ?~ for the full set of available bindings).
 By default this is configured to use [[https://github.com/Y2Z/monolith][monolith]] which can bundle a web
 page into single HTML file.
 
+This custom package is forked from [[https://github.com/scallywag/org-board][org-board]] and modified as follows:
+1. Simplify the user interaction model---only one URL per header.
+2. Support ~monolith~ or another tool by having an API that is less
+   specific to ~wget~. This also means less ~wget~ specific magic like
+   option completions when editing the entry's properties in Org mode.
+
 #+name: org-readitlater
 #+begin_src emacs-lisp
 ;; read-it-later functionality in Org mode
@@ -7411,7 +7482,7 @@ page into single HTML file.
 (define-key org-mode-map (kbd "C-c o") org-readitlater-keymap)
 #+end_src
 
-*** Monolith
+*** Monolith                                                       :external:
 
 [[https://github.com/Y2Z/monolith][Monolith]] is a CLI tool for saving complete webpages into a single HTML
 file with embedded images, CSS and JS.
@@ -7450,7 +7521,7 @@ Test the built binary.
 $ monolith --help
 #+end_example
 
-**** Configure org-capture template for org-readitlater
+*** Configure org-capture template for org-readitlater
 
 Configure an [[https://orgmode.org/manual/Capture.html][org-capture]] template for capturing org-readitlater
 entries to the =readitlater/readitlater.org= file in ~org-directory~,
@@ -8545,6 +8616,8 @@ The main configuration file.
 
 <<vterm-switchb>>
 
+<<tmux-send>>
+
 <<shell-hydra>>
 
 ;; Comparison tools
@@ -8725,6 +8798,8 @@ The main configuration file.
 <<add-org-present-to-org-mode-hydra>>
 
 <<ox-md>>
+
+<<org-superstar>>
 
 <<org-noter>>
 
@@ -9398,20 +9473,6 @@ a more informative display.
 
 ** Web
 
-*** [#A] org-board for bookmarking and web archival                   :melpa:
-
-[[https://github.com/scallywag/org-board][org-board]] extends Org mode to support bookmarking and archival of web pages,
-much like read-it-later applications like Instapaper and Pocket.
-
-Configure it to use [[https://github.com/Y2Z/monolith][monolith]] if it is on the system path, and set up a
-capture template for [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]].
-
-#+name: org-board
-#+begin_src emacs-lisp
-(use-package org-board
-  :bind ("C-c o" . org-board-keymap))
-#+end_src
-
 *** [#A] Elfeed                                                       :melpa:
 
 [[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
@@ -9798,8 +9859,6 @@ Modified copy of original using Gmail blockquotes."
 ** Org-mode
 
 *** org-bullets for nicer header bullets in Org-mode                  :melpa:
-
-*TODO*: migrate to [[https://github.com/integral-dw/org-superstar-mode][org-superstar]].
 
 [[https://github.com/integral-dw/org-bullets][org-bullets]] mode replaces header stars in Org-mode with UTF-8
 characters that can be customized to differ by header leve.

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Jul 27 19:15:20 2020
+;; Generated: Tue Jul 28 20:18:03 2020
 
 ;;; Commentary:
 
@@ -601,9 +601,12 @@ ROTATIONS can be negative, which rotates in the opposite direction."
   ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
   ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
 
-;; auto-close special buffers like *Completions* and *compilation*
+;; popup window manager, also auto-closes special buffers like
+;; *compilation* and *Completions*
 (use-package popwin
-  :config (popwin-mode 1))
+  :config
+  (popwin-mode 1)
+  (global-set-key (kbd "C-z") popwin:keymap))
 
 ;; window navigation and management
 (use-package ace-window
@@ -825,6 +828,26 @@ Term (_q_: quit)"
 (with-eval-after-load 'vterm
   (define-key vterm-mode-map (kbd "C-c C-b") #'vterm--switch-to-buffer))
 
+;; convenience functions for sent commands to an active tmux session
+;; adapted from https://explog.in/notes/tmux.html
+
+;; track previously sent tmux commands on per-buffer basis
+(setq tmux-send--last-command nil)
+(make-variable-buffer-local 'tmux-send--last-command)
+
+(defun tmux-send (command)
+  "Sends the specified COMMAND to the currently active tmux pane."
+  (interactive "sCommand: ")
+  (setq tmux-send--last-command command)
+  (call-process "tmux" nil nil nil "send-keys" command "Enter"))
+
+(defun tmux-resend ()
+  "Resends previously sent command to currently active tmux pane."
+  (interactive)
+  (if tmux-send--last-command
+      (call-process "tmux" nil nil nil "send-keys" tmux-send--last-command "Enter")
+    (message "No previously sent command from the current buffer!")))
+
 ;; hydra providing entry points into shell tools
 (defhydra my-hydra/shell (:color teal :columns 3)
   "
@@ -833,7 +856,9 @@ Shell tools (_q_: quit)"
   ("v" vterm "vterm")
   ("V" vterm-other-window "vterm-other")
   ("C-v" vterm--switch-to-buffer "vterm-switchb")
-  ("e" my-eshell-with-name "eshell"))
+  ("e" my-eshell-with-name "eshell")
+  ("t" tmux-send "tmux-send")
+  ("T" tmux-resend "tmux-resend"))
 
 ;; binding for spawning or switching to a named Eshell buffer
 (global-set-key (kbd "C-c C-M-t") #'my-hydra/shell/body)
@@ -2026,7 +2051,7 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
       org-fontify-quote-and-verse-blocks t
       org-fontify-whole-heading-line t
       org-hide-emphasis-markers nil
-      org-hide-leading-stars t
+      org-hide-leading-stars nil
       org-highlight-latex-and-related '(latex script entities) ;; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
       org-image-actual-width (list (/ (display-pixel-width) 3)) ;; auto-resize displayed images to one-third of display width
       org-link-file-path-type 'adaptive ;; use relative paths for links to files in Org file dir or subdirs, absolute otherwise
@@ -2641,6 +2666,13 @@ Org-mode → Download (_q_: ←)"
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
   (require 'ox-md))
+
+(use-package org-superstar
+  :hook (org-mode . org-superstar-mode)
+  :init (setq org-superstar-headline-bullets-list '("◉" "🞛" "○" "▷")
+              org-superstar-leading-bullets ?\s ;; hide leading stars
+              ;; don't prettify plain lists, which can be slow
+              org-superstar-prettify-item-bullets nil))
 
 ;; create sychronized external notes in DocView and Nov.el
 (use-package org-noter
@@ -3664,7 +3696,8 @@ _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^
   ("t" toggle-truncate-lines)
   ("v" visual-line-mode)
   ("W" whitespace-mode)
-  ("w" (lambda () (interactive)
+  ("w" (lambda ()
+         (interactive)
          (setq-local show-trailing-whitespace
                      (not show-trailing-whitespace))
          (message "show-trailing-whitespace: %s"
@@ -3676,7 +3709,15 @@ _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^
   ("+" text-scale-increase)
   ("-" text-scale-decrease)
   ("0" (text-scale-adjust 0))
-  ("r" redraw-display "redraw"))
+  ("r" (lambda ()
+         (interactive)
+         ;; refocus doom-modeline just in case
+         (when (and (boundp 'doom-modeline-mode)
+                    doom-modeline-mode)
+           (doom-modeline-focus))
+         ;; redraw display
+         (redraw-display))
+   "redraw"))
 
 (defvar-local my-hydra/visual/emphasis--face-remap-cookies '()
   "Alist storing cookies for `face-remap-add-relative' calls.")

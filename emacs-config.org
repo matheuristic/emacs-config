@@ -1,4 +1,5 @@
 #+title: Emacs configuration
+#+author: matheuristic
 #+options: h:4 num:t toc:t
 #+property: header-args:emacs-lisp :exports code
 
@@ -86,16 +87,36 @@ works sometimes.
 Host *
      ServerAliveInterval 5
 #+end_example
+** Useful Emacs default bindings
 
-** Jumping to function definitions and backtracking
+*** Moving to beginning of line text (M-m)
+
+There is a function ~back-to-indentation~ which moves the point to the
+beginning of the line /text/, globally bound to ~M-m~ by default.
+
+This is a useful complement to the standard ~C-a~ binding that moves
+the point to the beginning of the line.
+
+*** Jumping to function definitions (M-.)
 
 Jumping to the definition of a function under point can be done by
-calling ~xref-find-definition~ which is bound to ~M-.~ or by calling
-~dumb-jump-go~ if dump-jump is installed.
+calling ~xref-find-definitions~ interactively, which is bound to ~M-.~
+by default.
+
+*** Backtracking through a chain of jumps (M-,)
 
 Backtracking through a chain of jumps can be done by calling
-~xref-pop-marker-stack~ which is bound to ~M-,~ (this only works for
-jumps that push the jump origin onto the marker stack).
+~xref-pop-marker-stack~ which is bound to ~M-,~ by default (this only
+works for jumps that push the jump origin onto the marker stack, which
+~xref-find-definitions~ does).
+
+To modify some function ~name-of-some-function~ so that it pushes the
+current location onto marker stack when run, ~advice-add~ can be
+utilized as follows.
+
+#+begin_example
+(advice-add #'name-of-some-function :before #'xref-push-marker-stack))
+#+end_example
 
 ** Random useful Emacs links
 
@@ -996,19 +1017,6 @@ Kill buffers other than the current one.
 ;; add my-kill-other-buffers to buffer hydra
 (defhydra+ my-hydra/buffer nil
   ("o" my-kill-other-buffers "only" :exit t))
-#+end_src
-
-*** Helm mark ring in buffer hydra                                    :hydra:
-
-Add entry point to ~helm-mark-ring~ and ~helm-all-mark-rings~ in
-buffer hydra.
-
-#+name: add-helm-mark-ring-to-buffer-hydra
-#+begin_src emacs-lisp
-(with-eval-after-load 'helm
-  (defhydra+ my-hydra/buffer nil
-    ("m" helm-mark-ring "marks" :exit t)
-    ("M" helm-all-mark-rings "marks-all" :exit t)))
 #+end_src
 
 *** Buffer cleanup hydra                                              :hydra:
@@ -3502,6 +3510,64 @@ Org-mode buffers and storing links to searches and messages using
   (error (message "ol-notmuch requires Org 9.2.3+")))
 #+end_src
 
+* Marks and markers
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mark.html][Marks]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Markers.html][markers]] are useful for saving pointer locations and jumping
+back to them later.
+
+They can be thought of as temporary bookmarks, and can be
+set up so that they are automatically created.
+
+Examples of automatic mark and marker creation configured by default:
+- Isearch automatically creates marks where the search originated.
+- Calling ~xref-find-definitions~ automatically creates a marker where
+  the jump was initiated.
+
+** Marks and markers hydra
+
+Hydra for managing
+
+#+name: marks-and-markers-hydra
+#+begin_src emacs-lisp
+(defhydra my-hydra/marks-and-markers (:color amaranth :columns 3)
+  "
+Marks / Markers (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("SPC" (lambda ()
+           (interactive)
+           (push-mark))
+   "mark-push" :exit t)
+  ("S-SPC" (lambda ()
+             (interactive)
+             (set-mark-command t))
+   "mark-pop")
+  (")" mark-sexp "mark-sexp")
+  ("}" mark-paragraph "mark-paragraph")
+  ("]" mark-defun "mark-defun")
+  ("b" mark-whole-buffer "mark-whole-buf")
+  ("x" exchange-point-and-mark "exchange-pt-mk")
+  ("." (lambda ()
+         (interactive)
+         (xref-push-marker-stack))
+   "xref-push-marker" :exit t)
+  ("," xref-pop-marker-stack "xref-pop-marker")
+  ("c" xref-clear-marker-stack "xref-clear-markers"))
+(global-set-key (kbd "C-c C-M-.") 'my-hydra/marks-and-markers/body)
+#+end_src
+
+** Add helm mark ring entrypoints to marks hydra                      :hydra:
+
+Add entry point to ~helm-mark-ring~ and ~helm-all-mark-rings~ to
+the marks and markers hydra.
+
+#+name: add-helm-mark-ring-to-marks-and-markers-hydra
+#+begin_src emacs-lisp
+(with-eval-after-load 'helm
+  (defhydra+ my-hydra/marks-and-markers nil
+    ("m" helm-mark-ring "helm-marks-buf" :exit t)
+    ("M" helm-all-mark-rings "helm-marks-all" :exit t)))
+#+end_src
+
 * Non-programming files
 
 ** Configuring the DocView mode                                    :external:
@@ -4108,13 +4174,6 @@ Possible Org task states:
                           (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANX(c@/!)")))
 #+end_src
 
-** Automatic text wrapping in Org-mode documents
-
-#+name: org-visual-line-mode
-#+begin_src emacs-lisp
-(add-hook 'org-mode-hook #'visual-line-mode)
-#+end_src
-
 ** Org basic capture templates
 
 #+name: org-capture-templates
@@ -4517,6 +4576,13 @@ Org (_q_: quit)"
 
 ;; bind Org entrypoints hydra
 (global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
+#+end_src
+
+** Automatic text wrapping in Org-mode documents
+
+#+name: org-visual-line-mode
+#+begin_src emacs-lisp
+(add-hook 'org-mode-hook #'visual-line-mode)
 #+end_src
 
 ** Compile Org documents to PDF with LaTeX                         :external:
@@ -6344,7 +6410,7 @@ Have Magit operations be reflected automatically in Treemacs.
   :after (treemacs magit))
 #+end_src
 
-* Search and navigation
+* Search
 
 ** Search hydra                                                       :hydra:
 
@@ -6366,7 +6432,11 @@ Search (_q_: quit)"
   ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
   ("rs" query-replace "replace string")
   ("rr" query-replace-regexp "replace regexp")
-  ("kg" kill-grep "kill-grep"))
+  ("kg" kill-grep "kill-grep")
+  ("." (lambda ()
+         (interactive)
+         (call-interactively #'xref-find-definitions))
+   "xref-find-def"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
 #+end_src
 
@@ -6450,48 +6520,25 @@ Consider turning off this mode for the buffer in those cases.
 searching using [[https://github.com/ggreer/the_silver_searcher][ag]], [[https://github.com/BurntSushi/ripgrep][rg]] or grep to find potential definitions of the
 function or variable under point and filtering based on heuristics.
 
-It provides a minor mode ~dumb-jump-mode~ which enables three bindings:
-- ~C-M-g~ to jump to the definition of the thing under point.
-- ~C-M-p~ to jump backwards.
-- ~C-M-q~ to show definition of the thing under point in a tooltip.
+It is configured here as a fallback backend for
+~xref-find-definitions~ when no better options are available.
 
 #+name: dumb-jump
 #+begin_src emacs-lisp
 ;; jump to definition using ag or rg and applying heuristics
 (use-package dumb-jump
-  :config (setq dumb-jump-aggressive nil
-                dumb-jump-default-project "./"
-                dumb-jump-prefer-searcher 'rg
-                dumb-jump-selector (if (fboundp 'helm)
-                                       'helm
-                                     'completing-read)))
-#+end_src
-
-*** dumb-jump hydra                                                   :hydra:
-
-Hydra for ~dumb-jump~.
-
-#+name: dumb-jump-hydra
-#+begin_src emacs-lisp
-;; hydra for dumb-jump
-;; adapted from https://github.com/jacktasia/dumb-jump/blob/master/README.md
-(defhydra my-hydra/search/dumb-jump (:color teal :columns 3
-                                     :pre (require 'dumb-jump))
-  "
-Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
-  ("q" my-hydra/search/body nil)
-  ("j" dumb-jump-go "go")
-  ("o" dumb-jump-go-other-window "go-other")
-  ("e" dumb-jump-go-prefer-external "go-ext")
-  ("x" dumb-jump-go-prefer-external-other-window "go-ext-other")
-  ("i" dumb-jump-go-prompt "prompt")
-  ("l" dumb-jump-quick-look "peek")
-  ("b" dumb-jump-back "back" :exit nil)
-  ("m" dumb-jump-mode "toggle-mode" :exit nil))
-
-;; add entrypoint for dumb-jump hydra in my-hydra/search
-(defhydra+ my-hydra/search nil
-  ("j" my-hydra/search/dumb-jump/body "dumb-jump"))
+  :init
+  (setq dumb-jump-aggressive nil
+        dumb-jump-default-project "./"
+        dumb-jump-prefer-searcher 'rg
+        dumb-jump-selector (if (fboundp 'helm)
+                               'helm
+                             'completing-read))
+  :config
+  ;; add dumb-jump to the end of the list of backends for
+  ;; `xref-find-definitions' so it is used as a fallback option
+  ;; when no better finders are available
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
 #+end_src
 
 ** avy                                                                :melpa:
@@ -7542,7 +7589,7 @@ javascript:location.href='org-protocol://capture?template=a&url='+encodeURICompo
 (setq org-readitlater-capture-file "readitlater/readitlater.org")
 (push `("a" "Archive page to read-it-later list" entry
         (file+headline ,org-readitlater-capture-file "Unsorted")
-        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:END:\n%:initial\n\nAdded %U")
+        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
       org-capture-templates)
 ;; auto-download page after capturing with org-readitlater template
 (defun do-org-readitlater-dl-hook ()
@@ -8553,8 +8600,6 @@ The main configuration file.
 
 <<add-my-kill-other-buffers-to-buffer-hydra>>
 
-<<add-helm-mark-ring-to-buffer-hydra>>
-
 <<buffer-cleanup-hydra>>
 
 <<winner-mode>>
@@ -8718,6 +8763,12 @@ The main configuration file.
 
 <<ol-notmuch>>
 
+;; Marks and markers
+
+<<marks-and-markers-hydra>>
+
+<<add-helm-mark-ring-to-marks-and-markers-hydra>>
+
 ;; Non-programming files
 
 <<doc-view-enhanced-menus>>
@@ -8756,8 +8807,6 @@ The main configuration file.
 
 <<org-todo-keywords>>
 
-<<org-visual-line-mode>>
-
 <<org-capture-templates>>
 
 <<org-maximize-capture-buffers>>
@@ -8775,6 +8824,8 @@ The main configuration file.
 <<org-refile>>
 
 <<org-entrypoints-hydra>>
+
+<<org-visual-line-mode>>
 
 <<org-latex-pdf-process>>
 
@@ -8918,7 +8969,7 @@ The main configuration file.
 
 <<treemacs-magit>>
 
-;; Search and navigation
+;; Search
 
 <<search-hydra>>
 
@@ -8933,8 +8984,6 @@ The main configuration file.
 <<anzu>>
 
 <<dumb-jump>>
-
-<<dumb-jump-hydra>>
 
 <<avy>>
 
@@ -10324,6 +10373,38 @@ files and the buffer is switched back to ~deadgrep-mode~.
     :bind ("<f5>" . deadgrep))
   (defhydra+ my-hydra/search nil
     ("gR" deadgrep "ripgrep" :exit t)))
+#+end_src
+
+*** dumb-jump hydra                                                   :hydra:
+
+Hydra for ~dumb-jump~.
+
+~dumb-jump-mode~ is a minor mode that enables three bindings:
+- ~C-M-g~ to jump to the definition of the thing under point.
+- ~C-M-p~ to jump backwards.
+- ~C-M-q~ to show definition of the thing under point in a tooltip.
+
+#+name: dumb-jump-hydra
+#+begin_src emacs-lisp
+;; hydra for dumb-jump
+;; adapted from https://github.com/jacktasia/dumb-jump/blob/master/README.md
+(defhydra my-hydra/search/dumb-jump (:color teal :columns 3
+                                     :pre (require 'dumb-jump))
+  "
+Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
+  ("q" my-hydra/search/body nil)
+  ("j" dumb-jump-go "go")
+  ("o" dumb-jump-go-other-window "go-other")
+  ("e" dumb-jump-go-prefer-external "go-ext")
+  ("x" dumb-jump-go-prefer-external-other-window "go-ext-other")
+  ("i" dumb-jump-go-prompt "prompt")
+  ("l" dumb-jump-quick-look "peek")
+  ("b" dumb-jump-back "back" :exit nil)
+  ("m" dumb-jump-mode "toggle-mode" :exit nil))
+
+;; add entrypoint for dumb-jump hydra in my-hydra/search
+(defhydra+ my-hydra/search nil
+  ("j" my-hydra/search/dumb-jump/body "dumb-jump"))
 #+end_src
 
 ** Visual

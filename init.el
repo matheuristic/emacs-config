@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Jul 28 20:43:55 2020
+;; Generated: Wed Jul 29 23:51:10 2020
 
 ;;; Commentary:
 
@@ -482,11 +482,6 @@ Ibuffer → Filter (_q_: ←)"
 ;; add my-kill-other-buffers to buffer hydra
 (defhydra+ my-hydra/buffer nil
   ("o" my-kill-other-buffers "only" :exit t))
-
-(with-eval-after-load 'helm
-  (defhydra+ my-hydra/buffer nil
-    ("m" helm-mark-ring "marks" :exit t)
-    ("M" helm-all-mark-rings "marks-all" :exit t)))
 
 ;; cleanup hydra
 (defhydra my-hydra/buffer/cleanup (:color amaranth :columns 3)
@@ -1740,6 +1735,38 @@ OrgMsg (_q_: quit)"
     (require 'ol-notmuch)
   (error (message "ol-notmuch requires Org 9.2.3+")))
 
+;; Marks and markers
+
+(defhydra my-hydra/marks-and-markers (:color amaranth :columns 3)
+  "
+Marks / Markers (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("SPC" (lambda ()
+           (interactive)
+           (push-mark))
+   "mark-push" :exit t)
+  ("S-SPC" (lambda ()
+             (interactive)
+             (set-mark-command t))
+   "mark-pop")
+  (")" mark-sexp "mark-sexp")
+  ("}" mark-paragraph "mark-paragraph")
+  ("]" mark-defun "mark-defun")
+  ("b" mark-whole-buffer "mark-whole-buf")
+  ("x" exchange-point-and-mark "exchange-pt-mk")
+  ("." (lambda ()
+         (interactive)
+         (xref-push-marker-stack))
+   "xref-push-marker" :exit t)
+  ("," xref-pop-marker-stack "xref-pop-marker")
+  ("c" xref-clear-marker-stack "xref-clear-markers"))
+(global-set-key (kbd "C-c C-M-.") 'my-hydra/marks-and-markers/body)
+
+(with-eval-after-load 'helm
+  (defhydra+ my-hydra/marks-and-markers nil
+    ("m" helm-mark-ring "helm-marks-buf" :exit t)
+    ("M" helm-all-mark-rings "helm-marks-all" :exit t)))
+
 ;; Non-programming files
 
 (with-eval-after-load 'doc-view
@@ -2103,8 +2130,6 @@ call `open-line' on the very first character."
 (setq org-todo-keywords '((sequence "NEXT(n)" "TODO(t)" "|" "DONE(d!)")
                           (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANX(c@/!)")))
 
-(add-hook 'org-mode-hook #'visual-line-mode)
-
 ;; Org capture templates
 (setq org-capture-templates '(("t" "Todo" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
@@ -2414,6 +2439,8 @@ Org (_q_: quit)"
 
 ;; bind Org entrypoints hydra
 (global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
+
+(add-hook 'org-mode-hook #'visual-line-mode)
 
 ;; compile Org documents to PDF with LuaTeX and Biber
 (when (executable-find "lualatex")
@@ -3527,7 +3554,7 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 (use-package treemacs-magit
   :after (treemacs magit))
 
-;; Search and navigation
+;; Search
 
 (defhydra my-hydra/search (:color teal :columns 3)
   "
@@ -3543,7 +3570,11 @@ Search (_q_: quit)"
   ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
   ("rs" query-replace "replace string")
   ("rr" query-replace-regexp "replace regexp")
-  ("kg" kill-grep "kill-grep"))
+  ("kg" kill-grep "kill-grep")
+  ("." (lambda ()
+         (interactive)
+         (call-interactively #'xref-find-definitions))
+   "xref-find-def"))
 (global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
 
 ;; bind over occur entry with helm-occur in search hydra
@@ -3573,32 +3604,18 @@ Search (_q_: quit)"
 
 ;; jump to definition using ag or rg and applying heuristics
 (use-package dumb-jump
-  :config (setq dumb-jump-aggressive nil
-                dumb-jump-default-project "./"
-                dumb-jump-prefer-searcher 'rg
-                dumb-jump-selector (if (fboundp 'helm)
-                                       'helm
-                                     'completing-read)))
-
-;; hydra for dumb-jump
-;; adapted from https://github.com/jacktasia/dumb-jump/blob/master/README.md
-(defhydra my-hydra/search/dumb-jump (:color teal :columns 3
-                                     :pre (require 'dumb-jump))
-  "
-Dumb Jump [mode-enabled=% 3`dumb-jump-mode] (_q_: ←)"
-  ("q" my-hydra/search/body nil)
-  ("j" dumb-jump-go "go")
-  ("o" dumb-jump-go-other-window "go-other")
-  ("e" dumb-jump-go-prefer-external "go-ext")
-  ("x" dumb-jump-go-prefer-external-other-window "go-ext-other")
-  ("i" dumb-jump-go-prompt "prompt")
-  ("l" dumb-jump-quick-look "peek")
-  ("b" dumb-jump-back "back" :exit nil)
-  ("m" dumb-jump-mode "toggle-mode" :exit nil))
-
-;; add entrypoint for dumb-jump hydra in my-hydra/search
-(defhydra+ my-hydra/search nil
-  ("j" my-hydra/search/dumb-jump/body "dumb-jump"))
+  :init
+  (setq dumb-jump-aggressive nil
+        dumb-jump-default-project "./"
+        dumb-jump-prefer-searcher 'rg
+        dumb-jump-selector (if (fboundp 'helm)
+                               'helm
+                             'completing-read))
+  :config
+  ;; add dumb-jump to the end of the list of backends for
+  ;; `xref-find-definitions' so it is used as a fallback option
+  ;; when no better finders are available
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
 
 ;; jump to visible text using char-based decision tree
 (use-package avy
@@ -4044,7 +4061,7 @@ REST client (_q_: quit)"
 (setq org-readitlater-capture-file "readitlater/readitlater.org")
 (push `("a" "Archive page to read-it-later list" entry
         (file+headline ,org-readitlater-capture-file "Unsorted")
-        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:END:\n%:initial\n\nAdded %U")
+        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
       org-capture-templates)
 ;; auto-download page after capturing with org-readitlater template
 (defun do-org-readitlater-dl-hook ()

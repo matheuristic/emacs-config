@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Jul 29 23:51:10 2020
+;; Generated: Thu Jul 30 21:50:38 2020
 
 ;;; Commentary:
 
@@ -1254,10 +1254,14 @@ Registers (_q_: quit)"
 
 ;; multiple cursors
 (use-package multiple-cursors
-  :defer t
   :init (setq mc/always-run-for-all nil
               mc/always-repeat-command nil
-              mc/insert-numbers-default 1))
+              mc/insert-numbers-default 1)
+  :config
+  ;; decrease width of the multiple-cursors bar
+  ;; setting a height of 1 ends up rendering a thick bar
+  ;; probably because it is too small a value
+  (set-face-attribute 'mc/cursor-bar-face nil :height 10))
 
 ;; hydra helper for multiple-cursors-mode
 ;; disable prefix interpretation when multiple-cursors-mode is active

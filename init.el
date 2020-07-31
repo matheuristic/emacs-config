@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jul 31 14:33:53 2020
+;; Generated: Fri Jul 31 14:57:18 2020
 
 ;;; Commentary:
 
@@ -3318,7 +3318,7 @@ Python (_q_: quit)"
     (require 'lsp-pyright)
     ;; start LSP client
     (lsp-mode))
-  (add-hook 'python-mode-hook #'lsp-pyright--setup))
+  (add-hook 'python-mode-hook #'lsp-pyright--setup t))
 
 (add-hook 'python-mode-hook
           (lambda ()

@@ -5979,7 +5979,7 @@ Microsoft [[https://github.com/microsoft/pyright][Pyright]] Python Language Serv
     (require 'lsp-pyright)
     ;; start LSP client
     (lsp-mode))
-  (add-hook 'python-mode-hook #'lsp-pyright--setup))
+  (add-hook 'python-mode-hook #'lsp-pyright--setup t))
 #+end_src
 
 **** Installing pyright
@@ -9524,10 +9524,6 @@ Or can define using ~flymake-quickdef~.
 **** [#B] Live coding in Python                                       :melpa:
 
 [[https://github.com/donkirkby/live-py-plugin][GitHub - donkirkby/live-py-plugin: Live coding in Python with PyCharm, Emacs,...]]
-
-**** Consider reverting to anaconda-mode                              :melpa:
-
-[[https://github.com/pythonic-emacs/anaconda-mode][GitHub - pythonic-emacs/anaconda-mode: Code navigation, documentation lookup ...]]
 
 *** SQL
 

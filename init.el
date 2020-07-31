@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Jul 30 21:50:38 2020
+;; Generated: Fri Jul 31 14:33:53 2020
 
 ;;; Commentary:
 
@@ -1741,6 +1741,22 @@ OrgMsg (_q_: quit)"
 
 ;; Marks and markers
 
+;; backtrack through the entire xref--marker-ring in a single action
+(defun xref-pop-marker-stack-all ()
+  "Pop back to where \\[xref-find-definitions] was first invoked."
+  (interactive)
+  (let ((ring xref--marker-ring))
+    (when (ring-empty-p ring)
+      (user-error "Marker stack is empty"))
+    (let ((marker (ring-remove ring nil))) ;; oldest marker
+      (switch-to-buffer (or (marker-buffer marker)
+                            (user-error "The marked buffer has been deleted")))
+      (goto-char (marker-position marker))
+      (set-marker marker nil nil)
+      (run-hooks 'xref-after-return-hook)
+      (xref-clear-marker-stack)))) ;; clear the rest of the marker stack
+
+;; hydra for manipulating and managing marks and markers
 (defhydra my-hydra/marks-and-markers (:color amaranth :columns 3)
   "
 Marks / Markers (_q_: quit)"
@@ -1763,7 +1779,12 @@ Marks / Markers (_q_: quit)"
          (xref-push-marker-stack))
    "xref-push-marker" :exit t)
   ("," xref-pop-marker-stack "xref-pop-marker")
-  ("c" xref-clear-marker-stack "xref-clear-markers"))
+  ("<" xref-pop-marker-stack-all "xref-pop-markers")
+  ("c" (lambda ()
+         (interactive)
+         (xref-clear-marker-stack)
+         (message "Cleared xref--marker-ring"))
+   "xref-clear-markers"))
 (global-set-key (kbd "C-c C-M-.") 'my-hydra/marks-and-markers/body)
 
 (with-eval-after-load 'helm
@@ -3286,17 +3307,18 @@ Python (_q_: quit)"
 (defhydra+ my-hydra/python-mode nil
   ("y" yapfify-region-or-buffer "yapf" :exit t))
 
-;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
-(use-package lsp-python-ms
-  ;; append lsp-mode hooks
-  :config (add-hook 'python-mode-hook
-                    (lambda ()
-                      ;; load packages if deferred
-                      (require 'lsp-mode)
-                      (require 'lsp-python-ms)
-                      ;; start LSP client
-                      (lsp-mode))
-                    t))
+(use-package lsp-pyright
+  :defer t
+  :ensure nil
+  :init
+  (defun lsp-pyright--setup ()
+    "Convenience function for setting up lsp-pyright."
+    ;; load packages if deferred
+    (require 'lsp-mode)
+    (require 'lsp-pyright)
+    ;; start LSP client
+    (lsp-mode))
+  (add-hook 'python-mode-hook #'lsp-pyright--setup))
 
 (add-hook 'python-mode-hook
           (lambda ()

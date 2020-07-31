@@ -3529,10 +3529,26 @@ Examples of automatic mark and marker creation configured by default:
 
 ** Marks and markers hydra
 
-Hydra for managing
+Hydra for manipulating and managing marks and markers.
 
 #+name: marks-and-markers-hydra
 #+begin_src emacs-lisp
+;; backtrack through the entire xref--marker-ring in a single action
+(defun xref-pop-marker-stack-all ()
+  "Pop back to where \\[xref-find-definitions] was first invoked."
+  (interactive)
+  (let ((ring xref--marker-ring))
+    (when (ring-empty-p ring)
+      (user-error "Marker stack is empty"))
+    (let ((marker (ring-remove ring nil))) ;; oldest marker
+      (switch-to-buffer (or (marker-buffer marker)
+                            (user-error "The marked buffer has been deleted")))
+      (goto-char (marker-position marker))
+      (set-marker marker nil nil)
+      (run-hooks 'xref-after-return-hook)
+      (xref-clear-marker-stack)))) ;; clear the rest of the marker stack
+
+;; hydra for manipulating and managing marks and markers
 (defhydra my-hydra/marks-and-markers (:color amaranth :columns 3)
   "
 Marks / Markers (_q_: quit)"
@@ -3555,7 +3571,12 @@ Marks / Markers (_q_: quit)"
          (xref-push-marker-stack))
    "xref-push-marker" :exit t)
   ("," xref-pop-marker-stack "xref-pop-marker")
-  ("c" xref-clear-marker-stack "xref-clear-markers"))
+  ("<" xref-pop-marker-stack-all "xref-pop-markers")
+  ("c" (lambda ()
+         (interactive)
+         (xref-clear-marker-stack)
+         (message "Cleared xref--marker-ring"))
+   "xref-clear-markers"))
 (global-set-key (kbd "C-c C-M-.") 'my-hydra/marks-and-markers/body)
 #+end_src
 
@@ -5940,31 +5961,98 @@ Add entry point to ~yapfify-buffer-or-region~ to python-mode hydra.
   ("y" yapfify-region-or-buffer "yapf" :exit t))
 #+end_src
 
-*** Microsoft Python Language Server support with lsp-mode            :melpa:
+*** Microsoft Pyright Language Server support with lsp-pyright        :melpa:
 
-Use ~lsp-mode~ as a client for the Microsoft Python Language Server.
+[[https://github.com/emacs-lsp/lsp-pyright][lsp-pyright]] enables the use of ~lsp-mode~ as a client for the
+Microsoft [[https://github.com/microsoft/pyright][Pyright]] Python Language Server.
 
-#+name: lsp-python-ms
+#+name: lsp-pyright
 #+begin_src emacs-lisp
-;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
-(use-package lsp-python-ms
-  ;; append lsp-mode hooks
-  :config (add-hook 'python-mode-hook
-                    (lambda ()
-                      ;; load packages if deferred
-                      (require 'lsp-mode)
-                      (require 'lsp-python-ms)
-                      ;; start LSP client
-                      (lsp-mode))
-                    t))
+(use-package lsp-pyright
+  :defer t
+  :ensure nil
+  :init
+  (defun lsp-pyright--setup ()
+    "Convenience function for setting up lsp-pyright."
+    ;; load packages if deferred
+    (require 'lsp-mode)
+    (require 'lsp-pyright)
+    ;; start LSP client
+    (lsp-mode))
+  (add-hook 'python-mode-hook #'lsp-pyright--setup))
 #+end_src
 
-**** Installing the Microsoft Python Language Server               :external:
-- Using ~M-x lsp-python-ms-update-server~ to download it into the
-  =.cache/lsp= subdirectory within ~user-emacs-directory~, which can
-  be automated by setting ~lsp-python-auto-install-server~ to ~t~.
-- Building from [[https://github.com/Microsoft/python-language-server][source]] and setting ~lsp-python-ms-executable~ to the
-  path of the compiled binary during Emacs initialization.
+**** Installing pyright
+
+If [[https://www.npmjs.com/][npm]] is installed and in ~$PATH~, pyright should be installed
+automatically the first the client is started.
+
+However, pyright can also be installed and managed manually.
+
+***** Managing Node.js versions (optional)                         :external:
+
+Installing a [[https://nodejs.org/][Node.js]] version manager will make managing Node.js
+versions much less painful.
+
+The standard Node.js version manager is [[https://github.com/nvm-sh/nvm][nvm]].
+
+****** Installing nvm when Bash is the login shell
+
+Either install nvm using the [[https://github.com/nvm-sh/nvm#installing-and-updating][install script]] or using MacPorts. The
+following installs it using MacPorts.
+
+#+begin_example
+$ sudo port install nvm
+#+end_example
+
+Make sure NVM is initialized during Bash startup by adding the
+following to the =~/.bash_profile= or =~/.bashrc= file.
+
+#+begin_example
+# Initialize NVM
+if [ -e /opt/local/share/nvm/init-nvm.sh ]; then
+  . /opt/local/share/nvm/init-nvm.sh
+fi
+#+end_example
+
+Install the latest LTS version of Node.js using nvm.
+
+#+begin_example
+$ nvm install --lts
+#+end_example
+
+****** Installing nvm when fish is the login shell
+
+If fish is the login shell, use [[https://github.com/jorgebucaran/fish-nvm][fish-nvm]] instead as nvm requires a
+POSIX shell. The following installs fish-nvm using [[https://github.com/jorgebucaran/fisher][fisher]].
+
+#+begin_example
+$ fisher add jorgebucaran/fish-nvm
+#+end_example
+
+Install the latest LTS version of Node.js using nvm.
+
+#+begin_example
+$ nvm use lts
+#+end_example
+
+***** Installing and updating pyright
+
+Make sure Node.js is installed and its binaries are in ~$PATH~.
+
+Install pyright using [[https://www.npmjs.com/][npm]] which is bundled with Node.js.
+
+The following installs it globally.
+
+#+begin_example
+$ npm install -g pyright
+#+end_example
+
+The following updates an existing install of pyright.
+
+#+begin_example
+$ npm update -g pyright
+#+end_example
 
 *** Microsoft Python DAP Server support with dap-mode
 
@@ -8931,7 +9019,7 @@ The main configuration file.
 
 <<add-yapfify-to-python-mode-hydra>>
 
-<<lsp-python-ms>>
+<<lsp-pyright>>
 
 <<dap-python>>
 
@@ -9436,6 +9524,10 @@ Or can define using ~flymake-quickdef~.
 **** [#B] Live coding in Python                                       :melpa:
 
 [[https://github.com/donkirkby/live-py-plugin][GitHub - donkirkby/live-py-plugin: Live coding in Python with PyCharm, Emacs,...]]
+
+**** Consider reverting to anaconda-mode                              :melpa:
+
+[[https://github.com/pythonic-emacs/anaconda-mode][GitHub - pythonic-emacs/anaconda-mode: Code navigation, documentation lookup ...]]
 
 *** SQL
 
@@ -10251,6 +10343,33 @@ entry to the menubar.
 (with-eval-after-load 'imenu
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
 #+end_src
+
+**** Microsoft Python Language Server support with lsp-mode           :melpa:
+
+Use ~lsp-mode~ as a client for the Microsoft Python Language Server.
+
+#+name: lsp-python-ms
+#+begin_src emacs-lisp
+;; lsp-mode client for MS Python LS, https://github.com/emacs-lsp/lsp-python-ms
+(use-package lsp-python-ms
+  ;; append lsp-mode hooks
+  :config (add-hook 'python-mode-hook
+                    (lambda ()
+                      ;; load packages if deferred
+                      (require 'lsp-mode)
+                      (require 'lsp-python-ms)
+                      ;; start LSP client
+                      (lsp-mode))
+                    t))
+#+end_src
+
+***** Installing the Microsoft Python Language Server              :external:
+
+- Using ~M-x lsp-python-ms-update-server~ to download it into the
+  =.cache/lsp= subdirectory within ~user-emacs-directory~, which can
+  be automated by setting ~lsp-python-auto-install-server~ to ~t~.
+- Building from [[https://github.com/Microsoft/python-language-server][source]] and setting ~lsp-python-ms-executable~ to the
+  path of the compiled binary during Emacs initialization.
 
 ** Reference management
 

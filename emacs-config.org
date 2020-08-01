@@ -5133,6 +5133,35 @@ websnippets Org file.
 
 * Programming
 
+** Buffer reformatter macro                                           :melpa:
+
+[[https://github.com/purcell/reformatter.el][reformatter.el]] defines a macro to allow an easy way to create Elisp
+commands that reformat the current buffer or a given region using a
+command-line program, along with an optional minor mode that applies
+the reformatting command automatically on save.
+
+The following example from the official repository defines the following:
+- An interactive command ~yaml-format-buffer~ which reformats the
+  buffer.
+- An interactive command ~yaml-format-region~ which reformats a
+  selected region.
+- A buffer-local minor mode ~yaml-format-on-save-mode~ that reformats
+  the buffer on save when it is enabled.
+
+#+begin_example
+(reformatter-define yaml-format
+  :program "prettier"
+  :group 'yaml
+  :lighter 'YAMLFmt)
+#+end_example
+
+#+name: reformatter
+#+begin_src emacs-lisp
+;; defines the `reformatter-define' macro that allows definition of
+;; commands that run reformatters on the current buffer
+(use-package reformatter)
+#+end_src
+
 ** Flycheck syntax checker                                            :melpa:
 
 [[https://www.flycheck.org/en/latest/][FlyCheck]] ([[https://github.com/flycheck/flycheck][Github]]) is an on-the-fly syntax checker for Emacs that is a
@@ -5920,8 +5949,8 @@ Python (_q_: quit)"
   ("l" python-shell-send-file "send-file")
   ("z" python-shell-switch-to-shell "switch-to-sh")
   ;; indentation
-  ("<" python-indent-shift-left "indent-l")
-  (">" python-indent-shift-right "indent-r")
+  ("<" python-indent-shift-left "indent-l" :exit nil)
+  (">" python-indent-shift-right "indent-r" :exit nil)
   ;; utilities
   ("v" python-check "check-err")
   ("f" python-eldoc-at-point "eldoc-at-pt")
@@ -5935,30 +5964,77 @@ Python (_q_: quit)"
   (define-key python-mode-map (kbd "C-c C-M-m") #'my-hydra/python-mode/body))
 #+end_src
 
-*** yapfify for formatting Python buffers with yapf                   :melpa:
+*** Python buffer reformatter using black                          :external:
 
-[[https://github.com/JorisE/yapfify][yapfify]] creates a convenience functions ~yapfify-buffer~,
-~yapfify-region~ and ~yapfify-region-or-buffer~ for using [[https://github.com/google/yapf][yapf]] to
-format a Python buffer or region.
+Use the ~reformatter-define~ macro from the ~reformatter~ package to
+define two interactive commands ~python-black-format-buffer~ and
+~python-black-format-region~ (only works on top-level objects) along
+with the local minor mode ~python-black-format-on-save-mode~ that uses
+[[https://github.com/psf/black][black]] to format the code in the buffer.
 
-It also provides a minor mode ~yapf-mode~ that automically runs ~yapf~
-prior to saving a file.
-
-#+name: yapfify
+#+name: python-black-format
 #+begin_src emacs-lisp
-;; convenience functions for running yapf on Python buffers/regions
-(use-package yapfify)
+(with-eval-after-load 'reformatter
+  ;; define `python-black-format-buffer', `python-black-format-region'
+  ;; and `python-black-format-on-save-mode'
+  (reformatter-define python-black-format
+    :program "black"
+    :args '("-")
+    :group 'python
+    :lighter 'PyBlFmt)
+  ;; dwim function that calls `python-black-format-region' if a region
+  ;; is selected, or `python-black-format-buffer' otherwise
+  (defun python-black-format-buffer-or-region ()
+       "Format the current Python buffer or a region if selected.
+Formatting a selected region only works on top-level objects."
+       (interactive)
+       (cond
+        ((use-region-p) (python-black-format-region (region-beginning)
+                                                    (region-end)))
+        (t (python-black-format-buffer)))))
 #+end_src
 
-**** Add yapfify commands to python-mode hydra                        :hydra:
+**** Add Python reformatter commands to python-mode hydra             :hydra:
 
-Add entry point to ~yapfify-buffer-or-region~ to python-mode hydra.
+Add entry point to ~python-black-format-buffer~ and toggle for
+~python-black-format-on-save-mode~ to python-mode hydra.
 
-#+name: add-yapfify-to-python-mode-hydra
+#+name: add-python-black-format-to-python-mode-hydra
 #+begin_src emacs-lisp
 ;; add entry point to yapfify in python-mode hydra
 (defhydra+ my-hydra/python-mode nil
-  ("y" yapfify-region-or-buffer "yapf" :exit t))
+  ("y" (lambda ()
+         (interactive)
+         (python-black-format-buffer-or-region))
+   "format" :exit t)
+  ("Y" python-black-format-on-save-mode "format-on-save"))
+#+end_src
+
+*** Live Coding in Python                                             :melpa:
+
+[[https://donkirkby.github.io/live-py-plugin/][Live Coding in Python]] ([[https://github.com/donkirkby/live-py-plugin][Github]]) provides a minor mode ~live-py-mode~
+that supports live coding, similar to the coding environment described
+in [[http://worrydream.com/][Bret Victor]]'s [[http://worrydream.com/#!/InventingOnPrinciple][Inventing on Principle]] talk ([[https://github.com/ezyang/cusec2012-victor/blob/master/transcript.md][transcript]]).
+
+When enabled, Python code will be run as it is being typed and a side
+window with a live coding buffer opened that visualizes the results.
+
+#+name: live-py-mode
+#+begin_src emacs-lisp
+;; live coding in python
+(use-package live-py-mode)
+#+end_src
+
+**** Add toggle for live-py-mode to python-mode hydra                 :hydra:
+
+Add an entry point to ~live-py-mode~ in the python-mode hydra,
+that toggles python live coding.
+
+#+name: add-live-py-mode-to-python-mode-hydra
+#+begin_src emacs-lisp
+;; add live-py-mode toggle to python-mode hydra
+(defhydra+ my-hydra/python-mode nil
+  ("L" live-py-mode "live-py-mode" :exit t))
 #+end_src
 
 *** Microsoft Pyright Language Server support with lsp-pyright        :melpa:
@@ -8951,6 +9027,10 @@ The main configuration file.
 
 <<org-capture-websnippet>>
 
+;; Programming / Buffer reformatter macro
+
+<<reformatter>>
+
 ;; Programming / FlyCheck syntax checker
 
 <<flycheck>>
@@ -9015,9 +9095,13 @@ The main configuration file.
 
 <<python-mode-hydra>>
 
-<<yapfify>>
+<<python-black-format>>
 
-<<add-yapfify-to-python-mode-hydra>>
+<<add-python-black-format-to-python-mode-hydra>>
+
+<<live-py-mode>>
+
+<<add-live-py-mode-to-python-mode-hydra>>
 
 <<lsp-pyright>>
 
@@ -10366,6 +10450,32 @@ Use ~lsp-mode~ as a client for the Microsoft Python Language Server.
   be automated by setting ~lsp-python-auto-install-server~ to ~t~.
 - Building from [[https://github.com/Microsoft/python-language-server][source]] and setting ~lsp-python-ms-executable~ to the
   path of the compiled binary during Emacs initialization.
+
+**** yapfify for formatting Python buffers with yapf                  :melpa:
+
+[[https://github.com/JorisE/yapfify][yapfify]] creates a convenience functions ~yapfify-buffer~,
+~yapfify-region~ and ~yapfify-region-or-buffer~ for using [[https://github.com/google/yapf][yapf]] to
+format a Python buffer or region.
+
+It also provides a minor mode ~yapf-mode~ that automically runs ~yapf~
+prior to saving a file.
+
+#+name: yapfify
+#+begin_src emacs-lisp
+;; convenience functions for running yapf on Python buffers/regions
+(use-package yapfify)
+#+end_src
+
+***** Add yapfify commands to python-mode hydra                       :hydra:
+
+Add entry point to ~yapfify-buffer-or-region~ to python-mode hydra.
+
+#+name: add-yapfify-to-python-mode-hydra
+#+begin_src emacs-lisp
+;; add entry point to yapfify in python-mode hydra
+(defhydra+ my-hydra/python-mode nil
+  ("y" yapfify-region-or-buffer "yapf" :exit t))
+#+end_src
 
 ** Reference management
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jul 31 14:57:18 2020
+;; Generated: Fri Jul 31 22:57:00 2020
 
 ;;; Commentary:
 
@@ -2765,6 +2765,12 @@ Org-mode → Download (_q_: ←)"
         "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
       org-capture-templates)
 
+;; Programming / Buffer reformatter macro
+
+;; defines the `reformatter-define' macro that allows definition of
+;; commands that run reformatters on the current buffer
+(use-package reformatter)
+
 ;; Programming / FlyCheck syntax checker
 
 ;; linting support, used in place of FlyMake
@@ -3286,8 +3292,8 @@ Python (_q_: quit)"
   ("l" python-shell-send-file "send-file")
   ("z" python-shell-switch-to-shell "switch-to-sh")
   ;; indentation
-  ("<" python-indent-shift-left "indent-l")
-  (">" python-indent-shift-right "indent-r")
+  ("<" python-indent-shift-left "indent-l" :exit nil)
+  (">" python-indent-shift-right "indent-r" :exit nil)
   ;; utilities
   ("v" python-check "check-err")
   ("f" python-eldoc-at-point "eldoc-at-pt")
@@ -3300,12 +3306,39 @@ Python (_q_: quit)"
 (with-eval-after-load 'python
   (define-key python-mode-map (kbd "C-c C-M-m") #'my-hydra/python-mode/body))
 
-;; convenience functions for running yapf on Python buffers/regions
-(use-package yapfify)
+(with-eval-after-load 'reformatter
+  ;; define `python-black-format-buffer', `python-black-format-region'
+  ;; and `python-black-format-on-save-mode'
+  (reformatter-define python-black-format
+    :program "black"
+    :args '("-")
+    :group 'python
+    :lighter 'PyBlFmt)
+  ;; dwim function that calls `python-black-format-region' if a region
+  ;; is selected, or `python-black-format-buffer' otherwise
+  (defun python-black-format-buffer-or-region ()
+       "Format the current Python buffer or a region if selected.
+Formatting a selected region only works on top-level objects."
+       (interactive)
+       (cond
+        ((use-region-p) (python-black-format-region (region-beginning)
+                                                    (region-end)))
+        (t (python-black-format-buffer)))))
 
 ;; add entry point to yapfify in python-mode hydra
 (defhydra+ my-hydra/python-mode nil
-  ("y" yapfify-region-or-buffer "yapf" :exit t))
+  ("y" (lambda ()
+         (interactive)
+         (python-black-format-buffer-or-region))
+   "format" :exit t)
+  ("Y" python-black-format-on-save-mode "format-on-save"))
+
+;; live coding in python
+(use-package live-py-mode)
+
+;; add live-py-mode toggle to python-mode hydra
+(defhydra+ my-hydra/python-mode nil
+  ("L" live-py-mode "live-py-mode" :exit t))
 
 (use-package lsp-pyright
   :defer t

@@ -5,11 +5,35 @@
 
 * Notes
 
+** Using this Emacs config
+
+Make sure [[https://www.gnu.org/software/stow/][GNU Stow]] is installed. Run the following to create the
+required directory structure in the user home directory and symlink
+the individual files.
+
+#+begin_example
+$ stow -t $HOME --no-folding emacs
+#+end_example
+
+This configuration uses several external tools, which need to be
+compiled, installed or configured. Search for headings with an
+~external~ tag in this Org file, and follow the instructions there.
+
+Note that Emacs versions ~27~ and newer also support [[https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html][XDG Base
+Directory Specification]], so it is possible to use =~/.config/emacs= as
+an alternative emacs directory. If desired, use the follow GNU Stow
+command instead of the one above.
+
+#+begin_example
+$ mkdir -p $HOME/.config/emacs
+$ stow -d ./emacs -t $HOME/.config/emacs --no-folding .emacs.d
+#+end_example
+
 ** Generating the Emacs Lisp config files
 
 The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/][Emacs Lisp]] (Elisp) config files for Emacs can be generated with
 ~M-x org-babel-tangle~ or ~C-c C-v C-t~ while in this file's buffer.
-Two config files will be created in the same directory:
+Two config files will be created in the =emacs/.emacs.d= directory:
 - ~early-init.el~: Early initialization file (Emacs 27+).
 - ~init.el~: Main configuration file.
 
@@ -3524,6 +3548,86 @@ Org-mode buffers and storing links to searches and messages using
   (error (message "ol-notmuch requires Org 9.2.3+")))
 #+end_src
 
+* Information
+
+** Display current time in minibuffer
+
+Convenience function for displaying the current time in minibuffer.
+
+#+name: display-current-datetime
+#+begin_src emacs-lisp
+(defun my-display-current-datetime ()
+  "Display the current time in the minibuffer."
+  (interactive)
+  (message (format-time-string "%Y-%b-%d %l:%M:%S%p %Z %A")))
+#+end_src
+
+** Emacs information
+
+Convenience functions for displaying Emacs process and build info.
+
+#+name: display-emacs-info
+#+begin_src emacs-lisp
+(defun my-display-emacs-pid ()
+  "Display the process id of current Emacs process in the minibuffer."
+  (interactive)
+  (message (format "%d" (emacs-pid))))
+
+(defun my-display-emacs-build-configuration ()
+  "Display the Emacs build configuration in the minibuffer."
+  (interactive)
+  (message (mapconcat 'identity
+                      `("Emacs build configuration"
+                        ,(format "  Build target:     %s"
+                                 system-configuration)
+                        ,(format "  Enabled features: %s"
+                                 system-configuration-features))
+                      "\n")))
+#+end_src
+
+** System process management with proced
+
+[[https://github.com/emacs-mirror/emacs/blob/master/lisp/proced.el][Proced]] lists system processes in a buffer and provides
+commands to operate to listed processes.
+It can be used like [[https://en.wikipedia.org/wiki/Top_(software)][top]] by toggling auto-refresh
+using ~M-x proced-toggle-auto-update~.
+
+Note that Mac OS X isn't very well supported by this package,
+so configure it only for Linux systems.
+For Mac OS X, an alternative is using ~top~ in an ~term-mode~ buffer.
+
+For more usage information, see [[https://www.masteringemacs.org/article/displaying-interacting-processes-proced][here]].
+
+#+name: proced
+#+begin_src emacs-lisp
+;; manage system processes in Linux
+(when (eq system-type 'gnu/linux)
+  (setq proced-format 'medium))
+#+end_src
+
+** Information hydra
+
+Hydra for random information, like the current datetime or system
+resource usage.
+
+#+name: info-hydra
+#+begin_src emacs-lisp
+(defhydra my-hydra/info (:color amaranth :columns 3)
+  "
+Info (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("b" my-display-emacs-build-configuration "emacs-build-config")
+  ("i" emacs-init-time "emacs-init-time")
+  ("P" my-display-emacs-pid "emacs-pid")
+  ("p" proced "proced" :exit t)
+  ("t" my-display-current-datetime "datetime")
+  ("T" display-time-world "world-time" :exit t)
+  ("u" emacs-uptime "emacs-uptime")
+  ("v" emacs-version "version"))
+
+(global-set-key (kbd "C-c C-M-i") #'my-hydra/info/body)
+#+end_src
+
 * Marks and markers
 
 [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mark.html][Marks]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Markers.html][markers]] are useful for saving pointer locations and jumping
@@ -6788,7 +6892,9 @@ package manager).
 
 #+begin_example
 $ sudo port install tclap xapian
-$ cd notdeft/xapian
+$ cd notdeft
+$ make
+$ cd xapian
 $ make
 #+end_example
 
@@ -6852,7 +6958,7 @@ definitions across all open buffers.
 (use-package imenu-anywhere
   :defer t
   :after imenu
-  :bind ("C-c C-M-i" . imenu-anywhere))
+  :bind ("C-c C-M-;" . imenu-anywhere))
 #+end_src
 
 *** Imenu extension to list headings in a side buffer                 :melpa:
@@ -8189,27 +8295,6 @@ Don't need it.
 (setq inhibit-startup-message t)
 #+end_src
 
-** System process management with proced
-
-[[https://github.com/emacs-mirror/emacs/blob/master/lisp/proced.el][Proced]] lists system processes in a buffer and provides
-commands to operate to listed processes.
-It can be used like [[https://en.wikipedia.org/wiki/Top_(software)][top]] by toggling auto-refresh
-using ~M-x proced-toggle-auto-update~.
-
-Note that Mac OS X isn't very well supported by this package,
-so configure it only for Linux systems.
-For Mac OS X, an alternative is using ~top~ in an ~term-mode~ buffer.
-
-For more usage information, see [[https://www.masteringemacs.org/article/displaying-interacting-processes-proced][here]].
-
-#+name: proced
-#+begin_src emacs-lisp
-;; manage system processes in Linux
-(when (eq system-type 'gnu/linux)
-  (setq proced-format 'medium)
-  (global-set-key (kbd "C-x p") #'proced))
-#+end_src
-
 ** Very large file support                                            :melpa:
 
 [[https://github.com/m00natic/vlfi][Very Large Files]] provides a minor mode ~vlf-mode~ that allows loading
@@ -8638,7 +8723,7 @@ In Emacs 27+, this is loaded before ~package.el~ and UI rendering.
 Static UI customizations should go here to optimize startup time.
 
 #+name: early-init.el
-#+begin_src emacs-lisp :noweb no-export :tangle early-init.el
+#+begin_src emacs-lisp :noweb no-export :tangle emacs/.emacs.d/early-init.el
 <<generate-header(feature="early-init", summary="Emacs early init file")>>
 
 <<author-info>>
@@ -8680,7 +8765,7 @@ Static UI customizations should go here to optimize startup time.
 The main configuration file.
 
 #+name: init.el
-#+begin_src emacs-lisp :noweb no-export :tangle init.el
+#+begin_src emacs-lisp :noweb no-export :tangle emacs/.emacs.d/init.el
 <<generate-header(feature="init", summary="Emacs init file")>>
 
 <<author-info>>
@@ -8936,6 +9021,16 @@ The main configuration file.
 <<org-msg-edit-mode-hydra>>
 
 <<ol-notmuch>>
+
+;; Information
+
+<<display-current-datetime>>
+
+<<display-emacs-info>>
+
+<<proced>>
+
+<<info-hydra>>
 
 ;; Marks and markers
 
@@ -9277,8 +9372,6 @@ The main configuration file.
 <<suppress-auto-revert-messages>>
 
 <<suppress-startup-splash>>
-
-<<proced>>
 
 <<vlf>>
 

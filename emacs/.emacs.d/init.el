@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug  1 23:15:55 2020
+;; Generated: Sun Aug  2 15:05:42 2020
 
 ;;; Commentary:
 
@@ -1738,6 +1738,48 @@ OrgMsg (_q_: quit)"
 (condition-case nil
     (require 'ol-notmuch)
   (error (message "ol-notmuch requires Org 9.2.3+")))
+
+;; Information
+
+(defun my-display-current-datetime ()
+  "Display the current time in the minibuffer."
+  (interactive)
+  (message (format-time-string "%Y-%b-%d %l:%M:%S%p %Z %A")))
+
+(defun my-display-emacs-pid ()
+  "Display the process id of current Emacs process in the minibuffer."
+  (interactive)
+  (message (format "%d" (emacs-pid))))
+
+(defun my-display-emacs-build-configuration ()
+  "Display the Emacs build configuration in the minibuffer."
+  (interactive)
+  (message (mapconcat 'identity
+                      `("Emacs build configuration"
+                        ,(format "  Build target:     %s"
+                                 system-configuration)
+                        ,(format "  Enabled features: %s"
+                                 system-configuration-features))
+                      "\n")))
+
+;; manage system processes in Linux
+(when (eq system-type 'gnu/linux)
+  (setq proced-format 'medium))
+
+(defhydra my-hydra/info (:color amaranth :columns 3)
+  "
+Info (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("b" my-display-emacs-build-configuration "emacs-build-config")
+  ("i" emacs-init-time "emacs-init-time")
+  ("P" my-display-emacs-pid "emacs-pid")
+  ("p" proced "proced" :exit t)
+  ("t" my-display-current-datetime "datetime")
+  ("T" display-time-world "world-time" :exit t)
+  ("u" emacs-uptime "emacs-uptime")
+  ("v" emacs-version "version"))
+
+(global-set-key (kbd "C-c C-M-i") #'my-hydra/info/body)
 
 ;; Marks and markers
 
@@ -3716,7 +3758,7 @@ Search (_q_: quit)"
 (use-package imenu-anywhere
   :defer t
   :after imenu
-  :bind ("C-c C-M-i" . imenu-anywhere))
+  :bind ("C-c C-M-;" . imenu-anywhere))
 
 ;; show imenu as a list in a side buffer
 (use-package imenu-list
@@ -4265,11 +4307,6 @@ Help (_q_: quit)"
 
 ;; suppress splash screen that appears on startup by default
 (setq inhibit-startup-message t)
-
-;; manage system processes in Linux
-(when (eq system-type 'gnu/linux)
-  (setq proced-format 'medium)
-  (global-set-key (kbd "C-x p") #'proced))
 
 ;; visit large files without loading it entirely
 (use-package vlf

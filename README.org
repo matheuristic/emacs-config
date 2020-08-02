@@ -1,8 +1,7 @@
 #+title: Emacs config
 Emacs configuration files.
 * Usage
-To use, copy to the =~/.emacs.d= directory.
-Emacs versions ~27~ and newer also support [[https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html][XDG Base Directory Specification]], so it is possible to use =~/.config/emacs= as an alternative.
+See =emacs-config.org= for usage instructions.
 * Font smoothing in Emacs for Mac OS X
 To control font smoothing in [[https://emacsformacosx.com/][Emacs for Mac OS X]], run the following (replace ~VALUE~ with an integer):
 #+begin_src sh

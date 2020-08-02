@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  2 16:18:07 2020
+;; Generated: Sun Aug  2 16:24:18 2020
 
 ;;; Commentary:
 
@@ -2797,7 +2797,7 @@ Org-mode → Download (_q_: ←)"
   (org-super-agenda-mode 1))
 
 ;; start server and load org-protocol
-(server-start)
+(server-mode 1)
 (require 'org-protocol)
 
 ;; add capture template for web snippets

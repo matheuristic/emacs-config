@@ -5187,7 +5187,7 @@ setting up the protocol handler.
 #+name: org-protocol
 #+begin_src emacs-lisp
 ;; start server and load org-protocol
-(server-start)
+(server-mode 1)
 (require 'org-protocol)
 #+end_src
 

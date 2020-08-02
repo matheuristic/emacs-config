@@ -6618,26 +6618,6 @@ Adapted from [[https://www.manueluberti.eu/emacs/2019/08/06/ibuffer-magit/][here
   (define-key ibuffer-mode-map (kbd "G") #'my-ibuffer-magit-status-at-pt))
 #+end_src
 
-** Git identity management                                            :melpa:
-
-[[https://github.com/akirak/git-identity.el][git-identity.el]] is a frontend in Emacs for managing Git identities.
-This is useful when multiple Git identities need to handled on the
-same machine.
-
-It has integration with Magit.
-
-#+name: git-identity
-#+begin_src emacs-lisp
-;; the "I" key in Magit opens a Git identity management interface
-(use-package git-identity
-  :after magit
-  :bind (:map magit-status-mode-map
-         ("I" . git-identity-info))
-  :config
-  (require 'git-identity-magit)
-  (git-identity-magit-mode 1))
-#+end_src
-
 ** Viewing historical versions of Git-controlled files
 
 [[https://gitlab.com/pidu/git-timemachine][git-timemachine]] provides an easy way to view and step through
@@ -9236,8 +9216,6 @@ The main configuration file.
 
 <<magit-ibuffer-integration>>
 
-<<git-identity>>
-
 <<git-timemachine>>
 
 <<treemacs>>
@@ -10572,6 +10550,28 @@ Add entry point to ~yapfify-buffer-or-region~ to python-mode hydra.
 ;; add entry point to yapfify in python-mode hydra
 (defhydra+ my-hydra/python-mode nil
   ("y" yapfify-region-or-buffer "yapf" :exit t))
+#+end_src
+
+** Project interaction management
+
+*** Git identity management                                           :melpa:
+
+[[https://github.com/akirak/git-identity.el][git-identity.el]] is a frontend in Emacs for managing Git identities.
+This is useful when multiple Git identities need to handled on the
+same machine.
+
+It has integration with Magit.
+
+#+name: git-identity
+#+begin_src emacs-lisp
+;; the "I" key in Magit opens a Git identity management interface
+(use-package git-identity
+  :after magit
+  :bind (:map magit-status-mode-map
+         ("I" . git-identity-info))
+  :config
+  (require 'git-identity-magit)
+  (git-identity-magit-mode 1))
 #+end_src
 
 ** Reference management

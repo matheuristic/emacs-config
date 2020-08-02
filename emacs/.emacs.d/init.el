@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  2 15:05:42 2020
+;; Generated: Sun Aug  2 16:18:07 2020
 
 ;;; Commentary:
 
@@ -3620,15 +3620,6 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 ;; bind the above function to the "G" key in Ibuffer
 (with-eval-after-load 'ibuffer
   (define-key ibuffer-mode-map (kbd "G") #'my-ibuffer-magit-status-at-pt))
-
-;; the "I" key in Magit opens a Git identity management interface
-(use-package git-identity
-  :after magit
-  :bind (:map magit-status-mode-map
-         ("I" . git-identity-info))
-  :config
-  (require 'git-identity-magit)
-  (git-identity-magit-mode 1))
 
 ;; Browse older versions of Git-controlled files
 (use-package git-timemachine

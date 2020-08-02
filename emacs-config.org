@@ -6763,22 +6763,28 @@ directories of files, utilizing [[https://xapian.org/][Xapian]] for indexing.
 *** Installing Notdeft                                             :external:
 
 Clone ~notdeft~ into a build directory (change =~/build= as needed).
+This can be a new directory in one of the ~load-path~ directories,
+for example the =site-lisp= subdirectory in ~user-emacs-directory~.
 
 #+begin_example
-$ cd ~/build
+$ cd ~/.emacs.d/site-lisp
 $ git clone https://github.com/hasu/notdeft.git
 #+end_example
 
 Install build dependencies and compile the ~notdeft-xapian~ backend.
-The following shows installing of build dependencies using MacPorts.
+The following shows installing of build dependencies using MacPorts
+(modify the dependency installation step as needed if using another
+package manager).
 
 #+begin_example
-$ cd notdeft/xapian
 $ sudo port install tclap xapian
+$ cd notdeft/xapian
 $ make
 #+end_example
 
-Make a shallow copy (no ~.git~ directory) or create a softlink to a
+If notdeft was not cloned and built to a subdirectory in ~load-path~
+(like the =site-lisp= folder in ~user-emacs-directory~), make a
+shallow copy (no ~.git~ directory) or create a softlink to a
 ~load-path~ directory.
 
 The following shows the softlink approach
@@ -6813,21 +6819,6 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
 
 ;; binding to access Notdeft
 (global-set-key (kbd "C-c C-M-s") #'notdeft)
-#+end_src
-
-*** Notdeft hydras                                                    :hydra:
-
-Built-in mode-specific hydra for Notdeft.
-
-There is also a built-in global hydra, but it is not really needed if
-Notdeft is mainly used for searching notes and not for creating them.
-
-#+name: notdeft-hydra
-#+begin_src emacs-lisp
-;; load and bind the Notdeft mode-specific hydra
-(autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
-(with-eval-after-load 'notdeft
-  (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
 #+end_src
 
 ** Imenu
@@ -9169,8 +9160,6 @@ The main configuration file.
 <<ace-link>>
 
 <<notdeft>>
-
-<<notdeft-hydra>>
 
 <<imenu-auto-rescan>>
 

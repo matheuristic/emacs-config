@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug  1 22:08:17 2020
+;; Generated: Sat Aug  1 22:50:38 2020
 
 ;;; Commentary:
 
@@ -3709,11 +3709,6 @@ Search (_q_: quit)"
 
 ;; binding to access Notdeft
 (global-set-key (kbd "C-c C-M-s") #'notdeft)
-
-;; load and bind the Notdeft mode-specific hydra
-(autoload 'notdeft-mode-hydra/body "notdeft-mode-hydra")
-(with-eval-after-load 'notdeft
-  (define-key notdeft-mode-map (kbd "C-c h") 'notdeft-mode-hydra/body))
 
 (setq imenu-auto-rescan t)
 

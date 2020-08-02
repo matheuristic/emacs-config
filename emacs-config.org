@@ -492,7 +492,7 @@ In most instances, use only this or Icomplete but not both.
   (define-key helm-map (kbd "C-z") #'helm-select-action))
 #+end_src
 
-*** Use icons in Helm                                              :external:
+*** Use icons in Helm                                                 :melpa:
 
 [[https://github.com/yyoncho/helm-icons][helm-icons]] shows file icons using those from Treemacs when using
 file-related Helm commands.
@@ -4998,7 +4998,7 @@ header star replacements are configured.
 #+begin_src emacs-lisp
 (use-package org-superstar
   :hook (org-mode . org-superstar-mode)
-  :init (setq org-superstar-headline-bullets-list '("◉" "🞛" "○" "▷")
+  :init (setq org-superstar-headline-bullets-list '("◉" "◇" "○" "▷")
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 #+end_src
@@ -6046,7 +6046,7 @@ Microsoft [[https://github.com/microsoft/pyright][Pyright]] Python Language Serv
 #+begin_src emacs-lisp
 (use-package lsp-pyright
   :defer t
-  :ensure nil
+  :ensure nil ;; being added to MELPA, currently in site-lisp
   :init
   (defun lsp-pyright--setup ()
     "Convenience function for setting up lsp-pyright."
@@ -6646,7 +6646,7 @@ extremely fast.
 It supports inline editing of search results via [[https://github.com/mhayashi1120/Emacs-wgrep][wgrep]], accessed
 through ~e~ while on the search results page.
 
-#+name: rg
+#+name: ripgrep
 #+begin_src emacs-lisp
 (when (executable-find "rg")
   (use-package rg
@@ -6956,15 +6956,20 @@ For more information about fonts and fontsets in Emacs, see this [[https://idioc
 ;; set typefaces for graphical Emacs
 ;; main fonts
 (set-face-attribute 'default nil :family "Iosevka Term SS08"
-                    :height 150 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 150 110)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'fixed-pitch nil :family "Iosevka Term SS08"
-                    :height 150 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 150 110)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
-                    :height 150 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 150 110)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line nil :family "Iosevka Term SS08"
-                    :height 120 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 120 90)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line-inactive nil :family "Iosevka Term SS08"
-                    :height 120 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 120 90)
+                    :weight 'normal :width 'normal)
 ;; fallback font
 (set-fontset-font t nil "Symbola" nil 'append)
 ;; increase min underline offset for more readable underlined words
@@ -7450,9 +7455,7 @@ a few characters.
 #+begin_src emacs-lisp
 ;; add internal frame border
 (add-to-list 'default-frame-alist
-             `(internal-border-width . ,(if (eq system-type 'darwin)
-                                            12
-                                          6)))
+             `(internal-border-width . 12))
 (defun my-default-frame-border-teardown ()
   "Removes internal-border-width entries from `default-frame-alist'."
   (setq default-frame-alist
@@ -9153,7 +9156,7 @@ The main configuration file.
 
 <<wgrep>>
 
-<<rg>>
+<<ripgrep>>
 
 <<search-hydra-rg>>
 

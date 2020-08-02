@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jul 31 22:57:00 2020
+;; Generated: Sat Aug  1 22:08:17 2020
 
 ;;; Commentary:
 
@@ -85,15 +85,20 @@
 ;; set typefaces for graphical Emacs
 ;; main fonts
 (set-face-attribute 'default nil :family "Iosevka Term SS08"
-                    :height 150 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 150 110)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'fixed-pitch nil :family "Iosevka Term SS08"
-                    :height 150 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 150 110)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
-                    :height 150 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 150 110)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line nil :family "Iosevka Term SS08"
-                    :height 120 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 120 90)
+                    :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line-inactive nil :family "Iosevka Term SS08"
-                    :height 120 :weight 'normal :width 'normal)
+                    :height (if (eq system-type 'darwin) 120 90)
+                    :weight 'normal :width 'normal)
 ;; fallback font
 (set-fontset-font t nil "Symbola" nil 'append)
 ;; increase min underline offset for more readable underlined words

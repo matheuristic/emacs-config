@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jul 31 22:57:00 2020
+;; Generated: Sat Aug  1 22:08:17 2020
 
 ;;; Commentary:
 
@@ -2721,7 +2721,7 @@ Org-mode → Download (_q_: ←)"
 
 (use-package org-superstar
   :hook (org-mode . org-superstar-mode)
-  :init (setq org-superstar-headline-bullets-list '("◉" "🞛" "○" "▷")
+  :init (setq org-superstar-headline-bullets-list '("◉" "◇" "○" "▷")
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 
@@ -3342,7 +3342,7 @@ Formatting a selected region only works on top-level objects."
 
 (use-package lsp-pyright
   :defer t
-  :ensure nil
+  :ensure nil ;; being added to MELPA, currently in site-lisp
   :init
   (defun lsp-pyright--setup ()
     "Convenience function for setting up lsp-pyright."
@@ -3976,9 +3976,7 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 
 ;; add internal frame border
 (add-to-list 'default-frame-alist
-             `(internal-border-width . ,(if (eq system-type 'darwin)
-                                            12
-                                          6)))
+             `(internal-border-width . 12))
 (defun my-default-frame-border-teardown ()
   "Removes internal-border-width entries from `default-frame-alist'."
   (setq default-frame-alist

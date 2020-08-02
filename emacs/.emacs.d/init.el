@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  2 16:24:18 2020
+;; Generated: Sun Aug  2 16:29:48 2020
 
 ;;; Commentary:
 
@@ -3312,7 +3312,8 @@ CIDER → REPL (_q_: ←)"
       python-shell-interpreter-args ""
       python-shell-prompt-detect-failure-warning nil)
 
-(add-to-list 'python-shell-completion-native-disabled-interpreters "py")
+(with-eval-after-load 'python
+  (add-to-list 'python-shell-completion-native-disabled-interpreters "py"))
 
 ;; modify Python syntax table to keep underscores within a word
 ;; boundary when editing Python buffers

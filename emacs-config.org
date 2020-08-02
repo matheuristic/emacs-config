@@ -5981,7 +5981,8 @@ Set the Emacs Python interpreter command and options to the script.
       python-shell-interpreter-args ""
       python-shell-prompt-detect-failure-warning nil)
 
-(add-to-list 'python-shell-completion-native-disabled-interpreters "py")
+(with-eval-after-load 'python
+  (add-to-list 'python-shell-completion-native-disabled-interpreters "py"))
 #+end_src
 
 *Limitations*:

@@ -312,6 +312,16 @@ to something that is not the Emacs init file.
 
 * Package management
 
+** Prefer newer packages                                              :early:
+
+When multiple versions of a package are installed, load the newest.
+
+#+name: load-prefer-newer
+#+begin_src emacs-lisp
+;; when multiple versions of a package are installed, load the newest
+(setq load-prefer-newer t)
+#+end_src
+
 ** Local packages                                                     :early:
 
 Add the ~lisp/~ and ~site-lisp/~ directories in the user Emacs
@@ -8647,6 +8657,8 @@ Static UI customizations should go here to optimize startup time.
 <<io-optimizations>>
 
 ;; Package management
+
+<<load-prefer-newer>>
 
 <<add-dirs-to-load-path>>
 

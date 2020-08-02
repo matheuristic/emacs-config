@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug  1 22:50:38 2020
+;; Generated: Sat Aug  1 23:15:55 2020
 
 ;;; Commentary:
 
@@ -46,6 +46,9 @@
   (setq read-process-output-max 1048576)) ;; 1MB in bytes, default 4096 bytes
 
 ;; Package management
+
+;; when multiple versions of a package are installed, load the newest
+(setq load-prefer-newer t)
 
 ;; add user packages in lisp/ to load path
 (defvar lisp-dir (expand-file-name "lisp" user-emacs-directory))

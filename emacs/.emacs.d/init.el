@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  2 21:58:58 2020
+;; Generated: Mon Aug  3 00:00:58 2020
 
 ;;; Commentary:
 
@@ -3628,6 +3628,7 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 
 ;; per-project file trees
 (use-package treemacs
+  :demand t
   :bind ("C-c C-M-S-t" . treemacs)
   :init
   ;; resize treemacs icon sizes to 75% of line-height
@@ -3645,6 +3646,21 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 ;; treemacs magit integration
 (use-package treemacs-magit
   :after (treemacs magit))
+
+;; use icons from all-the-icons in Treemacs
+(use-package treemacs-all-the-icons
+  :after (treemacs all-the-icons)
+  :config
+  (treemacs-load-theme "all-the-icons")
+  ;; reduce tab-width to fix spacing between icons and text
+  (add-hook 'treemacs-mode-hook
+            (lambda () (setq-local tab-width 2)))
+  ;; do the same if `helm-icons' is being used
+  (with-eval-after-load 'helm-icons
+    (add-hook 'helm-after-initialize-hook
+              (lambda ()
+                (with-helm-buffer
+                  (setq tab-width 2))))))
 
 ;; Search
 

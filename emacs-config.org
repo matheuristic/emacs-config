@@ -529,13 +529,6 @@ In most instances, use only this or Icomplete but not both.
 [[https://github.com/yyoncho/helm-icons][helm-icons]] shows file icons using those from Treemacs when using
 file-related Helm commands.
 
-Current not in MELPA, so it should be downloaded or cloned from the
-Github repo into some directory in the ~load-path~, for example its
-own folder in the =~/.emacs.d/site-lisp/= directory.
-
-*Note*: The maintainer of this package plans to support
-~all-the-icons~ eventually.
-
 #+name: helm-icons
 #+begin_src emacs-lisp
 (use-package helm-icons
@@ -6639,6 +6632,7 @@ historical versions of Git-controlled files.
 #+begin_src emacs-lisp
 ;; per-project file trees
 (use-package treemacs
+  :demand t
   :bind ("C-c C-M-S-t" . treemacs)
   :init
   ;; resize treemacs icon sizes to 75% of line-height
@@ -6670,6 +6664,28 @@ Have Magit operations be reflected automatically in Treemacs.
 ;; treemacs magit integration
 (use-package treemacs-magit
   :after (treemacs magit))
+#+end_src
+
+*** Treemacs all-the-icons integration
+
+Use icons from all-the-icons in Treemacs.
+
+#+name: treemacs-all-the-icons
+#+begin_src emacs-lisp
+;; use icons from all-the-icons in Treemacs
+(use-package treemacs-all-the-icons
+  :after (treemacs all-the-icons)
+  :config
+  (treemacs-load-theme "all-the-icons")
+  ;; reduce tab-width to fix spacing between icons and text
+  (add-hook 'treemacs-mode-hook
+            (lambda () (setq-local tab-width 2)))
+  ;; do the same if `helm-icons' is being used
+  (with-eval-after-load 'helm-icons
+    (add-hook 'helm-after-initialize-hook
+              (lambda ()
+                (with-helm-buffer
+                  (setq tab-width 2))))))
 #+end_src
 
 * Search
@@ -9223,6 +9239,8 @@ The main configuration file.
 <<treemacs-projectile>>
 
 <<treemacs-magit>>
+
+<<treemacs-all-the-icons>>
 
 ;; Search
 

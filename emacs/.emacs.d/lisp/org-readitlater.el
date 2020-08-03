@@ -458,7 +458,7 @@ the system browser."
   :type '(choice (const :tag "Use `eww'" eww)
                  (const :tag "Use the native OS browser" system)))
 
-(defcustom org-readitlater-make-relative nil
+(defcustom org-readitlater-make-relative t
   "Non-nil means make the resulting path link relative."
   :type 'boolean)
 

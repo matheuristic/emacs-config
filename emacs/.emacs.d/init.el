@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  2 16:29:48 2020
+;; Generated: Sun Aug  2 20:08:25 2020
 
 ;;; Commentary:
 
@@ -2135,6 +2135,7 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ;; don't auto-indent when promoting/demoting
+      org-attach-dir-relative t ;; use relative directories when setting DIR property using `org-attach-set-directory'
       org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
                                    (plain-list-item . nil)) ;; same as above
       org-catch-invisible-edits 'error

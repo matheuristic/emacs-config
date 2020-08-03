@@ -4229,6 +4229,7 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ;; don't auto-indent when promoting/demoting
+      org-attach-dir-relative t ;; use relative directories when setting DIR property using `org-attach-set-directory'
       org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
                                    (plain-list-item . nil)) ;; same as above
       org-catch-invisible-edits 'error

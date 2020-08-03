@@ -449,15 +449,13 @@ bindings.
 
 * Environment variables                                     :semiearly:melpa:
 
-On Mac OS X, copy the environment variables over from the login shell.
+Copy the environment variables over from the login shell.
 
 #+name: environment-variables
 #+begin_src emacs-lisp
 ;; copy environment variables from shell, OS X GUI mode-only
-(if (eq system-type 'darwin)
-    (use-package exec-path-from-shell
-      :init (if (memq window-system '(mac ns))
-                (exec-path-from-shell-initialize))))
+(use-package exec-path-from-shell
+  :init (exec-path-from-shell-initialize))
 #+end_src
 
 * Backend and frontend frameworks for building user interfaces

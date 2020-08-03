@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  2 20:08:25 2020
+;; Generated: Sun Aug  2 21:58:58 2020
 
 ;;; Commentary:
 
@@ -61,10 +61,8 @@
 ;; Environment variables
 
 ;; copy environment variables from shell, OS X GUI mode-only
-(if (eq system-type 'darwin)
-    (use-package exec-path-from-shell
-      :init (if (memq window-system '(mac ns))
-                (exec-path-from-shell-initialize))))
+(use-package exec-path-from-shell
+  :init (exec-path-from-shell-initialize))
 
 ;; Backend and frontend frameworks for building user interfaces
 

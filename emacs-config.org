@@ -4221,8 +4221,8 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ;; don't auto-indent when promoting/demoting
       org-attach-dir-relative t ;; use relative directories when setting DIR property using `org-attach-set-directory'
-      org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
-                                   (plain-list-item . nil)) ;; same as above
+      ;; org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
+      ;;                              (plain-list-item . nil)) ;; same as above
       org-catch-invisible-edits 'error
       org-confirm-babel-evaluate nil ;; don't confirm before evaluating code blocks in Org documents
       org-cycle-separator-lines 2 ;; collapse single item separator lines when cycling
@@ -5804,8 +5804,8 @@ Emacs profiler [CPU=%(profiler-running-p) MEM=%(profiler-memory-running-p)] (_q_
   ("p" profiler-report "report")
   ("e" profiler-stop "stop" :exit nil))
 
-;; binding for profiler hydra
-(global-set-key (kbd "C-c C-M-S-p") 'my-hydra/profiler/body)
+;; binding for Emacs profiler hydra
+(global-set-key (kbd "C-c C-M-S-e") 'my-hydra/profiler/body)
 #+end_src
 
 *** el-patch                                                          :melpa:
@@ -8137,21 +8137,6 @@ Add a toggle for ~typo-mode~ to writing hydra.
 
 * Other
 
-** Auth sources
-
-The auth-source package provides a API for secure storage and access
-of user secrets.
-A number of Emacs packages come with support for this, most notably
-[[https://www.gnu.org/software/emacs/manual/html_node/gnus/][GNUS]] and [[https://www.gnu.org/software/tramp/][TRAMP]].
-
-#+name: auth-sources
-#+begin_src emacs-lisp
-;; Auth Sources, https://www.gnu.org/software/emacs/manual/auth.html
-(if (file-exists-p "~/.authinfo.gpg")
-    (setq auth-sources '((:source "~/.authinfo.gpg" :host t :protocol t)))
-  (setq auth-sources '((:source "~/.authinfo" :host t :protocol t))))
-#+end_src
-
 ** real-auto-save for auto-saving files at regular intervals          :melpa:
 
 The [[https://github.com/ChillarAnand/real-auto-save][real-auto-save]] package supports per-file auto-saving at regular
@@ -8463,6 +8448,75 @@ for more information."
 ;; add advice to `open-gnutls-stream' to have it sleep for 250ms
 ;; as a workaround for GnuTLS race condition bug
 (advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
+#+end_src
+
+** Password management and storage
+
+The [[https://www.passwordstore.org/][pass]] password store is a Bash script for CLI password management
+using GnuPG and Git.
+
+It has a number of interfaces, including [[https://github.com/mssun/passforios][Pass for iOS]], [[https://github.com/android-password-store/Android-Password-Store][Password Store]] for Android and [[https://github.com/browserpass/browserpass-extension][browserpass]] for web browsers, as well as for Emacs.
+
+There is also a Go rewrite of pass called [[https://github.com/gopasspw/gopass][gopass]] that adds a number of
+useful features, but is also more complicated and less battle-tested.
+
+References:
+- [[https://jherrlin.github.io/posts/emacs-gnupg-and-pass/][Emacs, GnuPG and Pass | jherrlin]]
+- [[https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1][The Definitive Guide to password-store | by Mathew Robinson | Medium]]
+
+*** auth-source-pass                                                  :melpa:
+
+[[https://github.com/DamienCassou/auth-password-store][auth-password-store]] provides integration between the Emacs built-in
+auth-source and [[https://www.passwordstore.org/][pass]].
+
+#+name: auth-source-pass
+#+begin_src emacs-lisp
+;; enable auth-source integration with pass
+(when (executable-find "pass")
+  (use-package auth-source-pass
+    :demand t
+    :config (auth-source-pass-enable)))
+#+end_src
+
+*** password-store.el                                                 :melpa:
+
+[[https://git.zx2c4.com/password-store/tree/contrib/emacs][password-store.el]] provides integration with the [[https://www.passwordstore.org/][pass]] password-store
+package.
+
+#+name: password-store
+#+begin_src emacs-lisp
+;; emacs integration with pass password-store
+(when (executable-find "pass")
+  (use-package password-store))
+#+end_src
+
+**** password-store hydra                                             :hydra:
+
+Hydra for password-store.el commands.
+
+#+name: password-store-hydra
+#+begin_src emacs-lisp
+(when (executable-find "pass")
+  ;; hydra for password-store
+  (defhydra my-hydra/password-store (:color teal :columns 5
+                                     :pre (require 'password-store))
+    "
+Password store (_q_: quit)"
+    ("q" nil nil :exit t)
+    ("C" password-store-clear "clear")
+    ("c" password-store-copy "copy-pw")
+    ("f" password-store-copy-field "copy-field")
+    ("e" password-store-edit "edit")
+    ("I" password-store-init "init")
+    ("i" password-store-insert "insert")
+    ("g" password-store-generate "generate")
+    ("R" password-store-remove "remove")
+    ("r" password-store-rename "rename")
+    ("u" password-store-url "url")
+    ("v" password-store-version "version"))
+
+  ;; binding for password-store hydra
+  (global-set-key (kbd "C-c C-M-S-p") 'my-hydra/password-store/body))
 #+end_src
 
 * OS-specific
@@ -9363,9 +9417,6 @@ The main configuration file.
 
 ;; Other
 
-;; *commented* currently do not store secrets using Emacs mechanisms
-;; <<auth-sources>>
-
 <<real-auto-save>>
 
 <<mouse-settings>>
@@ -9397,6 +9448,12 @@ The main configuration file.
 <<revert-buffer>>
 
 <<open-gnutls-stream-workaround>>
+
+<<auth-source-pass>>
+
+<<password-store>>
+
+<<password-store-hydra>>
 
 ;; OS-specific / Mac OS X
 
@@ -9827,56 +9884,6 @@ markup.
 This package supports literate programming for calculations,
 automatically picking up calculations and inserting the results as
 overlays.
-
-*** [#A] Password management and storage
-
-Use [[https://www.passwordstore.org/][password-store]] for password management.
-
-https://milosophical.me/blog/2018/keepass-and-password-store.html
-
-On iOS, use [[https://github.com/mssun/passforios][Pass for iOS]].
-
-There is also a Go rewrite of pass called [[https://github.com/gopasspw/gopass][gopass]] that adds a number of
-useful features, but is also more complicated and less battle-tested.
-
-References:
-- [[https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1][The Definitive Guide to password-store | by Mathew Robinson | Medium]]
-
-**** Setting up pass
-
-- Generate master key
-- Generate subkey
-- Initialize pass store using ~pass init <gpg-key-email>~
-- Set up pass store as a Git repo using ~pass git init~
-- Generate passwords using ~pass generate <pass-filename> <length>~
-- Retrieve passwords using ~pass <pass-filename>~
-- Remove passwords using ~pass rm <pass-filename>~
-
-**** [#A] password-store.el
-
-https://git.zx2c4.com/password-store/tree/contrib/emacs
-
-Probably best to go for this as the main interface.
-
-**** [#A] pass.el
-
-https://github.com/NicolasPetton/pass
-
-**** [#C] helm-pass                                                   :melpa:
-
-[[https://github.com/emacs-helm/helm-pass][GitHub - emacs-helm/helm-pass: Emacs Helm interface for pass]]
-
-Wrapper on top of password-store.el and auth-source-pass for easier
-password searching.
-
-Doesn't quite handle creating new entries, so use password-store.el
-for that.
-
-**** [#C] auth-source-pass
-
-[[https://github.com/DamienCassou/auth-password-store][GitHub - DamienCassou/auth-password-store: Integrate Emacs' auth-source with pass]]
-
-Built-in to Emacs and integrates [[https://www.passwordstore.org/][pass]] with ~auth-source~.
 
 *** [#C] org-trello for syncing between Org buffers and Trello boards
 
@@ -10848,6 +10855,21 @@ for more info.")
 #+end_src
 
 ** Other
+
+*** Auth sources
+
+The auth-source package provides a API for secure storage and access
+of user secrets.
+A number of Emacs packages come with support for this, most notably
+[[https://www.gnu.org/software/emacs/manual/html_node/gnus/][GNUS]] and [[https://www.gnu.org/software/tramp/][TRAMP]].
+
+#+name: auth-sources
+#+begin_src emacs-lisp
+;; Auth Sources, https://www.gnu.org/software/emacs/manual/auth.html
+(if (file-exists-p "~/.authinfo.gpg")
+    (setq auth-sources '((:source "~/.authinfo.gpg" :host t :protocol t)))
+  (setq auth-sources '((:source "~/.authinfo" :host t :protocol t))))
+#+end_src
 
 *** CRUX --- A Collection of Ridiculously Useful eXtensions           :melpa:
 

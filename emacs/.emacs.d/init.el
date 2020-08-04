@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug  4 15:09:33 2020
+;; Generated: Tue Aug  4 19:17:15 2020
 
 ;;; Commentary:
 
@@ -2134,8 +2134,8 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ;; don't auto-indent when promoting/demoting
       org-attach-dir-relative t ;; use relative directories when setting DIR property using `org-attach-set-directory'
-      org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
-                                   (plain-list-item . nil)) ;; same as above
+      ;; org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
+      ;;                              (plain-list-item . nil)) ;; same as above
       org-catch-invisible-edits 'error
       org-confirm-babel-evaluate nil ;; don't confirm before evaluating code blocks in Org documents
       org-cycle-separator-lines 2 ;; collapse single item separator lines when cycling
@@ -3096,8 +3096,8 @@ Emacs profiler [CPU=%(profiler-running-p) MEM=%(profiler-memory-running-p)] (_q_
   ("p" profiler-report "report")
   ("e" profiler-stop "stop" :exit nil))
 
-;; binding for profiler hydra
-(global-set-key (kbd "C-c C-M-S-p") 'my-hydra/profiler/body)
+;; binding for Emacs profiler hydra
+(global-set-key (kbd "C-c C-M-S-e") 'my-hydra/profiler/body)
 
 (use-package el-patch
   :demand t)
@@ -4262,12 +4262,6 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
 
 ;; Other
 
-;; *commented* currently do not store secrets using Emacs mechanisms
-;; ;; Auth Sources, https://www.gnu.org/software/emacs/manual/auth.html
-;; (if (file-exists-p "~/.authinfo.gpg")
-;;     (setq auth-sources '((:source "~/.authinfo.gpg" :host t :protocol t)))
-;;   (setq auth-sources '((:source "~/.authinfo" :host t :protocol t))))
-
 ;; buffer-local `auto-save-visited-mode'
 (use-package real-auto-save
   :defer t
@@ -4380,6 +4374,38 @@ for more information."
 ;; add advice to `open-gnutls-stream' to have it sleep for 250ms
 ;; as a workaround for GnuTLS race condition bug
 (advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
+
+;; enable auth-source integration with pass
+(when (executable-find "pass")
+  (use-package auth-source-pass
+    :demand t
+    :config (auth-source-pass-enable)))
+
+;; emacs integration with pass password-store
+(when (executable-find "pass")
+  (use-package password-store))
+
+(when (executable-find "pass")
+  ;; hydra for password-store
+  (defhydra my-hydra/password-store (:color teal :columns 5
+                                     :pre (require 'password-store))
+    "
+Password store (_q_: quit)"
+    ("q" nil nil :exit t)
+    ("C" password-store-clear "clear")
+    ("c" password-store-copy "copy-pw")
+    ("f" password-store-copy-field "copy-field")
+    ("e" password-store-edit "edit")
+    ("I" password-store-init "init")
+    ("i" password-store-insert "insert")
+    ("g" password-store-generate "generate")
+    ("R" password-store-remove "remove")
+    ("r" password-store-rename "rename")
+    ("u" password-store-url "url")
+    ("v" password-store-version "version"))
+
+  ;; binding for password-store hydra
+  (global-set-key (kbd "C-c C-M-S-p") 'my-hydra/password-store/body))
 
 ;; OS-specific / Mac OS X
 

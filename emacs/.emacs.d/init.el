@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Aug  3 00:00:58 2020
+;; Generated: Tue Aug  4 15:09:33 2020
 
 ;;; Commentary:
 
@@ -2164,6 +2164,19 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
       org-treat-S-cursor-todo-selection-as-state-change nil
       org-use-fast-todo-selection t
       org-use-speed-commands nil)
+
+;; make sure UUIDs generated for Org usage are alway upcased, which
+;; solves issues with synced directories, for example Linux generates
+;; lower case UUIDs while Mac generates upper case UUIDs.
+(with-eval-after-load 'org-id
+  (defun org-id-uuid--around-upcase (orig-fun &rest args)
+    "Advice for `org-id-uuid' to upcase the uuids it outputs.
+ORIG-FUN is the original function.
+ARGS are the arguments provided to ORIG-FUN."
+    (let ((uuid (apply orig-fun args)))
+      (upcase uuid)))
+  (advice-add 'org-id-uuid :around
+              'org-id-uuid--around-upcase))
 
 (defun my-org-open-line-below (n)
   "Insert a new row in tables, call `my-open-line-below' elsewhere.

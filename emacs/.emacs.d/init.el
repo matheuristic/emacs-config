@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug  4 23:10:56 2020
+;; Generated: Wed Aug  5 17:50:18 2020
 
 ;;; Commentary:
 
@@ -3765,8 +3765,7 @@ Search (_q_: quit)"
       notdeft-secondary-extensions '("md" "txt")
       notdeft-directory (concat org-directory "scratch/")
       notdeft-xapian-program (concat (file-name-directory
-                                      (file-truename
-                                       (locate-library "notdeft")))
+                                      (locate-library "notdeft"))
                                      "xapian/notdeft-xapian"))
 
 ;; binding to access Notdeft

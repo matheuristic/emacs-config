@@ -6948,8 +6948,7 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
       notdeft-secondary-extensions '("md" "txt")
       notdeft-directory (concat org-directory "scratch/")
       notdeft-xapian-program (concat (file-name-directory
-                                      (file-truename
-                                       (locate-library "notdeft")))
+                                      (locate-library "notdeft"))
                                      "xapian/notdeft-xapian"))
 
 ;; binding to access Notdeft

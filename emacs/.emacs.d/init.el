@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug  5 17:50:18 2020
+;; Generated: Wed Aug  5 17:59:33 2020
 
 ;;; Commentary:
 
@@ -2128,7 +2128,7 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
 ;; Org-mode
 
 ;; set Org directory and inbox file
-(setq org-directory (file-name-as-directory (file-truename "~/org"))
+(setq org-directory (file-name-as-directory (expand-file-name "~/org"))
       my-org-agenda-inbox (concat org-directory "inbox.org"))
 
 ;; basic Org-mode settings

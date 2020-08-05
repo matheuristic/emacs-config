@@ -4225,7 +4225,7 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
 #+name: org
 #+begin_src emacs-lisp
 ;; set Org directory and inbox file
-(setq org-directory (file-name-as-directory (file-truename "~/org"))
+(setq org-directory (file-name-as-directory (expand-file-name "~/org"))
       my-org-agenda-inbox (concat org-directory "inbox.org"))
 
 ;; basic Org-mode settings

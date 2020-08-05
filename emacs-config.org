@@ -7,6 +7,16 @@
 
 ** Using this Emacs config
 
+Clone this repository and initialize and update the submodules (see
+"Cloning a Project with Submodules" under [[https://git-scm.com/book/en/v2/Git-Tools-Submodules][Submodules]] in [[https://git-scm.com/book/en/v2/Git-Tools-Submodules][Pro Git]]).
+
+#+begin_example
+$ git clone https://github.com/matheuristic/emacs-config.git
+$ cd emacs-config
+$ git submodule init
+$ git submodule update
+#+end_example
+
 Make sure [[https://www.gnu.org/software/stow/][GNU Stow]] is installed. Run the following to create the
 required directory structure in the user home directory and symlink
 the individual files.
@@ -9486,8 +9496,6 @@ The main configuration file.
 
 ** Backend and frontend frameworks for building user interfaces
 
-*** Helm
-
 *** [#C] Transient                                                    :melpa:
 
 [[https://github.com/magit/transient][Transient]] provides transient keymaps, like Hydra.
@@ -9497,17 +9505,6 @@ evaluate if it allows for easier maintenance of the hydras.
 
 References:
 - [[https://www.reddit.com/r/emacs/comments/f3o0v8/anyone_have_good_examples_for_transient/][Anyone have good examples for Transient? : emacs]]
-
-** Buffers, windows, frames
-
-*** [#B] emacs-purpose                                                :melpa:
-
-[[https://github.com/bmag/emacs-purpose][emacs-purpose]] allows the assigning of a window to a "purpose",
-only letting it display specific kinds of buffers.
-
-*Note*: Some of the bulit-in extensions like ~purpose-x-code1-setup~
-or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
-(specifically the two functions add and remove ~ibuffer-auto-mode~).
 
 ** Email
 
@@ -9531,7 +9528,7 @@ or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 
 ** Non-programming files
 
-*** [#C] Nix configuration files
+*** Nix configuration files
 
 **** [#C] nix-mode for editing Nix configuration files                :melpa:
 
@@ -9542,10 +9539,6 @@ or ~purpose-x-code1-unset~ can conflict with Ibuffer settings
 [[https://github.com/jwiegley/nix-update-el][GitHub - jwiegley/nix-update-el]] ([[https://melpa.org/#/nix-update][MELPA]])
 
 *** [#B] PlantUML                                                     :melpa:
-
-*** [#C] Gnuplot                                                      :melpa:
-
-[[https://github.com/emacsorphanage/gnuplot][GitHub - emacsorphanage/gnuplot: A major mode for Emacs for interacting with Gnuplot]]
 
 *** [#C] Ledger                                                       :melpa:
 
@@ -9643,38 +9636,6 @@ If you use the better bibtex plugin for zotero you export the file for the first
 [[https://github.com/jkitchin/org-ref][Org-ref]] is a collection of modules for managing citations, references
 and BibTeX bibliographies in Org-mode.
 
-*** WAIT [#B] org-protocol
-:LOGBOOK:
-- State "WAIT"       from              [2020-06-06 Sat 09:27] \\
-  Probably best to just use the built-in support in the Emacs Mac Port, so wait until it is released for Emacs 27
-:END:
-
-**** Setting up an org-protocol handler on Mac OS X
-
-*Note*: Or just use Emacs Mac Port, which has ~org-protocol~ support built-in.
-
-References:
-- https://blog.aaronbieber.com/2016/11/24/org-capture-from-anywhere-on-your-mac.html
-- https://github.com/aaronbieber/org-protocol-handler
-- https://github.com/sprig/org-capture-extension
-- https://github.com/mgmart/capture
-
-**** Capturing HTML to Org via org-protocol
-
-https://github.com/alphapapa/org-protocol-capture-html
-
-There's an option to use [[https://pypi.org/project/readability-lxml/][readability-lxml]] ([[https://github.com/buriy/python-readability][Github]]) to clean up full
-webpages captured via URLs before processing although a much better
-choice would to process URLs with [[https://github.com/postlight/mercury-parser][Mercury Parser]] to extract the page
-content, parse the JSON to extract the ~content~ value which is in
-HTML and pass that to ~pandoc~ which ~org-protocol-capture-html~ uses.
-To do this, modify the [[https://github.com/alphapapa/org-protocol-capture-html/blob/master/org-protocol-capture-html.sh][shell script]] in ~org-protocol-capture-html~ to
-use ~mercury-parser~ followed by [[https://stedolan.github.io/jq/][jq]] to extract the HTML ~content~ for
-processing.
-
-Note that an alternate Webpage to Mercury Reader to Markdown workflow
-could use [[https://github.com/zyocum/reader][reader]] instead or [[http://fuckyeahmarkdown.com/][Markdownifier]] (web API) for conversion.
-
 *** [#C] org-reveal or org-re-reveal                                  :melpa:
 
 [[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] and [[https://github.com/yjwen/org-reveal][org-reveal]] are comparable packages support
@@ -9745,10 +9706,6 @@ alternative is Memacs.
 
 ** Programming
 
-*** [#C] helm-dash                                                    :melpa:
-
-[[https://github.com/dash-docs-el/helm-dash][GitHub - dash-docs-el/helm-dash: Browse Dash docsets inside emacs]]
-
 *** Bash
 
 **** [#C] Static analysis using ShellCheck                         :external:
@@ -9763,14 +9720,6 @@ MELPA has a package for Flymake support.
 Or can define using ~flymake-quickdef~.
 
 [[https://github.com/federicotdn/flymake-shellcheck][GitHub - federicotdn/flymake-shellcheck]]
-
-*** Docker
-
-*** Python
-
-**** [#B] Live coding in Python                                       :melpa:
-
-[[https://github.com/donkirkby/live-py-plugin][GitHub - donkirkby/live-py-plugin: Live coding in Python with PyCharm, Emacs,...]]
 
 *** SQL
 
@@ -9846,17 +9795,9 @@ See the /Merging and Importing/ section of the Ebib [[http://joostkremers.github
 Leverages Helm to search and manage BibTeX bilbiographies.
 Potentially useful complement to Ebib.
 
-*** [#B] org-roam-bibtex                                              :melpa:
+*** [#C] org-roam-bibtex                                              :melpa:
 
 [[https://github.com/org-roam/org-roam-bibtex][GitHub - org-roam/org-roam-bibtex]]
-
-** Visual
-
-*** [#C] Elegance theme                                            :external:
-
-[[https://github.com/rougier/elegant-emacs][Elegant Emacs theme]].
-Nice minimal theme, although will take a bit of work to set up for
-a more informative display.
 
 ** Web
 

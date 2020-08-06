@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug  5 17:59:33 2020
+;; Generated: Thu Aug  6 14:59:22 2020
 
 ;;; Commentary:
 
@@ -3743,7 +3743,9 @@ Search (_q_: quit)"
   :config
   ;; bind over `goto-line' since it can be invoked by entering numbers
   ;; for `avy-goto-line' input instead characters in the decision tree
-  (global-set-key [remap goto-line] #'avy-goto-line))
+  (global-set-key [remap goto-line] #'avy-goto-line)
+  ;; jump to location in frame using "C-:"
+  (global-set-key (kbd "C-:") #'avy-goto-char-timer))
 
 ;; display, select and jump to links in various major modes
 (use-package ace-link

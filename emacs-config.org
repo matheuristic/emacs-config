@@ -6261,6 +6261,27 @@ The following updates an existing install of pyright.
 $ npm update -g pyright
 #+end_example
 
+**** Installing Python stubs
+
+Pyright depends on [[https://www.python.org/dev/peps/pep-0561/][type stubs]] for resolving imports (it can also scan
+the library code for that if ~python.analysis.useLibraryCodeForTypes~
+is enabled or ~lsp-pyright-use-library-code-for-types~ is set to ~t~
+when using ~lsp-pyright~; however, this can have significant
+overhead).
+
+Pyright includes a copy of stdlib type stubs from [[https://github.com/python/typeshed][Typeshed]], and some
+third-party packages also come with stubs defined.
+
+In other cases it may be helpful to install third-party type stubs.
+For example, the following shows the installation of a third-party
+[[https://pypi.org/][PyPI]] package [[https://github.com/predictive-analytics-lab/data-science-types][data-science-types]] providing stubs for ~numpy~, ~scipy~
+and ~pandas~ in a specific conda environment.
+
+#+begin_example
+$ conda activate some-dev-env
+$ pip install data-science-types
+#+end_example
+
 *** Microsoft Python DAP Server support with dap-mode
 
 #+name: dap-python
@@ -6860,7 +6881,9 @@ character-based decision tree.
   :config
   ;; bind over `goto-line' since it can be invoked by entering numbers
   ;; for `avy-goto-line' input instead characters in the decision tree
-  (global-set-key [remap goto-line] #'avy-goto-line))
+  (global-set-key [remap goto-line] #'avy-goto-line)
+  ;; jump to location in frame using "C-:"
+  (global-set-key (kbd "C-:") #'avy-goto-char-timer))
 #+end_src
 
 ** ace-link                                                           :melpa:

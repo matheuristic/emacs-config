@@ -761,24 +761,17 @@ by the ~history-length~ variable.
 
 ** Buffer management
 
-*** Bury scratch and message buffer instead of killing them
+*** Protect scratch and message buffers
 
-Make ~*scratch*~ and ~*Message*~ buffers unkillable, burying the
-buffers instead when the user tries to delete them.
+Protect the ~*scratch*~ and ~*Message*~ buffers, locking them to make
+them unkillable.
 
-#+name: bury-not-kill-buffers
+#+name: protect-buffers
 #+begin_src emacs-lisp
-;; bury these buffers on kill command instead of killing them
-(setq my-unkillable-buffers '("*scratch*"
-                              "*Messages*"))
-(defun my-bury-unkillable-buffers ()
-  "Buries the current buffer if it is unkillable, otherwise return t."
-  (if (member (buffer-name) my-unkillable-buffers)
-      (progn
-        (bury-buffer)
-        nil)
-    t))
-(add-hook 'kill-buffer-query-functions #'my-bury-unkillable-buffers)
+;; protect these buffers, locking them to make them unkillable
+(dolist (buf '("*scratch*" "*Messages*"))
+  (with-current-buffer buf
+    (emacs-lock-mode 'kill)))
 #+end_src
 
 *** Buffer manipulation hydra                                         :hydra:
@@ -8933,7 +8926,9 @@ The main configuration file.
 
 ;; Buffers, windows, frames, workspaces / Buffer management
 
-<<bury-not-kill-buffers>>
+<<protect-buffers>>
+
+;; <<bury-not-kill-buffers>>
 
 <<buffer-hydra>>
 
@@ -9857,6 +9852,27 @@ following enhancements:
 
 ** Buffers, windows, frames, workspaces
 *** Buffer management
+
+**** Bury scratch and message buffer instead of killing them
+
+Make ~*scratch*~ and ~*Message*~ buffers unkillable, burying the
+buffers instead when the user tries to delete them.
+
+#+name: bury-not-kill-buffers
+#+begin_src emacs-lisp
+;; bury these buffers on kill command instead of killing them
+(setq my-unkillable-buffers '("*scratch*"
+                              "*Messages*"))
+(defun my-bury-unkillable-buffers ()
+  "Buries the current buffer if it is unkillable, otherwise return t."
+  (if (member (buffer-name) my-unkillable-buffers)
+      (progn
+        (bury-buffer)
+        nil)
+    t))
+(add-hook 'kill-buffer-query-functions #'my-bury-unkillable-buffers)
+#+end_src
+
 **** better-jumper to maintain and traverse jump-lists                :melpa:
 
 [[https://github.com/gilbertw1/better-jumper][better-jumper]] is a jump-list implementation useful for automatically

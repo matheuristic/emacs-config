@@ -160,6 +160,7 @@ Literate configs, package lists, and so on and so forth.
 - [[https://github.com/caisah/emacs.dz][Awesome emacs config files]].
 - [[https://so.nwalsh.com/2020/02/29/dot-emacs][My .emacs | SO… A WEBLOG BY NORM]] and [[https://so.nwalsh.com/2020/02/29-dotfiles][Dotfiles | SO… A WEBLOG BY NORM]].
 - [[https://uwabami.github.io/cc-env/Emacs.html][Emacs の設定 | Youhei SASAKI’s official site]].
+- [[https://github.com/grettke/lolsmacs][GitHub - grettke/lolsmacs: The Law Of Least Surprise Lattice For Emacs.]]
 - [[https://github.com/m-cat/init.el][GitHub - m-cat/init.el: My emacs config file]]
 - [[https://www.bytedude.com/useful-emacs-shortcuts/][Useful Emacs Keybindings | Bytedude]]
 - [[https://github.com/emacs-tw/awesome-emacs][GitHub - emacs-tw/awesome-emacs]]
@@ -9058,8 +9059,7 @@ The main configuration file.
 
 <<sentence-end-single-space>>
 
-;; *commented* currently do not edit GPG files much
-;; <<epa-file>>
+<<epa-file>>
 
 <<kmacros-hydra>>
 

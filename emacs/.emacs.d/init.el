@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug  6 21:33:29 2020
+;; Generated: Thu Aug  6 22:41:18 2020
 
 ;;; Commentary:
 
@@ -1174,10 +1174,9 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 ;; use single spaces after sentences
 (setq sentence-end-double-space nil)
 
-;; *commented* currently do not edit GPG files much
-;; ;; enable transparent editing of GPG files
-;; (require 'epa-file)
-;; (epa-file-enable)
+;; enable transparent editing of GPG files
+(require 'epa-file)
+(epa-file-enable)
 
 (defhydra my-hydra/kmacros (:color teal :columns 3)
   "

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug  6 21:16:55 2020
+;; Generated: Thu Aug  6 21:33:29 2020
 
 ;;; Commentary:
 
@@ -262,18 +262,6 @@ Bookmarks (_q_: quit)"
 (dolist (buf '("*scratch*" "*Messages*"))
   (with-current-buffer buf
     (emacs-lock-mode 'kill)))
-
-;; ;; bury these buffers on kill command instead of killing them
-;; (setq my-unkillable-buffers '("*scratch*"
-;;                               "*Messages*"))
-;; (defun my-bury-unkillable-buffers ()
-;;   "Buries the current buffer if it is unkillable, otherwise return t."
-;;   (if (member (buffer-name) my-unkillable-buffers)
-;;       (progn
-;;         (bury-buffer)
-;;         nil)
-;;     t))
-;; (add-hook 'kill-buffer-query-functions #'my-bury-unkillable-buffers)
 
 ;; hydra for basic buffer management
 (defhydra my-hydra/buffer (:color amaranth :columns 4)

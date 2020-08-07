@@ -8928,8 +8928,6 @@ The main configuration file.
 
 <<protect-buffers>>
 
-;; <<bury-not-kill-buffers>>
-
 <<buffer-hydra>>
 
 <<ibuffer>>
@@ -9747,10 +9745,6 @@ Potentially useful complement to Ebib.
 
 [[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
 packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://github.com/sp1ff/elfeed-score][elfeed-score]].
-
-*** [#B] Promnesia remembrance agent for web browser               :external:
-
-[[https://github.com/karlicoss/promnesia][GitHub - karlicoss/promnesia: Another piece of your extended mind]]
 
 ** Writing
 

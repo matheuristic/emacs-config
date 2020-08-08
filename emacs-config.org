@@ -5450,6 +5450,15 @@ It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglo
               lsp-signature-auto-activate nil)) ;; don't automatically show signature
 #+end_src
 
+*** Installing and updating servers
+
+For a number of languages, lsp-mode and its related packages support
+automatic download of server binaries through ~lsp-dependency~
+declarations.
+
+~(lsp-install-server t)~ will manually update a server that was
+automatically installed.
+
 *** company-mode support for lsp-mode                                 :melpa:
 
 Add company-mode support for lsp-mode.
@@ -5481,7 +5490,11 @@ Language Server (_q_: quit)"
   ("g" my-hydra/lsp-goto/body "→ Goto")
   ("h" my-hydra/lsp-help/body "→ Help")
   ("r" my-hydra/lsp-refactor/body "→ Refactor")
-  ("a" my-hydra/lsp-actions/body "→ Actions"))
+  ("a" my-hydra/lsp-actions/body "→ Actions")
+  ("I" (lambda ()
+         (interactive)
+         (lsp-install-server t))
+   "install"))
 (defhydra my-hydra/lsp-session (:color teal :columns 3)
   "
 Language Server → Session (_q_: ←)"
@@ -7589,6 +7602,42 @@ Add ~highlight-indent-guides-mode~ toggle entry point to visual hydra.
     ("i" highlight-indent-guides-mode :exit nil)))
 #+end_src
 
+** Censor text in specific buffers
+
+Custom package providing a minor mode for censoring text in a buffer.
+One scenario where this is useful is to hide sensitive content during
+a screen share in case the buffer is opened accidentally.
+
+~censor-mode~ is buffer-local and will always apply to the current
+buffer when toggled. ~global-censor-mode~ is global and will apply to
+all buffers that either satisfy a predicate function or whose name
+matches a regexp in ~censor-include~.
+
+By default, ~censor-include~ matches all buffers with names that have
+the =.gpg= suffix (the default for GnuPG-encrypted files).
+
+#+name: censor
+#+begin_src emacs-lisp
+(require 'censor)
+#+end_src
+
+*** Add censor-mode buffer-local and global toggles to visual hydra   :hydra:
+
+Add ~censor-mode~ and ~global-censor-mode~ toggles to visual hydra.
+
+#+name: add-censor-mode-toggles-to-visual-hydra
+#+begin_src emacs-lisp
+;; add `censor-mode' and `global-censor-mode' toggles to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'censor)))
+    ,(concat my-hydra/visual/docstring
+             "_X_  : global-censor-mode       [% 3`global-censor-mode]   _x_  : censor-mode              [% 3`censor-mode]
+")
+    ("X" global-censor-mode :exit nil)
+    ("x" censor-mode :exit nil)))
+#+end_src
+
 ** Add frame padding
 
 Adding a default frame padding creates nicer typography at the cost of
@@ -9395,6 +9444,10 @@ The main configuration file.
 
 <<add-highlight-indent-guides-toggle-to-visual-hydra>>
 
+<<censor>>
+
+<<add-censor-mode-toggles-to-visual-hydra>>
+
 <<frame-internal-border>>
 
 <<add-bottom-window-dividers>>
@@ -9664,6 +9717,15 @@ MELPA has a package for Flymake support.
 Or can define using ~flymake-quickdef~.
 
 [[https://github.com/federicotdn/flymake-shellcheck][GitHub - federicotdn/flymake-shellcheck]]
+
+*** Python
+
+**** [#C] Tab completion in PDB
+
+[[https://github.com/muffinmad/emacs-pdb-capf][GitHub - muffinmad/emacs-pdb-capf: Completion-at-point function for pdb]]
+
+Might not be needed if mostly debugging using ~dap-mode~ with the
+~ptvsd~ debugger.
 
 *** SQL
 

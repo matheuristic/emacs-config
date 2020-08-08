@@ -372,7 +372,6 @@
            "https://github.com/matheuristic/emacs-config")
   :link '(emacs-commentary-link :tag "Commentary" "org-readitlater"))
 
-
 (defcustom org-readitlater-backend-program (executable-find "monolith")
   "The absolute path to the backend program binary.
 Defaults to `monolith'."

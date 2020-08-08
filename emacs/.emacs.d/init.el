@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug  6 22:41:18 2020
+;; Generated: Fri Aug  7 22:50:09 2020
 
 ;;; Commentary:
 
@@ -2942,7 +2942,11 @@ Language Server (_q_: quit)"
   ("g" my-hydra/lsp-goto/body "→ Goto")
   ("h" my-hydra/lsp-help/body "→ Help")
   ("r" my-hydra/lsp-refactor/body "→ Refactor")
-  ("a" my-hydra/lsp-actions/body "→ Actions"))
+  ("a" my-hydra/lsp-actions/body "→ Actions")
+  ("I" (lambda ()
+         (interactive)
+         (lsp-install-server t))
+   "install"))
 (defhydra my-hydra/lsp-session (:color teal :columns 3)
   "
 Language Server → Session (_q_: ←)"
@@ -4023,6 +4027,18 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
              "_i_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
 ")
     ("i" highlight-indent-guides-mode :exit nil)))
+
+(require 'censor)
+
+;; add `censor-mode' and `global-censor-mode' toggles to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'censor)))
+    ,(concat my-hydra/visual/docstring
+             "_X_  : global-censor-mode       [% 3`global-censor-mode]   _x_  : censor-mode              [% 3`censor-mode]
+")
+    ("X" global-censor-mode :exit nil)
+    ("x" censor-mode :exit nil)))
 
 ;; add internal frame border
 (add-to-list 'default-frame-alist

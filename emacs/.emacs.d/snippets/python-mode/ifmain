@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: ifmain
+# key: ifm
+# group: script
+# --
+if __name__ == '__main__':
+`(make-string python-indent-offset ?\ )`${1:main()}

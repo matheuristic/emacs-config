@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug  8 23:15:20 2020
+;; Generated: Sun Aug  9 09:39:27 2020
 
 ;;; Commentary:
 
@@ -129,6 +129,21 @@
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
+
+;; Utility functions
+
+(defun my-after-jump-context-actions (&rest args)
+  "Useful context actions to perform after jumping to a new location.
+This is meant for use with `advice-add' with the :after
+combinator.
+
+One useful context action example is to run `org-show-context'
+after jumping to an Org buffer location to ensure the region
+around the new point location is visible.
+
+ARGS is simply a catch-all for the arguments of the advised
+function and is not used."
+  (cond ((eq major-mode 'org-mode) (org-show-context))))
 
 ;; Visual (part 1)
 
@@ -1173,61 +1188,32 @@ Registers (_q_: quit)"
   :commands er/expand-region
   :bind ("C-=" . er/expand-region))
 
+(use-package iedit
+  :init (setq iedit-toggle-key-default (kbd "C-;"))
+  :config
+  ;; advise iedit functions that jump to new pointer locations to
+  ;; perform context actions after they are run
+  (dolist (jump-fun '(iedit-next-occurrence
+                      iedit-prev-occurrence
+                      iedit-goto-first-occurrence
+                      iedit-goto-last-occurrence
+                      iedit-expand-to-occurrence))
+    (advice-add jump-fun :after #'my-after-jump-context-actions)))
+
 (use-package symbol-overlay
   :demand t
+  :init
+  ;; don't use `symbol-overlay-map' as it conflicts with `iedit-mode',
+  ;; a transient is be defined later to access symbol-overlay commands
+  (setq symbol-overlay-inhibit-map t)
   :config
-  ;; macro for defining new symbol-overlay jump functions that perform
-  ;; context-specific actions needed for proper functioning of the
-  ;; jump function and rebinding the original ones, adapted from
-  ;; https://emacs.stackexchange.com/questions/19215/how-to-write-a-transparent-pass-through-function-wrapper
-  (defmacro wrap-symbol-overlay-map-function (wrappee wrapper)
-    "Wraps and rebinds symbol-overlay-map funcs with context-sensitive actions.
-
-WRAPPEE is the name of the original function that should have a
-binding in `symbol-overlay-map'.
-
-WRAPPER will be the name of the the function wrapping WRAPPEE,
-and will be used to bind over WRAPPEE in `symbol-overlay-map'.
-
-An example of a context-sensitive action is that in Org buffers
-actions are automatically followed by `outline-show-context'.
-
-Example usage:
-  (wrap-symbol-over-jump-function symbol-overlay-jump-next
-                                  my-symbol-overlay-jump-next)
-"
-    (let ((args (make-symbol "args")))
-      `(progn
-         ;; define wrapped function
-         (defun ,wrapper (&rest ,args)
-           ,(concat (documentation wrappee)
-                    "
-
-In addition, context-specific actions are taken to ensure the target
-the target is visible after the jump. For example, in Org buffers
-`org-show-context' is called after the jump.
-
-This function is a lisp closure defined by wrapping `"
-                    (symbol-name wrappee)
-                    "'
-using `wrap-symbol-overlay-map-function'.
-")
-           ,(interactive-form wrappee)
-           (apply (quote ,wrappee) ,args)
-           (cond ((eq major-mode 'org-mode) (org-show-context))))
-         ;; bind wrapped function over the original in symbol-overlay-map
-         (define-key symbol-overlay-map [remap ,wrappee]
-           (quote ,wrapper)))))
-  ;; define context-sensitive symbol-overlay-jump functions and
-  ;; re-bind the original jump function
-  (wrap-symbol-overlay-map-function symbol-overlay-jump-next
-                                     my-symbol-overlay-jump-next)
-  (wrap-symbol-overlay-map-function symbol-overlay-jump-prev
-                                     my-symbol-overlay-jump-prev)
-  (wrap-symbol-overlay-map-function symbol-overlay-switch-forward
-                                     my-symbol-overlay-switch-forward)
-  (wrap-symbol-overlay-map-function symbol-overlay-switch-backward
-                                     my-symbol-overlay-switch-backward))
+  ;; advise symbol-overlay jump functions to perform context actions
+  ;; after they are run
+  (dolist (jump-fun '(symbol-overlay-jump-next
+                      symbol-overlay-jump-next
+                      symbol-overlay-switch-forward
+                      symbol-overlay-switch-backward))
+    (advice-add jump-fun :after #'my-after-jump-context-actions)))
 
 ;; multiple cursors
 (use-package multiple-cursors
@@ -4556,7 +4542,7 @@ Example of use with transient suffix definitions in a
       ("!" "Run command" projectile-run-shell-command-in-root)
       ("&" "Run command async" projectile-run-async-shell-command-in-root)
       ""
-      "Search" 
+      "Search"
       ("o" "Occur" projectile-multi-occur)
       ("s" "Grep" projectile-grep)
       ("r" "Replace" projectile-replace)
@@ -4614,7 +4600,7 @@ Example of use with transient suffix definitions in a
   )
 (global-set-key (kbd "C-c C-M-t") #'transient/shell)
 
-;; add symbol-overlay transient popup and bind to "C-;"
+;; add symbol-overlay transient popup and bind to "C-M-;"
 (with-eval-after-load 'symbol-overlay
   (transient-define-prefix transient/symbol-overlay ()
     "Symbol overlay commands"
@@ -4645,7 +4631,7 @@ Example of use with transient suffix definitions in a
       ]
      ]
     )
-  (global-set-key (kbd "C-;") 'transient/symbol-overlay))
+  (global-set-key (kbd "C-M-;") 'transient/symbol-overlay))
 
 ;; add transient popup for workspace commands, bind to "C-c C-M-e"
 (transient-define-prefix transient/workspace ()

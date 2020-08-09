@@ -632,6 +632,34 @@ This is used by other packages, like ~markdown-mode~.
 (use-package edit-indirect)
 #+end_src
 
+* Utility functions
+
+Various utility functions used in multiple config locations.
+
+** Useful context actions to perform after jumping to a new location
+
+Define a function covering useful context-specific actions to perform
+after jumping to a new location.
+
+Some examples of useful context actions:
+- Run ~org-show-context~ after jumping to an Org buffer location.
+
+#+name: my-after-jump-context-actions
+#+begin_src emacs-lisp
+(defun my-after-jump-context-actions (&rest args)
+  "Useful context actions to perform after jumping to a new location.
+This is meant for use with `advice-add' with the :after
+combinator.
+
+One useful context action example is to run `org-show-context'
+after jumping to an Org buffer location to ensure the region
+around the new point location is visible.
+
+ARGS is simply a catch-all for the arguments of the advised
+function and is not used."
+  (cond ((eq major-mode 'org-mode) (org-show-context))))
+#+end_src
+
 * Backups
 
 Backup files to the =~/.backup/= directory, keeping only the newest three versions.
@@ -2311,6 +2339,36 @@ Examples include character to word, word to sentence, etc.
   :bind ("C-=" . er/expand-region))
 #+end_src
 
+** Iedit mode for editing occurances of the same word simultaneously  :melpa:
+
+[[https://github.com/victorhge/iedit][Iedit mode]] enables editing multiple occurances of the same word in the
+buffer simultaneously.
+
+*Usage notes*:
+- ~C-;~ to edit occurances of the word under point within the buffer,
+  or ~C-u 0 C-;~ to edit occurances only within the current function.
+- Fine control of the search area for occurances is done by using
+  ~M-I~ when in ~iedit-mode~ to restrict to current line and ~M-{~ and
+  ~M-}~ to expand search region one-line at a time upwards and
+  downwards (add a prefix argument to reverse instead).
+- ~C-'~ while editing to toggle narrowing to occurance lines.
+- ~C-;~ when editing is done to apply changes.
+
+#+name: iedit
+#+begin_src emacs-lisp
+(use-package iedit
+  :init (setq iedit-toggle-key-default (kbd "C-;"))
+  :config
+  ;; advise iedit functions that jump to new pointer locations to
+  ;; perform context actions after they are run
+  (dolist (jump-fun '(iedit-next-occurrence
+                      iedit-prev-occurrence
+                      iedit-goto-first-occurrence
+                      iedit-goto-last-occurrence
+                      iedit-expand-to-occurrence))
+    (advice-add jump-fun :after #'my-after-jump-context-actions)))
+#+end_src
+
 ** Symbol overlays and operations                                     :melpa:
 
 [[https://github.com/wolray/symbol-overlay][symbol-overlay]] provides the ability to highlight symbols with overlays
@@ -2320,59 +2378,18 @@ and a keymap for different operations on the highlighted symbols.
 #+begin_src emacs-lisp
 (use-package symbol-overlay
   :demand t
+  :init
+  ;; don't use `symbol-overlay-map' as it conflicts with `iedit-mode',
+  ;; a transient is be defined later to access symbol-overlay commands
+  (setq symbol-overlay-inhibit-map t)
   :config
-  ;; macro for defining new symbol-overlay jump functions that perform
-  ;; context-specific actions needed for proper functioning of the
-  ;; jump function and rebinding the original ones, adapted from
-  ;; https://emacs.stackexchange.com/questions/19215/how-to-write-a-transparent-pass-through-function-wrapper
-  (defmacro wrap-symbol-overlay-map-function (wrappee wrapper)
-    "Wraps and rebinds symbol-overlay-map funcs with context-sensitive actions.
-
-WRAPPEE is the name of the original function that should have a
-binding in `symbol-overlay-map'.
-
-WRAPPER will be the name of the the function wrapping WRAPPEE,
-and will be used to bind over WRAPPEE in `symbol-overlay-map'.
-
-An example of a context-sensitive action is that in Org buffers
-actions are automatically followed by `outline-show-context'.
-
-Example usage:
-  (wrap-symbol-over-jump-function symbol-overlay-jump-next
-                                  my-symbol-overlay-jump-next)
-"
-    (let ((args (make-symbol "args")))
-      `(progn
-         ;; define wrapped function
-         (defun ,wrapper (&rest ,args)
-           ,(concat (documentation wrappee)
-                    "
-
-In addition, context-specific actions are taken to ensure the target
-the target is visible after the jump. For example, in Org buffers
-`org-show-context' is called after the jump.
-
-This function is a lisp closure defined by wrapping `"
-                    (symbol-name wrappee)
-                    "'
-using `wrap-symbol-overlay-map-function'.
-")
-           ,(interactive-form wrappee)
-           (apply (quote ,wrappee) ,args)
-           (cond ((eq major-mode 'org-mode) (org-show-context))))
-         ;; bind wrapped function over the original in symbol-overlay-map
-         (define-key symbol-overlay-map [remap ,wrappee]
-           (quote ,wrapper)))))
-  ;; define context-sensitive symbol-overlay-jump functions and
-  ;; re-bind the original jump function
-  (wrap-symbol-overlay-map-function symbol-overlay-jump-next
-                                     my-symbol-overlay-jump-next)
-  (wrap-symbol-overlay-map-function symbol-overlay-jump-prev
-                                     my-symbol-overlay-jump-prev)
-  (wrap-symbol-overlay-map-function symbol-overlay-switch-forward
-                                     my-symbol-overlay-switch-forward)
-  (wrap-symbol-overlay-map-function symbol-overlay-switch-backward
-                                     my-symbol-overlay-switch-backward))
+  ;; advise symbol-overlay jump functions to perform context actions
+  ;; after they are run
+  (dolist (jump-fun '(symbol-overlay-jump-next
+                      symbol-overlay-jump-next
+                      symbol-overlay-switch-forward
+                      symbol-overlay-switch-backward))
+    (advice-add jump-fun :after #'my-after-jump-context-actions)))
 #+end_src
 
 ** Multiple cursors                                                   :melpa:
@@ -8662,6 +8679,8 @@ Transient bindings and definitions in this configuration conform to the
 following conventions:
 - Bind ~q~ to quit any transient. This is automatic after running
   ~(transient-bind-q-to-quit)~ which is done so in the configuration.
+  Note that transient definitions that attempt to bind ~q~ will
+  instead bind to ~Q~ or ~M-q~ instead if not otherwise bound.
 - Globally-accessible transients are always bound to a key sequence
   prefixed by ~C-c C-M-~ (like ~C-c C-M-b~ for the basic buffer
   management hydra).
@@ -8830,7 +8849,7 @@ Transient for interfacing with Projectile commands
       ("!" "Run command" projectile-run-shell-command-in-root)
       ("&" "Run command async" projectile-run-async-shell-command-in-root)
       ""
-      "Search" 
+      "Search"
       ("o" "Occur" projectile-multi-occur)
       ("s" "Grep" projectile-grep)
       ("r" "Replace" projectile-replace)
@@ -8902,7 +8921,7 @@ Add transient popup for symbol-overlay functionality.
 
 #+name: symbol-overlay-transient
 #+begin_src emacs-lisp
-;; add symbol-overlay transient popup and bind to "C-;"
+;; add symbol-overlay transient popup and bind to "C-M-;"
 (with-eval-after-load 'symbol-overlay
   (transient-define-prefix transient/symbol-overlay ()
     "Symbol overlay commands"
@@ -8933,7 +8952,7 @@ Add transient popup for symbol-overlay functionality.
       ]
      ]
     )
-  (global-set-key (kbd "C-;") 'transient/symbol-overlay))
+  (global-set-key (kbd "C-M-;") 'transient/symbol-overlay))
 #+end_src
 
 ** Workspace transient
@@ -9063,6 +9082,10 @@ The main configuration file.
 <<company>>
 
 <<edit-indirect>>
+
+;; Utility functions
+
+<<my-after-jump-context-actions>>
 
 ;; Visual (part 1)
 
@@ -9223,6 +9246,8 @@ The main configuration file.
 <<which-key>>
 
 <<expand-region>>
+
+<<iedit>>
 
 <<symbol-overlay>>
 
@@ -9905,6 +9930,12 @@ See the /Merging and Importing/ section of the Ebib [[http://joostkremers.github
 Leverages Helm to search and manage BibTeX bilbiographies.
 Potentially useful complement to Ebib.
 
+** Visual
+
+*** hl-todo                                                           :melpa:
+
+[[https://github.com/tarsius/hl-todo][GitHub - tarsius/hl-todo: Highlight TODO keywords]]
+
 ** Web
 
 *** [#A] Elfeed                                                       :melpa:
@@ -10202,27 +10233,6 @@ Requires the ~treemacs~ package be installed.
 #+end_src
 
 ** Editing text
-
-** Iedit mode for editing occurances of the same word simultaneously  :melpa:
-
-[[https://github.com/victorhge/iedit][Iedit mode]] enables editing multiple occurances of the same word in the
-buffer simultaneously.
-
-*Usage notes*:
-- ~C-;~ to edit occurances of the word under point within the buffer,
-  or ~C-u 0 C-;~ to edit occurances only within the current function.
-- Fine control of the search area for occurances is done by using
-  ~M-I~ when in ~iedit-mode~ to restrict to current line and ~M-{~ and
-  ~M-}~ to expand search region one-line at a time upwards and
-  downwards (add a prefix argument to reverse instead).
-- ~C-'~ while editing to toggle narrowing to occurance lines.
-- ~C-;~ when editing is done to apply changes.
-
-#+name: iedit
-#+begin_src emacs-lisp
-(use-package iedit
-  :init (setq iedit-toggle-key-default (kbd "C-;")))
-#+end_src
 
 ** Email
 

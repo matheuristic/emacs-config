@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  9 09:39:27 2020
+;; Generated: Sun Aug  9 09:50:55 2020
 
 ;;; Commentary:
 
@@ -1210,7 +1210,7 @@ Registers (_q_: quit)"
   ;; advise symbol-overlay jump functions to perform context actions
   ;; after they are run
   (dolist (jump-fun '(symbol-overlay-jump-next
-                      symbol-overlay-jump-next
+                      symbol-overlay-jump-prev
                       symbol-overlay-switch-forward
                       symbol-overlay-switch-backward))
     (advice-add jump-fun :after #'my-after-jump-context-actions)))

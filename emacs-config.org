@@ -2386,7 +2386,7 @@ and a keymap for different operations on the highlighted symbols.
   ;; advise symbol-overlay jump functions to perform context actions
   ;; after they are run
   (dolist (jump-fun '(symbol-overlay-jump-next
-                      symbol-overlay-jump-next
+                      symbol-overlay-jump-prev
                       symbol-overlay-switch-forward
                       symbol-overlay-switch-backward))
     (advice-add jump-fun :after #'my-after-jump-context-actions)))

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  9 09:50:55 2020
+;; Generated: Sun Aug  9 12:11:57 2020
 
 ;;; Commentary:
 
@@ -144,6 +144,14 @@ around the new point location is visible.
 ARGS is simply a catch-all for the arguments of the advised
 function and is not used."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
+
+(defun my-save-and-bury-buffer (&rest args)
+  "Save and bury the current buffer.
+ARGS is a catchall argument for when this function is used to
+advise functions, most typically with the :after combinator."
+  (interactive)
+  (save-buffer)
+  (bury-buffer))
 
 ;; Visual (part 1)
 
@@ -859,43 +867,6 @@ ARG is a prefix argument.  If nil, copy the current difference region."
 "
 )))
 
-;; hydra for smerge-mode
-(defhydra my-hydra/smerge-mode (:color pink :hint nil)
-  "
-Smerge (_q_: quit)
-Move   _n_   : next          _p_   : prev
-Keep   _b_   : base          _u_   : upper         _l_   : lower
-       _a_   : all           _RET_ : current
-Diff   _<_   : upper/base    _=_   : upper/lower   _>_   : base/lower
-       _R_   : refine        _E_   : ediff
-Other  _C_   : combine       _r_   : resolve       _k_   : kill current
-"
-  ("q" nil nil :exit t)
-  ("n" smerge-next)
-  ("p" smerge-prev)
-  ("b" smerge-keep-base)
-  ("u" smerge-keep-upper)
-  ("l" smerge-keep-lower)
-  ("a" smerge-keep-all)
-  ("RET" smerge-keep-current)
-  ("<" smerge-diff-base-upper)
-  ("=" smerge-diff-upper-lower)
-  (">" smerge-diff-base-lower)
-  ("R" smerge-refine)
-  ("E" smerge-ediff)
-  ("C" smerge-combine-with-next)
-  ("r" smerge-resolve)
-  ("k" smerge-kill-current)
-  ;; emulate Vim's "ZZ" command to save and close current file
-  ("ZZ" (lambda ()
-          (interactive)
-          (save-buffer)
-          (bury-buffer))
-   "Save and bury buffer" :exit t))
-;; binding
-(with-eval-after-load 'smerge-mode
-  (define-key smerge-mode-map (kbd "C-c C-M-m") #'my-hydra/smerge-mode/body))
-
 ;; view and compare directory trees, like Beyond Compare
 (use-package ztree
   :bind ("C-c C-M--" . ztree-diff)
@@ -1127,32 +1098,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (require 'epa-file)
 (epa-file-enable)
 
-(defhydra my-hydra/kmacros (:color teal :columns 3)
-  "
-Keyboard Macros (_q_: quit)"
-  ("q" nil nil)
-  ;; start, end and execute macros
-  ("(" kmacro-start-macro "start")
-  (")" kmacro-end-or-call-macro "end-or-call-last")
-  ("r" apply-macro-to-region-lines "call-last-region")
-  ;; macro ring
-  ("C-n" kmacro-cycle-ring-next "cycle-ring-next" :exit nil)
-  ("C-p" kmacro-cycle-ring-previous "cycle-ring-prev" :exit nil)
-  ("C-v" kmacro-view-macro "view-last" :exit nil)
-  ("C-d" kmacro-delete-ring-head "delete-ring-head" :exit nil)
-  ;; macro editing
-  ("e" edit-kbd-macro "edit")
-  ("RET" kmacro-edit-macro "edit-last")
-  ("l" kmacro-edit-lossage "edit-lossage")
-  ("SPC" kmacro-step-edit-macro "step-edit")
-  ;; naming and binding
-  ("b" kmacro-bind-to-key "bind-to-key")
-  ("n" kmacro-name-last-macro "name-last")
-  ("x" kmacro-to-register "to-register")
-  ;; other
-  ("i" insert-kbd-macro "insert-named"))
-(global-set-key (kbd "C-c C-M-k") 'my-hydra/kmacros/body)
-
 (defhydra my-hydra/registers (:color teal :columns 4)
   "
 Registers (_q_: quit)"
@@ -1290,7 +1235,7 @@ YASnippet (_q_: quit)"
   ("?" (message "Current auto-yasnippet:\n%s" aya-current)
    "current-auto")) ;; show temp snippet
 (with-eval-after-load 'yasnippet
-  (define-key yas-minor-mode-map (kbd "C-c C-M-,") #'my-hydra/yas-minor-mode/body))
+  (define-key yas-minor-mode-map (kbd "C-c C-M-<") #'my-hydra/yas-minor-mode/body))
 
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
@@ -1748,7 +1693,8 @@ Info (_q_: quit)"
 
 ;; backtrack through the entire xref--marker-ring in a single action
 (defun xref-pop-marker-stack-all ()
-  "Pop back to where \\[xref-find-definitions] was first invoked."
+  "Pop back to where `xref-find-definitions' was first invoked.
+\\[xref-find-definitions] is the current binding for `xref-find-definitions'."
   (interactive)
   (let ((ring xref--marker-ring))
     (when (ring-empty-p ring)
@@ -1790,7 +1736,7 @@ Marks / Markers (_q_: quit)"
          (xref-clear-marker-stack)
          (message "Cleared xref--marker-ring"))
    "xref-clear-markers"))
-(global-set-key (kbd "C-c C-M-.") 'my-hydra/marks-and-markers/body)
+(global-set-key (kbd "C-c C-M-,") 'my-hydra/marks-and-markers/body)
 
 (with-eval-after-load 'helm
   (defhydra+ my-hydra/marks-and-markers nil
@@ -4271,28 +4217,6 @@ for more information."
 (when (executable-find "pass")
   (use-package password-store))
 
-(when (executable-find "pass")
-  ;; hydra for password-store
-  (defhydra my-hydra/password-store (:color teal :columns 5
-                                     :pre (require 'password-store))
-    "
-Password store (_q_: quit)"
-    ("q" nil nil :exit t)
-    ("C" password-store-clear "clear")
-    ("c" password-store-copy "copy-pw")
-    ("f" password-store-copy-field "copy-field")
-    ("e" password-store-edit "edit")
-    ("I" password-store-init "init")
-    ("i" password-store-insert "insert")
-    ("g" password-store-generate "generate")
-    ("R" password-store-remove "remove")
-    ("r" password-store-rename "rename")
-    ("u" password-store-url "url")
-    ("v" password-store-version "version"))
-
-  ;; binding for password-store hydra
-  (global-set-key (kbd "C-c C-M-S-p") 'my-hydra/password-store/body))
-
 ;; OS-specific / Mac OS X
 
 ;; on Mac OS X, use Option keys as Meta and file polling for auto-revert
@@ -4451,6 +4375,8 @@ Example of use with transient suffix definitions in a
   ;; binding "q" will attempt to bind "Q" or "M-q" instead
   (transient-bind-q-to-quit))
 
+;; Transient commands / Global transients
+
 ;; add transient popup for bookmark commands, bind to "C-c C-M-j"
 (transient-define-prefix transient/bookmarks ()
   "Various bookmark commands."
@@ -4474,7 +4400,7 @@ Example of use with transient suffix definitions in a
 
 ;; add transient popup for Ediff commands, bind to "C-c C-M-="
 (transient-define-prefix transient/ediff ()
-  "Various Ediff commands."
+  "Various Ediff launch commands."
   ["Ediff"
    ["2 Way"
     ("b" "Buffers" ediff-buffers)
@@ -4503,6 +4429,67 @@ Example of use with transient suffix definitions in a
    ]
   )
 (global-set-key (kbd "C-c C-M-=") #'transient/ediff)
+
+;; add transient for keyboard macros, bind to "C-c C-M-k"
+(transient-define-prefix transient/keyboard-macros ()
+  "Keyboard macro commands."
+  ["Keyboard Macros"
+   ["Actions"
+    ("(" "Start" kmacro-start-macro) ;; also "C-x ("
+    (")" "End/Call last" kmacro-end-or-call-macro) ;; also "C-x )"
+    ("r" "Call last on region" apply-macro-to-region-lines)
+    ]
+   ["Ring"
+    ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)
+    ("C-p" "Cycle prev" kmacro-cycle-ring-previous :transient t)
+    ("C-v" "View last" kmacro-view-macro :transient t)
+    ("C-d" "Delete head" kmacro-delete-ring-head :transient t)
+    ]
+   ["Edit"
+    ("e" "Named" edit-kbd-macro)
+    ("RET" "Last" kmacro-edit-macro)
+    ("l" "Lossage" kmacro-edit-lossage)
+    ("SPC" "Step" kmacro-step-edit-macro)
+    ]
+   ]
+  [
+   ["Bind/Name"
+    ("b" "Bind to key" kmacro-bind-to-key)
+    ("n" "Name last" kmacro-name-last-macro)
+    ("x" "To register" kmacro-to-register)
+    ]
+   ["Other"
+    ("i" "Insert named" insert-kbd-macro)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-k") #'transient/keyboard-macros)
+
+;; add transient for password-store commands, bind to "C-c C-M-S-p"
+(with-eval-after-load 'password-store
+  (transient-define-prefix transient/password-store ()
+    "Various password-store commands."
+    ["Password store"
+     ["Copy"
+      ("c" "Password" password-store-copy)
+      ("f" "Field" password-store-copy-field)
+      ("u" "URL" password-store-url)
+      ]
+     ["Add/Remove/Modify"
+      ("g" "Generate" password-store-generate)
+      ("i" "Insert" password-store-insert)
+      ("e" "Edit" password-store-edit)
+      ("r" "Rename" password-store-rename)
+      ("R" "Remove" password-store-remove)
+      ]
+     ["Other"
+      ("C" "Clear" password-store-clear)
+      ("I" "Init store" password-store-init)
+      ("v" "Version" password-store-version)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-S-p") #'transient/password-store))
 
 ;; add transient popup for Emacs profiler, bind to "C-c C-M-S-e"
 (transient-define-prefix transient/profiler ()
@@ -4647,6 +4634,47 @@ Example of use with transient suffix definitions in a
    ]
   )
 (global-set-key (kbd "C-c C-M-e") #'transient/workspace)
+
+;; Transient commands / Major mode transients
+
+;; add smerge-mode transient
+(with-eval-after-load 'smerge-mode
+  (transient-define-prefix transient/smerge-mode ()
+    "smerge-mode commands."
+    ;; have suffixes not exit the transient by default
+    :transient-suffix 'transient--do-stay
+    ["Smerge"
+     ["Move"
+      ("n" "Next" smerge-next)
+      ("p" "Previous" smerge-prev)]
+     [
+      "Keep"
+      ("b" "Base" smerge-keep-base)
+      ("u" "Upper" smerge-keep-upper)
+      ("l" "Lower" smerge-keep-lower)
+      ("a" "All" smerge-keep-all)
+      ("RET" "Current" smerge-keep-current)
+      ]
+     ["Diff"
+      ("<" "Upper/Base" smerge-diff-base-upper)
+      ("=" "Upper/Lower" smerge-diff-upper-lower)
+      (">" "Base/Lower" smerge-diff-base-lower)
+      ("R" "Refine" smerge-refine)
+      ("E" "Ediff" smerge-ediff)
+      ]
+     [
+      "Other"
+      ("C" "Combine" smerge-combine-with-next)
+      ("r" "Resolve" smerge-resolve)
+      ("k" "Kill current" smerge-kill-current)
+      ;; emulate Vim's "ZZ" command to save and close current file
+      ("ZZ" "Save and bury buffer" my-save-and-bury-buffer
+       :transient nil)
+      ]
+     ]
+    )
+  (define-key smerge-mode-map (kbd "C-c C-M-m")
+    #'transient/smerge-mode))
 
 (provide 'init)
 ;;; init.el ends here

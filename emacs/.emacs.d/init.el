@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  9 17:02:59 2020
+;; Generated: Sun Aug  9 18:42:20 2020
 
 ;;; Commentary:
 
@@ -3664,7 +3664,7 @@ _b_ : blink-cursor [% 5`blink-cursor-mode]^^^^^   _F_ : follow       [% 5`follow
 _H_ : hl-changes   [% 5`highlight-changes-mode]   _h_ : hl-line      [% 5`hl-line-mode]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _l_ : line-nums    [% 5`display-line-numbers-mode]
 _p_ : show-paren   [% 5`show-paren-mode]^^^^^^^   _s_ : scroll-bar   [% 5(frame-parameter nil 'vertical-scroll-bars)]   _S_ : hscroll-bar  [% 5(frame-parameter nil 'horizontal-scroll-bars)]
 _T_ : transient-mk [% 5`transient-mark-mode]^^^   _t_ : truncate-lns [% 5`truncate-lines]^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _v_ : visual-line  [% 5`visual-line-mode]
-_W_ : whitespace   [% 5`whitespace-mode]^^^^^^^   _w_ : trailing-ws  [% 5`show-trailing-whitespace]
+_W_ : whitespace   [% 5`whitespace-mode]^^^^^^^   _w_ : trailing-ws  [% 5`show-trailing-whitespace]^^^^^^^^^^^^^^^^^^   _m_ : menu-bar     [% 5`menu-bar-mode]
 _nr_ / _np_ / _nd_ / _nw_ : narrow to-region / to-page / to-defun / widen      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[% 5(buffer-narrowed-p)]
 _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[% 5(if text-scale-mode text-scale-mode-amount nil)]
 "
@@ -3675,6 +3675,7 @@ _+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^
   ("H" highlight-changes-mode)
   ("h" hl-line-mode)
   ("l" display-line-numbers-mode)
+  ("m" menu-bar-mode)
   ("p" show-paren-mode)
   ("s" toggle-scroll-bar)
   ("S" toggle-horizontal-scroll-bar)

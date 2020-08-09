@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug  7 22:50:09 2020
+;; Generated: Sat Aug  8 23:15:20 2020
 
 ;;; Commentary:
 
@@ -191,20 +191,6 @@
         backup-by-copying t)) ;; backup by copying instead of renaming
 
 ;; Bookmarks and history
-
-(defhydra my-hydra/bookmarks (:color teal :columns 3)
-  "
-Bookmarks (_q_: quit)"
-  ("q" nil nil)
-  ("s" bookmark-set "set")
-  ("d" bookmark-delete "delete")
-  ("l" list-bookmarks "list")
-  ("j" bookmark-jump "jump")
-  ("i" bookmark-insert "insert")
-  ("I" bookmark-insert-location "insert-loc")
-  ("L" bookmark-load "load")
-  ("W" bookmark-write "write"))
-(global-set-key (kbd "C-c C-M-j") 'my-hydra/bookmarks/body)
 
 ;; recently opened files
 (setq recentf-max-menu-items 10
@@ -680,20 +666,6 @@ Frame (_q_: quit)"
       desktop-restore-reuses-frames t)
 (add-hook 'after-init-hook (lambda () (desktop-save-mode 1)))
 
-;; hydra for workspace management
-(defhydra my-hydra/workspace (:color teal :columns 3)
-  "
-Emacs workspace (_q_: quit)"
-  ("q" nil nil)
-  ("dc" desktop-clear "desktop-clear")
-  ("ds" desktop-save "desktop-save")
-  ("dr" desktop-read "desktop-read")
-  ("dR" desktop-revert "desktop-revert")
-  ("dd" desktop-change-dir "desktop-dir"))
-
-;; binding for workspace management hydra
-(global-set-key (kbd "C-c C-M-e") 'my-hydra/workspace/body)
-
 ;; Command-line interaction
 
 (setq eshell-history-size 1024
@@ -805,14 +777,14 @@ Term (_q_: quit)"
         vterm-kill-buffer-on-exit t
         vterm-shell (or (executable-find "fish") shell-file-name)))
 
-(defun vterm--switch-to-buffer ()
+(defun vterm-switchb ()
   "Call `switch-to-buffer' but only for vterm buffers."
   (interactive)
   (let ((completion-regexp-list '("\\`vterm .*")))
     (call-interactively #'switch-to-buffer)))
 
 (with-eval-after-load 'vterm
-  (define-key vterm-mode-map (kbd "C-c C-b") #'vterm--switch-to-buffer))
+  (define-key vterm-mode-map (kbd "C-c C-b") #'vterm-switchb))
 
 ;; convenience functions for sent commands to an active tmux session
 ;; adapted from https://explog.in/notes/tmux.html
@@ -833,21 +805,6 @@ Term (_q_: quit)"
   (if tmux-send--last-command
       (call-process "tmux" nil nil nil "send-keys" tmux-send--last-command "Enter")
     (message "No previously sent command from the current buffer!")))
-
-;; hydra providing entry points into shell tools
-(defhydra my-hydra/shell (:color teal :columns 3)
-  "
-Shell tools (_q_: quit)"
-  ("q" nil nil)
-  ("v" vterm "vterm")
-  ("V" vterm-other-window "vterm-other")
-  ("C-v" vterm--switch-to-buffer "vterm-switchb")
-  ("e" my-eshell-with-name "eshell")
-  ("t" tmux-send "tmux-send")
-  ("T" tmux-resend "tmux-resend"))
-
-;; binding for spawning or switching to a named Eshell buffer
-(global-set-key (kbd "C-c C-M-t") #'my-hydra/shell/body)
 
 ;; Comparison tools
 
@@ -886,29 +843,6 @@ ARG is a prefix argument.  If nil, copy the current difference region."
                 "  d -copy A + B regions to C
 "
 )))
-
-;; hydra for Ediff
-(defhydra my-hydra/ediff (:color teal :hint nil)
-  "
-Ediff (_q_: quit)
-Buffer   _b_ : 2-way       _B_ : 3-way
-Files    _f_ : 2-way       _F_ : 3-way       _c_ : current
-Region   _l_ : line-wise   _w_ : word-wise
-Windows  _L_ : line-wise   _W_ : word-wise
-"
-  ("q" nil nil :exit t)
-  ("b" ediff-buffers)
-  ("B" ediff-buffers3)
-  ("f" ediff-files)
-  ("F" ediff-files3)
-  ("c" ediff-current-file)
-  ("l" ediff-regions-linewise)
-  ("w" ediff-regions-wordwise)
-  ("L" ediff-windows-linewise)
-  ("W" ediff-windows-wordwise))
-
-;; binding for Ediff hydra
-(global-set-key (kbd "C-c C-M-=") #'my-hydra/ediff/body)
 
 ;; hydra for smerge-mode
 (defhydra my-hydra/smerge-mode (:color pink :hint nil)
@@ -1239,8 +1173,61 @@ Registers (_q_: quit)"
   :commands er/expand-region
   :bind ("C-=" . er/expand-region))
 
-(use-package iedit
-  :init (setq iedit-toggle-key-default (kbd "C-;")))
+(use-package symbol-overlay
+  :demand t
+  :config
+  ;; macro for defining new symbol-overlay jump functions that perform
+  ;; context-specific actions needed for proper functioning of the
+  ;; jump function and rebinding the original ones, adapted from
+  ;; https://emacs.stackexchange.com/questions/19215/how-to-write-a-transparent-pass-through-function-wrapper
+  (defmacro wrap-symbol-overlay-map-function (wrappee wrapper)
+    "Wraps and rebinds symbol-overlay-map funcs with context-sensitive actions.
+
+WRAPPEE is the name of the original function that should have a
+binding in `symbol-overlay-map'.
+
+WRAPPER will be the name of the the function wrapping WRAPPEE,
+and will be used to bind over WRAPPEE in `symbol-overlay-map'.
+
+An example of a context-sensitive action is that in Org buffers
+actions are automatically followed by `outline-show-context'.
+
+Example usage:
+  (wrap-symbol-over-jump-function symbol-overlay-jump-next
+                                  my-symbol-overlay-jump-next)
+"
+    (let ((args (make-symbol "args")))
+      `(progn
+         ;; define wrapped function
+         (defun ,wrapper (&rest ,args)
+           ,(concat (documentation wrappee)
+                    "
+
+In addition, context-specific actions are taken to ensure the target
+the target is visible after the jump. For example, in Org buffers
+`org-show-context' is called after the jump.
+
+This function is a lisp closure defined by wrapping `"
+                    (symbol-name wrappee)
+                    "'
+using `wrap-symbol-overlay-map-function'.
+")
+           ,(interactive-form wrappee)
+           (apply (quote ,wrappee) ,args)
+           (cond ((eq major-mode 'org-mode) (org-show-context))))
+         ;; bind wrapped function over the original in symbol-overlay-map
+         (define-key symbol-overlay-map [remap ,wrappee]
+           (quote ,wrapper)))))
+  ;; define context-sensitive symbol-overlay-jump functions and
+  ;; re-bind the original jump function
+  (wrap-symbol-overlay-map-function symbol-overlay-jump-next
+                                     my-symbol-overlay-jump-next)
+  (wrap-symbol-overlay-map-function symbol-overlay-jump-prev
+                                     my-symbol-overlay-jump-prev)
+  (wrap-symbol-overlay-map-function symbol-overlay-switch-forward
+                                     my-symbol-overlay-switch-forward)
+  (wrap-symbol-overlay-map-function symbol-overlay-switch-backward
+                                     my-symbol-overlay-switch-backward))
 
 ;; multiple cursors
 (use-package multiple-cursors
@@ -2128,7 +2115,7 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
       org-attach-dir-relative t ;; use relative directories when setting DIR property using `org-attach-set-directory'
       ;; org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
       ;;                              (plain-list-item . nil)) ;; same as above
-      org-catch-invisible-edits 'error
+      org-catch-invisible-edits 'show-and-error
       org-confirm-babel-evaluate nil ;; don't confirm before evaluating code blocks in Org documents
       org-cycle-separator-lines 2 ;; collapse single item separator lines when cycling
       org-edit-src-content-indentation 2
@@ -2155,7 +2142,7 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
       org-startup-indented nil
       org-treat-S-cursor-todo-selection-as-state-change nil
       org-use-fast-todo-selection t
-      org-use-speed-commands nil)
+      org-use-speed-commands t)
 
 ;; make sure UUIDs generated for Org usage are alway upcased, which
 ;; solves issues with synced directories, for example Linux generates
@@ -3082,19 +3069,6 @@ Emacs debugger (_q_: quit)"
 (with-eval-after-load 'debug
   (define-key debugger-mode-map (kbd "C-c C-M-m") #'my-hydra/debugger-mode/body))
 
-;; hydra for built-in Emacs Lisp profiler
-(defhydra my-hydra/profiler (:color teal :columns 3
-                             :pre (require 'profiler))
-  "
-Emacs profiler [CPU=%(profiler-running-p) MEM=%(profiler-memory-running-p)] (_q_: quit)"
-  ("q" nil nil)
-  ("s" profiler-start "start/reset" :exit nil)
-  ("p" profiler-report "report")
-  ("e" profiler-stop "stop" :exit nil))
-
-;; binding for Emacs profiler hydra
-(global-set-key (kbd "C-c C-M-S-e") 'my-hydra/profiler/body)
-
 (use-package el-patch
   :demand t)
 
@@ -3537,64 +3511,6 @@ Racket Mode (_q_: quit)"
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
   (projectile-mode)) ;; enable mode globally
 
-;; hydra for Projectile
-(defhydra my-hydra/projectile-mode (:color teal :hint nil)
-  "
-Projectile: %s(projectile-project-name) (_q_: quit)
-Buffer _←_ : previous proj buf  _→_ : next proj buf      _b_ : switch
-       _I_ : ibuffer            _S_ : save proj bufs     _k_ : kill proj bufs
-File   _f_ : find (curr proj)   _F_ : find (known projs) _g_ : find (context)
-       _t_ : goto impl/test     _e_ : recent             _E_ : dir-locals-file
-Dir    _d_ : find dir           _D_ : dired
-Search _o_ : multi-occur        _s_ : grep               _r_ : replace string
-Tags   _j_ : find tag           _R_ : regenerate tags
-Shell  _x_ : eshell             _!_ : run command        _&_ : run command async
-Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
-       _P_ : test proj          _z_ : cache curr file    _i_ : clear cache
-"
-  ("q" nil nil)
-  ;; buffer
-  ("b" projectile-switch-to-buffer)
-  ("<left>" projectile-previous-project-buffer :exit nil)
-  ("<right>" projectile-next-project-buffer :exit nil)
-  ("I" projectile-ibuffer)
-  ("S" projectile-save-project-buffers)
-  ("k" projectile-kill-buffers)
-  ;; file
-  ("f" projectile-find-file)
-  ("F" projectile-find-file-in-known-projects)
-  ("g" projectile-find-file-dwim)
-  ("t" projectile-toggle-between-implementation-and-test)
-  ("e" projectile-recentf)
-  ("E" projectile-edit-dir-locals)
-  ;; dir
-  ("d" projectile-find-dir)
-  ("D" projectile-dired)
-  ;; search
-  ("o" projectile-multi-occur)
-  ("s" projectile-grep)
-  ("r" projectile-replace)
-  ;; tags
-  ("j" projectile-find-tag)
-  ("R" projectile-regenerate-tags)
-  ;; other
-  ("C" projectile-configure-project)
-  ("c" projectile-compile-project)
-  ("u" projectile-run-project)
-  ("P" projectile-test-project)
-  ("z" projectile-cache-current-file)
-  ("i" projectile-invalidate-cache)
-  ("x" projectile-run-eshell)
-  ("!" projectile-run-shell-command-in-root)
-  ("&" projectile-run-async-shell-command-in-root)
-  ;; misc
-  ("m" projectile-commander "commander")
-  ("p" projectile-switch-project "switch project"))
-
-;; binding for projectile hydra
-(with-eval-after-load 'projectile
-  (define-key projectile-mode-map (kbd "C-c C-M-p") #'my-hydra/projectile-mode/body))
-
 ;; Org TODOs for projectile projects
 ;; use `org-capture' to capture and store TODOs for the current project
 ;; in `org-projectile-per-project-filepath' at the project's root directory
@@ -3941,60 +3857,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
     ("Pm" prism-mode :exit nil)
     ("Pw" prism-whitespace-mode :exit nil)))
 
-;; provides semantic coloring where same keywords are also colored the same
-(use-package color-identifiers-mode
-  :config (setq color-identifiers-coloring-method 'sequential
-                color-identifiers:num-colors 10))
-
-;; extend visual hydra to support color-identifiers-mode
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params '(:pre (require 'color-identifiers-mode)))
-    ,(concat my-hydra/visual/docstring
-             "_c_  : color-identifiers-mode   [% 3`color-identifiers-mode]
-")
-    ("c" color-identifiers-mode :exit nil)))
-
-;; hydra for toggling outline-minor-mode and running its commands
-(defhydra my-hydra/visual/outline (:color amaranth :hint nil
-                                   :pre (require 'outline))
-  "
-Visual → Outline [minor-mode-enabled=%`outline-minor-mode] (_q_: ←)
-Mode    _m_ : toggle
-Hide    _c_ : entry     _l_ : leaves    _d_ : subtree   _o_ : other
-        _t_ : body
-Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
-        _a_ : all
-"
-  ("q" my-hydra/visual/body nil :exit t)
-  ("c" outline-hide-entry)
-  ("l" outline-hide-leaves)
-  ("d" outline-hide-subtree)
-  ("t" outline-hide-body)
-  ("o" outline-hide-other)
-  ("e" outline-show-entry)
-  ("i" outline-show-children)
-  ("k" outline-show-branches)
-  ("s" outline-show-subtree)
-  ("a" outline-show-all)
-  ("m" outline-minor-mode))
-
-;; add entry-point into outline hydra from visual hydra
-(defhydra+ my-hydra/visual nil
-  ("o" my-hydra/visual/outline/body "→ Outline" :exit t))
-
-;; <tab> cycles the folding of the current node in outline-minor-mode
-;; https://www.reddit.com/r/emacs/comments/a6tu8y/outlineminormode_for_emacs_maybe_useful/eby6c2r/
-(use-package outline-magic
-  :config
-  (add-hook 'outline-minor-mode-hook
-            (lambda ()
-              (define-key outline-minor-mode-map (kbd "TAB")
-                '(menu-item "" nil :filter
-                            (lambda (&optional _)
-                              (when (outline-on-heading-p)
-                                #'outline-cycle)))))))
-
 ;; display line numbers by default when editing code
 (add-hook 'prog-mode-hook
           (lambda ()
@@ -4009,36 +3871,6 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
 
 (use-package volatile-highlights
   :hook (after-init . volatile-highlights-mode))
-
-;; add visual indentation guides
-(use-package highlight-indent-guides
-  :init (setq highlight-indent-guides-method 'character
-              highlight-indent-guides-responsive 'top
-              highlight-indent-guides-character ?\x2502)
-  :config
-  (add-hook 'python-mode-hook (lambda ()
-                                (highlight-indent-guides-mode 1))))
-
-;; add `highlight-indent-guides-mode' toggle to visual hydra
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params '(:pre (require 'highlight-indent-guides)))
-    ,(concat my-hydra/visual/docstring
-             "_i_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
-")
-    ("i" highlight-indent-guides-mode :exit nil)))
-
-(require 'censor)
-
-;; add `censor-mode' and `global-censor-mode' toggles to visual hydra
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params '(:pre (require 'censor)))
-    ,(concat my-hydra/visual/docstring
-             "_X_  : global-censor-mode       [% 3`global-censor-mode]   _x_  : censor-mode              [% 3`censor-mode]
-")
-    ("X" global-censor-mode :exit nil)
-    ("x" censor-mode :exit nil)))
 
 ;; add internal frame border
 (add-to-list 'default-frame-alist
@@ -4065,6 +3897,65 @@ Show    _e_ : entry     _i_ : children  _k_ : branches  _s_ : subtree
   (set-face-attribute 'window-divider-first-pixel nil :foreground bg-color)
   (set-face-attribute 'window-divider-last-pixel nil :foreground bg-color))
 (window-divider-mode 1)
+
+(require 'censor)
+
+;; add `censor-mode' and `global-censor-mode' toggles to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params '(:pre (require 'censor)))
+    ,(concat my-hydra/visual/docstring
+             "_X_  : global-censor-mode       [% 3`global-censor-mode]   _x_  : censor-mode              [% 3`censor-mode]
+")
+    ("X" global-censor-mode :exit nil)
+    ("x" censor-mode :exit nil)))
+
+;; add visual indentation guides
+(use-package highlight-indent-guides
+  :init (setq highlight-indent-guides-method 'character
+              highlight-indent-guides-responsive 'top
+              highlight-indent-guides-character ?\x2502)
+  :config
+  (add-hook 'python-mode-hook (lambda ()
+                                (highlight-indent-guides-mode 1))))
+
+;; add `highlight-indent-guides-mode' toggle to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params
+             '(:pre (progn
+                      (require 'symbol-overlay)
+                      (require 'highlight-indent-guides))))
+    ,(concat my-hydra/visual/docstring
+             "_O_  : symbol-overlay-mode      [% 3`symbol-overlay-mode]   _i_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
+")
+    ("O" symbol-overlay-mode :exit nil)
+    ("i" highlight-indent-guides-mode :exit nil)))
+
+;; helper function for pulsing the current line, adapted from
+;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
+(defun my-pulse-line (&optional face)
+    "Pulse the current line."
+    (interactive)
+    (let ((start (if (eobp)
+                     (line-beginning-position 0)
+                   (line-beginning-position)))
+          (end (line-beginning-position 2))
+          (pulse-delay .1))
+      (pulse-momentary-highlight-region start end face)))
+
+(defun ace-window--after-pulse-line (&rest args)
+  "Pulse line momentarily after `ace-window' is called.
+ARGS are the original args to `ace-window' and are ignored."
+  (unless (minibufferp) ;; don't pulse when in the minibuffer
+    (my-pulse-line)))
+
+;; pulse line after changing focused window using `ace-window'
+(with-eval-after-load 'ace-window
+  (advice-add 'ace-window :after #'ace-window--after-pulse-line))
+
+;; also pulse line when Emacs regains focus
+(add-hook 'focus-in-hook #'ace-window--after-pulse-line)
 
 ;; Web
 
@@ -4540,6 +4431,236 @@ Return nil if there isn't one."
           (setq loads (cdr loads)
                 load-elt (and loads (car loads)))))
       load-elt)))
+
+;; Transient commands
+
+(use-package transient
+  :init
+  ;; convenience function for specifying transient toggle descriptions
+  (defun transient--make-description (desc is-enabled)
+    "Return a string description for transient descriptions.
+The returned string has format \"DESC [ ]\" if IS-ENABLED is nil
+or \"DESC [X]\" if is-enabled is non-nil.
+
+Examples:
+
+  (transient--make-description symbol-overlay-mode \"highlight\")
+  => \"highlight [x]\"
+
+Example of use with transient suffix definitions in a
+`transient-define-prefix' macro:
+
+  ...
+  (\"m\" (lambda () (transient--describe-toggle
+                       \"highlight-at-pt\"
+                       symbol-overlay-mode))
+   symbol-overlay-mode)
+  ...
+
+  => \"m highlight-at-pt [ ]\"
+"
+    (concat desc " " (if is-enabled "[X]" "[ ]")))
+  :config
+  ;; bind "q" to quit transient popups by default, transient defns
+  ;; binding "q" will attempt to bind "Q" or "M-q" instead
+  (transient-bind-q-to-quit))
+
+;; add transient popup for bookmark commands, bind to "C-c C-M-j"
+(transient-define-prefix transient/bookmarks ()
+  "Various bookmark commands."
+  ["Bookmarks"
+   ["Navigate"
+    ("j" "Jump" helm-bookmarks) ;; helm `bookmark-jump' replacement
+    ("l" "List" list-bookmarks)
+    ]
+   ["Add/Remove"
+    ("s" "Set" bookmark-set)
+    ("d" "Delete" bookmark-delete)
+    ("i" "Insert" bookmark-insert)
+    ]
+   ["File"
+    ("L" "Load" bookmark-load)
+    ("W" "Write" bookmark-write)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-j") #'transient/bookmarks)
+
+;; add transient popup for Ediff commands, bind to "C-c C-M-="
+(transient-define-prefix transient/ediff ()
+  "Various Ediff commands."
+  ["Ediff"
+   ["2 Way"
+    ("b" "Buffers" ediff-buffers)
+    ("f" "Files" ediff-files)
+    ("d" "Directories" ediff-directories)
+    ("c" "Buffer vs File" ediff-current-file)
+    ("~" "File vs Backup" ediff-backup)
+    ]
+   ["3 Way"
+    ("3b" "Buffers" ediff-buffers3)
+    ("3f" "Files" ediff-files3)
+    ("3d" "Directories" ediff-directories3)
+    ]
+   ["Patches"
+    ("pb" "Buffer" ediff-patch-buffer)
+    ("pf" "File" ediff-patch-file)
+    ]
+   ["Regions"
+    ("rl" "Linewise" ediff-regions-linewise)
+    ("rw" "Wordwise" ediff-regions-wordwise)
+    ]
+   ["Windows"
+    ("wl" "Linewise" ediff-windows-linewise)
+    ("ww" "Wordwise" ediff-windows-wordwise)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-=") #'transient/ediff)
+
+;; add transient popup for Emacs profiler, bind to "C-c C-M-S-e"
+(transient-define-prefix transient/profiler ()
+  "Emacs profiler commands."
+  [:description (lambda ()
+                  (concat "Profiler | "
+                          (transient--make-description
+                           "CPU"
+                           (profiler-running-p))
+                          " "
+                          (transient--make-description
+                           "Memory"
+                           (profiler-memory-running-p))))
+   ("s" "Start/Reset" profiler-start :transient t)
+   ("p" "Report" profiler-report)
+   ("e" "Stop" profiler-stop :transient t)
+   ]
+  )
+(global-set-key (kbd "C-c C-M-S-e") #'transient/profiler)
+
+;; add transient popup for projectile, bind to "C-c C-M-p"
+(with-eval-after-load 'projectile
+  (transient-define-prefix transient/projectile ()
+    "Projectile commands"
+    [:description (lambda ()
+                    (concat "Projectile ["
+                            (or (projectile-project-name) "none")
+                            "]"))
+     ["Project"
+      ("C" "Configure" projectile-configure-project)
+      ("c" "Compile" projectile-compile-project)
+      ("u" "Run" projectile-run-project)
+      ("P" "Test" projectile-test-project)
+      ("z" "Cache file" projectile-cache-current-file)
+      ("i" "Invalidate cache" projectile-invalidate-cache)
+      ("x" "Run Eshell" projectile-run-eshell)
+      ("!" "Run command" projectile-run-shell-command-in-root)
+      ("&" "Run command async" projectile-run-async-shell-command-in-root)
+      ""
+      "Search" 
+      ("o" "Occur" projectile-multi-occur)
+      ("s" "Grep" projectile-grep)
+      ("r" "Replace" projectile-replace)
+      ]
+     ["Buffer"
+      ("b" "Switchb" projectile-switch-to-buffer)
+      ("<left>" "Previous" projectile-previous-project-buffer :transient t)
+      ("<right>" "Next" projectile-next-project-buffer :transient t)
+      ("I" "Ibuffer" projectile-ibuffer)
+      ("S" "Save" projectile-save-project-buffers)
+      ("k" "Kill" projectile-kill-buffers)
+      ""
+      "File"
+      ("f" "Find file" projectile-find-file)
+      ("F" "Find file (known prjs)" projectile-find-file-in-known-projects)
+      ("g" "Find file (dwim)" projectile-find-file-dwim)
+      ("t" "Toggle impl/test" projectile-toggle-between-implementation-and-test)
+      ("e" "Recentf" projectile-recentf)
+      ("E" "Edit dir-locals" projectile-edit-dir-locals)
+      ]
+     ["Dir"
+      ("d" "Find dir" projectile-find-dir)
+      ("D" "Dired" projectile-dired)
+      ""
+      "Tags"
+      ("j" "Find tag" projectile-find-tag)
+      ("R" "Regen tags" projectile-regenerate-tags)
+      ""
+      "Other"
+      ("m" "Commander" projectile-commander)
+      ("p" "Switch project" projectile-switch-project)
+      ]
+     ]
+    )
+  (define-key projectile-mode-map (kbd "C-c C-M-p")
+    #'transient/projectile))
+
+;; add transient popup for shell tools, bind to "C-c C-M-t"
+(transient-define-prefix transient/shell ()
+  "Various shell tools."
+  ["Shell tools"
+   ["Eshell"
+    ("e" "New/Switch" my-eshell-with-name)
+    ]
+   ["Vterm"
+    ("vv" "New" vterm)
+    ("vo" "Other" vterm-other-window)
+    ("vc" "Switch" vterm-switchb)
+    ]
+   ["Tmux"
+    ("ts" "Send" tmux-send)
+    ("tr" "Resend" tmux-resend)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-t") #'transient/shell)
+
+;; add symbol-overlay transient popup and bind to "C-;"
+(with-eval-after-load 'symbol-overlay
+  (transient-define-prefix transient/symbol-overlay ()
+    "Symbol overlay commands"
+    ;; suffix actions don't exit the transient popup by default
+    :transient-suffix 'transient--do-stay
+    ["Symbol overlays"
+     ["Navigation"
+      ("n" "Jump next" symbol-overlay-jump-next)
+      ("p" "Jump prev" symbol-overlay-jump-prev)
+      ("f" "Switch fwd" symbol-overlay-switch-forward)
+      ("b" "Switch bwd" symbol-overlay-switch-backward)
+      ]
+     ["Operations"
+      ("i" "Put/Remove" symbol-overlay-put)
+      ("t" "Toggle scope" symbol-overlay-toggle-in-scope)
+      ("k" "Remove all" symbol-overlay-remove-all :transient nil)
+      ("r" "Rename" symbol-overlay-rename :transient nil)
+      ("q" "Query/Replace" symbol-overlay-query-replace :transient nil)
+      ]
+     ["Other"
+      ("m" (lambda () (transient--make-description
+                       "symbol-overlay-mode"
+                       symbol-overlay-mode))
+       symbol-overlay-mode)
+      ("w" "Copy" symbol-overlay-save-symbol)
+      ("s" "Search" symbol-overlay-isearch-literally :transient nil)
+      ("d" "Defn" symbol-overlay-jump-to-definition :transient nil)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-;") 'transient/symbol-overlay))
+
+;; add transient popup for workspace commands, bind to "C-c C-M-e"
+(transient-define-prefix transient/workspace ()
+  "Various workspace commands."
+  ["Workspace"
+   ["Desktop"
+    ("dc" "Clear" desktop-clear)
+    ("ds" "Save" desktop-save)
+    ("dr" "Read" desktop-read)
+    ("dR" "Revert" desktop-revert)
+    ("dd" "Change Dir" desktop-change-dir)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-e") #'transient/workspace)
 
 (provide 'init)
 ;;; init.el ends here

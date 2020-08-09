@@ -634,14 +634,15 @@ This is used by other packages, like ~markdown-mode~.
 
 * Utility functions
 
-Various utility functions used in multiple config locations.
+Various utility functions used in multiple config locations, usually
+non-interactive and added to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Hooks.html][hooks]] or as [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Advising-Functions.html][advice]] to other functions.
 
-** Useful context actions to perform after jumping to a new location
+** After jump context actions
 
-Define a function covering useful context-specific actions to perform
-after jumping to a new location.
+Define a function that performs a laundry list of useful
+context-specific actions useful after jumping to a new location.
 
-Some examples of useful context actions:
+Some examples of these context actions:
 - Run ~org-show-context~ after jumping to an Org buffer location.
 
 #+name: my-after-jump-context-actions
@@ -660,6 +661,33 @@ function and is not used."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
 #+end_src
 
+** Pulse the current line
+
+Helper function for pulsing the current line. Adapted from [[https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f][here]].
+
+#+name: my-pulse-line
+#+begin_src emacs-lisp
+;; helper function for pulsing the current line, adapted from
+;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
+(defun my-pulse-line (&rest args)
+    "Pulse the current line .
+If the point is at the newline at the end of the buffer, pulse
+the line before that. Additionally, the current line is not pulsed
+if the point is in the minibuffer.
+
+ARGS is not used. It is defined for when the function is used to
+advise other functions, designed to be a catch-all for any
+arguments passed from the advised function."
+    (unless (minibufferp)
+      (let ((start (if (and (eobp)
+                            (= (point) (line-beginning-position)))
+                       (line-beginning-position 0)
+                     (line-beginning-position)))
+            (end (line-beginning-position 2))
+            (pulse-delay .1))
+        (pulse-momentary-highlight-region start end nil))))
+#+end_src
+
 ** Save and bury buffer
 
 Save current buffer and bury it.
@@ -670,7 +698,6 @@ Save current buffer and bury it.
   "Save and bury the current buffer.
 ARGS is a catchall argument for when this function is used to
 advise functions, most typically with the :after combinator."
-  (interactive)
   (save-buffer)
   (bury-buffer))
 #+end_src
@@ -2290,7 +2317,7 @@ buffer simultaneously.
 (use-package iedit
   :init (setq iedit-toggle-key-default (kbd "C-;"))
   :config
-  ;; advise iedit functions that jump to new pointer locations to
+  ;; advise iedit functions that jump to new point locations to
   ;; perform context actions after they are run
   (dolist (jump-fun '(iedit-next-occurrence
                       iedit-prev-occurrence
@@ -2540,7 +2567,7 @@ Join current and next line, like ~J~ in Vim.
 
 ** Open new line below/above like "o"/"O" in Vim
 
-Create a new line below/above the current one and move pointer
+Create a new line below/above the current one and move point
 there, like ~o~/~O~ in Vim.
 
 #+name: my-open-line-below-and-above
@@ -3527,7 +3554,7 @@ Info (_q_: quit)"
 
 * Marks and markers
 
-[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mark.html][Marks]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Markers.html][markers]] are useful for saving pointer locations and jumping
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mark.html][Marks]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Markers.html][markers]] are useful for saving point locations and jumping
 back to them later.
 
 They can be thought of as temporary bookmarks, and can be
@@ -5312,23 +5339,6 @@ packages.
                                       15 nil nil "…"))
                            ""))
                  t)))
-#+end_src
-
-*** Conda hydra                                                       :hydra:
-
-Hydra for conda.
-
-#+name: conda-hydra
-#+begin_src emacs-lisp
-(defhydra my-hydra/conda (:color teal :columns 4)
-  "
-conda (_q_: quit)"
-  ("q" nil nil)
-  ("a" conda-env-activate "activate")
-  ("d" conda-env-deactivate "deactivate")
-  ("l" conda-env-list "list"))
-(with-eval-after-load 'conda
-  (global-set-key (kbd "C-c C-M-S-v") 'my-hydra/conda/body))
 #+end_src
 
 ** lsp-mode Language Server Protocol client                           :melpa:
@@ -7244,13 +7254,13 @@ Display line numbers by default when editing code.
             (display-line-numbers-mode 1)))
 #+end_src
 
-** Show pointer location column number in the mode line
+** Show point location column number in the mode line
 
-Show the column number of the pointer location in the mode line.
+Show the column number of the point location in the mode line.
 
 #+name: show-column-number
 #+begin_src emacs-lisp
-;; show pointer location column number in mode line
+;; show point location column number in mode line
 (setq column-number-mode t)
 #+end_src
 
@@ -7413,30 +7423,12 @@ cursor type is set to ~bar~.
 
 #+name: advise-select-window-after-pulse-line
 #+begin_src emacs-lisp
-;; helper function for pulsing the current line, adapted from
-;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
-(defun my-pulse-line (&optional face)
-    "Pulse the current line."
-    (interactive)
-    (let ((start (if (eobp)
-                     (line-beginning-position 0)
-                   (line-beginning-position)))
-          (end (line-beginning-position 2))
-          (pulse-delay .1))
-      (pulse-momentary-highlight-region start end face)))
-
-(defun ace-window--after-pulse-line (&rest args)
-  "Pulse line momentarily after `ace-window' is called.
-ARGS are the original args to `ace-window' and are ignored."
-  (unless (minibufferp) ;; don't pulse when in the minibuffer
-    (my-pulse-line)))
-
 ;; pulse line after changing focused window using `ace-window'
 (with-eval-after-load 'ace-window
-  (advice-add 'ace-window :after #'ace-window--after-pulse-line))
+  (advice-add 'ace-window :after #'my-pulse-line))
 
 ;; also pulse line when Emacs regains focus
-(add-hook 'focus-in-hook #'ace-window--after-pulse-line)
+(add-hook 'focus-in-hook #'my-pulse-line)
 #+end_src
 
 * Web
@@ -7751,11 +7743,11 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
 
 When one of the modes is active, unrecognized words are highlighted.
 To maintain performance, it only checks words that are newly typed or
-that the pointer moves across.
+that the point moves across.
 
 Activating the mode also enables a few bindings that act on
 unrecognized words:
-- ~C-c $~ pops up menu of corrections for the word before the pointer.
+- ~C-c $~ pops up menu of corrections for the word before the point.
 - ~C-.~ corrects the current word. Pressing it repeatedly will propose
   successive correction candidates.
 - ~C-;~ corrects the previous word. Pressing it repeated will propose
@@ -8029,37 +8021,6 @@ Emacs implementation (looking at Emacs Mac Port here).
    t))
 #+end_src
 
-** Help hydra                                                         :hydra:
-
-Hydra for summoning Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Help.html][help]].
-
-#+name: help-hydra
-#+begin_src emacs-lisp
-;; hydra for help entrypoints
-(defhydra my-hydra/help (:color teal :columns 4)
-  "
-Help (_q_: quit)"
-  ("q" nil nil)
-  ("a" apropos-command "apropos-cmd")
-  ("d" apropos-documentation "apropos-doc")
-  ("f" describe-function "desc-fun")
-  ("v" describe-variable "desc-var")
-  ("c" describe-key-briefly "desc-key-brief")
-  ("k" describe-key "desc-key")
-  ("b" describe-bindings "desc-bind")
-  ("m" describe-mode "desc-mode")
-  ("p" describe-package "desc-pkg")
-  ("y" describe-syntax "desc-syntax")
-  ("e" view-echo-area-messages "messages")
-  ("l" view-lossage "lossage")
-  ("i" info "info")
-  ("s" info-lookup-symbol "info-symbol")
-  ("w" where-is "where-is"))
-
-;; bind help hydra
-(global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
-#+end_src
-
 ** Scratch buffer default mode set to fundamental-mode
 
 Set the initial mode of the scratch buffer to ~fundamental-mode~,
@@ -8077,7 +8038,7 @@ using ~C-x C-e~ if desired.
 ** Scroll conservatively at window edge
 
 The default behavior in Emacs when scrolling past the window edge is
-to recenter the viewport on the pointer.
+to recenter the viewport on the point.
 Modify this to scroll conservatively, moving the viewport one column
 or line at a time instead of recentering.
 
@@ -8664,6 +8625,26 @@ Transient for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs
 (global-set-key (kbd "C-c C-M-j") #'transient/bookmarks)
 #+end_src
 
+*** Conda transient
+
+Transient for switching conda environments.
+
+#+name: conda-transient
+#+begin_src emacs-lisp
+;; add transient popup for conda commands, bind to "C-c C-M-S-v"
+(with-eval-after-load 'conda
+  (transient-define-prefix transient/conda ()
+    "Conda commands."
+    ["Conda environments"
+     ("a" "Activate" conda-env-activate)
+     ("b" "Activate for buffer" conda-env-activate-for-buffer)
+     ("d" "Deactivate" conda-env-deactivate)
+     ("l" "List" conda-env-list)
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-S-v") #'transient/conda))
+#+end_src
+
 *** Ediff transient
 
 Transient popup for launching Ediff commands.
@@ -8701,6 +8682,50 @@ Transient popup for launching Ediff commands.
    ]
   )
 (global-set-key (kbd "C-c C-M-=") #'transient/ediff)
+#+end_src
+
+*** Help transient
+
+Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Help.html][help]].
+
+#+name: help-transient
+#+begin_src emacs-lisp
+;; add transient popup for help commands, bind to "C-c C-M-S-h"
+(transient-define-prefix transient/help ()
+  "Various help commands."
+  ["Help"
+   ["Apropos"
+    ("aa" "Symbol" apropos)
+    ("ac" "Command" apropos-command)
+    ("ad" "Documentation" apropos-documentation)
+    ("al" "Library" apropos-library)
+    ("av" "Variable" apropos-variable)
+    ("aV" "Value" apropos-value)
+    ]
+   ["Describe"
+    ("db" "Bindings" describe-bindings)
+    ("df" "Function" describe-function)
+    ("dk" "Key" describe-key)
+    ("dm" "Mode" describe-mode)
+    ("dp" "Package" describe-package)
+    ("ds" "Syntax" describe-syntax)
+    ("dv" "Variable" describe-variable)
+    ]
+   ["Info"
+    ("ia" "Apropos" info-apropos)
+    ("ib" "Browse" info)
+    ("if" "File" info-lookup-file)
+    ("ik" "Keywords" info-finder)
+    ("is" "Symbol" info-lookup-symbol)
+    ]
+   ["Other"
+    ("ve" "View messages" view-echo-area-messages)
+    ("vl" "View lossage" view-lossage)
+    ("w" "Where is" where-is)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-S-h") #'transient/help)
 #+end_src
 
 *** Keyboard macros transient
@@ -9119,6 +9144,8 @@ The main configuration file.
 
 <<my-after-jump-context-actions>>
 
+<<my-pulse-line>>
+
 <<my-save-and-bury-buffer>>
 
 ;; Visual (part 1)
@@ -9445,8 +9472,6 @@ The main configuration file.
 
 <<conda>>
 
-<<conda-hydra>>
-
 ;; Programming / lsp-mode Language Server Protocol client
 
 <<lsp-mode>>
@@ -9651,8 +9676,6 @@ The main configuration file.
 
 <<mouse-settings>>
 
-<<help-hydra>>
-
 <<scratch-buffer-initial-mode>>
 
 <<scroll-conservatively>>
@@ -9715,7 +9738,11 @@ The main configuration file.
 
 <<bookmarks-transient>>
 
+<<conda-transient>>
+
 <<ediff-transient>>
+
+<<help-transient>>
 
 <<keyboard-macros-transient>>
 
@@ -10744,6 +10771,25 @@ mode's hook by appending instead of pushing, for example by doing
     (add-hook 'flymake-diagnostic-functions #'flymake-devskim-backend nil t)))
 #+end_src
 
+*** Conda package and environment manager
+
+**** Conda hydra                                                      :hydra:
+
+Hydra for conda.
+
+#+name: conda-hydra
+#+begin_src emacs-lisp
+(defhydra my-hydra/conda (:color teal :columns 4)
+  "
+conda (_q_: quit)"
+  ("q" nil nil)
+  ("a" conda-env-activate "activate")
+  ("d" conda-env-deactivate "deactivate")
+  ("l" conda-env-list "list"))
+(with-eval-after-load 'conda
+  (global-set-key (kbd "C-c C-M-S-v") 'my-hydra/conda/body))
+#+end_src
+
 *** lsp-mode Language Server Protocol Client                          :melpa:
 
 **** Workaround for stale Flymake error reports                  :workaround:
@@ -11569,6 +11615,37 @@ Password store (_q_: quit)"
 
   ;; binding for password-store hydra
   (global-set-key (kbd "C-c C-M-S-p") 'my-hydra/password-store/body))
+#+end_src
+
+*** Help hydra                                                        :hydra:
+
+Hydra for summoning Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Help.html][help]].
+
+#+name: help-hydra
+#+begin_src emacs-lisp
+;; hydra for help entrypoints
+(defhydra my-hydra/help (:color teal :columns 4)
+  "
+Help (_q_: quit)"
+  ("q" nil nil)
+  ("a" apropos-command "apropos-cmd")
+  ("d" apropos-documentation "apropos-doc")
+  ("f" describe-function "desc-fun")
+  ("v" describe-variable "desc-var")
+  ("c" describe-key-briefly "desc-key-brief")
+  ("k" describe-key "desc-key")
+  ("b" describe-bindings "desc-bind")
+  ("m" describe-mode "desc-mode")
+  ("p" describe-package "desc-pkg")
+  ("y" describe-syntax "desc-syntax")
+  ("e" view-echo-area-messages "messages")
+  ("l" view-lossage "lossage")
+  ("i" info "info")
+  ("s" info-lookup-symbol "info-symbol")
+  ("w" where-is "where-is"))
+
+;; bind help hydra
+(global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
 #+end_src
 
 * Local Variables                                                  :noexport:

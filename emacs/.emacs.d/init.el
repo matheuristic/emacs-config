@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  9 12:11:57 2020
+;; Generated: Sun Aug  9 17:02:59 2020
 
 ;;; Commentary:
 
@@ -145,11 +145,30 @@ ARGS is simply a catch-all for the arguments of the advised
 function and is not used."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
 
+;; helper function for pulsing the current line, adapted from
+;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
+(defun my-pulse-line (&rest args)
+    "Pulse the current line .
+If the point is at the newline at the end of the buffer, pulse
+the line before that. Additionally, the current line is not pulsed
+if the point is in the minibuffer.
+
+ARGS is not used. It is defined for when the function is used to
+advise other functions, designed to be a catch-all for any
+arguments passed from the advised function."
+    (unless (minibufferp)
+      (let ((start (if (and (eobp)
+                            (= (point) (line-beginning-position)))
+                       (line-beginning-position 0)
+                     (line-beginning-position)))
+            (end (line-beginning-position 2))
+            (pulse-delay .1))
+        (pulse-momentary-highlight-region start end nil))))
+
 (defun my-save-and-bury-buffer (&rest args)
   "Save and bury the current buffer.
 ARGS is a catchall argument for when this function is used to
 advise functions, most typically with the :after combinator."
-  (interactive)
   (save-buffer)
   (bury-buffer))
 
@@ -1136,7 +1155,7 @@ Registers (_q_: quit)"
 (use-package iedit
   :init (setq iedit-toggle-key-default (kbd "C-;"))
   :config
-  ;; advise iedit functions that jump to new pointer locations to
+  ;; advise iedit functions that jump to new point locations to
   ;; perform context actions after they are run
   (dolist (jump-fun '(iedit-next-occurrence
                       iedit-prev-occurrence
@@ -2818,16 +2837,6 @@ FlyCheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"defaul
                            ""))
                  t)))
 
-(defhydra my-hydra/conda (:color teal :columns 4)
-  "
-conda (_q_: quit)"
-  ("q" nil nil)
-  ("a" conda-env-activate "activate")
-  ("d" conda-env-deactivate "deactivate")
-  ("l" conda-env-list "list"))
-(with-eval-after-load 'conda
-  (global-set-key (kbd "C-c C-M-S-v") 'my-hydra/conda/body))
-
 ;; Programming / lsp-mode Language Server Protocol client
 
 ;; lsp-mode Language Server Protocol client
@@ -3794,7 +3803,7 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
           (lambda ()
             (display-line-numbers-mode 1)))
 
-;; show pointer location column number in mode line
+;; show point location column number in mode line
 (setq column-number-mode t)
 
 ;; show matching parentheses with no delay
@@ -3864,30 +3873,12 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
     ("O" symbol-overlay-mode :exit nil)
     ("i" highlight-indent-guides-mode :exit nil)))
 
-;; helper function for pulsing the current line, adapted from
-;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
-(defun my-pulse-line (&optional face)
-    "Pulse the current line."
-    (interactive)
-    (let ((start (if (eobp)
-                     (line-beginning-position 0)
-                   (line-beginning-position)))
-          (end (line-beginning-position 2))
-          (pulse-delay .1))
-      (pulse-momentary-highlight-region start end face)))
-
-(defun ace-window--after-pulse-line (&rest args)
-  "Pulse line momentarily after `ace-window' is called.
-ARGS are the original args to `ace-window' and are ignored."
-  (unless (minibufferp) ;; don't pulse when in the minibuffer
-    (my-pulse-line)))
-
 ;; pulse line after changing focused window using `ace-window'
 (with-eval-after-load 'ace-window
-  (advice-add 'ace-window :after #'ace-window--after-pulse-line))
+  (advice-add 'ace-window :after #'my-pulse-line))
 
 ;; also pulse line when Emacs regains focus
-(add-hook 'focus-in-hook #'ace-window--after-pulse-line)
+(add-hook 'focus-in-hook #'my-pulse-line)
 
 ;; Web
 
@@ -4114,30 +4105,6 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
      (setq mouse-wheel-flip-direction t ;; t/nil for trackpad/mouse
            mouse-wheel-tilt-scroll t))
    t))
-
-;; hydra for help entrypoints
-(defhydra my-hydra/help (:color teal :columns 4)
-  "
-Help (_q_: quit)"
-  ("q" nil nil)
-  ("a" apropos-command "apropos-cmd")
-  ("d" apropos-documentation "apropos-doc")
-  ("f" describe-function "desc-fun")
-  ("v" describe-variable "desc-var")
-  ("c" describe-key-briefly "desc-key-brief")
-  ("k" describe-key "desc-key")
-  ("b" describe-bindings "desc-bind")
-  ("m" describe-mode "desc-mode")
-  ("p" describe-package "desc-pkg")
-  ("y" describe-syntax "desc-syntax")
-  ("e" view-echo-area-messages "messages")
-  ("l" view-lossage "lossage")
-  ("i" info "info")
-  ("s" info-lookup-symbol "info-symbol")
-  ("w" where-is "where-is"))
-
-;; bind help hydra
-(global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
 
 ;; set *scratch* buffer major-mode to fundamental-mode
 (setq initial-major-mode 'fundamental-mode)
@@ -4398,6 +4365,19 @@ Example of use with transient suffix definitions in a
   )
 (global-set-key (kbd "C-c C-M-j") #'transient/bookmarks)
 
+;; add transient popup for conda commands, bind to "C-c C-M-S-v"
+(with-eval-after-load 'conda
+  (transient-define-prefix transient/conda ()
+    "Conda commands."
+    ["Conda environments"
+     ("a" "Activate" conda-env-activate)
+     ("b" "Activate for buffer" conda-env-activate-for-buffer)
+     ("d" "Deactivate" conda-env-deactivate)
+     ("l" "List" conda-env-list)
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-S-v") #'transient/conda))
+
 ;; add transient popup for Ediff commands, bind to "C-c C-M-="
 (transient-define-prefix transient/ediff ()
   "Various Ediff launch commands."
@@ -4429,6 +4409,43 @@ Example of use with transient suffix definitions in a
    ]
   )
 (global-set-key (kbd "C-c C-M-=") #'transient/ediff)
+
+;; add transient popup for help commands, bind to "C-c C-M-S-h"
+(transient-define-prefix transient/help ()
+  "Various help commands."
+  ["Help"
+   ["Apropos"
+    ("aa" "Symbol" apropos)
+    ("ac" "Command" apropos-command)
+    ("ad" "Documentation" apropos-documentation)
+    ("al" "Library" apropos-library)
+    ("av" "Variable" apropos-variable)
+    ("aV" "Value" apropos-value)
+    ]
+   ["Describe"
+    ("db" "Bindings" describe-bindings)
+    ("df" "Function" describe-function)
+    ("dk" "Key" describe-key)
+    ("dm" "Mode" describe-mode)
+    ("dp" "Package" describe-package)
+    ("ds" "Syntax" describe-syntax)
+    ("dv" "Variable" describe-variable)
+    ]
+   ["Info"
+    ("ia" "Apropos" info-apropos)
+    ("ib" "Browse" info)
+    ("if" "File" info-lookup-file)
+    ("ik" "Keywords" info-finder)
+    ("is" "Symbol" info-lookup-symbol)
+    ]
+   ["Other"
+    ("ve" "View messages" view-echo-area-messages)
+    ("vl" "View lossage" view-lossage)
+    ("w" "Where is" where-is)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-S-h") #'transient/help)
 
 ;; add transient for keyboard macros, bind to "C-c C-M-k"
 (transient-define-prefix transient/keyboard-macros ()

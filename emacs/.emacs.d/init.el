@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Aug 10 09:33:32 2020
+;; Generated: Mon Aug 10 19:31:16 2020
 
 ;;; Commentary:
 
@@ -956,66 +956,25 @@ ztree-diff (_q_: quit)"
 (add-hook 'dired-mode-hook #'auto-revert-mode) ;; auto-refresh on file change
 (add-hook 'dired-mode-hook #'dired-hide-details-mode) ;; hide details initially
 
-;; hydras for Dired
-(defhydra my-hydra/dired-mode (:color pink :columns 4)
-  "
-Dired (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("RET" (progn
-           (dired-find-file)
-           (when (eq major-mode 'dired-mode)
-             (my-hydra/dired-mode/body)))
-   "open" :exit t)
-  ("{" find-name-dired "find-name" :exit t)
-  ("}" find-grep-dired "find-grep" :exit t)
-  ("(" dired-hide-details-mode "toggle-details")
-  (")" dired-omit-mode "toggle-omit")
-  ("+" dired-create-directory "mkdir")
-  ("=" dired-diff "diff" :exit t)
-  ("_" dired-show-file-type "show-file-type")
-  ("?" dired-summary "help")
-  ("A" dired-do-find-regexp "find-regex" :exit t)
-  ("C" dired-do-copy "copy")
-  ("c" dired-do-compress-to "compress-to")
-  ("D" dired-do-delete "delete")
-  ("E" dired-mark-extension "mark-ext")
-  ("F" dired-do-find-marked-files "find-marked" :exit t)
-  ("G" dired-do-chgrp "chgrp")
-  ("g" revert-buffer "refresh")
-  ("i" dired-maybe-insert-subdir "insert-subdir")
-  ("K" my-dired-kill-and-next-subdir "kill-subdir")
-  ("l" dired-do-redisplay "redisplay")
-  ("M" dired-do-chmod "chmod")
-  ("m" dired-mark "mark")
-  ("O" dired-display-file "display")
-  ("o" dired-find-file-other-window "find-file-o" :exit t)
-  ("Q" dired-do-find-regexp-and-replace "find-regex-sub" :exit t)
-  ("R" dired-do-rename "rename")
-  ("S" dired-do-symlink "symlink")
-  ("s" dired-sort-toggle-or-edit "date-sort")
-  ("T" dired-do-touch "touch")
-  ("t" dired-toggle-marks "toggle-marks")
-  ("U" dired-unmark-all-marks "unmark-all")
-  ("u" dired-unmark "unmark")
-  ("v" dired-view-file "view-file" :exit t) ;; open file in view-mode
-  ("Y" dired-do-relsymlink "symlink-to-dir")
-  ("Z" dired-do-compress "compress"))
-;; binding for dired hydra
-(with-eval-after-load 'dired
-  (define-key dired-mode-map (kbd "C-c C-M-m") #'my-hydra/dired-mode/body))
+(defcustom my-system-open-command "xdg-open"
+  "System command to open file according to preferred app by filetype.
+Usually \"xdg-open\" on Linux and \"open\" on Mac."
+  :type 'string
+  :group 'convenience)
 
-;; adapted from https://www.reddit.com/r/emacs/comments/jh1me/keeping_large_dired_buffers_tidy/
-(defun my-dired-kill-and-next-subdir ()
-  "Kill current subdir in dired, and jump back to its parent dir."
-  (interactive)
-  (let* ((subdir-name (directory-file-name (dired-current-directory)))
-         (parent-dir  (file-name-directory subdir-name))
-         (search-term (concat " "
-                              (file-name-base subdir-name)
-                              (file-name-extension subdir-name t))))
-    (dired-kill-subdir)
-    (dired-goto-subdir parent-dir)
-    (search-forward search-term)))
+;; bind "z" in dired-mode to open file at point using system command
+;; to open files by type
+(with-eval-after-load 'dired
+  (defun dired--open-file-at-pt ()
+    "Opens file at point in Dired using system open command.
+This opens the file using the preferred application by filetype."
+    (interactive)
+    (let ((filename (dired-get-file-for-visit)))
+      (start-process "default-app"
+                     nil
+                     my-system-open-command
+                     filename)))
+  (define-key dired-mode-map (kbd "z") #'dired--open-file-at-pt))
 
 ;; have recentf track dired buffers as well
 ;; from https://www.emacswiki.org/emacs/RecentFiles#toc21
@@ -1041,38 +1000,6 @@ That is, remove a non kept dired from the recent list."
          ("/" . dired-filter-map))
   :hook (dired-mode . dired-filter-mode)
   :init (setq-default dired-filter-stack nil))
-
-;; add dired-filter hydra
-(defhydra my-hydra/dired-mode/filter (:color pink :columns 4)
-  "
-Dired → Filter (_q_: ←)"
-  ("q" my-hydra/dired-mode/body nil :exit t)
-  ("n" dired-filter-by-name "by-name")
-  ("r" dired-filter-by-regex "by-regex")
-  ("." dired-filter-by-extension "by-ext")
-  ("h" dired-filter-by-dot-files "by-hidden")
-  ("o" dired-filter-by-omit "by-omit")
-  ("g" dired-filter-by-garbage "by-garbage")
-  ("e" dired-filter-by-predicate "by-pred")
-  ("f" dired-filter-by-file "by-file")
-  ("d" dired-filter-by-directory "by-dir")
-  ("m" dired-filter-by-mode "by-mode")
-  ("s" dired-filter-by-symlink "by-symlink")
-  ("x" dired-filter-by-executable "by-exe")
-  ("ig" dired-filter-by-git-ignored "by-git-ign")
-  ("|" dired-filter-or "or")
-  ("!" dired-filter-negate "negate")
-  ("*" dired-filter-decompose "decompose")
-  ("TAB" dired-filter-transpose "transpose")
-  ("p" dired-filter-pop "pop")
-  ("/" dired-filter-pop-all "reset")
-  ("S" dired-filter-save-filters "save")
-  ("D" dired-filter-delete-saved-filters "del")
-  ("A" dired-filter-add-saved-filters "add")
-  ("L" dired-filter-load-saved-filters "load"))
-;; add entrypoint for dired-filter hydra in my-hydra/dired-mode
-(defhydra+ my-hydra/dired-mode nil
-  ("/" my-hydra/dired-mode/filter/body "→ Filter" :exit t))
 
 ;; use font icons in Dired
 (use-package all-the-icons-dired
@@ -3790,44 +3717,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
 (defhydra+ my-hydra/search nil
   ("w" eww "eww" :exit t))
 
-;; hydra for Emacs Web Wowser
-(defhydra my-hydra/eww-mode (:color teal :columns 3)
-  "
-Emacs Web Wowser (_q_: quit)"
-  ("q" nil nil)
-  ("d" eww-download "download-link")
-  ("G" eww "search")
-  ("o" eww-open-file "open-file")
-  ("l" eww-back-url "back")
-  ("r" eww-forward-url "forward")
-  ("g" eww-reload "reload")
-  ("v" eww-view-source "view-source")
-  ("w" eww-copy-url "copy-url")
-  ("&" eww-browse-with-external-browser "browse-ext")
-  ("b" eww-add-bookmark "bookmark-page")
-  ("B" eww-list-bookmarks "bookmark-list")
-  ("R" eww-readable "readable-only")
-  ("F" eww-toggle-fonts "toggle-fonts")
-  ("I" my-eww-toggle-images "toggle-images")
-  ("M-C" eww-toggle-colors "toggle-colors")
-  ("D" eww-toggle-paragraph-direction "toggle-text-dir")
-  ("s" eww-switch-to-buffer "eww-switch-buf")
-  ("S" eww-list-buffers "eww-list-buf")
-  ("H" eww-list-histories "history")
-  ("C" url-cookie-list "cookie-list"))
-
-;; binding
-(with-eval-after-load 'eww
-  (define-key eww-mode-map (kbd "C-c C-M-m") #'my-hydra/eww-mode/body))
-
-;; helper function for toggling images in Emacs Web Wowser
-(defun my-eww-toggle-images ()
-  "Toggle displaying of images when rendering HTML."
-  (interactive)
-  (setq-local shr-inhibit-images (not shr-inhibit-images))
-  (eww-reload)
-  (message "Images are now %s" (if shr-inhibit-images "off" "on")))
-
 (use-package restclient
   :defer t
   ;; assume request source files have ".http" suffix
@@ -4134,17 +4023,9 @@ for more information."
   ;; (setq ls-lisp-format-time-list '("%b %e %H:%M" "%b %e %Y"))
   (setq ls-lisp-use-localized-time-format t))
 
-;; open files in dired mode using 'open' when using Mac OS X,
-;; bindings are 'z' in Dired which is also in the Dired mode hydra
-(with-eval-after-load 'dired
-  (defun dired--mac-open-file-at-pt ()
-    "Opens file at point in Dired using Mac OS X 'open' command."
-    (interactive)
-    (let ((filename (dired-get-file-for-visit)))
-      (start-process "default-app" nil "open" filename)))
-  (define-key dired-mode-map (kbd "z") #'dired--mac-open-file-at-pt)
-  (defhydra+ my-hydra/dired-mode nil
-    ("z" dired--mac-open-file-at-pt "mac-open")))
+;; configure system open file by type command for Mac OS
+(when (eq system-type 'darwin)
+  (setq my-system-open-command "open"))
 
 ;; exclude Emacs source files from recentf history on Mac OS X
 (add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
@@ -4427,7 +4308,7 @@ Example of use with transient suffix definitions in a
     "Projectile commands"
     [:description (lambda ()
                     (concat "Projectile ["
-                            (or (projectile-project-name) "none")
+                            (projectile-project-name)
                             "]"))
      ["Project"
       ("C" "Configure" projectile-configure-project)
@@ -4626,6 +4507,117 @@ Example of use with transient suffix definitions in a
 ;; Transient commands / Major mode transients
 
 ;; major-mode specific transient for ess-mode
+(with-eval-after-load 'dired
+  (with-eval-after-load 'dired-filter
+    (defun transient/dired-mode--dired-kill-and-next-subdir ()
+      "Kill current subdir in dired, and jump back to its parent dir."
+      (interactive)
+      (let* ((subdir-name (directory-file-name (dired-current-directory)))
+             (parent-dir  (file-name-directory subdir-name))
+             (search-term (concat " "
+                                  (file-name-base subdir-name)
+                                  (file-name-extension subdir-name t))))
+        (dired-kill-subdir)
+        (dired-goto-subdir parent-dir)
+        (search-forward search-term)))
+    (transient-define-prefix transient/dired-mode/filter ()
+      "Dired-Filter commands."
+      ;; have suffixes not exit the transient by default
+      :transient-suffix 'transient--do-stay
+      ["Dired → Filter"
+       ["Filter by"
+          ("n" "Name" dired-filter-by-name)
+          ("r" "Regexp" dired-filter-by-regexp)
+          ("." "Extension" dired-filter-by-extension)
+          ("h" "Hidden" dired-filter-by-dot-files)
+          ("o" "Omitted" dired-filter-by-omit)
+          ("g" "Garbage" dired-filter-by-garbage)
+          ("e" "Predicate" dired-filter-by-predicate)
+          ("f" "File" dired-filter-by-file)
+          ("d" "Directory" dired-filter-by-directory)
+          ("m" "Mode" dired-filter-by-mode)
+          ("s" "Symlink" dired-filter-by-symlink)
+          ("x" "Executable" dired-filter-by-executable)
+          ("ig" "Git-ignored" dired-filter-by-git-ignored)
+        ]
+       ["Operators"
+        ("|" "OR" dired-filter-or)
+        ("!" "NOT" dired-filter-negate)
+        ("*" "Decompose" dired-filter-decompose)
+        ("TAB" "Transpose" dired-filter-transpose)
+        ("p" "Pop" dired-filter-pop)
+        ("/" "Reset" dired-filter-pop-all)
+        ]
+       ["Save/Load"
+        ("S" "Save" dired-filter-save-filters)
+        ("L" "Load" dired-filter-load-saved-filters)
+        ("A" "Add" dired-filter-add-saved-filters)
+        ("D" "Delete" dired-filter-delete-saved-filters)
+        ]
+       ]
+      )
+    (transient-define-prefix transient/dired-mode ()
+      "Dired commands."
+      ["Dired"
+       ["File"
+        ("RET" "Open" dired-find-file)
+        ("o" "Open other" dired-find-file-other-window)
+        ("F" "Open marked" dired-do-find-marked-files)
+        ("z" "Open external" dired--open-file-at-pt)
+        ("v" "View file" dired-view-file)
+        ("C" "Copy" dired-do-copy)
+        ("R" "Rename" dired-do-rename)
+        ("%R" "Rename by regexp" dired-do-rename-regexp)
+        ("D" "Delete" dired-do-delete)
+        ("x" "Delete marked" dired-do-flagged-delete)
+        ("S" "Symlink" dired-do-symlink)
+        ("Y" "Symlink to" dired-do-relsymlink)
+        ("c" "Compress to" dired-do-compress-to)
+        ("Z" "Compress" dired-do-compress)
+        ("+" "Create dir" dired-create-directory)
+        ("=" "Diff" dired-diff)
+        ]
+       ["Search"
+        ("A" "Query" dired-do-find-regexp)
+        ("Q" "Query-replace" dired-do-find-regexp-and-replace)
+        ""
+        "Attributes"
+        ("G" "chgrp" dired-do-chgrp)
+        ("M" "chmod" dired-do-chmod)
+        ("O" "chown" dired-do-chown)
+        ("T" "Touch" dired-do-touch)
+        ""
+        "Mark"
+        ("m" "File at pt" dired-mark :transient t)
+        ("E" "By extension" dired-mark-extension :transient t)
+        ("t" "Toggle marks" dired-toggle-marks :transient t)
+        ("u" "Unmark" dired-unmark :transient t)
+        ("U" "Unmark all" dired-unmark-all-marks :transient t)
+        ]
+       ["Narrow"
+        ("{" "Find by name" find-name-dired)
+        ("}" "Find by query" find-grep-dired)
+        ("/" "Filter" transient/dired-mode/filter)
+        ""
+        "View"
+        ("(" "Toggle details" dired-hide-details-mode :transient t)
+        (")" "Toggle omit" dired-omit-mode :transient t)
+        ("i" "Insert subdir" dired-maybe-insert-subdir :transient t)
+        ("K" "Kill subdir" transient/dired-mode--dired-kill-and-next-subdir :transient t)
+        ("s" "Sort by date" dired-sort-toggle-or-edit :transient t)
+        ""
+        "Other"
+        ("y" "Show file type" dired-show-file-type :transient t)
+        ("g" "Refresh" revert-buffer :transient t)
+        ("l" "Redisplay" dired-do-redisplay :transient t)
+        ("C-o" "Display other" dired-display-file)
+        ("h" "Help" describe-mode)
+        ]
+       ]
+      )
+    (define-key dired-mode-map (kbd "C-c C-M-m") #'transient/dired-mode)))
+
+;; major-mode specific transient for ess-mode
 (with-eval-after-load 'ess-mode
   (defun transient/ess-mode--new-session ()
     "Opens a new ESS session depending the current `ess-dialect'."
@@ -4660,6 +4652,49 @@ Example of use with transient suffix definitions in a
      ]
     )
   (define-key ess-mode-map (kbd "C-c C-M-m") #'transient/ess-mode))
+
+;; major-mode specific transient for eww-mode
+(with-eval-after-load 'eww
+  (defun transient/eww-mode--toggle-images ()
+    "Toggle displaying of images when rendering HTML."
+    (interactive)
+    (setq-local shr-inhibit-images (not shr-inhibit-images))
+    (eww-reload)
+    (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+  (transient-define-prefix transient/eww-mode ()
+    "Emacs Web Wowser mode commands."
+    ["Emacs Web Wowser"
+     ["Navigation"
+      ("G" "Search" eww)
+      ("o" "Open file" eww-open-file)
+      ("l" "Back" eww-back-url)
+      ("r" "Forward" eww-forward-url)
+      ("g" "Reload" eww-reload)
+      ("s" "Switchb" eww-switch-to-buffer)
+      ("S" "Buffers" eww-list-buffers)
+      ("H" "History" eww-list-histories)
+      ]
+     ["Bookmarks"
+      ("b" "Add" eww-add-bookmark)
+      ("B" "List" eww-list-bookmarks)
+      ""
+      "Toggle"
+      ("F" "Fonts" eww-toggle-fonts)
+      ("I" "Images" transient/eww-mode--toggle-images)
+      ("M-C" "Colors" eww-toggle-colors)
+      ("D" "Text direction" eww-toggle-paragraph-direction)
+      ]
+     ["Other"
+      ("d" "Downlink link" eww-download)
+      ("w" "Copy url" eww-copy-page-url)
+      ("R" "View readable" eww-readable)
+      ("v" "View source" eww-view-source)
+      ("C" "Cookies" url-cookie-list)
+      ("&" "Open external" eww-browse-with-external-browser)
+      ]
+     ]
+    )
+  (define-key eww-mode-map (kbd "C-c C-M-m") #'transient/eww-mode))
 
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode
@@ -4697,8 +4732,7 @@ Example of use with transient suffix definitions in a
       ]
      ]
     )
-  (define-key smerge-mode-map (kbd "C-c C-M-m")
-    #'transient/smerge-mode))
+  (define-key smerge-mode-map (kbd "C-c C-M-m") #'transient/smerge-mode))
 
 (provide 'init)
 ;;; init.el ends here

@@ -3447,86 +3447,6 @@ Org-mode buffers and storing links to searches and messages using
   (error (message "ol-notmuch requires Org 9.2.3+")))
 #+end_src
 
-* Information
-
-** Display current time in minibuffer
-
-Convenience function for displaying the current time in minibuffer.
-
-#+name: display-current-datetime
-#+begin_src emacs-lisp
-(defun my-display-current-datetime ()
-  "Display the current time in the minibuffer."
-  (interactive)
-  (message (format-time-string "%Y-%b-%d %l:%M:%S%p %Z %A")))
-#+end_src
-
-** Emacs information
-
-Convenience functions for displaying Emacs process and build info.
-
-#+name: display-emacs-info
-#+begin_src emacs-lisp
-(defun my-display-emacs-pid ()
-  "Display the process id of current Emacs process in the minibuffer."
-  (interactive)
-  (message (format "%d" (emacs-pid))))
-
-(defun my-display-emacs-build-configuration ()
-  "Display the Emacs build configuration in the minibuffer."
-  (interactive)
-  (message (mapconcat 'identity
-                      `("Emacs build configuration"
-                        ,(format "  Build target:     %s"
-                                 system-configuration)
-                        ,(format "  Enabled features: %s"
-                                 system-configuration-features))
-                      "\n")))
-#+end_src
-
-** System process management with proced
-
-[[https://github.com/emacs-mirror/emacs/blob/master/lisp/proced.el][Proced]] lists system processes in a buffer and provides
-commands to operate to listed processes.
-It can be used like [[https://en.wikipedia.org/wiki/Top_(software)][top]] by toggling auto-refresh
-using ~M-x proced-toggle-auto-update~.
-
-Note that Mac OS X isn't very well supported by this package,
-so configure it only for Linux systems.
-For Mac OS X, an alternative is using ~top~ in an ~term-mode~ buffer.
-
-For more usage information, see [[https://www.masteringemacs.org/article/displaying-interacting-processes-proced][here]].
-
-#+name: proced
-#+begin_src emacs-lisp
-;; manage system processes in Linux
-(when (eq system-type 'gnu/linux)
-  (setq proced-format 'medium))
-#+end_src
-
-** Information hydra
-
-Hydra for random information, like the current datetime or system
-resource usage.
-
-#+name: info-hydra
-#+begin_src emacs-lisp
-(defhydra my-hydra/info (:color amaranth :columns 3)
-  "
-Info (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("b" my-display-emacs-build-configuration "emacs-build-config")
-  ("i" emacs-init-time "emacs-init-time")
-  ("P" my-display-emacs-pid "emacs-pid")
-  ("p" proced "proced" :exit t)
-  ("t" my-display-current-datetime "datetime")
-  ("T" display-time-world "world-time" :exit t)
-  ("u" emacs-uptime "emacs-uptime")
-  ("v" emacs-version "version"))
-
-(global-set-key (kbd "C-c C-M-i") #'my-hydra/info/body)
-#+end_src
-
 * Marks and markers
 
 [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mark.html][Marks]] and [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Markers.html][markers]] are useful for saving point locations and jumping
@@ -8895,6 +8815,59 @@ Add transient popup for symbol-overlay functionality.
   (global-set-key (kbd "C-M-;") 'transient/symbol-overlay))
 #+end_src
 
+*** System information, process and Emacs runtime transient
+
+Transient for accessing system, process and Emacs runtime commands.
+
+#+name: system-transient
+#+begin_src emacs-lisp
+(defun transient/system--display-current-datetime ()
+  "Display the current time in the minibuffer."
+  (interactive)
+  (message (format-time-string "%Y-%b-%d %l:%M:%S%p %Z %A")))
+
+(defun transient/system--display-emacs-pid ()
+  "Display the process id of current Emacs process in the minibuffer."
+  (interactive)
+  (message (format "%d" (emacs-pid))))
+
+(defun transient/system--display-emacs-build-config ()
+  "Display the Emacs build configuration in the minibuffer."
+  (interactive)
+  (message (mapconcat 'identity
+                      `("Emacs build configuration"
+                        ,(format "  Build target:     %s"
+                                 system-configuration)
+                        ,(format "  Enabled features: %s"
+                                 system-configuration-features))
+                      "\n")))
+
+;; add transient popup for system info, process and Emacs runtime
+;; commands, bind to "C-c C-M-i"
+(transient-define-prefix transient/system ()
+  "System info, process and Emacs runtime-related commands."
+  ;; suffix actions don't exit the transient popup by default
+  :transient-suffix 'transient--do-stay
+  ["System, process and Emacs runtime info"
+   ["Processes"
+    ("se" "Emacs PID" transient/system--display-emacs-pid)
+    ("sp" "Proced" proced :transient nil)
+    ]
+   ["Runtime"
+    ("eb" "Build config" transient/system--display-emacs-build-config)
+    ("ei" "Init time" emacs-init-time)
+    ("eu" "Uptime" emacs-uptime)
+    ("ev" "Version" emacs-version)
+    ]
+   ["System"
+    ("st" "Datetime" transient/system--display-current-datetime)
+    ("sw" "World time" display-time-world :transient nil)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-i") #'transient/system)
+#+end_src
+
 *** Workspace transient
 
 Transient for workspace manipulation and usage.
@@ -9357,16 +9330,6 @@ The main configuration file.
 
 <<ol-notmuch>>
 
-;; Information
-
-<<display-current-datetime>>
-
-<<display-emacs-info>>
-
-<<proced>>
-
-<<info-hydra>>
-
 ;; Marks and markers
 
 <<marks-and-markers-hydra>>
@@ -9544,8 +9507,6 @@ The main configuration file.
 <<ess>>
 
 <<ess-pipe-operators>>
-
-<<ess-mode-hydra>>
 
 <<poly-R>>
 
@@ -9764,6 +9725,8 @@ The main configuration file.
 <<shell-transient>>
 
 <<symbol-overlay-transient>>
+
+<<system-transient>>
 
 <<workspace-transient>>
 
@@ -10577,6 +10540,86 @@ Modified copy of original using Gmail blockquotes."
             (mml-insert-part "text/html")
             ;; following line modified from original
             (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
+#+end_src
+
+** Information
+
+*** Display current time in minibuffer
+
+Convenience function for displaying the current time in minibuffer.
+
+#+name: display-current-datetime
+#+begin_src emacs-lisp
+(defun my-display-current-datetime ()
+  "Display the current time in the minibuffer."
+  (interactive)
+  (message (format-time-string "%Y-%b-%d %l:%M:%S%p %Z %A")))
+#+end_src
+
+*** Emacs information
+
+Convenience functions for displaying Emacs process and build info.
+
+#+name: display-emacs-info
+#+begin_src emacs-lisp
+(defun my-display-emacs-pid ()
+  "Display the process id of current Emacs process in the minibuffer."
+  (interactive)
+  (message (format "%d" (emacs-pid))))
+
+(defun my-display-emacs-build-configuration ()
+  "Display the Emacs build configuration in the minibuffer."
+  (interactive)
+  (message (mapconcat 'identity
+                      `("Emacs build configuration"
+                        ,(format "  Build target:     %s"
+                                 system-configuration)
+                        ,(format "  Enabled features: %s"
+                                 system-configuration-features))
+                      "\n")))
+#+end_src
+
+*** System process management with proced
+
+[[https://github.com/emacs-mirror/emacs/blob/master/lisp/proced.el][Proced]] lists system processes in a buffer and provides
+commands to operate to listed processes.
+It can be used like [[https://en.wikipedia.org/wiki/Top_(software)][top]] by toggling auto-refresh
+using ~M-x proced-toggle-auto-update~.
+
+Note that Mac OS X isn't very well supported by this package,
+so configure it only for Linux systems.
+For Mac OS X, an alternative is using ~top~ in an ~term-mode~ buffer.
+
+For more usage information, see [[https://www.masteringemacs.org/article/displaying-interacting-processes-proced][here]].
+
+#+name: proced
+#+begin_src emacs-lisp
+;; manage system processes in Linux
+(when (eq system-type 'gnu/linux)
+  (setq proced-format 'medium))
+#+end_src
+
+*** Information hydra
+
+Hydra for random information, like the current datetime or system
+resource usage.
+
+#+name: info-hydra
+#+begin_src emacs-lisp
+(defhydra my-hydra/info (:color amaranth :columns 3)
+  "
+Info (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("b" my-display-emacs-build-configuration "emacs-build-config")
+  ("i" emacs-init-time "emacs-init-time")
+  ("P" my-display-emacs-pid "emacs-pid")
+  ("p" proced "proced" :exit t)
+  ("t" my-display-current-datetime "datetime")
+  ("T" display-time-world "world-time" :exit t)
+  ("u" emacs-uptime "emacs-uptime")
+  ("v" emacs-version "version"))
+
+(global-set-key (kbd "C-c C-M-i") #'my-hydra/info/body)
 #+end_src
 
 ** Org-mode

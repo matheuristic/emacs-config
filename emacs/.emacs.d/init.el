@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  9 21:40:00 2020
+;; Generated: Sun Aug  9 23:11:00 2020
 
 ;;; Commentary:
 
@@ -1648,48 +1648,6 @@ OrgMsg (_q_: quit)"
 (condition-case nil
     (require 'ol-notmuch)
   (error (message "ol-notmuch requires Org 9.2.3+")))
-
-;; Information
-
-(defun my-display-current-datetime ()
-  "Display the current time in the minibuffer."
-  (interactive)
-  (message (format-time-string "%Y-%b-%d %l:%M:%S%p %Z %A")))
-
-(defun my-display-emacs-pid ()
-  "Display the process id of current Emacs process in the minibuffer."
-  (interactive)
-  (message (format "%d" (emacs-pid))))
-
-(defun my-display-emacs-build-configuration ()
-  "Display the Emacs build configuration in the minibuffer."
-  (interactive)
-  (message (mapconcat 'identity
-                      `("Emacs build configuration"
-                        ,(format "  Build target:     %s"
-                                 system-configuration)
-                        ,(format "  Enabled features: %s"
-                                 system-configuration-features))
-                      "\n")))
-
-;; manage system processes in Linux
-(when (eq system-type 'gnu/linux)
-  (setq proced-format 'medium))
-
-(defhydra my-hydra/info (:color amaranth :columns 3)
-  "
-Info (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("b" my-display-emacs-build-configuration "emacs-build-config")
-  ("i" emacs-init-time "emacs-init-time")
-  ("P" my-display-emacs-pid "emacs-pid")
-  ("p" proced "proced" :exit t)
-  ("t" my-display-current-datetime "datetime")
-  ("T" display-time-world "world-time" :exit t)
-  ("u" emacs-uptime "emacs-uptime")
-  ("v" emacs-version "version"))
-
-(global-set-key (kbd "C-c C-M-i") #'my-hydra/info/body)
 
 ;; Marks and markers
 
@@ -3342,41 +3300,6 @@ Formatting a selected region only works on top-level objects."
   (define-key inferior-ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
   (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
 
-;; major mode-specific hydra for ess-mode
-(defhydra my-hydra/ess-mode (:color teal :hint nil)
-  "
-Emacs Speaks Statistics (_q_: quit)
-Session       _N_ : new       _R_ : request   _s_ : switch    _C-q_ : quit
-Eval          _l_ : line      _f_ : func      _r_ : region    _b_   : buffer
-Workspace     _D_ : chdir     _d_ : R dired
-Help          _h_ : object    _H_ : browser   _A_ : apropos
-"
-  ("q" nil nil)
-  ;; session
-  ("N" (lambda () (interactive)
-         (cond ((string= ess-dialect "R") (R))
-               ((string= ess-dialect "julia") (julia))
-               (t (message "Unsupported dialect")))))
-  ("R" ess-request-a-process)
-  ("s" ess-switch-to-ESS)
-  ("C-q" ess-quit)
-  ;; eval
-  ("l" ess-eval-line)
-  ("f" ess-eval-function)
-  ("r" ess-eval-region)
-  ("b" ess-eval-buffer)
-  ;; workspace
-  ("D" ess-change-directory)
-  ("d" ess-rdired)
-  ;; help
-  ("h" ess-display-help-on-object)
-  ("H" ess-display-help-in-browser)
-  ("A" ess-display-help-apropos))
-
-;; binding for ess-mode hydra
-(with-eval-after-load 'ess-mode
-  (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess-mode/body))
-
 (use-package poly-R)
 
 ;; Programming / Racket
@@ -4620,6 +4543,52 @@ Example of use with transient suffix definitions in a
      ]
     )
   (global-set-key (kbd "C-M-;") 'transient/symbol-overlay))
+
+(defun transient/system--display-current-datetime ()
+  "Display the current time in the minibuffer."
+  (interactive)
+  (message (format-time-string "%Y-%b-%d %l:%M:%S%p %Z %A")))
+
+(defun transient/system--display-emacs-pid ()
+  "Display the process id of current Emacs process in the minibuffer."
+  (interactive)
+  (message (format "%d" (emacs-pid))))
+
+(defun transient/system--display-emacs-build-config ()
+  "Display the Emacs build configuration in the minibuffer."
+  (interactive)
+  (message (mapconcat 'identity
+                      `("Emacs build configuration"
+                        ,(format "  Build target:     %s"
+                                 system-configuration)
+                        ,(format "  Enabled features: %s"
+                                 system-configuration-features))
+                      "\n")))
+
+;; add transient popup for system info, process and Emacs runtime
+;; commands, bind to "C-c C-M-i"
+(transient-define-prefix transient/system ()
+  "System info, process and Emacs runtime-related commands."
+  ;; suffix actions don't exit the transient popup by default
+  :transient-suffix 'transient--do-stay
+  ["System, process and Emacs runtime info"
+   ["Processes"
+    ("se" "Emacs PID" transient/system--display-emacs-pid)
+    ("sp" "Proced" proced :transient nil)
+    ]
+   ["Runtime"
+    ("eb" "Build config" transient/system--display-emacs-build-config)
+    ("ei" "Init time" emacs-init-time)
+    ("eu" "Uptime" emacs-uptime)
+    ("ev" "Version" emacs-version)
+    ]
+   ["System"
+    ("st" "Datetime" transient/system--display-current-datetime)
+    ("sw" "World time" display-time-world :transient nil)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-i") #'transient/system)
 
 ;; add transient popup for workspace commands, bind to "C-c C-M-e"
 (transient-define-prefix transient/workspace ()

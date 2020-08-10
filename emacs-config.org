@@ -2627,26 +2627,6 @@ To call the signal handler from the command line, run:
 $ pkill -SIGUSR1 -i emacs
 #+end_example
 
-** Emacs client-server hydra                                          :hydra:
-
-Hydra for Emacs client-server interaction.
-
-#+name: emacs-client-server-hydra
-#+begin_src emacs-lisp
-;; hydra for Emacs server interaction
-(defhydra my-hydra/emacs-client-server (:color teal :hint nil
-                                        :pre (require 'server))
-  "
-Emacs client-server interaction (_q_: quit)
-Server  [% 3`server-mode]   _s_ : toggle  _r_ : restart"
-  ("q" nil)
-  ("s" server-mode :exit nil)
-  ("r" restart-emacs-server))
-
-;; binding for Emacs server hydra
-(global-set-key (kbd "C-c C-M-S-s") #'my-hydra/emacs-client-server/body)
-#+end_src
-
 * Email
 
 This section describes the following email setup to sync and read mail:
@@ -8815,9 +8795,11 @@ Add transient popup for symbol-overlay functionality.
   (global-set-key (kbd "C-M-;") 'transient/symbol-overlay))
 #+end_src
 
-*** System information, process and Emacs runtime transient
+*** System information, process and Emacs runtime/server transient
 
 Transient for accessing system, process and Emacs runtime commands.
+The Emacs runtime commands also include those for toggling and
+restarting Emacs as a server.
 
 #+name: system-transient
 #+begin_src emacs-lisp
@@ -8843,29 +8825,34 @@ Transient for accessing system, process and Emacs runtime commands.
                       "\n")))
 
 ;; add transient popup for system info, process and Emacs runtime
-;; commands, bind to "C-c C-M-i"
+;; commands (including `server-mode'), bind to "C-c C-M-S-s"
 (transient-define-prefix transient/system ()
-  "System info, process and Emacs runtime-related commands."
+  "System info, process and Emacs runtime/server-related commands."
   ;; suffix actions don't exit the transient popup by default
   :transient-suffix 'transient--do-stay
-  ["System, process and Emacs runtime info"
-   ["Processes"
-    ("se" "Emacs PID" transient/system--display-emacs-pid)
-    ("sp" "Proced" proced :transient nil)
-    ]
-   ["Runtime"
+  ["System, process and Emacs runtime/server"
+   [:description (lambda ()
+                   (concat "Emacs ("
+                           (transient--make-description
+                            "server-mode"
+                            server-mode)
+                           ")"))
     ("eb" "Build config" transient/system--display-emacs-build-config)
     ("ei" "Init time" emacs-init-time)
+    ("ep" "Emacs PID" transient/system--display-emacs-pid)
+    ("es" "Toggle server-mode" server-mode)
+    ("er" "Restart server" restart-emacs-server)
     ("eu" "Uptime" emacs-uptime)
     ("ev" "Version" emacs-version)
     ]
    ["System"
+    ("sp" "Proced" proced :transient nil)
     ("st" "Datetime" transient/system--display-current-datetime)
     ("sw" "World time" display-time-world :transient nil)
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-i") #'transient/system)
+(global-set-key (kbd "C-c C-M-S-s") #'transient/system)
 #+end_src
 
 *** Workspace transient
@@ -9313,8 +9300,6 @@ The main configuration file.
 ;; Emacs as an edit server
 
 <<sigusr1-restart-emacs-server>>
-
-<<emacs-client-server-hydra>>
 
 ;; Email
 
@@ -10384,6 +10369,28 @@ YASnippet (_q_: quit)"
    "current-auto")) ;; show temp snippet
 (with-eval-after-load 'yasnippet
   (define-key yas-minor-mode-map (kbd "C-c C-M-<") #'my-hydra/yas-minor-mode/body))
+#+end_src
+
+** Emacs as an edit server
+
+*** Emacs client-server hydra                                         :hydra:
+
+Hydra for Emacs client-server interaction.
+
+#+name: emacs-client-server-hydra
+#+begin_src emacs-lisp
+;; hydra for Emacs server interaction
+(defhydra my-hydra/emacs-client-server (:color teal :hint nil
+                                        :pre (require 'server))
+  "
+Emacs client-server interaction (_q_: quit)
+Server  [% 3`server-mode]   _s_ : toggle  _r_ : restart"
+  ("q" nil)
+  ("s" server-mode :exit nil)
+  ("r" restart-emacs-server))
+
+;; binding for Emacs server hydra
+(global-set-key (kbd "C-c C-M-S-s") #'my-hydra/emacs-client-server/body)
 #+end_src
 
 ** Email

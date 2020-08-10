@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  9 23:11:00 2020
+;; Generated: Mon Aug 10 09:33:32 2020
 
 ;;; Commentary:
 
@@ -1313,19 +1313,6 @@ With arg N, insert N newlines."
 
 ;; bind SIGUSR1 signal to call `server-restart'
 (define-key special-event-map [sigusr1] #'restart-emacs-server)
-
-;; hydra for Emacs server interaction
-(defhydra my-hydra/emacs-client-server (:color teal :hint nil
-                                        :pre (require 'server))
-  "
-Emacs client-server interaction (_q_: quit)
-Server  [% 3`server-mode]   _s_ : toggle  _r_ : restart"
-  ("q" nil)
-  ("s" server-mode :exit nil)
-  ("r" restart-emacs-server))
-
-;; binding for Emacs server hydra
-(global-set-key (kbd "C-c C-M-S-s") #'my-hydra/emacs-client-server/body)
 
 ;; Email
 
@@ -4566,29 +4553,34 @@ Example of use with transient suffix definitions in a
                       "\n")))
 
 ;; add transient popup for system info, process and Emacs runtime
-;; commands, bind to "C-c C-M-i"
+;; commands (including `server-mode'), bind to "C-c C-M-S-s"
 (transient-define-prefix transient/system ()
-  "System info, process and Emacs runtime-related commands."
+  "System info, process and Emacs runtime/server-related commands."
   ;; suffix actions don't exit the transient popup by default
   :transient-suffix 'transient--do-stay
-  ["System, process and Emacs runtime info"
-   ["Processes"
-    ("se" "Emacs PID" transient/system--display-emacs-pid)
-    ("sp" "Proced" proced :transient nil)
-    ]
-   ["Runtime"
+  ["System, process and Emacs runtime/server"
+   [:description (lambda ()
+                   (concat "Emacs ("
+                           (transient--make-description
+                            "server-mode"
+                            server-mode)
+                           ")"))
     ("eb" "Build config" transient/system--display-emacs-build-config)
     ("ei" "Init time" emacs-init-time)
+    ("ep" "Emacs PID" transient/system--display-emacs-pid)
+    ("es" "Toggle server-mode" server-mode)
+    ("er" "Restart server" restart-emacs-server)
     ("eu" "Uptime" emacs-uptime)
     ("ev" "Version" emacs-version)
     ]
    ["System"
+    ("sp" "Proced" proced :transient nil)
     ("st" "Datetime" transient/system--display-current-datetime)
     ("sw" "World time" display-time-world :transient nil)
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-i") #'transient/system)
+(global-set-key (kbd "C-c C-M-S-s") #'transient/system)
 
 ;; add transient popup for workspace commands, bind to "C-c C-M-e"
 (transient-define-prefix transient/workspace ()

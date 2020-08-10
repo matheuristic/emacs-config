@@ -2444,31 +2444,6 @@ Two additional supporting packages can also be loaded:
   (yas-global-mode 1))
 #+end_src
 
-*** YASnippet hydra                                                   :hydra:
-
-Hydra for ~yas-minor-mode~ YASnippet commands and YASnippet supporting
-packages.
-
-#+name: yasnippet-hydra
-#+begin_src emacs-lisp
-;; hydra for YASnippet commands
-(defhydra my-hydra/yas-minor-mode (:color teal :columns 4)
-  "
-YASnippet (_q_: quit)"
-  ("q" nil nil)
-  ("SPC" yas-expand "expand") ;; expand snippet
-  ("d" yas-describe-tables "describe") ;; snippets for current mode
-  ("s" yas-insert-snippet "insert") ;; insert snippet
-  ("n" yas-new-snippet "new") ;; create new snippet
-  ("v" yas-visit-snippet-file "visit-snippet") ;; visit snippet file
-  ("w" aya-create "create-auto") ;; store temp snippet
-  ("y" aya-expand "expand-auto") ;; paste temp snippet
-  ("?" (message "Current auto-yasnippet:\n%s" aya-current)
-   "current-auto")) ;; show temp snippet
-(with-eval-after-load 'yasnippet
-  (define-key yas-minor-mode-map (kbd "C-c C-M-<") #'my-hydra/yas-minor-mode/body))
-#+end_src
-
 ** Structured editing using Paredit                                   :melpa:
 
 [[https://www.emacswiki.org/emacs/ParEdit][Paredit]] provides a minor mode for structured editing S-expression data.
@@ -6284,48 +6259,6 @@ Of these, the forward pipe operator ~%>%~ is most common in usage.
   (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
 #+end_src
 
-*** ess-mode hydra                                                    :hydra:
-
-Hydra for ~ess-mode~.
-
-#+name: ess-mode-hydra
-#+begin_src emacs-lisp
-;; major mode-specific hydra for ess-mode
-(defhydra my-hydra/ess-mode (:color teal :hint nil)
-  "
-Emacs Speaks Statistics (_q_: quit)
-Session       _N_ : new       _R_ : request   _s_ : switch    _C-q_ : quit
-Eval          _l_ : line      _f_ : func      _r_ : region    _b_   : buffer
-Workspace     _D_ : chdir     _d_ : R dired
-Help          _h_ : object    _H_ : browser   _A_ : apropos
-"
-  ("q" nil nil)
-  ;; session
-  ("N" (lambda () (interactive)
-         (cond ((string= ess-dialect "R") (R))
-               ((string= ess-dialect "julia") (julia))
-               (t (message "Unsupported dialect")))))
-  ("R" ess-request-a-process)
-  ("s" ess-switch-to-ESS)
-  ("C-q" ess-quit)
-  ;; eval
-  ("l" ess-eval-line)
-  ("f" ess-eval-function)
-  ("r" ess-eval-region)
-  ("b" ess-eval-buffer)
-  ;; workspace
-  ("D" ess-change-directory)
-  ("d" ess-rdired)
-  ;; help
-  ("h" ess-display-help-on-object)
-  ("H" ess-display-help-in-browser)
-  ("A" ess-display-help-apropos))
-
-;; binding for ess-mode hydra
-(with-eval-after-load 'ess-mode
-  (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess-mode/body))
-#+end_src
-
 *** Better support for R Markdown and bookdown files                  :melpa:
 
 [[https://github.com/polymode/poly-R/][poly-R]] provides better support for R Markdown and bookdown files, as
@@ -8984,7 +8917,84 @@ Transient for workspace manipulation and usage.
 (global-set-key (kbd "C-c C-M-e") #'transient/workspace)
 #+end_src
 
+*** YASnippet transient
+
+Transient for ~yas-minor-mode~ YASnippet commands and YASnippet
+supporting packages.
+
+#+name: yasnippet-transient
+#+begin_src emacs-lisp
+;; add transient popup for yasnippet commands, bind to "C-c C-M-<"
+(with-eval-after-load 'yasnippet
+  (with-eval-after-load 'auto-yasnippet
+    (defun transient/yasnippet--aya-show-current ()
+     "Show the current auto-snippet `aya-current' in the minibuffer."
+     (interactive)
+     (message "Current auto-yasnippet:\n%s" aya-current))
+   (transient-define-prefix transient/yasnippet ()
+     "YASnippet commands."
+     ["YASnippet"
+      ["Stored snippets"
+       ("SPC" "Expand" yas-expand)
+       ("s" "Insert" yas-insert-snippet)
+       ("n" "New" yas-new-snippet)
+       ("d" "Describe" yas-describe-tables)
+       ("v" "Visit file" yas-visit-snippet-file)
+       ]
+      ["Auto snippets"
+       ("w" "Create" aya-create)
+       ("y" "Expand" aya-expand)
+       ("?" "Show current" transient/yasnippet--aya-show-current)
+       ]
+      ]
+     )
+   (global-set-key (kbd "C-c C-M-<") #'transient/yasnippet)))
+#+end_src
+
 ** Major mode transients
+
+*** ess-mode transient
+
+Hydra for access to Emacs Speaks Statistics commands in ~ess-mode~.
+
+#+name: ess-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for ess-mode
+(with-eval-after-load 'ess-mode
+  (defun transient/ess-mode--new-session ()
+    "Opens a new ESS session depending the current `ess-dialect'."
+    (interactive)
+    (cond ((string= ess-dialect "R") (R))
+          ((string= ess-dialect "julia") (julia))
+          (t (message "Unsupported dialect"))))
+  (transient-define-prefix transient/ess-mode ()
+    "Emacs Speaks Statistics commands."
+    ["Emacs Speaks Statistics"
+     ["Session"
+      ("N" "New" transient/ess-mode--new-session)
+      ("R" "Request" ess-request-a-process)
+      ("s" "Switch" ess-switch-to-ESS)
+      ("q" "Quit" ess-quit)
+      ]
+     ["Eval"
+      ("l" "Line" ess-eval-line)
+      ("f" "Function" ess-eval-function)
+      ("r" "Region" ess-eval-region)
+      ("b" "Buffer" ess-eval-buffer)
+      ]
+     ["Workspace"
+      ("D" "Change dir" ess-change-directory)
+      ("d" "R dired" ess-rdired)
+      ]
+     ["Help"
+      ("h" "Object" ess-display-help-on-object)
+      ("A" "Apropos" ess-display-help-apropos)
+      ("H" "Browser" ess-display-help-in-browser)
+      ]
+     ]
+    )
+  (define-key ess-mode-map (kbd "C-c C-M-m") #'transient/ess-mode))
+#+end_src
 
 *** smerge-mode transient
 
@@ -8995,7 +9005,7 @@ This is a transient for ~smerge-mode~ that is adapted from [[https://github.com/
 
 #+name: smerge-mode-transient
 #+begin_src emacs-lisp
-;; add smerge-mode transient
+;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode
   (transient-define-prefix transient/smerge-mode ()
     "smerge-mode commands."
@@ -9314,8 +9324,6 @@ The main configuration file.
 <<multiple-cursors-hydra>>
 
 <<yasnippet>>
-
-<<yasnippet-hydra>>
 
 <<paredit>>
 
@@ -9759,7 +9767,11 @@ The main configuration file.
 
 <<workspace-transient>>
 
+<<yasnippet-transient>>
+
 ;; Transient commands / Major mode transients
+
+<<ess-mode-transient>>
 
 <<smerge-mode-transient>>
 
@@ -10384,6 +10396,33 @@ Keyboard Macros (_q_: quit)"
 (global-set-key (kbd "C-c C-M-k") 'my-hydra/kmacros/body)
 #+end_src
 
+*** Snippet expansion using YASnippet
+
+**** YASnippet hydra                                                  :hydra:
+
+Hydra for ~yas-minor-mode~ YASnippet commands and YASnippet supporting
+packages.
+
+#+name: yasnippet-hydra
+#+begin_src emacs-lisp
+;; hydra for YASnippet commands
+(defhydra my-hydra/yas-minor-mode (:color teal :columns 4)
+  "
+YASnippet (_q_: quit)"
+  ("q" nil nil)
+  ("SPC" yas-expand "expand") ;; expand snippet
+  ("d" yas-describe-tables "describe") ;; snippets for current mode
+  ("s" yas-insert-snippet "insert") ;; insert snippet
+  ("n" yas-new-snippet "new") ;; create new snippet
+  ("v" yas-visit-snippet-file "visit-snippet") ;; visit snippet file
+  ("w" aya-create "create-auto") ;; store temp snippet
+  ("y" aya-expand "expand-auto") ;; paste temp snippet
+  ("?" (message "Current auto-yasnippet:\n%s" aya-current)
+   "current-auto")) ;; show temp snippet
+(with-eval-after-load 'yasnippet
+  (define-key yas-minor-mode-map (kbd "C-c C-M-<") #'my-hydra/yas-minor-mode/body))
+#+end_src
+
 ** Email
 
 *** OrgMsg for composing HTML emails
@@ -10976,6 +11015,50 @@ Add entry point to ~yapfify-buffer-or-region~ to python-mode hydra.
 ;; add entry point to yapfify in python-mode hydra
 (defhydra+ my-hydra/python-mode nil
   ("y" yapfify-region-or-buffer "yapf" :exit t))
+#+end_src
+
+*** R
+
+**** ess-mode hydra                                                   :hydra:
+
+Hydra for ~ess-mode~.
+
+#+name: ess-mode-hydra
+#+begin_src emacs-lisp
+;; major mode-specific hydra for ess-mode
+(defhydra my-hydra/ess-mode (:color teal :hint nil)
+  "
+Emacs Speaks Statistics (_q_: quit)
+Session       _N_ : new       _R_ : request   _s_ : switch    _C-q_ : quit
+Eval          _l_ : line      _f_ : func      _r_ : region    _b_   : buffer
+Workspace     _D_ : chdir     _d_ : R dired
+Help          _h_ : object    _H_ : browser   _A_ : apropos
+"
+  ("q" nil nil)
+  ;; session
+  ("N" (lambda () (interactive)
+         (cond ((string= ess-dialect "R") (R))
+               ((string= ess-dialect "julia") (julia))
+               (t (message "Unsupported dialect")))))
+  ("R" ess-request-a-process)
+  ("s" ess-switch-to-ESS)
+  ("C-q" ess-quit)
+  ;; eval
+  ("l" ess-eval-line)
+  ("f" ess-eval-function)
+  ("r" ess-eval-region)
+  ("b" ess-eval-buffer)
+  ;; workspace
+  ("D" ess-change-directory)
+  ("d" ess-rdired)
+  ;; help
+  ("h" ess-display-help-on-object)
+  ("H" ess-display-help-in-browser)
+  ("A" ess-display-help-apropos))
+
+;; binding for ess-mode hydra
+(with-eval-after-load 'ess-mode
+  (define-key ess-mode-map (kbd "C-c C-M-m") #'my-hydra/ess-mode/body))
 #+end_src
 
 ** Project interaction

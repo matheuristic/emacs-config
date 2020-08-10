@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug  9 18:42:20 2020
+;; Generated: Sun Aug  9 21:40:00 2020
 
 ;;; Commentary:
 
@@ -1238,23 +1238,6 @@ Misc    _C-{_: number   _C-}_: letter
   (unbind-key "\C-c&" yas-minor-mode-map)
   (unbind-key "\C-c" yas-minor-mode-map)
   (yas-global-mode 1))
-
-;; hydra for YASnippet commands
-(defhydra my-hydra/yas-minor-mode (:color teal :columns 4)
-  "
-YASnippet (_q_: quit)"
-  ("q" nil nil)
-  ("SPC" yas-expand "expand") ;; expand snippet
-  ("d" yas-describe-tables "describe") ;; snippets for current mode
-  ("s" yas-insert-snippet "insert") ;; insert snippet
-  ("n" yas-new-snippet "new") ;; create new snippet
-  ("v" yas-visit-snippet-file "visit-snippet") ;; visit snippet file
-  ("w" aya-create "create-auto") ;; store temp snippet
-  ("y" aya-expand "expand-auto") ;; paste temp snippet
-  ("?" (message "Current auto-yasnippet:\n%s" aya-current)
-   "current-auto")) ;; show temp snippet
-(with-eval-after-load 'yasnippet
-  (define-key yas-minor-mode-map (kbd "C-c C-M-<") #'my-hydra/yas-minor-mode/body))
 
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
@@ -4653,9 +4636,71 @@ Example of use with transient suffix definitions in a
   )
 (global-set-key (kbd "C-c C-M-e") #'transient/workspace)
 
+;; add transient popup for yasnippet commands, bind to "C-c C-M-<"
+(with-eval-after-load 'yasnippet
+  (with-eval-after-load 'auto-yasnippet
+    (defun transient/yasnippet--aya-show-current ()
+     "Show the current auto-snippet `aya-current' in the minibuffer."
+     (interactive)
+     (message "Current auto-yasnippet:\n%s" aya-current))
+   (transient-define-prefix transient/yasnippet ()
+     "YASnippet commands."
+     ["YASnippet"
+      ["Stored snippets"
+       ("SPC" "Expand" yas-expand)
+       ("s" "Insert" yas-insert-snippet)
+       ("n" "New" yas-new-snippet)
+       ("d" "Describe" yas-describe-tables)
+       ("v" "Visit file" yas-visit-snippet-file)
+       ]
+      ["Auto snippets"
+       ("w" "Create" aya-create)
+       ("y" "Expand" aya-expand)
+       ("?" "Show current" transient/yasnippet--aya-show-current)
+       ]
+      ]
+     )
+   (global-set-key (kbd "C-c C-M-<") #'transient/yasnippet)))
+
 ;; Transient commands / Major mode transients
 
-;; add smerge-mode transient
+;; major-mode specific transient for ess-mode
+(with-eval-after-load 'ess-mode
+  (defun transient/ess-mode--new-session ()
+    "Opens a new ESS session depending the current `ess-dialect'."
+    (interactive)
+    (cond ((string= ess-dialect "R") (R))
+          ((string= ess-dialect "julia") (julia))
+          (t (message "Unsupported dialect"))))
+  (transient-define-prefix transient/ess-mode ()
+    "Emacs Speaks Statistics commands."
+    ["Emacs Speaks Statistics"
+     ["Session"
+      ("N" "New" transient/ess-mode--new-session)
+      ("R" "Request" ess-request-a-process)
+      ("s" "Switch" ess-switch-to-ESS)
+      ("q" "Quit" ess-quit)
+      ]
+     ["Eval"
+      ("l" "Line" ess-eval-line)
+      ("f" "Function" ess-eval-function)
+      ("r" "Region" ess-eval-region)
+      ("b" "Buffer" ess-eval-buffer)
+      ]
+     ["Workspace"
+      ("D" "Change dir" ess-change-directory)
+      ("d" "R dired" ess-rdired)
+      ]
+     ["Help"
+      ("h" "Object" ess-display-help-on-object)
+      ("A" "Apropos" ess-display-help-apropos)
+      ("H" "Browser" ess-display-help-in-browser)
+      ]
+     ]
+    )
+  (define-key ess-mode-map (kbd "C-c C-M-m") #'transient/ess-mode))
+
+;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode
   (transient-define-prefix transient/smerge-mode ()
     "smerge-mode commands."

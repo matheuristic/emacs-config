@@ -5091,8 +5091,12 @@ used as the main checker for the mode.
     :ensure nil ;; in site-lisp subfolder within user emacs directory
     :config
     (setq flycheck-devskim-executable "devskim")
-    (with-eval-after-load 'lsp-mode
-      (flycheck-add-next-checker 'lsp 'devskim))))
+    (with-eval-after-load 'lsp-diagnostics
+      (defun lsp-diagnostics--flycheck-enable--after-add-devskim (&rest _)
+       "Chain devskim checker on the lsp checker after it is enabled."
+       (flycheck-add-next-checker 'lsp 'devskim))
+     (advice-add 'lsp-diagnostics--flycheck-enable :after
+                 #'lsp-diagnostics--flycheck-enable--after-add-devskim))))
 #+end_src
 
 ** Conda package and environment manager                              :melpa:

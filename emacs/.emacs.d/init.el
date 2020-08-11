@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Aug 10 19:31:16 2020
+;; Generated: Tue Aug 11 11:31:30 2020
 
 ;;; Commentary:
 
@@ -2671,8 +2671,12 @@ FlyCheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"defaul
     :ensure nil ;; in site-lisp subfolder within user emacs directory
     :config
     (setq flycheck-devskim-executable "devskim")
-    (with-eval-after-load 'lsp-mode
-      (flycheck-add-next-checker 'lsp 'devskim))))
+    (with-eval-after-load 'lsp-diagnostics
+      (defun lsp-diagnostics--flycheck-enable--after-add-devskim (&rest _)
+       "Chain devskim checker on the lsp checker after it is enabled."
+       (flycheck-add-next-checker 'lsp 'devskim))
+     (advice-add 'lsp-diagnostics--flycheck-enable :after
+                 #'lsp-diagnostics--flycheck-enable--after-add-devskim))))
 
 ;; Programming / Conda package and environment manager
 

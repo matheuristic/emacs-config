@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug 11 11:31:30 2020
+;; Generated: Tue Aug 11 19:34:22 2020
 
 ;;; Commentary:
 
@@ -132,30 +132,23 @@
 
 ;; Utility functions
 
-(defun my-after-jump-context-actions (&rest args)
+(defun my-after-jump-context-actions (&rest _)
   "Useful context actions to perform after jumping to a new location.
 This is meant for use with `advice-add' with the :after
 combinator.
 
 One useful context action example is to run `org-show-context'
 after jumping to an Org buffer location to ensure the region
-around the new point location is visible.
-
-ARGS is simply a catch-all for the arguments of the advised
-function and is not used."
+around the new point location is visible."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
 
 ;; helper function for pulsing the current line, adapted from
 ;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
-(defun my-pulse-line (&rest args)
+(defun my-pulse-line (&rest _)
     "Pulse the current line .
 If the point is at the newline at the end of the buffer, pulse
 the line before that. Additionally, the current line is not pulsed
-if the point is in the minibuffer.
-
-ARGS is not used. It is defined for when the function is used to
-advise other functions, designed to be a catch-all for any
-arguments passed from the advised function."
+if the point is in the minibuffer."
     (unless (minibufferp)
       (let ((start (if (and (eobp)
                             (= (point) (line-beginning-position)))
@@ -165,10 +158,8 @@ arguments passed from the advised function."
             (pulse-delay .1))
         (pulse-momentary-highlight-region start end nil))))
 
-(defun my-save-and-bury-buffer (&rest args)
-  "Save and bury the current buffer.
-ARGS is a catchall argument for when this function is used to
-advise functions, most typically with the :after combinator."
+(defun my-save-and-bury-buffer (&rest _)
+  "Save and bury the current buffer."
   (save-buffer)
   (bury-buffer))
 
@@ -3102,35 +3093,6 @@ CIDER → REPL (_q_: ←)"
 (with-eval-after-load 'python
   (modify-syntax-entry ?_ "w" python-mode-syntax-table))
 
-;; mode-specific hydra for Python mode
-(defhydra my-hydra/python-mode (:color teal :columns 4)
-  "
-Python (_q_: quit)"
-  ("q" nil nil)
-  ;; python repl
-  ("p" run-python "run-python")
-  ("s" python-shell-send-string "send-str")
-  ("e" python-shell-send-statement "send-stmt")
-  ("r" python-shell-send-region "send-rgn")
-  ("x" python-shell-send-defun "send-def")
-  ("c" python-shell-send-buffer "send-buf")
-  ("l" python-shell-send-file "send-file")
-  ("z" python-shell-switch-to-shell "switch-to-sh")
-  ;; indentation
-  ("<" python-indent-shift-left "indent-l" :exit nil)
-  (">" python-indent-shift-right "indent-r" :exit nil)
-  ;; utilities
-  ("v" python-check "check-err")
-  ("f" python-eldoc-at-point "eldoc-at-pt")
-  ("d" python-describe-at-point "descr-at-pt")
-  ;; other
-  ("j" imenu "imenu")
-  ("D" pdb "pdb"))
-
-;; binding for Python hydra
-(with-eval-after-load 'python
-  (define-key python-mode-map (kbd "C-c C-M-m") #'my-hydra/python-mode/body))
-
 (with-eval-after-load 'reformatter
   ;; define `python-black-format-buffer', `python-black-format-region'
   ;; and `python-black-format-on-save-mode'
@@ -3150,20 +3112,8 @@ Formatting a selected region only works on top-level objects."
                                                     (region-end)))
         (t (python-black-format-buffer)))))
 
-;; add entry point to yapfify in python-mode hydra
-(defhydra+ my-hydra/python-mode nil
-  ("y" (lambda ()
-         (interactive)
-         (python-black-format-buffer-or-region))
-   "format" :exit t)
-  ("Y" python-black-format-on-save-mode "format-on-save"))
-
 ;; live coding in python
 (use-package live-py-mode)
-
-;; add live-py-mode toggle to python-mode hydra
-(defhydra+ my-hydra/python-mode nil
-  ("L" live-py-mode "live-py-mode" :exit t))
 
 (use-package lsp-pyright
   :defer t
@@ -3224,45 +3174,6 @@ Formatting a selected region only works on top-level objects."
 
 (use-package racket-mode
   :defer t)
-
-;; major mode-specific hydra for racket-mode
-(defhydra my-hydra/racket-mode (:color teal :columns 4)
-  "
-Racket Mode (_q_: quit)"
-  ("q" nil nil)
-  ;; refactoring requires
-  ("Rt" racket-tidy-requires "tidy-req")
-  ("RT" racket-trim-requires "trim-req")
-  ("Rb" racket-base-requires "base-req")
-  ;; compile Racket Mode's .rkt files for faster startup
-  ("S" racket-mode-start-faster "mode-compile")
-  ;; racket modes
-  ("x" racket-xp-mode "xp-mode" :exit nil)
-  ;; repl
-  ("rr" racket-run "run")
-  ("rm" racket-run-module-at-point "run-module")
-  ("rR" racket-racket "racket")
-  ;; profiling and logging
-  ("rp" racket-profile "profile")
-  ("rl" racket-logger "logger")
-  ;; testing
-  ("t" racket-test "test")
-  ("T" racket-raco-test "raco-test")
-  ;; misc
-  ("f" racket-find-collection "find-coll")
-  ;; help
-  ("." racket-xp-visit-definition "visit-defn")
-  ("C-." racket-visit-module "visit-modl")
-  ("," racket-unvisit "unvisit")
-  ("h" racket-xp-describe "desc")
-  ("H" racket-xp-documentation "docs")
-  ;; editing
-  ("a" racket-align "align")
-  ("A" racket-unalign "unalign"))
-
-;; bindings for racket-mode hydra
-(with-eval-after-load 'racket-mode
-  (define-key racket-mode-map (kbd "C-c C-M-m") #'my-hydra/racket-mode/body))
 
 ;; Project interaction
 
@@ -3711,8 +3622,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
 (use-package eww
   :ensure nil ;; built-in
   :commands (eww eww-follow-link)
-  :bind (:map eww-mode-map
-         ("I" . my-eww-toggle-images))
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
   ;; don't render images in HTML pages by default
   :config (setq-default shr-inhibit-images t))
@@ -3785,7 +3694,7 @@ REST client (_q_: quit)"
 (setq org-readitlater-capture-file "readitlater/readitlater.org")
 (push `("a" "Archive page to read-it-later list" entry
         (file+headline ,org-readitlater-capture-file "Unsorted")
-        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
+        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:READITLATER_BACKEND_OPTIONS: --isolate --no-css --no-fonts --no-frames --no-images --no-js\n:ADDED: %U\n:END:\n%:initial\n")
       org-capture-templates)
 ;; auto-download page after capturing with org-readitlater template
 (defun do-org-readitlater-dl-hook ()
@@ -4683,10 +4592,10 @@ Example of use with transient suffix definitions in a
       ("B" "List" eww-list-bookmarks)
       ""
       "Toggle"
-      ("F" "Fonts" eww-toggle-fonts)
-      ("I" "Images" transient/eww-mode--toggle-images)
-      ("M-C" "Colors" eww-toggle-colors)
-      ("D" "Text direction" eww-toggle-paragraph-direction)
+      ("F" "Fonts" eww-toggle-fonts :transient t)
+      ("I" "Images" transient/eww-mode--toggle-images :transient t)
+      ("M-C" "Colors" eww-toggle-colors :transient t)
+      ("D" "Text direction" eww-toggle-paragraph-direction :transient t)
       ]
      ["Other"
       ("d" "Downlink link" eww-download)
@@ -4699,6 +4608,86 @@ Example of use with transient suffix definitions in a
      ]
     )
   (define-key eww-mode-map (kbd "C-c C-M-m") #'transient/eww-mode))
+
+;; major-mode specific transient for python-mode
+(with-eval-after-load 'python
+  (with-eval-after-load 'live-py-mode
+    ;; technically also depends on reformatter but more correctly
+    ;; using it to define `python-black-format-buffer-or-region' and
+    ;; `python-black-format-on-save-mode'
+    (transient-define-prefix transient/python-mode ()
+      "Python mode commands."
+      ["Python"
+       ["REPL"
+        ("p" "Start" run-python)
+        ("s" "Send string" python-shell-send-string)
+        ("x" "Send defun" python-shell-send-defun)
+        ("r" "Send region" python-shell-send-region)
+        ("c" "Send buffer" python-shell-send-buffer)
+        ("l" "Send file" python-shell-send-file)
+        ("z" "Switch to" python-shell-switch-to-shell)
+        ]
+       ["Formatting"
+        ("TAB" "Fill paragraph" python-fill-paragraph :transient t)
+        ("<" "Indent left" python-indent-shift-left :transient t)
+        (">" "Indent right" python-indent-shift-right :transient t)
+        ("y" "Region or buffer" python-black-format-buffer-or-region :transient t)
+        ("Y" "On save" python-black-format-on-save-mode)
+        ]
+       ["Other"
+        ("j" "Imenu" imenu)
+        ("v" "Check error" python-check)
+        ("f" "Symbol quick help" python-eldoc-at-point)
+        ("d" "Symbol describe" python-describe-at-point)
+        ("D" "Python debugger" pdb)
+        ("L" "Live coding mode" live-py-mode)
+        ]
+       ]
+      )
+    (define-key python-mode-map (kbd "C-c C-M-m") #'transient/python-mode)))
+
+;; major-mode specific transient for racket-mode
+(with-eval-after-load 'racket-mode
+  (transient-define-prefix transient/racket-mode ()
+    "Racket mode commands."
+    ["Racket"
+     ["Run"
+      ("rr" "Buffer in REPL" racket-run)
+      ("rm" "Module in REPL" racket-run-module-at-point)
+      ("rR" "File in shell" racket-racket)
+      ""
+      "Profiling/Logging"
+      ("rp" "Profiler" racket-profile)
+      ("rl" "Logger" racket-logger)
+      ""
+      "Testing"
+      ("tt" "Run tests in REPL" racket-test)
+      ("tr" "Raco test" racket-raco-test)
+      ]
+     ["Refactoring"
+      ("Rb" "Base requires" racket-base-requires)
+      ("Rt" "Tidy requires" racket-tidy-requires)
+      ("RT" "Trim requires" racket-trim-requires)
+      ""
+      "Help"
+      ("." "Visit definition" racket-xp-visit-definition)
+      ("C-." "Visit module" racket-visit-module)
+      ("," "Unvisit" racket-unvisit)
+      ("h" "Describe" racket-xp-describe)
+      ("H" "Documentation" racket-xp-documentation)
+      ]
+     ["Editing"
+      ("a" "Align" racket-align)
+      ("u" "Unalign" racket-unalign)
+      ""
+      "Other"
+      ("S" "Recompile racket-mode" racket-mode-start-faster)
+      ("f" "Find collection" racket-find-collection)
+      ("x" "Explain/Explore mode" racket-xp-mode)
+      ]
+     ]
+    )
+  (define-key racket-mode-map (kbd "C-c C-M-m") #'transient/racket-mode))
 
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode

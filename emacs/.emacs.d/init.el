@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug 11 21:33:59 2020
+;; Generated: Tue Aug 11 22:28:32 2020
 
 ;;; Commentary:
 
@@ -1099,6 +1099,9 @@ Registers (_q_: quit)"
 
 ;; multiple cursors
 (use-package multiple-cursors
+  :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C->" . mc/mark-next-like-this)
+         ("C-<" . mc/mark-previous-like-this))
   :init (setq mc/always-run-for-all nil
               mc/always-repeat-command nil
               mc/insert-numbers-default 1)
@@ -1107,43 +1110,6 @@ Registers (_q_: quit)"
   ;; setting a height of 1 ends up rendering a thick bar
   ;; probably because it is too small a value
   (set-face-attribute 'mc/cursor-bar-face nil :height 10))
-
-;; hydra helper for multiple-cursors-mode
-;; disable prefix interpretation when multiple-cursors-mode is active
-;; see https://stackoverflow.com/questions/53798055
-(defhydra my-hydra/multiple-cursors (:color pink :hint nil
-                                     :base-map (make-sparse-keymap))
-  "
-Multiple-cursors (_C-g_: quit)
-Mark    _C-<_: add-prev _C->_: add-next _C-%_: add-all  _C-s_: search
-        _C-,_: skp-prev _C-._: skp-next _M-<_: rm-prev  _M->_: rm-next
-        _C-|_: edit-lns _<mouse-1>_: add/remove
-Misc    _C-{_: number   _C-}_: letter
-"
-  ("C-g" (lambda ()
-           (interactive)
-           (mc/keyboard-quit)
-           (when multiple-cursors-mode
-             (my-hydra/multiple-cursors/body))) :exit t)
-  ("C-<" mc/mark-previous-like-this)
-  ("C-," mc/skip-to-previous-like-this)
-  ("M-<" mc/unmark-previous-like-this)
-  ("C->" mc/mark-next-like-this)
-  ("C-." mc/skip-to-next-like-this)
-  ("M->" mc/unmark-next-like-this)
-  ("C-%" mc/mark-all-like-this)
-  ("C-s" mc/mark-all-in-region-regexp)
-  ("<mouse-1>" mc/add-cursor-on-click)
-  ("<down-mouse-1>" ignore)
-  ("<drag-mouse-1>" ignore)
-  ("<wheel-up>" scroll-down-line)
-  ("<wheel-down" scroll-up-line)
-  ("C-{" mc/insert-numbers)
-  ("C-}" mc/insert-letters)
-  ("C-|" mc/edit-lines))
-
-;; bind multiple-cursors hydra
-(global-set-key (kbd "C-c C-M-c") #'my-hydra/multiple-cursors/body)
 
 ;; expandable snippet template system
 (use-package yasnippet

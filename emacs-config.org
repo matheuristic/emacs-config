@@ -2261,6 +2261,9 @@ and a keymap for different operations on the highlighted symbols.
 #+begin_src emacs-lisp
 ;; multiple cursors
 (use-package multiple-cursors
+  :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C->" . mc/mark-next-like-this)
+         ("C-<" . mc/mark-previous-like-this))
   :init (setq mc/always-run-for-all nil
               mc/always-repeat-command nil
               mc/insert-numbers-default 1)
@@ -2269,52 +2272,6 @@ and a keymap for different operations on the highlighted symbols.
   ;; setting a height of 1 ends up rendering a thick bar
   ;; probably because it is too small a value
   (set-face-attribute 'mc/cursor-bar-face nil :height 10))
-#+end_src
-
-*** Multiple cursors hydra                                            :hydra:
-
-Hydra providing usage hints for ~multiple-cursor-mode~.
-It enables ~multiple-cursors-mode~ automatically on entrance and
-disables ~multiple-cursors-mode~ on exit.
-
-#+name: multiple-cursors-hydra
-#+begin_src emacs-lisp
-;; hydra helper for multiple-cursors-mode
-;; disable prefix interpretation when multiple-cursors-mode is active
-;; see https://stackoverflow.com/questions/53798055
-(defhydra my-hydra/multiple-cursors (:color pink :hint nil
-                                     :base-map (make-sparse-keymap))
-  "
-Multiple-cursors (_C-g_: quit)
-Mark    _C-<_: add-prev _C->_: add-next _C-%_: add-all  _C-s_: search
-        _C-,_: skp-prev _C-._: skp-next _M-<_: rm-prev  _M->_: rm-next
-        _C-|_: edit-lns _<mouse-1>_: add/remove
-Misc    _C-{_: number   _C-}_: letter
-"
-  ("C-g" (lambda ()
-           (interactive)
-           (mc/keyboard-quit)
-           (when multiple-cursors-mode
-             (my-hydra/multiple-cursors/body))) :exit t)
-  ("C-<" mc/mark-previous-like-this)
-  ("C-," mc/skip-to-previous-like-this)
-  ("M-<" mc/unmark-previous-like-this)
-  ("C->" mc/mark-next-like-this)
-  ("C-." mc/skip-to-next-like-this)
-  ("M->" mc/unmark-next-like-this)
-  ("C-%" mc/mark-all-like-this)
-  ("C-s" mc/mark-all-in-region-regexp)
-  ("<mouse-1>" mc/add-cursor-on-click)
-  ("<down-mouse-1>" ignore)
-  ("<drag-mouse-1>" ignore)
-  ("<wheel-up>" scroll-down-line)
-  ("<wheel-down" scroll-up-line)
-  ("C-{" mc/insert-numbers)
-  ("C-}" mc/insert-letters)
-  ("C-|" mc/edit-lines))
-
-;; bind multiple-cursors hydra
-(global-set-key (kbd "C-c C-M-c") #'my-hydra/multiple-cursors/body)
 #+end_src
 
 ** Snippet expansion using YASnippet                                  :melpa:
@@ -9292,8 +9249,6 @@ The main configuration file.
 
 <<multiple-cursors>>
 
-<<multiple-cursors-hydra>>
-
 <<yasnippet>>
 
 <<paredit>>
@@ -10518,6 +10473,54 @@ YASnippet (_q_: quit)"
    "current-auto")) ;; show temp snippet
 (with-eval-after-load 'yasnippet
   (define-key yas-minor-mode-map (kbd "C-c C-M-<") #'my-hydra/yas-minor-mode/body))
+#+end_src
+
+*** Multiple cursors
+
+**** Multiple cursors hydra                                           :hydra:
+
+Hydra providing usage hints for ~multiple-cursor-mode~.
+It enables ~multiple-cursors-mode~ automatically on entrance and
+disables ~multiple-cursors-mode~ on exit.
+
+#+name: multiple-cursors-hydra
+#+begin_src emacs-lisp
+;; hydra helper for multiple-cursors-mode
+;; disable prefix interpretation when multiple-cursors-mode is active
+;; see https://stackoverflow.com/questions/53798055
+(defhydra my-hydra/multiple-cursors (:color pink :hint nil
+                                     :base-map (make-sparse-keymap))
+  "
+Multiple-cursors (_C-g_: quit)
+Mark    _C-<_: add-prev _C->_: add-next _C-%_: add-all  _C-s_: search
+        _C-,_: skp-prev _C-._: skp-next _M-<_: rm-prev  _M->_: rm-next
+        _C-|_: edit-lns _<mouse-1>_: add/remove
+Misc    _C-{_: number   _C-}_: letter
+"
+  ("C-g" (lambda ()
+           (interactive)
+           (mc/keyboard-quit)
+           (when multiple-cursors-mode
+             (my-hydra/multiple-cursors/body))) :exit t)
+  ("C-<" mc/mark-previous-like-this)
+  ("C-," mc/skip-to-previous-like-this)
+  ("M-<" mc/unmark-previous-like-this)
+  ("C->" mc/mark-next-like-this)
+  ("C-." mc/skip-to-next-like-this)
+  ("M->" mc/unmark-next-like-this)
+  ("C-%" mc/mark-all-like-this)
+  ("C-s" mc/mark-all-in-region-regexp)
+  ("<mouse-1>" mc/add-cursor-on-click)
+  ("<down-mouse-1>" ignore)
+  ("<drag-mouse-1>" ignore)
+  ("<wheel-up>" scroll-down-line)
+  ("<wheel-down" scroll-up-line)
+  ("C-{" mc/insert-numbers)
+  ("C-}" mc/insert-letters)
+  ("C-|" mc/edit-lines))
+
+;; bind multiple-cursors hydra
+(global-set-key (kbd "C-c C-M-c") #'my-hydra/multiple-cursors/body)
 #+end_src
 
 ** Emacs as an edit server

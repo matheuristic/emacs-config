@@ -1603,29 +1603,6 @@ Kill term buffers after session end on a "q" keypress.
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 #+end_src
 
-*** Term hydra                                                        :hydra:
-
-Major mode-specific hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Terminal-emulator.html][term-mode]] for toggling between char mode
-(mostly similar to a regular terminal emulator) and line mode (which
-acts like [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#Shell-Mode][Shell mode]]).
-
-#+name: term-mode-hydra
-#+begin_src emacs-lisp
-;; hydra for term-mode for toggling between char and line modes
-(defhydra my-hydra/term-mode (:color amaranth :columns 4)
-  "
-Term (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("m" (lambda () (interactive)
-         (if (term-in-line-mode)
-             (progn (term-char-mode) (message "line → char"))
-           (progn (term-line-mode) (message "char → line")))) "toggle-mode"))
-;; bindings
-(with-eval-after-load 'term
-  (define-key term-mode-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body)
-  (define-key term-raw-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body))
-#+end_src
-
 ** vterm                                                              :melpa:
 
 [[https://github.com/akermu/emacs-libvterm][emacs-libvterm]] (vterm) is full terminal emulator run inside Emacs
@@ -8977,6 +8954,35 @@ from [[https://github.com/alphapapa/unpackaged.el#hydra][here]].
   (define-key smerge-mode-map (kbd "C-c C-M-m") #'transient/smerge-mode))
 #+end_src
 
+*** term-mode transient
+
+Term major mode transient.
+
+This is mainly to toggling between ~term-char-mode~ (which is similar
+to a regular terminal emulator) and ~term-line-mode~ (which is similar
+to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#Shell-Mode][Shell mode]]) when in [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Terminal-emulator.html][term-mode]].
+
+#+name: term-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for term-mode
+(with-eval-after-load 'term
+  (defun transient/term-mode--toggle-char-mode-line-mode ()
+    "Toggle between `term-char-mode' and `term-line-mode' in `term-mode'."
+    (interactive)
+    (if (term-in-line-mode)
+        (progn (term-char-mode) (message "line → char"))
+      (progn (term-line-mode) (message "char → line"))))
+  (transient-define-prefix transient/term-mode ()
+    "Term mode commands."
+    ["Term"
+     ("m" "Toggle between `term-char-mode' and `term-line-mode'"
+      transient/term-mode--toggle-char-mode-line-mode :transient t)
+     ]
+    )
+  (define-key term-mode-map (kbd "C-c C-M-m") #'transient/term-mode)
+  (define-key term-raw-map (kbd "C-c C-M-m") #'transient/term-mode))
+#+end_src
+
 * Back matter
 
 ** Footer
@@ -9188,8 +9194,6 @@ The main configuration file.
 <<comint-prompt-read-only>>
 
 <<kill-term-buffers-with-q-after-end>>
-
-<<term-mode-hydra>>
 
 <<vterm>>
 
@@ -9684,6 +9688,8 @@ The main configuration file.
 <<racket-mode-transient>>
 
 <<smerge-mode-transient>>
+
+<<term-mode-transient>>
 
 <<generate-footer(feature="init")>>
 #+end_src
@@ -10191,6 +10197,31 @@ Shell tools (_q_: quit)"
 
 ;; binding for spawning or switching to a named Eshell buffer
 (global-set-key (kbd "C-c C-M-t") #'my-hydra/shell/body)
+#+end_src
+
+*** Command interpreters for other shells
+
+**** Term hydra                                                       :hydra:
+
+Major mode-specific hydra for [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Terminal-emulator.html][term-mode]] for toggling between char mode
+(mostly similar to a regular terminal emulator) and line mode (which
+acts like [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#Shell-Mode][Shell mode]]).
+
+#+name: term-mode-hydra
+#+begin_src emacs-lisp
+;; hydra for term-mode for toggling between char and line modes
+(defhydra my-hydra/term-mode (:color amaranth :columns 4)
+  "
+Term (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("m" (lambda () (interactive)
+         (if (term-in-line-mode)
+             (progn (term-char-mode) (message "line → char"))
+           (progn (term-line-mode) (message "char → line")))) "toggle-mode"))
+;; bindings
+(with-eval-after-load 'term
+  (define-key term-mode-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body)
+  (define-key term-raw-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body))
 #+end_src
 
 ** Comparison tools

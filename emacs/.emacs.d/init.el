@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug 11 22:28:32 2020
+;; Generated: Tue Aug 11 22:53:09 2020
 
 ;;; Commentary:
 
@@ -784,20 +784,6 @@ provided, the default interactive `eshell' command is run."
                          (kill-buffer (current-buffer))))
                      map))))
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
-
-;; hydra for term-mode for toggling between char and line modes
-(defhydra my-hydra/term-mode (:color amaranth :columns 4)
-  "
-Term (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("m" (lambda () (interactive)
-         (if (term-in-line-mode)
-             (progn (term-char-mode) (message "line → char"))
-           (progn (term-line-mode) (message "char → line")))) "toggle-mode"))
-;; bindings
-(with-eval-after-load 'term
-  (define-key term-mode-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body)
-  (define-key term-raw-map (kbd "C-c C-M-m") #'my-hydra/term-mode/body))
 
 (use-package vterm
   :if (and module-file-suffix
@@ -4705,6 +4691,24 @@ Example of use with transient suffix definitions in a
      ]
     )
   (define-key smerge-mode-map (kbd "C-c C-M-m") #'transient/smerge-mode))
+
+;; major-mode specific transient for term-mode
+(with-eval-after-load 'term
+  (defun transient/term-mode--toggle-char-mode-line-mode ()
+    "Toggle between `term-char-mode' and `term-line-mode' in `term-mode'."
+    (interactive)
+    (if (term-in-line-mode)
+        (progn (term-char-mode) (message "line → char"))
+      (progn (term-line-mode) (message "char → line"))))
+  (transient-define-prefix transient/term-mode ()
+    "Term mode commands."
+    ["Term"
+     ("m" "Toggle between `term-char-mode' and `term-line-mode'"
+      transient/term-mode--toggle-char-mode-line-mode :transient t)
+     ]
+    )
+  (define-key term-mode-map (kbd "C-c C-M-m") #'transient/term-mode)
+  (define-key term-raw-map (kbd "C-c C-M-m") #'transient/term-mode))
 
 (provide 'init)
 ;;; init.el ends here

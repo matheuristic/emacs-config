@@ -4774,11 +4774,8 @@ When annotating in the split-screen mode:
 Enable [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]] to allow intercepting calls to emacsclient and
 triggering custom actions.
 
-By default, Emacs Mac Port on macOS registers itself as the handler
-for ~org-protocol://~ URLs.
-
-For other versions of Emacs, refer to [[https://github.com/alphapapa/org-protocol-capture-html#org-protocol-instructions][here]] or [[https://org-roam.readthedocs.io/en/master/roam_protocol/][here]] for instructions on
-setting up the protocol handler.
+~emacsclient~ will need to be set up as the ~org-protocol~ URL
+handler. See the following sections for instructions.
 
 #+name: org-protocol
 #+begin_src emacs-lisp
@@ -4786,6 +4783,79 @@ setting up the protocol handler.
 (server-mode 1)
 (require 'org-protocol)
 #+end_src
+
+*** Setting up org-protocol
+
+**** Linux
+
+Create the file =~/.local/share/applications/org-protocol.desktop=
+with the following contents. Change the paths in the ~Exec~ and ~Icon~
+entries as appropriate.
+#+begin_example
+[Desktop Entry]
+Name=Org-Protocol
+Exec=/path/to/emacsclient %u
+Type=Application
+Terminal=false
+Category=System;
+MimeType=x-scheme-handler/org-protocol;
+Icon=/path/to/icons/emacs.png
+#+end_example
+
+Run the following to have ~emacsclient~ be the default handler for
+~org-protocol://~ URLs. This will add the appropriate entry to
+=~/.config/mimeapps.list= or =~/.local/share/applications.mimeapps.list=.
+#+begin_example
+xdg-mime default org-protocol.desktop x-scheme-handler/org-protocol
+#+end_example
+
+*References*:
+- [[https://github.com/alphapapa/org-protocol-capture-html#1-add-protocol-handler][GitHub - alphapapa/org-protocol-capture-html]]
+
+**** macOS
+
+If using Emacs Mac Port, it automatically registers itself as the handler
+for ~org-protocol://~ URLs. Otherwise, do the following.
+
+Create a new document using the /Script Editor/ app. The new document
+should have the following contents. Change the path to the
+~emacsclient~ binary as needed. Save the document in the *Application*
+file format (not Script). The name of the saved document does not
+matter, it can be say =OrgProtocol.app= or =org-protocol.app= or
+something else.
+
+#+begin_example
+on open location this_URL
+    do shell script "/Applications/Emacs.app/Contents/MacOS/bin/emacsclient \"" & this_URL & "\""
+end open location
+#+end_example
+
+Add the following to the =Contents/Info.plist= file in the newly saved
+app (an app is a folder in the filesystem). Suppose the app was saved
+to =/path/to/OrgProtocol.app= then open the
+=/path/to/OrgProtocol.app/Contents/Info.plist= file in some editor
+and add the following to the main ~/plist/dict~ block.
+
+#+begin_example
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLName</key>
+    <string>org-protocol handler</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>org-protocol</string>
+    </array>
+  </dict>
+</array>
+#+end_example
+
+Move =OrgProtocol.app= (or whatever the new app was named) to the
+=/Applications/= folder, and the system should pick up the new app as
+the ~org-protocol~ URL handler.
+
+*References*:
+- [[https://github.com/xuchunyang/setup-org-protocol-on-mac][GitHub - xuchunyang/setup-org-protocol-on-mac: Setting Up org-protocol on Mac]]
 
 *** org-protocol-capture
 

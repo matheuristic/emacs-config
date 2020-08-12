@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug 11 22:53:09 2020
+;; Generated: Tue Aug 11 23:49:50 2020
 
 ;;; Commentary:
 
@@ -1021,23 +1021,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (require 'epa-file)
 (epa-file-enable)
 
-(defhydra my-hydra/registers (:color teal :columns 4)
-  "
-Registers (_q_: quit)"
-  ("q" nil nil)
-  ("SPC" point-to-register "save-point")
-  ("w" window-configuration-to-register "save-windows")
-  ("f" frameset-to-register "save-frames")
-  ("j" jump-to-register "jump")
-  ("s" copy-to-register "copy-region")
-  ("a" append-to-register "append-region")
-  ("p" prepend-to-register "prepend-region")
-  ("r" copy-rectangle-to-register "copy-rect")
-  ("i" insert-register "insert")
-  ("l" list-registers "list")
-  ("v" view-register "view"))
-(global-set-key (kbd "C-c C-M-\"") 'my-hydra/registers/body)
-
 ;; display available bindings in popup
 (use-package which-key
   :bind ("C-c C-M-?" . which-key-show-top-level)
@@ -1639,7 +1622,6 @@ Marks / Markers (_q_: quit)"
 (use-package csv-mode
   :commands csv-mode
   :bind (:map csv-mode-map
-         ("C-c C-M-m" . my-hydra/csv-mode/body)
          ("C-c C-S-a" . csv-align-visible-fields))
   :config
   (setq csv-align-style 'auto) ;; `csv-align-fields' left/right-aligns text/numbers
@@ -1648,29 +1630,6 @@ Marks / Markers (_q_: quit)"
 `csv-align-fields' can take a very long time to run."
     (interactive)
     (csv-align-fields nil (window-start) (window-end))))
-
-;; major mode-specific hydra for csv-mode
-(defhydra my-hydra/csv-mode (:color teal :columns 4)
-  "
-CSV (_q_: quit)"
-  ("q" nil nil)
-  ("s" csv-sort-fields "sort")
-  ("n" csv-sort-numeric-fields "numsort")
-  ("r" csv-reverse-region "reverse")
-  ("d" csv-toggle-descending "toggle-desc-sort" :exit nil)
-  ("t" csv-transpose "transpose")
-  ("k" csv-kill-fields "cut")
-  ("y" csv-yank-fields "paste")
-  ("z" csv-yank-as-new-table "paste-as-new-tab")
-  ("A" csv-align-visible-fields "align-visible" :exit nil)
-  ("a" csv-align-fields "align" :exit nil)
-  ("u" csv-unalign-fields "unalign" :exit nil)
-  ("h" csv-header-line "toggle-header" :exit nil)
-  ("v" csv-toggle-invisibility "toggle-invis-sep" :exit nil))
-
-;; binding for csv-mode hydra
-(with-eval-after-load 'csv-mode
-  (define-key csv-mode-map (kbd "C-c C-M-m") #'my-hydra/csv-mode/body))
 
 (use-package dockerfile-mode
   :commands dockerfile-mode
@@ -4208,6 +4167,28 @@ Example of use with transient suffix definitions in a
   (define-key projectile-mode-map (kbd "C-c C-M-p")
     #'transient/projectile))
 
+;; add transient popup for register commands, bind to "C-c C-M-S-v"
+(transient-define-prefix transient/registers ()
+  "Register commands."
+  ["Registers"
+   [("SPC" "Save point" point-to-register)
+    ("w" "Save windows" window-configuration-to-register)
+    ("f" "Save frames" frameset-to-register)
+    ("j" "Jump" jump-to-register)
+    ]
+   [("s" "Copy region" copy-to-register)
+    ("a" "Append region" append-to-register)
+    ("p" "Prepend region" prepend-to-register)
+    ("r" "Copy rectangle" copy-rectangle-to-register)
+    ]
+   [("i" "Insert" insert-register)
+    ("l" "List" list-registers)
+    ("v" "View" view-register)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-\"") #'transient/registers)
+
 ;; add transient popup for shell tools, bind to "C-c C-M-t"
 (transient-define-prefix transient/shell ()
   "Various shell tools."
@@ -4354,6 +4335,34 @@ Example of use with transient suffix definitions in a
    (global-set-key (kbd "C-c C-M-<") #'transient/yasnippet)))
 
 ;; Transient commands / Major mode transients
+
+;; major-mode specific transient for csv-mode
+(with-eval-after-load 'csv-mode
+  (transient-define-prefix transient/csv-mode ()
+    "CSV mode commands."
+    ["CSV"
+     ["Sort"
+      ("s" "Lexicographic" csv-sort-fields)
+      ("n" "Numerically" csv-sort-numeric-fields)
+      ("r" "Reverse" csv-reverse-region)
+      ("d" "Toggle descending" csv-toggle-descending :transient t)
+      ]
+     ["Edit"
+      ("t" "Transpose" csv-transpose)
+      ("k" "Cut" csv-kill-fields)
+      ("y" "Paste" csv-yank-fields)
+      ("z" "Paste as new table" csv-yank-as-new-table)
+      ]
+     ["Visual"
+      ("A" "Align visible" csv-align-visible-fields :transient t)
+      ("a" "Align" csv-align-fields :transient t)
+      ("u" "Unalign" csv-unalign-fields :transient t)
+      ("h" "Toggle header" csv-header-line :transient t)
+      ("v" "Toggle separator" csv-toggle-invisibility :transient t)
+      ]
+     ]
+    )
+  (define-key csv-mode-map (kbd "C-c C-M-m") #'transient/csv-mode))
 
 ;; major-mode specific transient for eww-mode
 (with-eval-after-load 'debug

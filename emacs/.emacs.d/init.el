@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 12 16:58:00 2020
+;; Generated: Wed Aug 12 18:52:48 2020
 
 ;;; Commentary:
 
@@ -2512,7 +2512,7 @@ Org-mode → Download (_q_: ←)"
 ;; commands that run reformatters on the current buffer
 (use-package reformatter)
 
-;; Programming / FlyCheck syntax checker
+;; Programming / Flycheck syntax checker
 
 ;; linting support, used in place of FlyMake
 (use-package flycheck
@@ -2538,35 +2538,10 @@ when buffer is clean, and more frequently when it has errors."
                                        3.0)))
   (add-hook 'flycheck-after-syntax-check-hook
             #'flycheck--adjust-flycheck-idle-change-delay)
-  ;; default modes within which to use FlyCheck
+  ;; default modes within which to use Flycheck
   (add-hook 'emacs-lisp-mode-hook #'flycheck-mode))
 
-;; flycheck hydra
-(defhydra my-hydra/flycheck (:color amaranth :columns 3)
-  "
-FlyCheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"default\")] (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("c" flycheck-buffer "run")
-  ("C" flycheck-clear "clear")
-  ("C-c" flycheck-compile "compile")
-  ("n" flycheck-next-error "next")
-  ("p" flycheck-previous-error "previous")
-  ("l" (condition-case nil (quit-windows-on "*Flycheck errors*" t)
-         (error (flycheck-list-errors))) "list")
-  ("H" display-local-help "local-help")
-  ("h" flycheck-display-error-at-point "display-at-pt")
-  ("e" flycheck-explain-error-at-point "explain-at-pt")
-  ("s" flycheck-select-checker "select-checker")
-  ("?" flycheck-describe-checker "describe-checker" :exit t)
-  ("v" flycheck-verify-setup "verify-setup" :exit t)
-  ("C-w" flycheck-copy-errors-as-kill "copy-errors")
-  ("i" flycheck-manual "web-manual" :exit t))
-
-;; binding for flycheck hydra
-(with-eval-after-load 'flycheck
-  (define-key flycheck-mode-map (kbd "C-c C-M-!") #'my-hydra/flycheck/body))
-
-;; Programming / DevSkim and FlyCheck
+;; Programming / DevSkim and Flycheck
 
 (when (executable-find "devskim")
   (use-package flycheck-devskim
@@ -2610,7 +2585,7 @@ FlyCheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"defaul
               lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
               lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
-              lsp-diagnostic-package :flycheck ;; use FlyCheck for syntax checking
+              lsp-diagnostic-package :flycheck ;; use Flycheck for syntax checking
               lsp-signature-auto-activate nil)) ;; don't automatically show signature
 
 ;; company backend for LSP-driven completion
@@ -2998,13 +2973,13 @@ Formatting a selected region only works on top-level objects."
 ;; Programming / R
 
 ;; support for R language using Emacs Speaks Statistics
-;; linting is configured here to use FlyCheck
+;; linting is configured here to use Flycheck
 (use-package ess
   :mode ("\\.R$" . R-mode)
   :commands (R-mode ess-switch-to-ESS)
   :init (setq ess-eval-visibly 'nowait
               ess-default-style 'RStudio
-              ;; disable ESS auto-use of Flymake since using FlyCheck
+              ;; disable ESS auto-use of Flymake since using Flycheck
               ess-use-flymake nil)
   :config (add-hook 'ess-r-mode-hook (lambda () (flycheck-mode 1)) t))
 
@@ -4042,7 +4017,7 @@ Example of use with transient suffix definitions in a
     )
   (global-set-key (kbd "C-c C-M-S-p") #'transient/password-store))
 
-;; add transient popup for Emacs profiler, bind to "C-c C-M-S-e"
+;; add transient for Emacs profiler, bind to "C-c C-M-S-e"
 (transient-define-prefix transient/profiler ()
   "Emacs profiler commands."
   [:description (lambda ()
@@ -4710,6 +4685,44 @@ Example of use with transient suffix definitions in a
     )
   (define-key term-mode-map (kbd "C-c C-M-m") #'transient/term-mode)
   (define-key term-raw-map (kbd "C-c C-M-m") #'transient/term-mode))
+
+;; Transient commands / Minor mode transients
+
+;; add transient for Flycheck, bind to "C-c C-M-!"
+(with-eval-after-load 'flycheck
+  (defun transient/flycheck-mode--toggle-error-list ()
+    "Toggle the Flycheck error list, showing it in a side window."
+    (interactive)
+    (condition-case nil (quit-windows-on "*Flycheck errors*" t)
+      (error (flycheck-list-errors))))
+  (transient-define-prefix transient/flycheck-mode ()
+    "Flycheck minor mode commands."
+    :transient-suffix 'transient--do-stay
+    ["Flycheck"
+     ["Error"
+      ("n" "Next" flycheck-next-error)
+      ("p" "Previous" flycheck-previous-error)
+      ("l" "List" transient/flycheck-mode--toggle-error-list)
+      ("H" "Local help at point" display-local-help)
+      ("h" "Display at point" flycheck-display-error-at-point)
+      ("e" "Explain at point" flycheck-explain-error-at-point)
+      ("C-w" "Copy all" flycheck-copy-errors-as-kill)
+      ("C" "Clear all" flycheck-clear)
+      ]
+     ["Checker"
+      ("s" "Select" flycheck-select-checker)
+      ("?" "Describe" flycheck-describe-checker :transient nil)
+      ("c" "Run" flycheck-buffer)
+      ("C-c" "Run via `compile'" flycheck-compile)
+      ""
+      "Other"
+      ("v" "Verify setup" flycheck-verify-setup :transient nil)
+      ("i" "Online manual" flycheck-manual :transient nil)
+      ]
+     ]
+    )
+  (define-key flycheck-mode-map (kbd "C-c C-M-!") #'transient/flycheck-mode)
+  )
 
 (provide 'init)
 ;;; init.el ends here

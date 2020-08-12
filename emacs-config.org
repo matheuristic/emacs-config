@@ -4944,7 +4944,7 @@ The following example from the official repository defines the following:
 
 ** Flycheck syntax checker                                            :melpa:
 
-[[https://www.flycheck.org/en/latest/][FlyCheck]] ([[https://github.com/flycheck/flycheck][Github]]) is an on-the-fly syntax checker for Emacs that is a
+[[https://www.flycheck.org/en/latest/][Flycheck]] ([[https://github.com/flycheck/flycheck][Github]]) is an on-the-fly syntax checker for Emacs that is a
 popular alternative to the built-in [[https://elpa.gnu.org/packages/flymake.html][Flymake]] package.
 
 If using this, it is typical to not enable Flymake.
@@ -4975,48 +4975,16 @@ when buffer is clean, and more frequently when it has errors."
                                        3.0)))
   (add-hook 'flycheck-after-syntax-check-hook
             #'flycheck--adjust-flycheck-idle-change-delay)
-  ;; default modes within which to use FlyCheck
+  ;; default modes within which to use Flycheck
   (add-hook 'emacs-lisp-mode-hook #'flycheck-mode))
 #+end_src
 
-*** Flycheck hydra                                                    :hydra:
-
-Hydra for FlyCheck.
-
-#+name: flycheck-hydra
-#+begin_src emacs-lisp
-;; flycheck hydra
-(defhydra my-hydra/flycheck (:color amaranth :columns 3)
-  "
-FlyCheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"default\")] (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("c" flycheck-buffer "run")
-  ("C" flycheck-clear "clear")
-  ("C-c" flycheck-compile "compile")
-  ("n" flycheck-next-error "next")
-  ("p" flycheck-previous-error "previous")
-  ("l" (condition-case nil (quit-windows-on "*Flycheck errors*" t)
-         (error (flycheck-list-errors))) "list")
-  ("H" display-local-help "local-help")
-  ("h" flycheck-display-error-at-point "display-at-pt")
-  ("e" flycheck-explain-error-at-point "explain-at-pt")
-  ("s" flycheck-select-checker "select-checker")
-  ("?" flycheck-describe-checker "describe-checker" :exit t)
-  ("v" flycheck-verify-setup "verify-setup" :exit t)
-  ("C-w" flycheck-copy-errors-as-kill "copy-errors")
-  ("i" flycheck-manual "web-manual" :exit t))
-
-;; binding for flycheck hydra
-(with-eval-after-load 'flycheck
-  (define-key flycheck-mode-map (kbd "C-c C-M-!") #'my-hydra/flycheck/body))
-#+end_src
-
-** Security linting using DevSkim and FlyCheck                     :external:
+** Security linting using DevSkim and Flycheck                     :external:
 
 [[https://github.com/Microsoft/DevSkim/][DevSkim]] is a collection of static analyzers that does code security
 analysis.
 
-If it is installed on the system, there is a FlyCheck [[https://github.com/microsoft/DevSkim/tree/main/flycheck][backend]]
+If it is installed on the system, there is a Flycheck [[https://github.com/microsoft/DevSkim/tree/main/flycheck][backend]]
 distributed with the official codebase (add to a directory in
 ~load-path~ and load it when initializing Emacs). It does not run by
 default for the supported modes (C, C++ and Python), and has to be
@@ -5089,7 +5057,7 @@ It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglo
               lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
               lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
-              lsp-diagnostic-package :flycheck ;; use FlyCheck for syntax checking
+              lsp-diagnostic-package :flycheck ;; use Flycheck for syntax checking
               lsp-signature-auto-activate nil)) ;; don't automatically show signature
 #+end_src
 
@@ -5372,7 +5340,7 @@ CIDER → REPL (_q_: ←)"
 *** flycheck-clj-kondo for Clojure linting using clj-kondo   :melpa:external:
 
 [[https://github.com/borkdude/flycheck-clj-kondo][flycheck-clj-kondo]] provides [[https://github.com/borkdude/clj-kondo][clj-kondo]] (a linter for Clojure code)
-integration with FlyCheck.
+integration with Flycheck.
 
 #+name: flycheck-clj-kondo
 #+begin_src emacs-lisp
@@ -5821,7 +5789,7 @@ $ conda install -c conda-forge ptvsd
 R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]], more commonly known
 by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
 
-If linting using FlyCheck or Flymake, it might be necessary to install
+If linting using Flycheck or Flymake, it might be necessary to install
 the r-lintr CRAN package and also create the =~/.R/lintr_cache~=
 directory (see [[https://emacs.stackexchange.com/questions/53018/flycheck-r-lintr-doesnt-find-anything][StackOverflow issue]]).
 
@@ -5837,13 +5805,13 @@ $ mkdir ~/.R/lintr_cache
 #+name: ess
 #+begin_src emacs-lisp
 ;; support for R language using Emacs Speaks Statistics
-;; linting is configured here to use FlyCheck
+;; linting is configured here to use Flycheck
 (use-package ess
   :mode ("\\.R$" . R-mode)
   :commands (R-mode ess-switch-to-ESS)
   :init (setq ess-eval-visibly 'nowait
               ess-default-style 'RStudio
-              ;; disable ESS auto-use of Flymake since using FlyCheck
+              ;; disable ESS auto-use of Flymake since using Flycheck
               ess-use-flymake nil)
   :config (add-hook 'ess-r-mode-hook (lambda () (flycheck-mode 1)) t))
 #+end_src
@@ -7983,6 +7951,9 @@ Example of use with transient suffix definitions in a
 
 ** Global transients
 
+Global transients have global bindings other than ~C-c C-M-m~ (that is
+reserved for major mode transients) and are always active.
+
 *** Bookmarks transient
 
 Transient for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Bookmarks.html][bookmark]] manipulation and usage.
@@ -8236,7 +8207,7 @@ Transient for built in Emacs [[https://www.gnu.org/software/emacs/manual/html_no
 
 #+name: profiler-transient
 #+begin_src emacs-lisp
-;; add transient popup for Emacs profiler, bind to "C-c C-M-S-e"
+;; add transient for Emacs profiler, bind to "C-c C-M-S-e"
 (transient-define-prefix transient/profiler ()
   "Emacs profiler commands."
   [:description (lambda ()
@@ -8534,7 +8505,10 @@ supporting packages.
 
 ** Major mode transients
 
-*** cvs-mode transient
+Major mode transients are always bound to ~C-c C-M-m~ and that binding
+is active only when their corresponding major mode is active.
+
+*** csv-mode transient
 
 CSV major mode transient.
 
@@ -9036,6 +9010,55 @@ to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#S
   (define-key term-raw-map (kbd "C-c C-M-m") #'transient/term-mode))
 #+end_src
 
+** Minor mode transients
+
+Minor mode transients are bound to a binding /other/ than ~C-c C-M-m~
+(which is reserved for major mode transients) and are active when
+their corresponding minor mode is active.
+
+*** flycheck-mode transient
+
+Flycheck minor mode transient.
+
+#+name: flycheck-mode-transient
+#+begin_src emacs-lisp
+;; add transient for Flycheck, bind to "C-c C-M-!"
+(with-eval-after-load 'flycheck
+  (defun transient/flycheck-mode--toggle-error-list ()
+    "Toggle the Flycheck error list, showing it in a side window."
+    (interactive)
+    (condition-case nil (quit-windows-on "*Flycheck errors*" t)
+      (error (flycheck-list-errors))))
+  (transient-define-prefix transient/flycheck-mode ()
+    "Flycheck minor mode commands."
+    :transient-suffix 'transient--do-stay
+    ["Flycheck"
+     ["Error"
+      ("n" "Next" flycheck-next-error)
+      ("p" "Previous" flycheck-previous-error)
+      ("l" "List" transient/flycheck-mode--toggle-error-list)
+      ("H" "Local help at point" display-local-help)
+      ("h" "Display at point" flycheck-display-error-at-point)
+      ("e" "Explain at point" flycheck-explain-error-at-point)
+      ("C-w" "Copy all" flycheck-copy-errors-as-kill)
+      ("C" "Clear all" flycheck-clear)
+      ]
+     ["Checker"
+      ("s" "Select" flycheck-select-checker)
+      ("?" "Describe" flycheck-describe-checker :transient nil)
+      ("c" "Run" flycheck-buffer)
+      ("C-c" "Run via `compile'" flycheck-compile)
+      ""
+      "Other"
+      ("v" "Verify setup" flycheck-verify-setup :transient nil)
+      ("i" "Online manual" flycheck-manual :transient nil)
+      ]
+     ]
+    )
+  (define-key flycheck-mode-map (kbd "C-c C-M-!") #'transient/flycheck-mode)
+  )
+#+end_src
+
 * Back matter
 
 ** Footer
@@ -9434,13 +9457,11 @@ The main configuration file.
 
 <<reformatter>>
 
-;; Programming / FlyCheck syntax checker
+;; Programming / Flycheck syntax checker
 
 <<flycheck>>
 
-<<flycheck-hydra>>
-
-;; Programming / DevSkim and FlyCheck
+;; Programming / DevSkim and Flycheck
 
 <<flycheck-devskim>>
 
@@ -9742,6 +9763,10 @@ The main configuration file.
 
 <<term-mode-transient>>
 
+;; Transient commands / Minor mode transients
+
+<<flycheck-mode-transient>>
+
 <<generate-footer(feature="init")>>
 #+end_src
 
@@ -9889,7 +9914,7 @@ Install via MacPorts.
 
 [[https://github.com/koalaman/shellcheck][GitHub - koalaman/shellcheck]]
 
-FlyCheck has built-in support.
+Flycheck has built-in support.
 
 MELPA has a package for Flymake support.
 Or can define using ~flymake-quickdef~.
@@ -11019,7 +11044,7 @@ To define new Flymake backend, refer to the docstring of
 ~flymake-diagnostic-functions~, the [[https://www.gnu.org/software/emacs/manual/html_node/flymake/index.html][Flymake manual]] or the code of
 existing backends.
 
-If using this, it is typical not enable FlyCheck.
+If using this, it is typical not enable Flycheck.
 
 #+name: flymake
 #+begin_src emacs-lisp
@@ -11092,6 +11117,40 @@ See the [[https://github.com/karlotness/flymake-quickdef/blob/master/flymake-qui
 #+begin_src emacs-lisp
 (use-package flymake-quickdef
   :demand t)
+#+end_src
+
+*** Flycheck syntax checker
+
+**** Flycheck hydra                                                   :hydra:
+
+Hydra for Flycheck.
+
+#+name: flycheck-hydra
+#+begin_src emacs-lisp
+;; flycheck hydra
+(defhydra my-hydra/flycheck (:color amaranth :columns 3)
+  "
+Flycheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"default\")] (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("c" flycheck-buffer "run")
+  ("C" flycheck-clear "clear")
+  ("C-c" flycheck-compile "compile")
+  ("n" flycheck-next-error "next")
+  ("p" flycheck-previous-error "previous")
+  ("l" (condition-case nil (quit-windows-on "*Flycheck errors*" t)
+         (error (flycheck-list-errors))) "list")
+  ("H" display-local-help "local-help")
+  ("h" flycheck-display-error-at-point "display-at-pt")
+  ("e" flycheck-explain-error-at-point "explain-at-pt")
+  ("s" flycheck-select-checker "select-checker")
+  ("?" flycheck-describe-checker "describe-checker" :exit t)
+  ("v" flycheck-verify-setup "verify-setup" :exit t)
+  ("C-w" flycheck-copy-errors-as-kill "copy-errors")
+  ("i" flycheck-manual "web-manual" :exit t))
+
+;; binding for flycheck hydra
+(with-eval-after-load 'flycheck
+  (define-key flycheck-mode-map (kbd "C-c C-M-!") #'my-hydra/flycheck/body))
 #+end_src
 
 *** Security linting using DevSkim and Flymake                     :external:
@@ -11319,9 +11378,9 @@ Enable this backend automatically when editing Clojure buffers.
 
 *** Python
 
-**** Enable FlyCheck mode when editing Python files
+**** Enable Flycheck mode when editing Python files
 
-Enable FlyCheck mode as the last function in the Python mode hook.
+Enable Flycheck mode as the last function in the Python mode hook.
 When using ~lsp-mode~ in Python buffers, this is unnecessary as
 ~lsp-mode~ starts ~flycheck-mode~ automatically.
 

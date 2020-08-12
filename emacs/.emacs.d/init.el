@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 12 09:26:00 2020
+;; Generated: Wed Aug 12 16:58:00 2020
 
 ;;; Commentary:
 
@@ -3506,36 +3506,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
       (pulse-momentary-highlight-region (point-min) (point-max))))
   (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
 
-;; hydra for restclient
-(defhydra my-hydra/restclient-mode (:color teal :columns 3)
-  "
-REST client (_q_: quit)"
-  ("q" nil nil)
-  ("c" restclient-http-send-current "send")
-  ("r" restclient-http-send-current-raw "send-raw")
-  ("v" restclient-http-send-current-stay-in-window "send-bg")
-  ("n" restclient-jump-next "next" :exit nil)
-  ("p" restclient-jump-prev "prev" :exit nil)
-  ("." restclient-mark-current "mark")
-  ("u" restclient-copy-curl-command "copy-curl")
-  ("N" (lambda ()
-         (interactive)
-         (if (buffer-narrowed-p)
-             (widen)
-           (restclient-narrow-to-current)))
-   "narrow" :exit nil)
-  ("f" (lambda ()
-         (interactive)
-         (require 'json-mode nil t)
-         (if (fboundp 'json-mode-pretty-print-dwim)
-             (call-interactively 'json-mode-pretty-print-dwim)
-           (message "Requires the `json-mode' package be installed.")))
-   "fmt-json-rgn"))
-
-;; binding for restclient hydra
-(with-eval-after-load 'restclient
-  (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
-
 ;; increase network security settings
 (setq gnutls-verify-error t)
 (setq gnutls-min-prime-bits 1024)
@@ -4643,6 +4613,47 @@ Example of use with transient suffix definitions in a
      ]
     )
   (define-key racket-mode-map (kbd "C-c C-M-m") #'transient/racket-mode))
+
+;; major-mode specific transient for restclient-mode
+(with-eval-after-load 'restclient
+  (defun transient/restclient-mode--toggle-narrow ()
+    "Toggle narrowing to the current query in a `restclient-mode' buffer."
+    (interactive)
+    (if (buffer-narrowed-p)
+        (widen)
+      (restclient-narrow-to-current)))
+  (defun transient/restclient-mode--format-json-region ()
+    "Format a selected region containing JSON code."
+    (interactive)
+    (require 'json-mode nil t)
+    (if (fboundp 'json-mode-pretty-print-dwim)
+        (call-interactively 'json-mode-pretty-print-dwim)
+      (message "Requires the `json-mode' package be installed.")))
+  (transient-define-prefix transient/restclient-mode ()
+    "REST client mode `restclient-mode' commands."
+    :transient-suffix 'transient--do-stay
+    ["REST client"
+     ["Send query"
+      ("v" "And stay" restclient-http-send-current-stay-in-window)
+      ("c" "And switch" restclient-http-send-current :transient nil)
+      ("r" "And switch (raw results)" restclient-http-send-current-raw
+       :transient nil)
+      ]
+     ["Movement"
+      ("n" "Next query" restclient-jump-next)
+      ("p" "Previous query" restclient-jump-prev)
+      ("." "Mark current" restclient-mark-current)
+      ]
+     ["Other"
+      ("u" "Copy as CURL command" restclient-copy-curl-command)
+      ("N" "Narrow/Widen buffer" transient/restclient-mode--toggle-narrow)
+      ("f" "Format JSON region" transient/restclient-mode--format-json-region
+       :transient nil)
+      ]
+     ]
+    )
+  (define-key restclient-mode-map (kbd "C-c C-M-m") #'transient/restclient-mode)
+  )
 
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode

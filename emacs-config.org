@@ -7017,45 +7017,6 @@ stored in text files, in particular editing and sending them.
   (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
 #+end_src
 
-*** restclient.el hydra                                               :hydra:
-
-Major mode-specific hydra for ~restclient-mode~.
-The head for pretty printing the JSON response requires the
-~json-mode~ package be installed.
-
-#+name: restclient-hydra
-#+begin_src emacs-lisp
-;; hydra for restclient
-(defhydra my-hydra/restclient-mode (:color teal :columns 3)
-  "
-REST client (_q_: quit)"
-  ("q" nil nil)
-  ("c" restclient-http-send-current "send")
-  ("r" restclient-http-send-current-raw "send-raw")
-  ("v" restclient-http-send-current-stay-in-window "send-bg")
-  ("n" restclient-jump-next "next" :exit nil)
-  ("p" restclient-jump-prev "prev" :exit nil)
-  ("." restclient-mark-current "mark")
-  ("u" restclient-copy-curl-command "copy-curl")
-  ("N" (lambda ()
-         (interactive)
-         (if (buffer-narrowed-p)
-             (widen)
-           (restclient-narrow-to-current)))
-   "narrow" :exit nil)
-  ("f" (lambda ()
-         (interactive)
-         (require 'json-mode nil t)
-         (if (fboundp 'json-mode-pretty-print-dwim)
-             (call-interactively 'json-mode-pretty-print-dwim)
-           (message "Requires the `json-mode' package be installed.")))
-   "fmt-json-rgn"))
-
-;; binding for restclient hydra
-(with-eval-after-load 'restclient
-  (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
-#+end_src
-
 ** Network security
 
 Increased network security settings.
@@ -8949,6 +8910,54 @@ Major mode-specific hydra for ~racket-mode~.
   (define-key racket-mode-map (kbd "C-c C-M-m") #'transient/racket-mode))
 #+end_src
 
+*** restclient-mode transient
+
+REST client major mode transient.
+
+#+name: restclient-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for restclient-mode
+(with-eval-after-load 'restclient
+  (defun transient/restclient-mode--toggle-narrow ()
+    "Toggle narrowing to the current query in a `restclient-mode' buffer."
+    (interactive)
+    (if (buffer-narrowed-p)
+        (widen)
+      (restclient-narrow-to-current)))
+  (defun transient/restclient-mode--format-json-region ()
+    "Format a selected region containing JSON code."
+    (interactive)
+    (require 'json-mode nil t)
+    (if (fboundp 'json-mode-pretty-print-dwim)
+        (call-interactively 'json-mode-pretty-print-dwim)
+      (message "Requires the `json-mode' package be installed.")))
+  (transient-define-prefix transient/restclient-mode ()
+    "REST client mode `restclient-mode' commands."
+    :transient-suffix 'transient--do-stay
+    ["REST client"
+     ["Send query"
+      ("v" "And stay" restclient-http-send-current-stay-in-window)
+      ("c" "And switch" restclient-http-send-current :transient nil)
+      ("r" "And switch (raw results)" restclient-http-send-current-raw
+       :transient nil)
+      ]
+     ["Movement"
+      ("n" "Next query" restclient-jump-next)
+      ("p" "Previous query" restclient-jump-prev)
+      ("." "Mark current" restclient-mark-current)
+      ]
+     ["Other"
+      ("u" "Copy as CURL command" restclient-copy-curl-command)
+      ("N" "Narrow/Widen buffer" transient/restclient-mode--toggle-narrow)
+      ("f" "Format JSON region" transient/restclient-mode--format-json-region
+       :transient nil)
+      ]
+     ]
+    )
+  (define-key restclient-mode-map (kbd "C-c C-M-m") #'transient/restclient-mode)
+  )
+#+end_src
+
 *** smerge-mode transient
 
 [[https://github.com/emacs-mirror/emacs/blob/master/lisp/vc/smerge-mode.el][Smerge]] is a lightweight alternative to Ediff, and is the default merge
@@ -9589,8 +9598,6 @@ The main configuration file.
 
 <<restclient>>
 
-<<restclient-hydra>>
-
 <<network-security>>
 
 <<http-requests-privacy>>
@@ -9728,6 +9735,8 @@ The main configuration file.
 <<python-mode-transient>>
 
 <<racket-mode-transient>>
+
+<<restclient-mode-transient>>
 
 <<smerge-mode-transient>>
 
@@ -12065,6 +12074,47 @@ Helper functions for ~eww~:
   (setq-local shr-inhibit-images (not shr-inhibit-images))
   (eww-reload)
   (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+#+end_src
+
+*** REST development tools
+
+**** restclient.el hydra                                              :hydra:
+
+Major mode-specific hydra for ~restclient-mode~.
+The head for pretty printing the JSON response requires the
+~json-mode~ package be installed.
+
+#+name: restclient-hydra
+#+begin_src emacs-lisp
+;; hydra for restclient
+(defhydra my-hydra/restclient-mode (:color teal :columns 3)
+  "
+REST client (_q_: quit)"
+  ("q" nil nil)
+  ("c" restclient-http-send-current "send")
+  ("r" restclient-http-send-current-raw "send-raw")
+  ("v" restclient-http-send-current-stay-in-window "send-bg")
+  ("n" restclient-jump-next "next" :exit nil)
+  ("p" restclient-jump-prev "prev" :exit nil)
+  ("." restclient-mark-current "mark")
+  ("u" restclient-copy-curl-command "copy-curl")
+  ("N" (lambda ()
+         (interactive)
+         (if (buffer-narrowed-p)
+             (widen)
+           (restclient-narrow-to-current)))
+   "narrow" :exit nil)
+  ("f" (lambda ()
+         (interactive)
+         (require 'json-mode nil t)
+         (if (fboundp 'json-mode-pretty-print-dwim)
+             (call-interactively 'json-mode-pretty-print-dwim)
+           (message "Requires the `json-mode' package be installed.")))
+   "fmt-json-rgn"))
+
+;; binding for restclient hydra
+(with-eval-after-load 'restclient
+  (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
 #+end_src
 
 ** Other

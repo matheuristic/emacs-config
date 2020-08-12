@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug 11 23:49:50 2020
+;; Generated: Wed Aug 12 09:26:00 2020
 
 ;;; Commentary:
 
@@ -60,7 +60,7 @@
 
 ;; Environment variables
 
-;; copy environment variables from shell, OS X GUI mode-only
+;; copy environment variables from shell
 (use-package exec-path-from-shell
   :init (exec-path-from-shell-initialize))
 
@@ -3742,11 +3742,11 @@ for more information."
 (when (executable-find "pass")
   (use-package password-store))
 
-;; OS-specific / Mac OS X
+;; OS-specific / macOS
 
-;; on Mac OS X, use Option keys as Meta and file polling for auto-revert
+;; on macOS, use Option keys as Meta and file polling for auto-revert
 (when (eq system-type 'darwin)
-  (setq auto-revert-use-notify nil ;; OS X does not support file notifications
+  (setq auto-revert-use-notify nil ;; macOS does not support file notifications
         mac-option-modifier 'meta ;; use Option key as Meta
         mac-right-option-modifier 'left ;; right Option uses left's mapping
         mac-command-modifier 'super)) ;; keep Super key as is
@@ -3798,18 +3798,18 @@ for more information."
   ;; (setq ls-lisp-format-time-list '("%b %e %H:%M" "%b %e %Y"))
   (setq ls-lisp-use-localized-time-format t))
 
-;; configure system open file by type command for Mac OS
+;; configure system open file by type command for macOS
 (when (eq system-type 'darwin)
   (setq my-system-open-command "open"))
 
-;; exclude Emacs source files from recentf history on Mac OS X
+;; exclude Emacs source files from recentf history on macOS
 (add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
 
-;; add my-hydra/buffer head to open Finder at current buffer directory in OS X
+;; add my-hydra/buffer head to open Finder at current buffer directory in macOS
 (when (eq system-type 'darwin)
   (defun my-open-finder (&optional path)
     "Opens a new Finder window to PATH if provided,
-or the current buffer file or directory if not (Mac OS X)."
+or the current buffer file or directory if not (macOS)."
     (interactive)
     (let* ((my-path (cl-some 'identity (list path
                                              (buffer-file-name)
@@ -3819,11 +3819,11 @@ or the current buffer file or directory if not (Mac OS X)."
                                   "open" "-R" my-full-path)))
       (if (eq system-type 'darwin)
           (apply 'start-process my-process-args)
-        (message "my-open-finder is Mac OS X-only"))))
+        (message "my-open-finder is macOS-only"))))
   (defhydra+ my-hydra/buffer nil
     ("e" my-open-finder "open-finder" :exit t)))
 
-;; scale up LaTeX fragment preview images on OS X
+;; scale up LaTeX fragment preview images on macOS
 (if (and (display-graphic-p)
          (eq system-type 'darwin)
          (executable-find "dvipng"))
@@ -3839,25 +3839,6 @@ or the current buffer file or directory if not (Mac OS X)."
 ;; when using emacs-mac port
 (when (eq window-system 'mac)
   (setq doc-view-resolution 300))
-
-;; workaround for problematic entries in `load-history' which affects
-;; Emacs 27+ on some systems, probably to do with the portable dumper
-;; mainly affecting Emacs for OS X
-(when (and (not (version< emacs-version "27"))
-           (eq window-system 'ns))
-  (defun load-history-filename-element (file-regexp)
-    "Get the first elt of `load-history' whose car matches FILE-REGEXP.
-Return nil if there isn't one."
-    (let* ((loads load-history)
-           (load-elt (and loads (car loads))))
-      (save-match-data
-        (while (and loads
-                    (or (null (car load-elt))
-                        (not (and (stringp (car load-elt)) ;; skip non-strings
-                                  (string-match file-regexp (car load-elt))))))
-          (setq loads (cdr loads)
-                load-elt (and loads (car loads)))))
-      load-elt)))
 
 ;; Transient commands
 

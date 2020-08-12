@@ -53,7 +53,7 @@ Startup times can be measured in Linux using
 #+begin_example
 $ emacs -q --eval='(message "%s" (emacs-init-time))'
 #+end_example
-or in Mac OS X using
+or in macOS using
 #+begin_example
 $ open -n /Applications/Emacs.app \
       --args -q --eval='(message "%s" (emacs-init-time))'
@@ -187,9 +187,9 @@ Literate configs, package lists, and so on and so forth.
 - ~elpa~: Uses a package from GNU ELPA.
 - ~external~: Configuration code in the section uses external tools
   that are not typically packaged with the default userland on Linux
-  and BSD systems (including Mac OS X), and which need to be installed
-  at the system-level outside of the Emacs ~package.el~ mechanisms.
-  Also includes Elisp scripts that need to be downloaded manually.
+  and BSD systems (including macOS), and which need to be installed at
+  the system-level outside of the Emacs ~package.el~ mechanisms. Also
+  includes Elisp scripts that need to be downloaded manually.
 - ~hydra~: Configuration code that enables, creates or modifies
   [[Hydra][hydras]].
 - ~melpa~: Uses a package from MELPA.
@@ -465,7 +465,7 @@ Copy the environment variables over from the login shell.
 
 #+name: environment-variables
 #+begin_src emacs-lisp
-;; copy environment variables from shell, OS X GUI mode-only
+;; copy environment variables from shell
 (use-package exec-path-from-shell
   :init (exec-path-from-shell-initialize))
 #+end_src
@@ -1615,7 +1615,7 @@ be non-nil.
 The default behavior of emacs-libvterm is to compile libvterm from
 source on the first run.
 
-The following instructions show steps needed on Mac OS to set up the
+The following instructions show steps needed on macOS to set up the
 compile dependencies using MacPorts.
 
 #+begin_example
@@ -2722,13 +2722,13 @@ change both local and remote ignored tags at the same time).
 A full push or pull is also a heavy handed fix when tags end up not
 synchronizing in general.
 
-*** Regular background mail syncs using launchd in Mac OS X        :external:
+*** Regular background mail syncs using launchd in macOS           :external:
 
 On most Linux and Unix machines, it is easiest to have ~notmuch new~
 run in the backend according to a schedule using ~cron~ to sync mail
 automatically.
 
-On Mac OS X, it is recommended to use [[https://support.apple.com/guide/terminal/script-management-with-launchd-apdc6c1077b-5d5d-4d35-9c19-60f2397b2369/mac][launchd]] ([[https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html][more info]]) instead.
+On macOS, it is recommended to use [[https://support.apple.com/guide/terminal/script-management-with-launchd-apdc6c1077b-5d5d-4d35-9c19-60f2397b2369/mac][launchd]] ([[https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPSystemStartup/Chapters/CreatingLaunchdJobs.html][more info]]) instead.
 Create the file =~/Library/LaunchAgents/local.notmuch.new.plist= with
 the following contents that specifies the ~notmuch new~ launchd job.
 This provided configuration makes the next assumptions.
@@ -4774,8 +4774,8 @@ When annotating in the split-screen mode:
 Enable [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]] to allow intercepting calls to emacsclient and
 triggering custom actions.
 
-By default, Emacs Mac port for Mac OS registers itself as the
-handler for ~org-protocol://~ URLs.
+By default, Emacs Mac Port on macOS registers itself as the handler
+for ~org-protocol://~ URLs.
 
 For other versions of Emacs, refer to [[https://github.com/alphapapa/org-protocol-capture-html#org-protocol-instructions][here]] or [[https://org-roam.readthedocs.io/en/master/roam_protocol/][here]] for instructions on
 setting up the protocol handler.
@@ -6427,9 +6427,11 @@ These are useful for a few scenarios:
 - Fitting more information in the mode line by converting descriptor words into icons.
 - Making the interface more visually information and/or appealing (subjective).
 
-Package functionality requires that specific icon fonts be installed on the system.
-This can be done automatically by running ~M-x all-the-icons-install-fonts~,
-or manually by installing the TTF fonts from [[https://github.com/domtronn/all-the-icons.el/tree/master/fonts][here]] using the system font manager (for example the Font Book app in Mac OS X).
+Package functionality requires that specific icon fonts be installed
+on the system. This can be done automatically by running ~M-x
+all-the-icons-install-fonts~, or manually by installing the TTF fonts
+from [[https://github.com/domtronn/all-the-icons.el/tree/master/fonts][here]] using the system font manager (for example the Font Book app
+on macOS).
 
 #+name: all-the-icons
 #+begin_src emacs-lisp
@@ -7223,7 +7225,7 @@ Supported backends are limited to:
 - [[https://wordnet.princeton.edu/][WordNet]] (English), which requires the command-line tool ~wn~ be
   installed locally.
 
-To install WordNet on Mac OS X using MacPorts, do the following.
+To install WordNet on macOS using MacPorts, do the following.
 
 #+begin_example
 $ sudo port install wordnet
@@ -7682,21 +7684,21 @@ package.
 
 * OS-specific
 
-** Mac OS X
+** macOS
 
-There are two main Emacs ports for Mac OS X. Both work pretty well.
+There are two main Emacs ports for macOS. Both work pretty well.
 - [[https://emacsformacosx.com/][Emacs for Mac OS X]] is a vanilla build.
 - The [[https://bitbucket.org/mituharu/emacs-mac/][Emacs Mac Port]] ([[https://github.com/railwaycat/homebrew-emacsmacport/releases][binaries]]) by Mitsuharu Yamamoto has a bunch of
   Mac-specific features patched in.
 
-Mac OS X does not support file notifications, so use file polling
+macOS does not support file notifications, so use file polling
 instead for ~auto-revert-mode~.
 
 #+name: mac
 #+begin_src emacs-lisp
-;; on Mac OS X, use Option keys as Meta and file polling for auto-revert
+;; on macOS, use Option keys as Meta and file polling for auto-revert
 (when (eq system-type 'darwin)
-  (setq auto-revert-use-notify nil ;; OS X does not support file notifications
+  (setq auto-revert-use-notify nil ;; macOS does not support file notifications
         mac-option-modifier 'meta ;; use Option key as Meta
         mac-right-option-modifier 'left ;; right Option uses left's mapping
         mac-command-modifier 'super)) ;; keep Super key as is
@@ -7726,9 +7728,9 @@ Emacs for OS X keyboard settings:
 Emacs Mac Port keyboard settings:
 - Use the Option key as Meta.
   For accented characters, use ~C-x 8~ (for example ~C-x 8 , c~).
-- Modify Super key combinations to match Emacs for OS X as possible.
-  Super key combinations are first intercepted by the system and
-  only passed on if they don't correspond to an existing system
+- Modify Super key combinations to match Emacs for Mac OS X as
+  possible. Super key combinations are first intercepted by the system
+  and only passed on if they don't correspond to an existing system
   shortcut (say ~s-TAB~ or ~s-`~), which can limit the bindings
   available for use.
 
@@ -7769,7 +7771,7 @@ Adapted from [[https://news.ycombinator.com/item?id=19647365][here]].
 
 *** Case-insensitive sorting in Dired
 
-Configure case-insensitive sorting in Dired to match OS X behavior.
+Configure case-insensitive sorting in Dired to match macOS behavior.
 Copied from [[http://pragmaticemacs.com/emacs/case-insensitive-sorting-in-dired-on-os-x/][here]].
 
 #+name: mac-case-insensitive-sorting-in-dired
@@ -7789,23 +7791,23 @@ Copied from [[http://pragmaticemacs.com/emacs/case-insensitive-sorting-in-dired-
 
 *** Configure system open command
 
-On Mac OS, ~open~ is used to open a given file in its preferred
+On macOS, ~open~ is used to open a given file in its preferred
 application by type.
 
 #+name: mac-system-open-command
 #+begin_src emacs-lisp
-;; configure system open file by type command for Mac OS
+;; configure system open file by type command for macOS
 (when (eq system-type 'darwin)
   (setq my-system-open-command "open"))
 #+end_src
 
 *** Exclude Emacs source files from being tracked by recentf
 
-Exclude Emacs source files from ~recentf~ history on Mac OS X.
+Exclude Emacs source files from ~recentf~ history on macOS.
 
 #+name: mac-recentf-exclude
 #+begin_src emacs-lisp
-;; exclude Emacs source files from recentf history on Mac OS X
+;; exclude Emacs source files from recentf history on macOS
 (add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
 #+end_src
 
@@ -7816,11 +7818,11 @@ Finder at the directory of the current buffer.
 
 #+name: mac-open-finder-at-buffer-directory
 #+begin_src emacs-lisp
-;; add my-hydra/buffer head to open Finder at current buffer directory in OS X
+;; add my-hydra/buffer head to open Finder at current buffer directory in macOS
 (when (eq system-type 'darwin)
   (defun my-open-finder (&optional path)
     "Opens a new Finder window to PATH if provided,
-or the current buffer file or directory if not (Mac OS X)."
+or the current buffer file or directory if not (macOS)."
     (interactive)
     (let* ((my-path (cl-some 'identity (list path
                                              (buffer-file-name)
@@ -7830,16 +7832,19 @@ or the current buffer file or directory if not (Mac OS X)."
                                   "open" "-R" my-full-path)))
       (if (eq system-type 'darwin)
           (apply 'start-process my-process-args)
-        (message "my-open-finder is Mac OS X-only"))))
+        (message "my-open-finder is macOS-only"))))
   (defhydra+ my-hydra/buffer nil
     ("e" my-open-finder "open-finder" :exit t)))
 #+end_src
 
-*** Scale up Org-mode LaTeX fragment previews on Mac OS X
+*** Scale up Org-mode LaTeX fragment previews on macOS
+
+Due to the higher resolution of Retina screens on macOS, LaTeX preview
+images rendered as PNG files should be scaled up.
 
 #+name: mac-scale-org-latex-fragment-previews
 #+begin_src emacs-lisp
-;; scale up LaTeX fragment preview images on OS X
+;; scale up LaTeX fragment preview images on macOS
 (if (and (display-graphic-p)
          (eq system-type 'darwin)
          (executable-find "dvipng"))
@@ -7879,46 +7884,6 @@ scale images).
 ;; when using emacs-mac port
 (when (eq window-system 'mac)
   (setq doc-view-resolution 300))
-#+end_src
-
-*** load-history-filename-element workaround                     :workaround:
-
-For whatever reason, the ~load-history~ list gets polluted with
-symbols in Emacs 27+ on some systems, Mac OS X included (at least for
-the Emacs for Mac OS X binary releases), which is probably some issue
-around the newly introduced portable dumper.
-
-This causes issues whenever ~load-history-filename-element~ is called,
-which can happen pretty often.
-
-One workaround is to redefine ~load-history-filename-element~ to
-ignore these problematic entries, although it is unclear if the
-problematic entries in ~load-history~ create other issues elsewhere.
-
-See these links:
-- [[https://debbugs.gnu.org/db/34/34094.html][GNU bug report logs - #34094]]
-- [[https://emacs.stackexchange.com/questions/5552/emacs-on-android-org-mode-error-wrong-type-argument-stringp-require-t][Emacs on Android - org-mode - error - `(wrong-type-argument stringp (require ...) ...)`]]
-
-#+name: mac-load-history-filename-element-workaround
-#+begin_src emacs-lisp
-;; workaround for problematic entries in `load-history' which affects
-;; Emacs 27+ on some systems, probably to do with the portable dumper
-;; mainly affecting Emacs for OS X
-(when (and (not (version< emacs-version "27"))
-           (eq window-system 'ns))
-  (defun load-history-filename-element (file-regexp)
-    "Get the first elt of `load-history' whose car matches FILE-REGEXP.
-Return nil if there isn't one."
-    (let* ((loads load-history)
-           (load-elt (and loads (car loads))))
-      (save-match-data
-        (while (and loads
-                    (or (null (car load-elt))
-                        (not (and (stringp (car load-elt)) ;; skip non-strings
-                                  (string-match file-regexp (car load-elt))))))
-          (setq loads (cdr loads)
-                load-elt (and loads (car loads)))))
-      load-elt)))
 #+end_src
 
 * Transient commands                                              :transient:
@@ -9620,7 +9585,7 @@ The main configuration file.
 
 <<password-store>>
 
-;; OS-specific / Mac OS X
+;; OS-specific / macOS
 
 <<mac>>
 
@@ -9641,8 +9606,6 @@ The main configuration file.
 <<mac-emacs-mac-port-hydra-toggle-ligatures>>
 
 <<mac-emacs-mac-doc-view-resolution>>
-
-<<mac-load-history-filename-element-workaround>>
 
 ;; Transient commands
 
@@ -10809,9 +10772,9 @@ commands to operate to listed processes.
 It can be used like [[https://en.wikipedia.org/wiki/Top_(software)][top]] by toggling auto-refresh
 using ~M-x proced-toggle-auto-update~.
 
-Note that Mac OS X isn't very well supported by this package,
+Note that macOS isn't very well supported by this package,
 so configure it only for Linux systems.
-For Mac OS X, an alternative is using ~top~ in an ~term-mode~ buffer.
+For macOS, an alternative is using ~top~ in an ~term-mode~ buffer.
 
 For more usage information, see [[https://www.masteringemacs.org/article/displaying-interacting-processes-proced][here]].
 
@@ -12096,7 +12059,7 @@ CRUX (_q_: quit)"
 *** Hyperspace launcher for Emacs                                     :melpa:
 
 [[https://github.com/ieure/hyperspace-el][Hyperspace]] is a launcher for Emacs, much like Alfred or Quicksilver
-for Mac OS X.
+for macOS.
 
 On calling ~hyperspace~, a ~HS:~ prompt will appear in the minibuffer
 and the user is expected to provide an input.
@@ -12264,6 +12227,52 @@ Help (_q_: quit)"
 
 ;; bind help hydra
 (global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
+#+end_src
+
+** OS-specific
+
+*** macOS
+
+**** load-history-filename-element workaround                    :workaround:
+
+*NOTE*: /[[https://emacsformacosx.com/download/emacs-builds/Emacs-27.1-1.changes][Resolved]] in Emacs for OS X versions 27.1+./
+
+For whatever reason, the ~load-history~ list gets polluted with
+symbols in Emacs 27+ on some systems, macOS included (at least for the
+Emacs for Mac OS X binary releases), which is probably some issue
+around the newly introduced portable dumper.
+
+This causes issues whenever ~load-history-filename-element~ is called,
+which can happen pretty often.
+
+One workaround is to redefine ~load-history-filename-element~ to
+ignore these problematic entries, although it is unclear if the
+problematic entries in ~load-history~ create other issues elsewhere.
+
+See these links:
+- [[https://debbugs.gnu.org/db/34/34094.html][GNU bug report logs - #34094]]
+- [[https://emacs.stackexchange.com/questions/5552/emacs-on-android-org-mode-error-wrong-type-argument-stringp-require-t][Emacs on Android - org-mode - error - `(wrong-type-argument stringp (require ...) ...)`]]
+
+#+name: mac-load-history-filename-element-workaround
+#+begin_src emacs-lisp
+;; workaround for problematic entries in `load-history' which affects
+;; Emacs 27+ on some systems, probably to do with the portable dumper
+;; mainly affecting Emacs for OS X
+(when (and (not (version< emacs-version "27"))
+           (eq window-system 'ns))
+  (defun load-history-filename-element (file-regexp)
+    "Get the first elt of `load-history' whose car matches FILE-REGEXP.
+Return nil if there isn't one."
+    (let* ((loads load-history)
+           (load-elt (and loads (car loads))))
+      (save-match-data
+        (while (and loads
+                    (or (null (car load-elt))
+                        (not (and (stringp (car load-elt)) ;; skip non-strings
+                                  (string-match file-regexp (car load-elt))))))
+          (setq loads (cdr loads)
+                load-elt (and loads (car loads)))))
+      load-elt)))
 #+end_src
 
 * Local Variables                                                  :noexport:

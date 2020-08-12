@@ -5439,67 +5439,6 @@ integration with FlyCheck.
 
 ** Emacs Lisp
 
-*** Emacs Lisp debugger hydra                                         :hydra:
-
-Hydras for [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Debugging.html][debugging]] Emacs Lisp.
-One is for changing when the debugger is invoked.
-The other is a mode-specific hydra.
-
-#+name: debugger-hydra
-#+begin_src emacs-lisp
-;; hydra for built-in Emacs Lisp debugger
-(defhydra my-hydra/debugger (:color teal :hint nil
-                             :pre (require 'debug))
-  "
-Emacs debugger settings (_q_: quit)
-Toggle    _1_ : debug-on-error (currently: %`debug-on-error)
-          _2_ : debug-on-quit  (currently: %`debug-on-quit)
-Functions _fl_ : list functions to invoke debugger on entry
-          _fa_ : add debugger invocation to function
-          _fc_ : cancel debugger invocation from function
-Variables _vl_ : list variables to invoke debugger on change
-          _va_ : add debugger invocation to variable on change
-          _vc_ : cancel debugger invocation from variable on change
-"
-  ("q" nil nil)
-  ("1" toggle-debug-on-error :exit nil)
-  ("2" toggle-debug-on-quit :exit nil)
-  ("fl" debugger-list-functions)
-  ("fa" debug-on-entry)
-  ("fc" cancel-debug-on-entry)
-  ("vl" (lambda () (interactive) (prin1 (debug--variable-list))))
-  ("va" debug-on-variable-change)
-  ("vc" cancel-debug-on-variable-change))
-
-;; binding for debugger-settings hydra
-(global-set-key (kbd "C-c C-M-S-d") 'my-hydra/debugger/body)
-#+end_src
-
-#+name: debugger-mode-hydra
-#+begin_src emacs-lisp
-;; mode-specific hydra for debugger
-(defhydra my-hydra/debugger-mode (:color teal :columns 4)
-  "
-Emacs debugger (_q_: quit)"
-  ("q" nil nil)
-  ("c" debugger-continue "continue")
-  ("d" debugger-step-through "step")
-  ("b" debugger-frame "frame")
-  ("u" debugger-frame-clear "no-frame")
-  ("j" debugger-jump "jump")
-  ("e" debugger-eval-expression "eval-expr")
-  ("R" debugger-record-expression "record-expr")
-  ("Q" top-level "quit-to-top")
-  ("r" debugger-return-value "return-val")
-  ("l" debugger-list-functions "list-funs")
-  ("v" debugger-toggle-locals "list-vars")
-  ("h" describe-mode "help"))
-
-;; binding for debugger hydra
-(with-eval-after-load 'debug
-  (define-key debugger-mode-map (kbd "C-c C-M-m") #'my-hydra/debugger-mode/body))
-#+end_src
-
 *** el-patch                                                          :melpa:
 
 [[https://github.com/raxod502/el-patch][el-patch]] provides a way to customize Emacs Lisp functions.
@@ -8113,10 +8052,10 @@ Temporary bindings that are shown in a popup window.
 
 Transient bindings and definitions in this configuration conform to the
 following conventions:
-- Bind ~q~ to quit any transient. This is automatic after running
-  ~(transient-bind-q-to-quit)~ which is done so in the configuration.
-  Note that transient definitions that attempt to bind ~q~ will
-  instead bind to ~Q~ or ~M-q~ instead if not otherwise bound.
+- The config calls ~(transient-bind-q-to-quit)~ which binds ~q~ to
+  quit any transient like magit. Doing this will also rotate any ~q~,
+  ~Q~ and ~M-q~ bindings defined in any transient to ~Q~, ~M-q~ and
+  unbound respectively.
 - Globally-accessible transients are always bound to a key sequence
   prefixed by ~C-c C-M-~ (like ~C-c C-M-b~ for the basic buffer
   management hydra).
@@ -8215,6 +8154,46 @@ Transient for switching conda environments.
      ]
     )
   (global-set-key (kbd "C-c C-M-S-v") #'transient/conda))
+#+end_src
+
+*** Debugger transient
+
+Transient for modifying Emacs Lisp [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Debugging.html][debugger]] settings.
+
+#+name: debugger-transient
+#+begin_src emacs-lisp
+(require 'debug)
+
+(defun transient/debugger--list-variables ()
+  "Print variables configured to invoke the debugger to the minibuffer."
+  (interactive)
+  (prin1 (debug--variable-list)))
+
+;; add transient popup for conda commands, bind to "C-c C-M-S-v"
+(transient-define-prefix transient/debugger ()
+  "Emacs debugger settings."
+  ["Emacs debugger settings"
+   ["Toggle"
+    ("1" (lambda ()
+           (transient--make-description "Debug on error" debug-on-error))
+     toggle-debug-on-error :transient t)
+    ("2" (lambda ()
+           (transient--make-description "Debug on quit" debug-on-quit))
+     toggle-debug-on-quit :transient t)
+    ]
+   ["Invoke on function entry"
+    ("fl" "List" debugger-list-functions)
+    ("fa" "Add" debug-on-entry)
+    ("fc" "Cancel" cancel-debug-on-entry)
+    ]
+   ["Invoke on variable change"
+    ("vl" "List" transient/debugger--list-variables)
+    ("va" "Add" debug-on-variable-change)
+    ("vc" "Cancel" cancel-debug-on-variable-change)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-S-d") #'transient/debugger)
 #+end_src
 
 *** Ediff transient
@@ -8650,6 +8629,42 @@ supporting packages.
 #+end_src
 
 ** Major mode transients
+
+*** debugger-mode transient
+
+Debugger major mode transient.
+
+#+name: debugger-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for eww-mode
+(with-eval-after-load 'debug
+  (transient-define-prefix transient/debugger-mode ()
+    "Debugger mode commands."
+    ["Emacs debugger"
+     ["Stepping"
+      ("d" "Step through" debugger-step-through)
+      ("c" "Continue" debugger-continue)
+      ("j" "Jump" debugger-jump)
+      ("Q" "Quit" top-level)
+      ]
+     ["Frame exit breakpoint"
+      ("b" "Set" debugger-frame)
+      ("B" "Clear" debugger-frame-clear)
+      ]
+     ["Expression"
+      ("e" "Evaluate" debugger-eval-expression)
+      ("R" "Record" debugger-record-expression)
+      ]
+     ["Other"
+      ("r" "Specify return value" debugger-return-value)
+      ("l" "List debug functions" debugger-list-functions)
+      ("v" "Toggle locals" debugger-toggle-locals)
+      ("h" "Help" describe-mode)
+      ]
+     ]
+    )
+  (define-key debugger-mode-map (kbd "C-c C-M-m") #'transient/debugger-mode))
+#+end_src
 
 *** dired-mode transient
 
@@ -9441,10 +9456,6 @@ The main configuration file.
 
 ;; Programming / Emacs Lisp
 
-<<debugger-hydra>>
-
-<<debugger-mode-hydra>>
-
 <<el-patch>>
 
 <<modify-lisp-indent-function>>
@@ -9679,6 +9690,8 @@ The main configuration file.
 
 <<conda-transient>>
 
+<<debugger-transient>>
+
 <<ediff-transient>>
 
 <<help-transient>>
@@ -9702,6 +9715,8 @@ The main configuration file.
 <<yasnippet-transient>>
 
 ;; Transient commands / Major mode transients
+
+<<debugger-mode-transient>>
 
 <<dired-mode-transient>>
 
@@ -11054,6 +11069,67 @@ Emacs profiler [CPU=%(profiler-running-p) MEM=%(profiler-memory-running-p)] (_q_
 
 ;; binding for Emacs profiler hydra
 (global-set-key (kbd "C-c C-M-S-e") 'my-hydra/profiler/body)
+#+end_src
+
+**** Emacs Lisp debugger hydra                                        :hydra:
+
+Hydras for [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Debugging.html][debugging]] Emacs Lisp.
+One is for changing when the debugger is invoked.
+The other is a mode-specific hydra.
+
+#+name: debugger-hydra
+#+begin_src emacs-lisp
+;; hydra for built-in Emacs Lisp debugger
+(defhydra my-hydra/debugger (:color teal :hint nil
+                             :pre (require 'debug))
+  "
+Emacs debugger settings (_q_: quit)
+Toggle    _1_ : debug-on-error (currently: %`debug-on-error)
+          _2_ : debug-on-quit  (currently: %`debug-on-quit)
+Functions _fl_ : list functions to invoke debugger on entry
+          _fa_ : add debugger invocation to function
+          _fc_ : cancel debugger invocation from function
+Variables _vl_ : list variables to invoke debugger on change
+          _va_ : add debugger invocation to variable on change
+          _vc_ : cancel debugger invocation from variable on change
+"
+  ("q" nil nil)
+  ("1" toggle-debug-on-error :exit nil)
+  ("2" toggle-debug-on-quit :exit nil)
+  ("fl" debugger-list-functions)
+  ("fa" debug-on-entry)
+  ("fc" cancel-debug-on-entry)
+  ("vl" (lambda () (interactive) (prin1 (debug--variable-list))))
+  ("va" debug-on-variable-change)
+  ("vc" cancel-debug-on-variable-change))
+
+;; binding for debugger-settings hydra
+(global-set-key (kbd "C-c C-M-S-d") 'my-hydra/debugger/body)
+#+end_src
+
+#+name: debugger-mode-hydra
+#+begin_src emacs-lisp
+;; mode-specific hydra for debugger
+(defhydra my-hydra/debugger-mode (:color teal :columns 4)
+  "
+Emacs debugger (_q_: quit)"
+  ("q" nil nil)
+  ("c" debugger-continue "continue")
+  ("d" debugger-step-through "step")
+  ("b" debugger-frame "frame")
+  ("u" debugger-frame-clear "no-frame")
+  ("j" debugger-jump "jump")
+  ("e" debugger-eval-expression "eval-expr")
+  ("R" debugger-record-expression "record-expr")
+  ("Q" top-level "quit-to-top")
+  ("r" debugger-return-value "return-val")
+  ("l" debugger-list-functions "list-funs")
+  ("v" debugger-toggle-locals "list-vars")
+  ("h" describe-mode "help"))
+
+;; binding for debugger hydra
+(with-eval-after-load 'debug
+  (define-key debugger-mode-map (kbd "C-c C-M-m") #'my-hydra/debugger-mode/body))
 #+end_src
 
 *** Clojure

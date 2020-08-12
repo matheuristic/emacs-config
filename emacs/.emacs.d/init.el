@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug 11 19:34:22 2020
+;; Generated: Tue Aug 11 21:33:59 2020
 
 ;;; Commentary:
 
@@ -2811,55 +2811,6 @@ Language Server → Actions (_q_: ←)"
 
 ;; Programming / Emacs Lisp
 
-;; hydra for built-in Emacs Lisp debugger
-(defhydra my-hydra/debugger (:color teal :hint nil
-                             :pre (require 'debug))
-  "
-Emacs debugger settings (_q_: quit)
-Toggle    _1_ : debug-on-error (currently: %`debug-on-error)
-          _2_ : debug-on-quit  (currently: %`debug-on-quit)
-Functions _fl_ : list functions to invoke debugger on entry
-          _fa_ : add debugger invocation to function
-          _fc_ : cancel debugger invocation from function
-Variables _vl_ : list variables to invoke debugger on change
-          _va_ : add debugger invocation to variable on change
-          _vc_ : cancel debugger invocation from variable on change
-"
-  ("q" nil nil)
-  ("1" toggle-debug-on-error :exit nil)
-  ("2" toggle-debug-on-quit :exit nil)
-  ("fl" debugger-list-functions)
-  ("fa" debug-on-entry)
-  ("fc" cancel-debug-on-entry)
-  ("vl" (lambda () (interactive) (prin1 (debug--variable-list))))
-  ("va" debug-on-variable-change)
-  ("vc" cancel-debug-on-variable-change))
-
-;; binding for debugger-settings hydra
-(global-set-key (kbd "C-c C-M-S-d") 'my-hydra/debugger/body)
-
-;; mode-specific hydra for debugger
-(defhydra my-hydra/debugger-mode (:color teal :columns 4)
-  "
-Emacs debugger (_q_: quit)"
-  ("q" nil nil)
-  ("c" debugger-continue "continue")
-  ("d" debugger-step-through "step")
-  ("b" debugger-frame "frame")
-  ("u" debugger-frame-clear "no-frame")
-  ("j" debugger-jump "jump")
-  ("e" debugger-eval-expression "eval-expr")
-  ("R" debugger-record-expression "record-expr")
-  ("Q" top-level "quit-to-top")
-  ("r" debugger-return-value "return-val")
-  ("l" debugger-list-functions "list-funs")
-  ("v" debugger-toggle-locals "list-vars")
-  ("h" describe-mode "help"))
-
-;; binding for debugger hydra
-(with-eval-after-load 'debug
-  (define-key debugger-mode-map (kbd "C-c C-M-m") #'my-hydra/debugger-mode/body))
-
 (use-package el-patch
   :demand t)
 
@@ -4066,6 +4017,39 @@ Example of use with transient suffix definitions in a
     )
   (global-set-key (kbd "C-c C-M-S-v") #'transient/conda))
 
+(require 'debug)
+
+(defun transient/debugger--list-variables ()
+  "Print variables configured to invoke the debugger to the minibuffer."
+  (interactive)
+  (prin1 (debug--variable-list)))
+
+;; add transient popup for conda commands, bind to "C-c C-M-S-v"
+(transient-define-prefix transient/debugger ()
+  "Emacs debugger settings."
+  ["Emacs debugger settings"
+   ["Toggle"
+    ("1" (lambda ()
+           (transient--make-description "Debug on error" debug-on-error))
+     toggle-debug-on-error :transient t)
+    ("2" (lambda ()
+           (transient--make-description "Debug on quit" debug-on-quit))
+     toggle-debug-on-quit :transient t)
+    ]
+   ["Invoke on function entry"
+    ("fl" "List" debugger-list-functions)
+    ("fa" "Add" debug-on-entry)
+    ("fc" "Cancel" cancel-debug-on-entry)
+    ]
+   ["Invoke on variable change"
+    ("vl" "List" transient/debugger--list-variables)
+    ("va" "Add" debug-on-variable-change)
+    ("vc" "Cancel" cancel-debug-on-variable-change)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-S-d") #'transient/debugger)
+
 ;; add transient popup for Ediff commands, bind to "C-c C-M-="
 (transient-define-prefix transient/ediff ()
   "Various Ediff launch commands."
@@ -4418,6 +4402,35 @@ Example of use with transient suffix definitions in a
    (global-set-key (kbd "C-c C-M-<") #'transient/yasnippet)))
 
 ;; Transient commands / Major mode transients
+
+;; major-mode specific transient for eww-mode
+(with-eval-after-load 'debug
+  (transient-define-prefix transient/debugger-mode ()
+    "Debugger mode commands."
+    ["Emacs debugger"
+     ["Stepping"
+      ("d" "Step through" debugger-step-through)
+      ("c" "Continue" debugger-continue)
+      ("j" "Jump" debugger-jump)
+      ("Q" "Quit" top-level)
+      ]
+     ["Frame exit breakpoint"
+      ("b" "Set" debugger-frame)
+      ("B" "Clear" debugger-frame-clear)
+      ]
+     ["Expression"
+      ("e" "Evaluate" debugger-eval-expression)
+      ("R" "Record" debugger-record-expression)
+      ]
+     ["Other"
+      ("r" "Specify return value" debugger-return-value)
+      ("l" "List debug functions" debugger-list-functions)
+      ("v" "Toggle locals" debugger-toggle-locals)
+      ("h" "Help" describe-mode)
+      ]
+     ]
+    )
+  (define-key debugger-mode-map (kbd "C-c C-M-m") #'transient/debugger-mode))
 
 ;; major-mode specific transient for ess-mode
 (with-eval-after-load 'dired

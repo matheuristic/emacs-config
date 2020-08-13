@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 12 20:59:48 2020
+;; Generated: Wed Aug 12 22:29:30 2020
 
 ;;; Commentary:
 
@@ -590,7 +590,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
                               (elt windows (mod (+ k rotations) num-windows)))
                             (number-sequence 0 (1- num-windows))))
              ;; create alist for easier looping later
-             (wins-props (mapcar* #'cons window-moves window-props)))
+             (wins-props (cl-mapcar #'cons window-moves window-props)))
         ;; iteratively assign orig window props in new window order
         (dolist (w-p wins-props)
           (let ((win (car w-p))
@@ -777,12 +777,12 @@ provided, the default interactive `eshell' command is run."
 (defun term-handle-exit--close-buffer-on-cmd (&rest args)
   "Kill term buffer with 'q' after session exit."
   (when (null (get-buffer-process (current-buffer)))
-    (use-local-map (let ((map (make-sparse-keymap)))
-                     (define-key map (kbd "q")
+    (use-local-map (let ((keymap (make-sparse-keymap)))
+                     (define-key keymap (kbd "q")
                        (lambda ()
                          (interactive)
                          (kill-buffer (current-buffer))))
-                     map))))
+                     keymap))))
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 
 (use-package vterm
@@ -1437,10 +1437,10 @@ Assumes "
   (notmuch--toggle-search-tag-visibility)
 
   ;; bindings to toggle visibility of search tags in the results
-  (dolist (map '(notmuch-hello-mode-map
-                 notmuch-search-mode-map
-                 notmuch-tree-mode-map))
-    (define-key map (kbd "C-t")
+  (dolist (keymap '(notmuch-hello-mode-map
+                    notmuch-search-mode-map
+                    notmuch-tree-mode-map))
+    (define-key keymap (kbd "C-t")
       #'notmuch--toggle-search-tag-visibility)))
 
 ;; provides HTML email composition using Org-mode
@@ -1457,11 +1457,11 @@ Assumes "
     ;; enable HTML email message composition
     (org-msg-mode 1)
     ;; bindings to toggle HTML email message composition
-    (dolist (map '(notmuch-hello-mode-map
-                   notmuch-search-mode-map
-                   notmuch-show-mode-map
-                   notmuch-tree-mode-map))
-      (define-key map (kbd "M") #'org-msg-mode))))
+    (dolist (keymap '(notmuch-hello-mode-map
+                      notmuch-search-mode-map
+                      notmuch-show-mode-map
+                      notmuch-tree-mode-map))
+      (define-key keymap (kbd "M") #'org-msg-mode))))
 
 ;; major mode-specific hydra for OrgMsg edit mode
 (with-eval-after-load 'org-msg
@@ -2319,19 +2319,19 @@ Org-mode → Download (_q_: ←)"
   ;; easier nav keys for read-only presentations
   (define-minor-mode my-org-present-extra-mode
     "Overlay minor mode on top of org-present-mode with easier nav keys."
-    :keymap (let ((map (make-sparse-keymap)))
+    :keymap (let ((keymap (make-sparse-keymap)))
               ;; <left>/<right> = previous/next slide
-              (define-key map (kbd "<up>") 'scroll-down-line)
-              (define-key map (kbd "<down>") 'scroll-up-line)
-              (define-key map (kbd "s-<up>") 'beginning-of-buffer)
-              (define-key map (kbd "s-<down>") 'end-of-buffer)
-              (define-key map (kbd "s-<left>") 'org-present-beginning)
-              (define-key map (kbd "s-<right>") 'org-present-end)
-              (define-key map (kbd "f") 'toggle-frame-fullscreen)
-              (define-key map (kbd "q") 'org-present-quit)
-              (define-key map (kbd "-") 'text-scale-decrease)
-              (define-key map (kbd "+") 'text-scale-increase)
-              map))
+              (define-key keymap (kbd "<up>") 'scroll-down-line)
+              (define-key keymap (kbd "<down>") 'scroll-up-line)
+              (define-key keymap (kbd "s-<up>") 'beginning-of-buffer)
+              (define-key keymap (kbd "s-<down>") 'end-of-buffer)
+              (define-key keymap (kbd "s-<left>") 'org-present-beginning)
+              (define-key keymap (kbd "s-<right>") 'org-present-end)
+              (define-key keymap (kbd "f") 'toggle-frame-fullscreen)
+              (define-key keymap (kbd "q") 'org-present-quit)
+              (define-key keymap (kbd "-") 'text-scale-decrease)
+              (define-key keymap (kbd "+") 'text-scale-increase)
+              keymap))
   ;; toggle minor mode after the relevant org-present funcalls
   (advice-add 'org-present-read-only
               :after (lambda () (my-org-present-extra-mode 1)))

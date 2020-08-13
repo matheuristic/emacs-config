@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 12 22:29:30 2020
+;; Generated: Thu Aug 13 14:21:33 2020
 
 ;;; Commentary:
 
@@ -865,7 +865,8 @@ ARG is a prefix argument.  If nil, copy the current difference region."
 
 ;; view and compare directory trees, like Beyond Compare
 (use-package ztree
-  :bind ("C-c C-M--" . ztree-diff)
+  :bind (("C-x D" . ztree-dir)
+         ("C-c C-M--" . ztree-diff))
   :config
   (setq ztree-dir-move-focus t ;; RET in ztree-dir also moves focus
         ztree-draw-unicode-lines t ;; unicode lines
@@ -875,45 +876,6 @@ ARG is a prefix argument.  If nil, copy the current difference region."
 (with-eval-after-load 'ztree-view
   (define-key ztree-mode-map (kbd "n") #'ztree-next-line)
   (define-key ztree-mode-map (kbd "p") #'ztree-previous-line))
-
-;; mode-specific hydra for ztreedir-mode
-(defhydra my-hydra/ztreedir-mode (:color pink :columns 3)
-  "
-ztree-dir (_q_: quit)"
-  ("q" nil nil)
-  ("RET" ztree-perform-action "toggle/open-other" :exit t)
-  ("SPC" ztree-perform-soft-action "toggle/open" :exit t)
-  ("x" ztree-toggle-expand-subtree "toggle" :exit t)
-  ("g" ztree-refresh-buffer "refresh" :exit t)
-  ("DEL" ztree-move-up-in-tree "goto-parent" :exit t)
-  ("H" ztree-dir-toggle-show-filtered-files "show-filtered" :exit t)
-  (">" ztree-dir-narrow-to-dir "narrow" :exit t)
-  ("<" ztree-dir-widen-to-parent "widen" :exit t)
-  ("d" ztree-dir-open-dired-at-point "dired" :exit t))
-(with-eval-after-load 'ztree-dir
-  (define-key ztreedir-mode-map (kbd "C-c C-M-m") #'my-hydra/ztreedir-mode/body))
-
-;; mode-specific hydra for ztreediff-mode
-(defhydra my-hydra/ztreediff-mode (:color pink :columns 3)
-  "
-ztree-diff (_q_: quit)"
-  ("q" nil nil)
-  ("RET" ztree-perform-action "toggle/ediff" :exit t)
-  ("SPC" ztree-perform-soft-action "toggle/diff" :exit t)
-  ("TAB" ztree-jump-side "jump-side" :exit t)
-  ("x" ztree-toggle-expand-subtree "toggle" :exit t)
-  ("g" ztree-refresh-buffer "refresh" :exit t)
-  ("DEL" ztree-move-up-in-tree "goto-parent" :exit t)
-  ("h" ztree-diff-toggle-show-equal-files "show-equal" :exit t)
-  ("H" ztree-diff-toggle-show-filtered-files "show-filtered" :exit t)
-  ("d" ztree-diff-simple-diff-files "diff-files" :exit t)
-  ("v" ztree-diff-view-file "view" :exit t)
-  ("C" ztree-diff-copy "copy" :exit t)
-  ("D" ztree-diff-delete-file "delete" :exit t)
-  ("r" ztree-diff-partial-rescan "rescan-part" :exit t)
-  ("R" ztree-diff-full-rescan "rescan-full" :exit t))
-(with-eval-after-load 'ztree-diff
-  (define-key ztreediff-mode-map (kbd "C-c C-M-m") #'my-hydra/ztreediff-mode/body))
 
 ;; DevOps
 
@@ -4675,6 +4637,65 @@ Example of use with transient suffix definitions in a
     )
   (define-key term-mode-map (kbd "C-c C-M-m") #'transient/term-mode)
   (define-key term-raw-map (kbd "C-c C-M-m") #'transient/term-mode))
+
+;; major-mode specific transient for ztreedir-mode
+(with-eval-after-load 'ztree-dir
+  (transient-define-prefix transient/ztreedir-mode ()
+    "Ztree directory commands."
+    :transient-suffix 'transient--do-stay
+    ["Ztree directory"
+     ["Movement"
+      ("n" "Next" ztree-next-line)
+      ("p" "Previous" ztree-previous-line)
+      ("DEL" "Up directory" ztree-move-up-in-tree)
+      ]
+     ["Actions"
+      ("RET" "Hard action" ztree-perform-action :transient nil)
+      ("SPC" "Soft action" ztree-perform-soft-action :transient nil)
+      ("x" "Expand subtree" ztree-toggle-expand-subtree)
+      ("d" "Dired at point" ztree-dir-open-dired-at-point :transient nil)
+      ]
+     ["View"
+      ("g" "Refresh" ztree-refresh-buffer)
+      ("H" "Toggle show filtered files" ztree-dir-toggle-show-filtered-files)
+      (">" "Narrow tree" ztree-dir-narrow-to-dir)
+      ("<" "Widen tree" ztree-dir-widen-to-parent)
+      ]
+     ]
+    )
+  (define-key ztreedir-mode-map (kbd "C-c C-M-m") #'transient/ztreedir-mode))
+
+;; major-mode specific transient for ztreediff-mode
+(with-eval-after-load 'ztree-diff
+  (transient-define-prefix transient/ztreediff-mode ()
+    "Ztree difference commands."
+    :transient-suffix 'transient--do-stay
+    ["Ztree difference"
+     ["Movement"
+      ("n" "Next" ztree-next-line)
+      ("p" "Previous" ztree-previous-line)
+      ("TAB" "Jump side" ztree-jump-side)
+      ("DEL" "Up directory" ztree-move-up-in-tree)
+      ]
+     ["Actions"
+      ("RET" "Hard action" ztree-perform-action :transient nil)
+      ("SPC" "Soft action" ztree-perform-soft-action :transient nil)
+      ("x" "Expand subtree" ztree-toggle-expand-subtree)
+      ("d" "Diff files" ztree-diff-simple-diff-files :transient nil)
+      ("v" "View file" ztree-diff-view-file)
+      ("C" "Copy" ztree-diff-copy)
+      ("D" "Delete" ztree-diff-delete-file)
+      ]
+     ["View"
+      ("g" "Refresh" ztree-refresh-buffer)
+      ("r" "Rescan (partial)" ztree-diff-partial-rescan)
+      ("R" "Rescan (full)" ztree-diff-full-rescan)
+      ("h" "Toggle show equal files" ztree-diff-toggle-show-equal-files)
+      ("H" "Toggle show filtered files" ztree-diff-toggle-show-filtered-files)
+      ]
+     ]
+    )
+  (define-key ztreediff-mode-map (kbd "C-c C-M-m") #'transient/ztreediff-mode))
 
 ;; Transient commands / Minor mode transients
 

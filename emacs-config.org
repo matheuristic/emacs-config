@@ -180,6 +180,23 @@ Literate configs, package lists, and so on and so forth.
 - [[https://karl-voit.at/2019/10/26/all-things-org/][All Things Org Mode: PIM, Scientific Writing, Presentation, Programming]]
 - [[https://rgoswami.me/posts/org-note-workflow/][An Orgmode Note Workflow]]
 
+** Emacs Lisp reverse dependency search
+
+To find all loaded libraries that depend on a given library, evaluate
+the following Elisp code.
+
+#+begin_example
+(require 'loadhist)
+(file-dependents (feature-file 'some-feature))
+#+end_example
+
+As an example, the following lists all loaded libraries that use the
+deprecated ~cl~ library.
+
+#+begin_example
+(file-dependents (feature-file 'cl))
+#+end_example
+
 ** Tags
 
 - ~early~: Configuration code (not boilerplate comments) that should

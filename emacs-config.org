@@ -9367,11 +9367,7 @@ The main configuration file.
 
 <<markdown-mode>>
 
-<<markdown-mode-hydra>>
-
 <<markdown-toc>>
-
-<<add-markdown-toc-to-markdown-mode-hydra>>
 
 <<yaml-mode>>
 

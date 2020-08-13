@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 12 20:49:18 2020
+;; Generated: Wed Aug 12 20:59:48 2020
 
 ;;; Commentary:
 
@@ -1676,59 +1676,8 @@ Marks / Markers (_q_: quit)"
                 "mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML\">"
                 "</script>")))
 
-;; major mode-specific hydra for markdown-mode
-(defhydra my-hydra/markdown-mode (:color teal :hint nil)
-  "
-Markdown mode (_q_: quit)
-Keymaps     _c_ : commands  _s_ : styles
-Outline     _n_ : next      _p_ : prev      _f_ : fwd-level _b_ : bwd-level
-            _←_ : promote   _→_ : demote    _↓_ : move-down _↑_ : move-up
-Shift-Rgn   _<_ : left      _>_ : right
-Toggle      _E_ : math      _F_ : code-font _I_ : images    _L_ : url
-            _M_ : markup
-Other       _d_ : do        _o_ : follow    _'_ : edit code block
-"
-  ("q" nil nil)
-  ;; keymaps
-  ("c" (lambda () (interactive) (setq unread-command-events (listify-key-sequence "\C-c\C-c"))))
-  ("s" (lambda () (interactive) (setq unread-command-events (listify-key-sequence "\C-c\C-s"))))
-  ;; outline
-  ("n" markdown-outline-next :color red)
-  ("p" markdown-outline-previous :color red)
-  ("f" markdown-outline-next-same-level :color red)
-  ("b" markdown-outline-previous-same-level :color red)
-  ("<left>" markdown-promote :color red)
-  ("<right>" markdown-demote :color red)
-  ("<down>" markdown-move-down :color red)
-  ("<up>" markdown-move-up :color red)
-  ;; shift region
-  ("<" markdown-outdent-region :color red)
-  (">" markdown-indent-region :color red)
-  ;; user interface
-  ("E" markdown-toggle-math)
-  ("F" markdown-toggle-fontify-code-blocks-natively)
-  ("I" markdown-toggle-inline-images)
-  ("L" markdown-toggle-url-hiding)
-  ("M" markdown-toggle-markup-hiding)
-  ;; other
-  ("d" markdown-do)
-  ("o" markdown-follow-thing-at-point)
-  ("'" markdown-edit-code-block))
-
-;; bindings for markdown-mode hydra
-(with-eval-after-load 'markdown-mode
-  (define-key gfm-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body)
-  (define-key markdown-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body))
-
 (use-package markdown-toc
   :after markdown-mode)
-
-;; add heads to create, update and delete tables of contents in
-;; markdown-mode buffers
-(with-eval-after-load 'markdown-toc
-  (defhydra+ my-hydra/markdown-mode nil
-    ("t" markdown-toc-generate-or-refresh-toc "insert-or-refresh-toc")
-    ("C-t" markdown-toc-delete-toc "delete-toc")))
 
 ;; provides a major mode for editing YAML files
 (use-package yaml-mode

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 12 18:52:48 2020
+;; Generated: Wed Aug 12 20:49:18 2020
 
 ;;; Commentary:
 
@@ -1754,63 +1754,6 @@ Other       _d_ : do        _o_ : follow    _'_ : edit code block
   ;; push location on to marker stack before following neuron link
   ;; so backtracking is possible via `xref-pop-marker-stack' or "M-,"
   (advice-add #'neuron-follow-thing-at-point :before #'xref-push-marker-stack))
-
-;; entrypoint hydra into neuron Zettelkasten
-(defhydra my-hydra/neuron (:color teal :columns 4)
-  "
-Neuron Zettelkasten (_q_: quit)"
-  ("q" nil nil)
-  ("z" neuron-new-zettel "new")
-  ("e" neuron-edit-zettel "edit")
-  ("o" neuron-open-zettel "open")
-  ("O" neuron-open-index "index")
-  ("j" neuron-open-daily-notes "daily")
-  ("t" neuron-query-tags "query-tags")
-  ("g" neuron-refresh "refresh")
-  ("c" neuron-edit-zettelkasten-configuration "config")
-  ("rw" neuron-rib-watch "rib-watch")
-  ("rg" neuron-rib-generate "rib-gen")
-  ("rs" neuron-rib-serve "rib-serve")
-  ("ro" neuron-rib-open-zettel "rib-open")
-  ("rz" neuron-rib-open-z-index "rib-z-idx")
-  ("rk" neuron-rib-kill "rib-kill"))
-
-;; binding for neuron entrypoint hydra
-(with-eval-after-load 'neuron-mode
-  (global-set-key (kbd "C-c C-M-z") #'my-hydra/neuron/body))
-
-;; mode-specific hydra for neuron-mode
-(defhydra my-hydra/neuron-mode (:color teal :columns 3)
-  "
-Neuron mode (_q_: quit)"
-  ("q" nil nil)
-  ("u" neuron-edit-uplink "edit-uplink")
-  ("t" neuron-add-tag "add-tag")
-  ("T" neuron-add-tags "add-tags")
-  ("l" neuron-create-and-insert-zettel-link "create-link")
-  ("L" neuron-create-zettel-from-selected-title "create-selected")
-  ("s" neuron-insert-static-link "insert-static-link")
-  ("c" neuron-toggle-connection-type "toggle-conn-type")
-  ("r" neuron-open-current-zettel "open-current")
-  ("o" neuron-follow-thing-at-point "follow"))
-
-;; wrapper hydra for accessing markdown and neuron-mode hydras from
-;; mode-specific entrypoint
-(defhydra my-hydra/markdown-neuron-mode-wrapper (:color teal)
-  "
-Markdown mode hydra / Neuron mode hydra (_q_: quit)
-"
-  ("q" nil nil)
-  ("m" my-hydra/markdown-mode/body "markdown-mode")
-  ("z" my-hydra/neuron-mode/body "neuron-mode"))
-
-;; binding for mode-specific wrapper hydra for markdown/neuron modes
-(with-eval-after-load 'neuron-mode
-  (add-hook 'neuron-mode-hook
-            (lambda ()
-              (use-local-map (copy-keymap markdown-mode-map))
-              (local-set-key (kbd "C-c C-M-m")
-                             #'my-hydra/markdown-neuron-mode-wrapper/body))))
 
 ;; Org-mode
 
@@ -3991,6 +3934,35 @@ Example of use with transient suffix definitions in a
   )
 (global-set-key (kbd "C-c C-M-k") #'transient/keyboard-macros)
 
+;; add transient for neuron commands, bind to "C-c C-M-z"
+(with-eval-after-load 'neuron-mode
+  (transient-define-prefix transient/neuron ()
+    "Neuron Zettelkasten commands."
+    ["Neuron Zettelkasten"
+     ["File"
+      ("z" "New" neuron-new-zettel)
+      ("e" "Edit" neuron-edit-zettel)
+      ("j" "Daily" neuron-open-daily-notes)
+      ("o" "Open" neuron-open-zettel)
+      ("i" "Open index" neuron-open-index)
+      ]
+     ["Server"
+      ("rw" "Watch files" neuron-rib-watch)
+      ("rg" "Generate site" neuron-rib-generate)
+      ("rs" "Start" neuron-rib-serve)
+      ("ro" "Open" neuron-rib-open-zettel)
+      ("ri" "Open z-index" neuron-rib-open-z-index)
+      ("rk" "Kill" neuron-rib-kill)
+      ]
+     ["Other"
+      ("t" "Query tags" neuron-query-tags)
+      ("g" "Refresh cache" neuron-refresh)
+      ("c" "Configuration" neuron-edit-zettelkasten-configuration)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-z") #'transient/neuron))
+
 ;; add transient for password-store commands, bind to "C-c C-M-S-p"
 (with-eval-after-load 'password-store
   (transient-define-prefix transient/password-store ()
@@ -4508,6 +4480,75 @@ Example of use with transient suffix definitions in a
      ]
     )
   (define-key eww-mode-map (kbd "C-c C-M-m") #'transient/eww-mode))
+
+;; major-mode specific transient for markdown-mode
+(with-eval-after-load 'markdown-mode
+  (with-eval-after-load 'markdown-toc
+    (transient-define-prefix transient/markdown-mode ()
+      "Markdown mode commands."
+      :transient-suffix 'transient--do-stay
+      ["Markdown mode"
+       ["Outline"
+        ("n" "Next" markdown-outline-next)
+        ("p" "Previous" markdown-outline-previous)
+        ("f" "Next (same level)" markdown-outline-next-same-level)
+        ("b" "Previous (same level)" markdown-outline-previous-same-level)
+        ("<left>" "Promote" markdown-promote)
+        ("<right>" "Demote" markdown-demote)
+        ("<up>" "Move up" markdown-move-up)
+        ("<down>" "Move down" markdown-move-down)
+        ]
+       ["Shift region"
+        ("<" "Outdent" markdown-outdent-region)
+        (">" "Indent" markdown-indent-region)
+        ""
+        "User interface"
+        ("E" "Toggle math" markdown-toggle-math)
+        ("F" "Toggle code font" markdown-toggle-fontify-code-blocks-natively)
+        ("I" "Toggle images" markdown-toggle-inline-images)
+        ("L" "Toggle show URL" markdown-toggle-url-hiding)
+        ("M" "Toggle show markup" markdown-toggle-markup-hiding)
+        ]
+       ["Table of contents"
+        ("t" "Insert/Refresh" markdown-toc-generate-or-refresh-toc :transient nil)
+        ("C-t" "Delete" markdown-toc-delete-toc)
+        ""
+        "Other"
+        ("d" "Do" markdown-do :transient nil)
+        ("o" "Follow" markdown-follow-thing-at-point :transient nil)
+        ("'" "Edit code block" markdown-edit-code-block :transient nil)
+        ]
+       ]
+      )
+    (define-key gfm-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)
+    (define-key markdown-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)))
+
+;; major-mode specific transient for neuron-mode
+(with-eval-after-load 'neuron-mode
+  (transient-define-prefix transient/neuron-mode ()
+    "Neuron Zettelkasten mode commands."
+    ["Neuron mode"
+     ["File"
+      ("o" "Follow at point" neuron-follow-thing-at-point)
+      ("u" "Edit uplink" neuron-edit-uplink)
+      ("r" "Open current" neuron-open-current-zettel)
+      ""
+      "Tags"
+      ("t" "Add" neuron-add-tag)
+      ("T" "Add (multiple)" neuron-add-tags)
+      ]
+     ["Insert"
+      ("l" "Zettel link" neuron-create-and-insert-zettel-link)
+      ("L" "Zettel link from region" neuron-create-zettel-from-selected-title)
+      ("s" "Static link" neuron-insert-static-link)
+      ""
+      "Other"
+      ("c" "Toggle link conn type" neuron-toggle-connection-type :transient nil)
+      ("m" "Markdown major mode transient" transient/markdown-mode)
+      ]
+     ]
+    )
+  (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
 
 ;; major-mode specific transient for python-mode
 (with-eval-after-load 'python

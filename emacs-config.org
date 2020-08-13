@@ -3525,75 +3525,12 @@ add or modify the ~csv-separators~ list.
                 "</script>")))
 #+end_src
 
-*** markdown-mode hydra                                               :hydra:
-
-Major mode-specific hydra for ~markdown-mode~.
-
-#+name: markdown-mode-hydra
-#+begin_src emacs-lisp
-;; major mode-specific hydra for markdown-mode
-(defhydra my-hydra/markdown-mode (:color teal :hint nil)
-  "
-Markdown mode (_q_: quit)
-Keymaps     _c_ : commands  _s_ : styles
-Outline     _n_ : next      _p_ : prev      _f_ : fwd-level _b_ : bwd-level
-            _←_ : promote   _→_ : demote    _↓_ : move-down _↑_ : move-up
-Shift-Rgn   _<_ : left      _>_ : right
-Toggle      _E_ : math      _F_ : code-font _I_ : images    _L_ : url
-            _M_ : markup
-Other       _d_ : do        _o_ : follow    _'_ : edit code block
-"
-  ("q" nil nil)
-  ;; keymaps
-  ("c" (lambda () (interactive) (setq unread-command-events (listify-key-sequence "\C-c\C-c"))))
-  ("s" (lambda () (interactive) (setq unread-command-events (listify-key-sequence "\C-c\C-s"))))
-  ;; outline
-  ("n" markdown-outline-next :color red)
-  ("p" markdown-outline-previous :color red)
-  ("f" markdown-outline-next-same-level :color red)
-  ("b" markdown-outline-previous-same-level :color red)
-  ("<left>" markdown-promote :color red)
-  ("<right>" markdown-demote :color red)
-  ("<down>" markdown-move-down :color red)
-  ("<up>" markdown-move-up :color red)
-  ;; shift region
-  ("<" markdown-outdent-region :color red)
-  (">" markdown-indent-region :color red)
-  ;; user interface
-  ("E" markdown-toggle-math)
-  ("F" markdown-toggle-fontify-code-blocks-natively)
-  ("I" markdown-toggle-inline-images)
-  ("L" markdown-toggle-url-hiding)
-  ("M" markdown-toggle-markup-hiding)
-  ;; other
-  ("d" markdown-do)
-  ("o" markdown-follow-thing-at-point)
-  ("'" markdown-edit-code-block))
-
-;; bindings for markdown-mode hydra
-(with-eval-after-load 'markdown-mode
-  (define-key gfm-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body)
-  (define-key markdown-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body))
-#+end_src
-
 *** markdown-toc for creating tables of content in Markdown buffers   :melpa:
 
 #+name: markdown-toc
 #+begin_src emacs-lisp
 (use-package markdown-toc
   :after markdown-mode)
-#+end_src
-
-**** Add heads to create or remove Markdown TOCs to markdown-mode hydra :hydra:
-
-#+name: add-markdown-toc-to-markdown-mode-hydra
-#+begin_src emacs-lisp
-;; add heads to create, update and delete tables of contents in
-;; markdown-mode buffers
-(with-eval-after-load 'markdown-toc
-  (defhydra+ my-hydra/markdown-mode nil
-    ("t" markdown-toc-generate-or-refresh-toc "insert-or-refresh-toc")
-    ("C-t" markdown-toc-delete-toc "delete-toc")))
 #+end_src
 
 ** YAML                                                               :melpa:
@@ -3715,74 +3652,6 @@ Neuron upgrades can be done using the same command for installing it.
 #+begin_example
 $ nix-env -if https://github.com/srid/neuron/archive/master.tar.gz
 #+end_example
-
-*** neuron-mode hydras                                                :hydra:
-
-Hydras for interacting with the configured neuron Zettelkasten, and
-when editing neuron zettels.
-
-#+name: neuron-hydra
-#+begin_src emacs-lisp
-;; entrypoint hydra into neuron Zettelkasten
-(defhydra my-hydra/neuron (:color teal :columns 4)
-  "
-Neuron Zettelkasten (_q_: quit)"
-  ("q" nil nil)
-  ("z" neuron-new-zettel "new")
-  ("e" neuron-edit-zettel "edit")
-  ("o" neuron-open-zettel "open")
-  ("O" neuron-open-index "index")
-  ("j" neuron-open-daily-notes "daily")
-  ("t" neuron-query-tags "query-tags")
-  ("g" neuron-refresh "refresh")
-  ("c" neuron-edit-zettelkasten-configuration "config")
-  ("rw" neuron-rib-watch "rib-watch")
-  ("rg" neuron-rib-generate "rib-gen")
-  ("rs" neuron-rib-serve "rib-serve")
-  ("ro" neuron-rib-open-zettel "rib-open")
-  ("rz" neuron-rib-open-z-index "rib-z-idx")
-  ("rk" neuron-rib-kill "rib-kill"))
-
-;; binding for neuron entrypoint hydra
-(with-eval-after-load 'neuron-mode
-  (global-set-key (kbd "C-c C-M-z") #'my-hydra/neuron/body))
-#+end_src
-
-#+name: neuron-mode-hydra
-#+begin_src emacs-lisp
-;; mode-specific hydra for neuron-mode
-(defhydra my-hydra/neuron-mode (:color teal :columns 3)
-  "
-Neuron mode (_q_: quit)"
-  ("q" nil nil)
-  ("u" neuron-edit-uplink "edit-uplink")
-  ("t" neuron-add-tag "add-tag")
-  ("T" neuron-add-tags "add-tags")
-  ("l" neuron-create-and-insert-zettel-link "create-link")
-  ("L" neuron-create-zettel-from-selected-title "create-selected")
-  ("s" neuron-insert-static-link "insert-static-link")
-  ("c" neuron-toggle-connection-type "toggle-conn-type")
-  ("r" neuron-open-current-zettel "open-current")
-  ("o" neuron-follow-thing-at-point "follow"))
-
-;; wrapper hydra for accessing markdown and neuron-mode hydras from
-;; mode-specific entrypoint
-(defhydra my-hydra/markdown-neuron-mode-wrapper (:color teal)
-  "
-Markdown mode hydra / Neuron mode hydra (_q_: quit)
-"
-  ("q" nil nil)
-  ("m" my-hydra/markdown-mode/body "markdown-mode")
-  ("z" my-hydra/neuron-mode/body "neuron-mode"))
-
-;; binding for mode-specific wrapper hydra for markdown/neuron modes
-(with-eval-after-load 'neuron-mode
-  (add-hook 'neuron-mode-hook
-            (lambda ()
-              (use-local-map (copy-keymap markdown-mode-map))
-              (local-set-key (kbd "C-c C-M-m")
-                             #'my-hydra/markdown-neuron-mode-wrapper/body))))
-#+end_src
 
 * Org-mode
 
@@ -8168,6 +8037,42 @@ For an example, see the writeup on [[https://www.emacswiki.org/emacs/KeyboardMac
 (global-set-key (kbd "C-c C-M-k") #'transient/keyboard-macros)
 #+end_src
 
+*** Neuron transient
+
+Transient for interfacing with neuron Zettelkasten.
+
+#+name: neuron-transient
+#+begin_src emacs-lisp
+;; add transient for neuron commands, bind to "C-c C-M-z"
+(with-eval-after-load 'neuron-mode
+  (transient-define-prefix transient/neuron ()
+    "Neuron Zettelkasten commands."
+    ["Neuron Zettelkasten"
+     ["File"
+      ("z" "New" neuron-new-zettel)
+      ("e" "Edit" neuron-edit-zettel)
+      ("j" "Daily" neuron-open-daily-notes)
+      ("o" "Open" neuron-open-zettel)
+      ("i" "Open index" neuron-open-index)
+      ]
+     ["Server"
+      ("rw" "Watch files" neuron-rib-watch)
+      ("rg" "Generate site" neuron-rib-generate)
+      ("rs" "Start" neuron-rib-serve)
+      ("ro" "Open" neuron-rib-open-zettel)
+      ("ri" "Open z-index" neuron-rib-open-z-index)
+      ("rk" "Kill" neuron-rib-kill)
+      ]
+     ["Other"
+      ("t" "Query tags" neuron-query-tags)
+      ("g" "Refresh cache" neuron-refresh)
+      ("c" "Configuration" neuron-edit-zettelkasten-configuration)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-z") #'transient/neuron))
+#+end_src
+
 *** Password store transient
 
 Transient for accessing password-store.el commands.
@@ -8790,6 +8695,89 @@ Emacs Web Wowser major mode transient.
   (define-key eww-mode-map (kbd "C-c C-M-m") #'transient/eww-mode))
 #+end_src
 
+*** markdown-mode transient
+
+Markdown major mode transient.
+
+#+name: markdown-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for markdown-mode
+(with-eval-after-load 'markdown-mode
+  (with-eval-after-load 'markdown-toc
+    (transient-define-prefix transient/markdown-mode ()
+      "Markdown mode commands."
+      :transient-suffix 'transient--do-stay
+      ["Markdown mode"
+       ["Outline"
+        ("n" "Next" markdown-outline-next)
+        ("p" "Previous" markdown-outline-previous)
+        ("f" "Next (same level)" markdown-outline-next-same-level)
+        ("b" "Previous (same level)" markdown-outline-previous-same-level)
+        ("<left>" "Promote" markdown-promote)
+        ("<right>" "Demote" markdown-demote)
+        ("<up>" "Move up" markdown-move-up)
+        ("<down>" "Move down" markdown-move-down)
+        ]
+       ["Shift region"
+        ("<" "Outdent" markdown-outdent-region)
+        (">" "Indent" markdown-indent-region)
+        ""
+        "User interface"
+        ("E" "Toggle math" markdown-toggle-math)
+        ("F" "Toggle code font" markdown-toggle-fontify-code-blocks-natively)
+        ("I" "Toggle images" markdown-toggle-inline-images)
+        ("L" "Toggle show URL" markdown-toggle-url-hiding)
+        ("M" "Toggle show markup" markdown-toggle-markup-hiding)
+        ]
+       ["Table of contents"
+        ("t" "Insert/Refresh" markdown-toc-generate-or-refresh-toc :transient nil)
+        ("C-t" "Delete" markdown-toc-delete-toc)
+        ""
+        "Other"
+        ("d" "Do" markdown-do :transient nil)
+        ("o" "Follow" markdown-follow-thing-at-point :transient nil)
+        ("'" "Edit code block" markdown-edit-code-block :transient nil)
+        ]
+       ]
+      )
+    (define-key gfm-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)
+    (define-key markdown-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)))
+#+end_src
+
+*** neuron-mode transient
+
+Neuron major mode transient.
+
+#+name: neuron-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for neuron-mode
+(with-eval-after-load 'neuron-mode
+  (transient-define-prefix transient/neuron-mode ()
+    "Neuron Zettelkasten mode commands."
+    ["Neuron mode"
+     ["File"
+      ("o" "Follow at point" neuron-follow-thing-at-point)
+      ("u" "Edit uplink" neuron-edit-uplink)
+      ("r" "Open current" neuron-open-current-zettel)
+      ""
+      "Tags"
+      ("t" "Add" neuron-add-tag)
+      ("T" "Add (multiple)" neuron-add-tags)
+      ]
+     ["Insert"
+      ("l" "Zettel link" neuron-create-and-insert-zettel-link)
+      ("L" "Zettel link from region" neuron-create-zettel-from-selected-title)
+      ("s" "Static link" neuron-insert-static-link)
+      ""
+      "Other"
+      ("c" "Toggle link conn type" neuron-toggle-connection-type :transient nil)
+      ("m" "Markdown major mode transient" transient/markdown-mode)
+      ]
+     ]
+    )
+  (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
+#+end_src
+
 *** python-mode transient
 
 Python major mode transient.
@@ -9389,10 +9377,6 @@ The main configuration file.
 
 <<neuron-mode>>
 
-<<neuron-hydra>>
-
-<<neuron-mode-hydra>>
-
 ;; Org-mode
 
 <<org>>
@@ -9723,6 +9707,8 @@ The main configuration file.
 
 <<keyboard-macros-transient>>
 
+<<neuron-transient>>
+
 <<password-store-transient>>
 
 <<profiler-transient>>
@@ -9752,6 +9738,10 @@ The main configuration file.
 <<ess-mode-transient>>
 
 <<eww-mode-transient>>
+
+<<markdown-mode-transient>>
+
+<<neuron-mode-transient>>
 
 <<python-mode-transient>>
 
@@ -10944,6 +10934,143 @@ CSV (_q_: quit)"
 ;; binding for csv-mode hydra
 (with-eval-after-load 'csv-mode
   (define-key csv-mode-map (kbd "C-c C-M-m") #'my-hydra/csv-mode/body))
+#+end_src
+
+*** markdown-mode for Markdown files
+
+**** markdown-mode hydra                                              :hydra:
+
+Major mode-specific hydra for ~markdown-mode~.
+
+#+name: markdown-mode-hydra
+#+begin_src emacs-lisp
+;; major mode-specific hydra for markdown-mode
+(defhydra my-hydra/markdown-mode (:color teal :hint nil)
+  "
+Markdown mode (_q_: quit)
+Keymaps     _c_ : commands  _s_ : styles
+Outline     _n_ : next      _p_ : prev      _f_ : fwd-level _b_ : bwd-level
+            _←_ : promote   _→_ : demote    _↓_ : move-down _↑_ : move-up
+Shift-Rgn   _<_ : left      _>_ : right
+Toggle      _E_ : math      _F_ : code-font _I_ : images    _L_ : url
+            _M_ : markup
+Other       _d_ : do        _o_ : follow    _'_ : edit code block
+"
+  ("q" nil nil)
+  ;; keymaps
+  ("c" (lambda () (interactive) (setq unread-command-events (listify-key-sequence "\C-c\C-c"))))
+  ("s" (lambda () (interactive) (setq unread-command-events (listify-key-sequence "\C-c\C-s"))))
+  ;; outline
+  ("n" markdown-outline-next :color red)
+  ("p" markdown-outline-previous :color red)
+  ("f" markdown-outline-next-same-level :color red)
+  ("b" markdown-outline-previous-same-level :color red)
+  ("<left>" markdown-promote :color red)
+  ("<right>" markdown-demote :color red)
+  ("<down>" markdown-move-down :color red)
+  ("<up>" markdown-move-up :color red)
+  ;; shift region
+  ("<" markdown-outdent-region :color red)
+  (">" markdown-indent-region :color red)
+  ;; user interface
+  ("E" markdown-toggle-math)
+  ("F" markdown-toggle-fontify-code-blocks-natively)
+  ("I" markdown-toggle-inline-images)
+  ("L" markdown-toggle-url-hiding)
+  ("M" markdown-toggle-markup-hiding)
+  ;; other
+  ("d" markdown-do)
+  ("o" markdown-follow-thing-at-point)
+  ("'" markdown-edit-code-block))
+
+;; bindings for markdown-mode hydra
+(with-eval-after-load 'markdown-mode
+  (define-key gfm-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body)
+  (define-key markdown-mode-map (kbd "C-c C-M-m") #'my-hydra/markdown-mode/body))
+#+end_src
+
+**** markdown-toc for creating tables of content in Markdown buffers
+
+***** Add heads to create or remove Markdown TOCs to markdown-mode hydra :hydra:
+
+#+name: add-markdown-toc-to-markdown-mode-hydra
+#+begin_src emacs-lisp
+;; add heads to create, update and delete tables of contents in
+;; markdown-mode buffers
+(with-eval-after-load 'markdown-toc
+  (defhydra+ my-hydra/markdown-mode nil
+    ("t" markdown-toc-generate-or-refresh-toc "insert-or-refresh-toc")
+    ("C-t" markdown-toc-delete-toc "delete-toc")))
+#+end_src
+
+*** neuron-mode
+
+**** neuron-mode hydras                                               :hydra:
+
+Hydras for interacting with the configured neuron Zettelkasten, and
+when editing neuron zettels.
+
+#+name: neuron-hydra
+#+begin_src emacs-lisp
+;; entrypoint hydra into neuron Zettelkasten
+(defhydra my-hydra/neuron (:color teal :columns 4)
+  "
+Neuron Zettelkasten (_q_: quit)"
+  ("q" nil nil)
+  ("z" neuron-new-zettel "new")
+  ("e" neuron-edit-zettel "edit")
+  ("o" neuron-open-zettel "open")
+  ("O" neuron-open-index "index")
+  ("j" neuron-open-daily-notes "daily")
+  ("t" neuron-query-tags "query-tags")
+  ("g" neuron-refresh "refresh")
+  ("c" neuron-edit-zettelkasten-configuration "config")
+  ("rw" neuron-rib-watch "rib-watch")
+  ("rg" neuron-rib-generate "rib-gen")
+  ("rs" neuron-rib-serve "rib-serve")
+  ("ro" neuron-rib-open-zettel "rib-open")
+  ("rz" neuron-rib-open-z-index "rib-z-idx")
+  ("rk" neuron-rib-kill "rib-kill"))
+
+;; binding for neuron entrypoint hydra
+(with-eval-after-load 'neuron-mode
+  (global-set-key (kbd "C-c C-M-z") #'my-hydra/neuron/body))
+#+end_src
+
+#+name: neuron-mode-hydra
+#+begin_src emacs-lisp
+;; mode-specific hydra for neuron-mode
+(defhydra my-hydra/neuron-mode (:color teal :columns 3)
+  "
+Neuron mode (_q_: quit)"
+  ("q" nil nil)
+  ("u" neuron-edit-uplink "edit-uplink")
+  ("t" neuron-add-tag "add-tag")
+  ("T" neuron-add-tags "add-tags")
+  ("l" neuron-create-and-insert-zettel-link "create-link")
+  ("L" neuron-create-zettel-from-selected-title "create-selected")
+  ("s" neuron-insert-static-link "insert-static-link")
+  ("c" neuron-toggle-connection-type "toggle-conn-type")
+  ("r" neuron-open-current-zettel "open-current")
+  ("o" neuron-follow-thing-at-point "follow"))
+
+;; wrapper hydra for accessing markdown and neuron-mode hydras from
+;; mode-specific entrypoint
+(defhydra my-hydra/markdown-neuron-mode-wrapper (:color teal)
+  "
+Markdown mode hydra / Neuron mode hydra (_q_: quit)
+"
+  ("q" nil nil)
+  ("m" my-hydra/markdown-mode/body "markdown-mode")
+  ("z" my-hydra/neuron-mode/body "neuron-mode"))
+
+;; binding for mode-specific wrapper hydra for markdown/neuron modes
+(with-eval-after-load 'neuron-mode
+  (add-hook 'neuron-mode-hook
+            (lambda ()
+              (use-local-map (copy-keymap markdown-mode-map))
+              (local-set-key (kbd "C-c C-M-m")
+                             #'my-hydra/markdown-neuron-mode-wrapper/body))))
 #+end_src
 
 ** Org-mode

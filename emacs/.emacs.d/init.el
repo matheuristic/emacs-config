@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug 13 18:56:08 2020
+;; Generated: Thu Aug 13 19:09:16 2020
 
 ;;; Commentary:
 
@@ -2046,19 +2046,6 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
                               org-agenda-files) . (:level . 0)))
       org-refile-use-outline-path 'file
       org-refile-allow-creating-parent-nodes 'confirm)
-
-;; hydra for Org entrypoints
-(defhydra my-hydra/org-entrypoints (:color teal :columns 4)
-  "
-Org (_q_: quit)"
-  ("q" nil nil)
-  ("a" org-agenda "agenda")
-  ("c" org-capture "capture")
-  ("b" org-switchb "switch buffer")
-  ("l" org-store-link "store link"))
-
-;; bind Org entrypoints hydra
-(global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
 
 (add-hook 'org-mode-hook #'visual-line-mode)
 
@@ -4173,7 +4160,7 @@ Example of use with transient suffix definitions in a
     )
   (define-key csv-mode-map (kbd "C-c C-M-m") #'transient/csv-mode))
 
-;; major-mode specific transient for eww-mode
+;; major-mode specific transient for debugger-mode
 (with-eval-after-load 'debug
   (transient-define-prefix transient/debugger-mode ()
     "Debugger mode commands."
@@ -4313,7 +4300,7 @@ Example of use with transient suffix definitions in a
       )
     (define-key dired-mode-map (kbd "C-c C-M-m") #'transient/dired-mode)))
 
-;; major-mode specific transient for eww-mode
+;; major-mode specific transient for edebug-mode
 (with-eval-after-load 'edebug
   (transient-define-prefix transient/edebug-mode ()
     "Edebug commands."
@@ -4514,6 +4501,19 @@ Example of use with transient suffix definitions in a
      ]
     )
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
+
+;; add transient for accessing Org entry points
+(with-eval-after-load 'org
+  (transient-define-prefix transient/org-launcher ()
+    "Launcher for Org entry points."
+    ["Org launcher"
+     ("a" "Agenda" org-agenda)
+     ("c" "Capture" org-capture)
+     ("b" "Switchb" org-switchb)
+     ("l" "Store link" org-store-link)
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-o") #'transient/org-launcher))
 
 ;; major-mode specific transient for python-mode
 (with-eval-after-load 'python

@@ -4142,26 +4142,6 @@ Set up Org refile targets:
       org-refile-allow-creating-parent-nodes 'confirm)
 #+end_src
 
-** Org entrypoint hydra                                               :hydra:
-
-Hydra providing entrypoints to multiple Org-mode functions.
-
-#+name: org-entrypoints-hydra
-#+begin_src emacs-lisp
-;; hydra for Org entrypoints
-(defhydra my-hydra/org-entrypoints (:color teal :columns 4)
-  "
-Org (_q_: quit)"
-  ("q" nil nil)
-  ("a" org-agenda "agenda")
-  ("c" org-capture "capture")
-  ("b" org-switchb "switch buffer")
-  ("l" org-store-link "store link"))
-
-;; bind Org entrypoints hydra
-(global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
-#+end_src
-
 ** Automatic text wrapping in Org-mode documents
 
 #+name: org-visual-line-mode
@@ -8053,6 +8033,26 @@ Transient for interfacing with neuron Zettelkasten.
   (global-set-key (kbd "C-c C-M-z") #'transient/neuron))
 #+end_src
 
+*** Org launcher transient
+
+Transient for accessing Org entry points.
+
+#+name: org-launcher-transient
+#+begin_src emacs-lisp
+;; add transient for accessing Org entry points
+(with-eval-after-load 'org
+  (transient-define-prefix transient/org-launcher ()
+    "Launcher for Org entry points."
+    ["Org launcher"
+     ("a" "Agenda" org-agenda)
+     ("c" "Capture" org-capture)
+     ("b" "Switchb" org-switchb)
+     ("l" "Store link" org-store-link)
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-o") #'transient/org-launcher))
+#+end_src
+
 *** Password store transient
 
 Transient for accessing password-store.el commands.
@@ -8434,7 +8434,7 @@ CSV major mode transient.
 
 #+name: debugger-mode-transient
 #+begin_src emacs-lisp
-;; major-mode specific transient for eww-mode
+;; major-mode specific transient for debugger-mode
 (with-eval-after-load 'debug
   (transient-define-prefix transient/debugger-mode ()
     "Debugger mode commands."
@@ -8588,7 +8588,7 @@ Dired major mode transient.
 
 #+name: edebug-mode-transient
 #+begin_src emacs-lisp
-;; major-mode specific transient for eww-mode
+;; major-mode specific transient for edebug-mode
 (with-eval-after-load 'edebug
   (transient-define-prefix transient/edebug-mode ()
     "Edebug commands."
@@ -9507,8 +9507,6 @@ The main configuration file.
 
 <<org-refile>>
 
-<<org-entrypoints-hydra>>
-
 <<org-visual-line-mode>>
 
 <<org-latex-pdf-process>>
@@ -9850,6 +9848,8 @@ The main configuration file.
 <<markdown-mode-transient>>
 
 <<neuron-mode-transient>>
+
+<<org-launcher-transient>>
 
 <<python-mode-transient>>
 
@@ -11322,6 +11322,26 @@ wheel-d : prev same-level heading"
         help-echo my-which-func-header-keymap-help-text-org))
     ;; add Org-mode which-func header to lookup assoc list, see init-ui.el
     (add-to-list 'my-which-func-header-formats `(org-mode . ,my-which-func-header-format-org))))
+#+end_src
+
+*** Org entrypoint hydra                                              :hydra:
+
+Hydra providing entrypoints to multiple Org-mode functions.
+
+#+name: org-entrypoints-hydra
+#+begin_src emacs-lisp
+;; hydra for Org entrypoints
+(defhydra my-hydra/org-entrypoints (:color teal :columns 4)
+  "
+Org (_q_: quit)"
+  ("q" nil nil)
+  ("a" org-agenda "agenda")
+  ("c" org-capture "capture")
+  ("b" org-switchb "switch buffer")
+  ("l" org-store-link "store link"))
+
+;; bind Org entrypoints hydra
+(global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
 #+end_src
 
 ** Programming

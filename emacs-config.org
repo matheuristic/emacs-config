@@ -80,6 +80,21 @@ When upgrading versions, rebuild Elisp bytecode in installed packages
 via ~M-: (byte-recompile-directory package-user-dir nil 'force)~ as
 the newer versions may include new features that speed up performance.
 
+** Debugging Emacs Lisp code
+
+Emacs comes with two Elisp debuggers.
+- The [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Debugger.html][debug.el]] Lisp debugger is a plain debugger that is triggered by
+  when ~(debug)~ is evaluated, when entering functions that the user
+  has specified via ~debug-on-entry~, or when changing variables that
+  the user has specified using ~debug-on-variable-change~.
+- [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Edebug]] is a source-level debugger which is triggered by when
+  evaluating a function at point using ~C-u C-M-x~ (or evaluating
+  ~(eval-defun t)~ when the point is on the function to be debugged).
+
+*References*:
+- Debugging Elisp · Endless Parentheses ([[https://endlessparentheses.com/debugging-emacs-lisp-part-1-earn-your-independence.html][part 1]], [[https://endlessparentheses.com/debugging-elisp-part-2-advanced-topics.html][part 2]])
+- [[http://blog.binchen.org/posts/my-work-flow-to-debug-emacs-plugin.html][My work flow to debug emacs plugin | Chen's blog]]
+
 ** What to do when Emacs hangs and C-g does not work
 
 Copied from this StackOverflow [[https://emacs.stackexchange.com/questions/21643/what-do-i-do-when-emacs-is-frozen][question]].
@@ -8415,7 +8430,7 @@ CSV major mode transient.
 
 *** debugger-mode transient
 
-Debugger major mode transient.
+[[https://www.gnu.org/software/emacs/manual/html_node/elisp/Debugger.html][Debugger]] major mode transient.
 
 #+name: debugger-mode-transient
 #+begin_src emacs-lisp
@@ -8428,15 +8443,15 @@ Debugger major mode transient.
       ("d" "Step through" debugger-step-through)
       ("c" "Continue" debugger-continue)
       ("j" "Jump" debugger-jump)
-      ("Q" "Quit" top-level)
+      ("q" "Exit" top-level)
       ]
-     ["Frame exit breakpoint"
+     ["Breakpoints"
       ("b" "Set" debugger-frame)
-      ("B" "Clear" debugger-frame-clear)
+      ("u" "Unset" debugger-frame-clear)
       ]
-     ["Expression"
-      ("e" "Evaluate" debugger-eval-expression)
-      ("R" "Record" debugger-record-expression)
+     ["Evaluate"
+      ("e" "Sexp" debugger-eval-expression)
+      ("R" "Sexp and record" debugger-record-expression)
       ]
      ["Other"
       ("r" "Specify return value" debugger-return-value)
@@ -8565,6 +8580,67 @@ Dired major mode transient.
        ]
       )
     (define-key dired-mode-map (kbd "C-c C-M-m") #'transient/dired-mode)))
+#+end_src
+
+*** edebug-mode transient
+
+[[https://www.gnu.org/software/emacs/manual/html_node/elisp/Edebug.html][Edebug]] major mode transient.
+
+#+name: edebug-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for eww-mode
+(with-eval-after-load 'edebug
+  (transient-define-prefix transient/edebug-mode ()
+    "Edebug commands."
+    ["Edebug"
+     ["Modes"
+      ("SPC" "Step" edebug-step-mode)
+      ("n" "Next" edebug-next-mode)
+      ("g" "Go" edebug-go-mode)
+      ("G" "Go (nonstop)" edebug-Go-nonstop-mode)
+      ("t" "Trace" edebug-Trace-fast-mode)
+      ("c" "Continue" edebug-continue-mode)
+      ("C" "Continue (fast)" edebug-Continue-fast-mode)
+      ""
+      "Quitting/Stopping"
+      ("q" "Top level" top-level)
+      ("Q" "Top level (nonstop)" edebug-top-level-nonstop)
+      ("a" "Abort recursive edit" abort-recursive-edit)
+      ("S" "Stop" edebug-stop)
+      ]
+     ["Stepping"
+      ("f" "Forward sexp" edebug-forward-sexp)
+      ("h" "Continue to here" edebug-goto-here)
+      ("I" "Instrument callee" edebug-instrument-callee)
+      ("i" "Step in" edebug-step-in)
+      ("o" "Step out" edebug-step-out)
+      ""
+      "Breakpoints"
+      ("b" "Set" edebug-set-breakpoint)
+      ("u" "Unset" edebug-unset-breakpoint)
+      ("B" "Next" edebug-next-breakpoint)
+      ("x" "Set (cond-at-pt)" edebug-set-conditional-breakpoint)
+      ("X" "Set (global cond)" edebug-set-global-break-condition)
+      ]
+     ["Evaluation"
+      ("r" "Previous result" edebug-previous-result)
+      ("e" "Sexp" edebug-eval-expression)
+      ("C-e" "Last sexp" edebug-eval-last-sexp)
+      ("E" "Visit eval list" edebug-visit-eval-list)
+      ""
+      "Views"
+      ("v" "Outside" edebug-view-outside)
+      ("w" "Where" edebug-where)
+      ("p" "Bounce point" edebug-bounce-point)
+      ("W" "Toggle save windows" edebug-toggle-save-windows)
+      ""
+      "Other"
+      ("?" "Help" edebug-help)
+      ("d" "Backtrace" edebug-backtrace)
+      ]
+     ]
+    )
+  (define-key edebug-mode-map (kbd "C-c C-M-m") #'transient/edebug-mode))
 #+end_src
 
 *** ess-mode transient
@@ -9764,6 +9840,8 @@ The main configuration file.
 <<debugger-mode-transient>>
 
 <<dired-mode-transient>>
+
+<<edebug-mode-transient>>
 
 <<ess-mode-transient>>
 

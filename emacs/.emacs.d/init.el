@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug 13 14:21:33 2020
+;; Generated: Thu Aug 13 18:56:08 2020
 
 ;;; Commentary:
 
@@ -4182,15 +4182,15 @@ Example of use with transient suffix definitions in a
       ("d" "Step through" debugger-step-through)
       ("c" "Continue" debugger-continue)
       ("j" "Jump" debugger-jump)
-      ("Q" "Quit" top-level)
+      ("q" "Exit" top-level)
       ]
-     ["Frame exit breakpoint"
+     ["Breakpoints"
       ("b" "Set" debugger-frame)
-      ("B" "Clear" debugger-frame-clear)
+      ("u" "Unset" debugger-frame-clear)
       ]
-     ["Expression"
-      ("e" "Evaluate" debugger-eval-expression)
-      ("R" "Record" debugger-record-expression)
+     ["Evaluate"
+      ("e" "Sexp" debugger-eval-expression)
+      ("R" "Sexp and record" debugger-record-expression)
       ]
      ["Other"
       ("r" "Specify return value" debugger-return-value)
@@ -4312,6 +4312,60 @@ Example of use with transient suffix definitions in a
        ]
       )
     (define-key dired-mode-map (kbd "C-c C-M-m") #'transient/dired-mode)))
+
+;; major-mode specific transient for eww-mode
+(with-eval-after-load 'edebug
+  (transient-define-prefix transient/edebug-mode ()
+    "Edebug commands."
+    ["Edebug"
+     ["Modes"
+      ("SPC" "Step" edebug-step-mode)
+      ("n" "Next" edebug-next-mode)
+      ("g" "Go" edebug-go-mode)
+      ("G" "Go (nonstop)" edebug-Go-nonstop-mode)
+      ("t" "Trace" edebug-Trace-fast-mode)
+      ("c" "Continue" edebug-continue-mode)
+      ("C" "Continue (fast)" edebug-Continue-fast-mode)
+      ""
+      "Quitting/Stopping"
+      ("q" "Top level" top-level)
+      ("Q" "Top level (nonstop)" edebug-top-level-nonstop)
+      ("a" "Abort recursive edit" abort-recursive-edit)
+      ("S" "Stop" edebug-stop)
+      ]
+     ["Stepping"
+      ("f" "Forward sexp" edebug-forward-sexp)
+      ("h" "Continue to here" edebug-goto-here)
+      ("I" "Instrument callee" edebug-instrument-callee)
+      ("i" "Step in" edebug-step-in)
+      ("o" "Step out" edebug-step-out)
+      ""
+      "Breakpoints"
+      ("b" "Set" edebug-set-breakpoint)
+      ("u" "Unset" edebug-unset-breakpoint)
+      ("B" "Next" edebug-next-breakpoint)
+      ("x" "Set (cond-at-pt)" edebug-set-conditional-breakpoint)
+      ("X" "Set (global cond)" edebug-set-global-break-condition)
+      ]
+     ["Evaluation"
+      ("r" "Previous result" edebug-previous-result)
+      ("e" "Sexp" edebug-eval-expression)
+      ("C-e" "Last sexp" edebug-eval-last-sexp)
+      ("E" "Visit eval list" edebug-visit-eval-list)
+      ""
+      "Views"
+      ("v" "Outside" edebug-view-outside)
+      ("w" "Where" edebug-where)
+      ("p" "Bounce point" edebug-bounce-point)
+      ("W" "Toggle save windows" edebug-toggle-save-windows)
+      ""
+      "Other"
+      ("?" "Help" edebug-help)
+      ("d" "Backtrace" edebug-backtrace)
+      ]
+     ]
+    )
+  (define-key edebug-mode-map (kbd "C-c C-M-m") #'transient/edebug-mode))
 
 ;; major-mode specific transient for ess-mode
 (with-eval-after-load 'ess-mode

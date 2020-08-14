@@ -6902,27 +6902,6 @@ or modify the ~READITLATER_BACKEND_OPTIONS~ property.
 
 * Writing
 
-** Writing hydra                                                      :hydra:
-
-Hydra for writing functions.
-
-#+name: writing-hydra
-#+begin_src emacs-lisp
-;; hydra for writing functions
-(defhydra my-hydra/writing (:color amaranth :hint nil
-                            :pre (require 'flyspell))
-  "
-Writing (_q_: quit)
-Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
-"
-  ("q" nil :exit t)
-  ("f" flyspell-mode)
-  ("F" flyspell-prog-mode))
-
-;; bindings for writing hydra
-(global-set-key (kbd "C-c C-M-S-w") #'my-hydra/writing/body)
-#+end_src
-
 ** Spell checking
 
 *** Flyspell for spell checking in Emacs
@@ -6981,20 +6960,6 @@ dictionary server that implements [[https://en.wikipedia.org/wiki/DICT][RFC 2229
               dictionary-default-dictionary "*"))
 #+end_src
 
-*** dictionary.el hydra                                               :hydra:
-
-#+name: dictionary-hydra
-#+begin_src emacs-lisp
-;; add dictionary entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
-    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
-")
-    ("s" dictionary-search :exit t)
-    ("m" dictionary-match-words :exit t)))
-#+end_src
-
 *** GNU Collaborative International Dictionary of English
 
 The [[https://gcide.gnu.org.ua/][GNU Collaborative International Dictionary of English]] (GCIDE) is a free dictionary derived from the Webster's 1913 dictionary (which provides definitions that are fuller and more descriptive than more modern dictionaries) supplemented with newer definitions from Wordnet and other sources.
@@ -7027,24 +6992,6 @@ $ sudo port install wordnet
 (use-package synosaurus
   :init (setq synosaurus-choose-method 'default
               synosaurus-backend 'synosaurus-backend-wordnet))
-#+end_src
-
-*** Synosaurus hydra                                                  :hydra:
-
-Hydra for Synosaurus.
-
-#+name: synosaurus-hydra
-#+begin_src emacs-lisp
-;; add synosaurus entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
-    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
-")
-    ("S" synosaurus-mode :exit nil)
-    ("L" synosaurus-lookup :exit t)
-    ("R" synosaurus-choose-and-replace :exit t)
-    ("I" synosaurus-choose-and-insert :exit t)))
 #+end_src
 
 ** LanguageTool for grammar checking
@@ -7092,25 +7039,7 @@ See the website for setting up the HTTP server version.
               langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
 #+end_src
 
-**** LanguageTool hydra                                               :hydra:
-
-Hydra for ~langtool~.
-
-#+name: langtool-hydra
-#+begin_src emacs-lisp
-;; add langtool functions to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
-    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
-")
-    ("w" langtool-check nil :exit nil)
-    ("W" langtool-check-done nil :exit nil)
-    ("l" langtool-switch-default-language nil :exit nil)
-    ("c" langtool-correct-buffer nil :exit nil)))
-#+end_src
-
-** typo.el for typographical editing
+** typo.el for typographical editing                                  :melpa:
 
 [[https://github.com/jorgenschaefer/typoel][typo.el]] is a minor mode that makes insertion of typographically useful
 unicode characters easier.
@@ -7130,22 +7059,6 @@ Enabling ~typo-global-mode~ does the following:
 #+name: typo
 #+begin_src emacs-lisp
 (use-package typo)
-#+end_src
-
-*** Add toggle for typo-mode to writing hydra
-
-Add a toggle for ~typo-mode~ to writing hydra.
-
-#+name: add-typo-mode-toggle-to-writing-hydra
-#+begin_src emacs-lisp
-;; add toggle for typo-mode to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'typo)))
-    ,(concat my-hydra/writing/docstring
-             "Typography [% 4`typo-mode]   _t_ : toggle
-")
-    ("t" typo-mode :exit nil)))
 #+end_src
 
 * Other
@@ -8366,6 +8279,63 @@ Transient for workspace manipulation and usage.
    ]
   )
 (global-set-key (kbd "C-c C-M-e") #'transient/workspace)
+#+end_src
+
+*** Writing transient
+
+Transient for accessing writing-related commands.
+
+#+name: writing-transient
+#+begin_src emacs-lisp
+;; add transient popup for writing commands, bind to "C-c C-M-S-w"
+(with-eval-after-load 'dictionary
+  (with-eval-after-load 'synosaurus
+    (with-eval-after-load 'langtool
+      (with-eval-after-load 'typo
+        (transient-define-prefix transient/writing ()
+          "Writing commands."
+          ["Writing"
+           ["Typography"
+            ("y" (lambda ()
+                    (interactive)
+                    (transient--make-description "Typo mode"
+                                                 typo-mode))
+             typo-mode :transient t)
+            ""
+            "Spelling"
+            ("sm" (lambda ()
+                    (interactive)
+                    (transient--make-description "Flyspell mode"
+                                                 flyspell-mode))
+             flyspell-mode :transient t)
+            ("sb" "Check buffer" flyspell-buffer :transient t)
+            ("sn" "Next error" flyspell-goto-next-error :transient t)
+            ("sc" "Correct word" flyspell-auto-correct-word :transient t)
+            ""
+            "Dictionary"
+            ("ds" "Search" dictionary-search)
+            ("dm" "Match words" dictionary-match-words)
+            ]
+           ["Thesaurus"
+            ("tm" (lambda ()
+                    (interactive)
+                    (transient--make-description "Synosaurus mode"
+                                                 synosaurus-mode))
+             synosaurus-mode :transient t)
+            ("tl" "Lookup" synosaurus-lookup)
+            ("tr" "Replace" synosaurus-choose-and-replace)
+            ("ti" "Insert" synosaurus-choose-and-insert)
+            ""
+            "Grammar"
+            ("gs" "Start check" langtool-check)
+            ("gc" "Correct buffer" langtool-correct-buffer)
+            ("ge" "End check" langtool-check-done)
+            ("gl" "Switch language" langtool-switch-default-language
+             :transient t)
+            ]
+           ]
+          )
+        (global-set-key (kbd "C-c C-M-S-w") #'transient/writing)))))
 #+end_src
 
 *** YASnippet transient
@@ -9731,23 +9701,13 @@ The main configuration file.
 
 ;; Writing
 
-<<writing-hydra>>
-
 <<dictionary>>
-
-<<dictionary-hydra>>
 
 <<synosaurus>>
 
-<<synosaurus-hydra>>
-
 <<langtool>>
 
-<<langtool-hydra>>
-
 <<typo>>
-
-<<add-typo-mode-toggle-to-writing-hydra>>
 
 ;; Other
 
@@ -9840,6 +9800,8 @@ The main configuration file.
 <<system-transient>>
 
 <<workspace-transient>>
+
+<<writing-transient>>
 
 <<yasnippet-transient>>
 
@@ -12587,6 +12549,105 @@ REST client (_q_: quit)"
 ;; binding for restclient hydra
 (with-eval-after-load 'restclient
   (define-key restclient-mode-map (kbd "C-c C-M-m") #'my-hydra/restclient-mode/body))
+#+end_src
+
+** Writing
+
+*** Writing hydra                                                     :hydra:
+
+Hydra for writing functions.
+
+#+name: writing-hydra
+#+begin_src emacs-lisp
+;; hydra for writing functions
+(defhydra my-hydra/writing (:color amaranth :hint nil
+                            :pre (require 'flyspell))
+  "
+Writing (_q_: quit)
+Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
+"
+  ("q" nil :exit t)
+  ("f" flyspell-mode)
+  ("F" flyspell-prog-mode))
+
+;; bindings for writing hydra
+(global-set-key (kbd "C-c C-M-S-w") #'my-hydra/writing/body)
+#+end_src
+
+*** dictionary.el for looking up word definitions
+
+**** dictionary.el hydra                                              :hydra:
+
+#+name: dictionary-hydra
+#+begin_src emacs-lisp
+;; add dictionary entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
+    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
+")
+    ("s" dictionary-search :exit t)
+    ("m" dictionary-match-words :exit t)))
+#+end_src
+
+*** Synosaurus in-editor thesaurus
+
+**** Synosaurus hydra                                                 :hydra:
+
+Hydra for Synosaurus.
+
+#+name: synosaurus-hydra
+#+begin_src emacs-lisp
+;; add synosaurus entrypoints to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
+    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
+")
+    ("S" synosaurus-mode :exit nil)
+    ("L" synosaurus-lookup :exit t)
+    ("R" synosaurus-choose-and-replace :exit t)
+    ("I" synosaurus-choose-and-insert :exit t)))
+#+end_src
+
+*** LanguageTool for grammar checking
+
+**** LanguageTool basic Emacs configuration
+
+***** LanguageTool hydra                                              :hydra:
+
+Hydra for ~langtool~.
+
+#+name: langtool-hydra
+#+begin_src emacs-lisp
+;; add langtool functions to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
+    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
+")
+    ("w" langtool-check nil :exit nil)
+    ("W" langtool-check-done nil :exit nil)
+    ("l" langtool-switch-default-language nil :exit nil)
+    ("c" langtool-correct-buffer nil :exit nil)))
+#+end_src
+
+*** typo.el for typographical editing
+
+**** Add toggle for typo-mode to writing hydra
+
+Add a toggle for ~typo-mode~ to writing hydra.
+
+#+name: add-typo-mode-toggle-to-writing-hydra
+#+begin_src emacs-lisp
+;; add toggle for typo-mode to writing hydra
+(eval
+ `(defhydra+ my-hydra/writing
+    ,(append my-hydra/writing/params '(:pre (require 'typo)))
+    ,(concat my-hydra/writing/docstring
+             "Typography [% 4`typo-mode]   _t_ : toggle
+")
+    ("t" typo-mode :exit nil)))
 #+end_src
 
 ** Other

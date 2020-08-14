@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug 14 15:01:52 2020
+;; Generated: Fri Aug 14 15:54:50 2020
 
 ;;; Commentary:
 
@@ -3309,20 +3309,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
 
 ;; Writing
 
-;; hydra for writing functions
-(defhydra my-hydra/writing (:color amaranth :hint nil
-                            :pre (require 'flyspell))
-  "
-Writing (_q_: quit)
-Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #'flyspell-generic-progmode-verify) 'prog t) nil)]   _f_ : toggle  _F_ : prog
-"
-  ("q" nil :exit t)
-  ("f" flyspell-mode)
-  ("F" flyspell-prog-mode))
-
-;; bindings for writing hydra
-(global-set-key (kbd "C-c C-M-S-w") #'my-hydra/writing/body)
-
 ;; provides word lookups from a dictionary server
 ;; `dictionary-server' can be set to "localhost" to use a local
 ;; dictionary server like dictd or GNU Dico that implements RFC 2229
@@ -3330,57 +3316,17 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
   :init (setq dictionary-server "dict.org"
               dictionary-default-dictionary "*"))
 
-;; add dictionary entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'dictionary)))
-    ,(concat my-hydra/writing/docstring "Dictionary          _s_ : search  _m_ : match
-")
-    ("s" dictionary-search :exit t)
-    ("m" dictionary-match-words :exit t)))
-
 ;; thesaurus functions using Synosaurus
 (use-package synosaurus
   :init (setq synosaurus-choose-method 'default
               synosaurus-backend 'synosaurus-backend-wordnet))
-
-;; add synosaurus entrypoints to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'synosaurus)))
-    ,(concat my-hydra/writing/docstring "Synosaurus [% 4`synosaurus-mode]   _S_ : toggle  _L_ : lookup  _R_ : replace _I_ : insert
-")
-    ("S" synosaurus-mode :exit nil)
-    ("L" synosaurus-lookup :exit t)
-    ("R" synosaurus-choose-and-replace :exit t)
-    ("I" synosaurus-choose-and-insert :exit t)))
 
 ;; grammar checking functions using LanguageTool
 (use-package langtool
   :init (setq langtool-default-language "en-US"
               langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
 
-;; add langtool functions to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'langtool)))
-    ,(concat my-hydra/writing/docstring "LangTool            _w_ : check   _W_ : done    _l_ : lang    _c_ : correct-buf
-")
-    ("w" langtool-check nil :exit nil)
-    ("W" langtool-check-done nil :exit nil)
-    ("l" langtool-switch-default-language nil :exit nil)
-    ("c" langtool-correct-buffer nil :exit nil)))
-
 (use-package typo)
-
-;; add toggle for typo-mode to writing hydra
-(eval
- `(defhydra+ my-hydra/writing
-    ,(append my-hydra/writing/params '(:pre (require 'typo)))
-    ,(concat my-hydra/writing/docstring
-             "Typography [% 4`typo-mode]   _t_ : toggle
-")
-    ("t" typo-mode :exit nil)))
 
 ;; Other
 
@@ -4119,6 +4065,56 @@ whitespace, indenting and untabifying."
    ]
   )
 (global-set-key (kbd "C-c C-M-e") #'transient/workspace)
+
+;; add transient popup for writing commands, bind to "C-c C-M-S-w"
+(with-eval-after-load 'dictionary
+  (with-eval-after-load 'synosaurus
+    (with-eval-after-load 'langtool
+      (with-eval-after-load 'typo
+        (transient-define-prefix transient/writing ()
+          "Writing commands."
+          ["Writing"
+           ["Typography"
+            ("y" (lambda ()
+                    (interactive)
+                    (transient--make-description "Typo mode"
+                                                 typo-mode))
+             typo-mode :transient t)
+            ""
+            "Spelling"
+            ("sm" (lambda ()
+                    (interactive)
+                    (transient--make-description "Flyspell mode"
+                                                 flyspell-mode))
+             flyspell-mode :transient t)
+            ("sb" "Check buffer" flyspell-buffer :transient t)
+            ("sn" "Next error" flyspell-goto-next-error :transient t)
+            ("sc" "Correct word" flyspell-auto-correct-word :transient t)
+            ""
+            "Dictionary"
+            ("ds" "Search" dictionary-search)
+            ("dm" "Match words" dictionary-match-words)
+            ]
+           ["Thesaurus"
+            ("tm" (lambda ()
+                    (interactive)
+                    (transient--make-description "Synosaurus mode"
+                                                 synosaurus-mode))
+             synosaurus-mode :transient t)
+            ("tl" "Lookup" synosaurus-lookup)
+            ("tr" "Replace" synosaurus-choose-and-replace)
+            ("ti" "Insert" synosaurus-choose-and-insert)
+            ""
+            "Grammar"
+            ("gs" "Start check" langtool-check)
+            ("gc" "Correct buffer" langtool-correct-buffer)
+            ("ge" "End check" langtool-check-done)
+            ("gl" "Switch language" langtool-switch-default-language
+             :transient t)
+            ]
+           ]
+          )
+        (global-set-key (kbd "C-c C-M-S-w") #'transient/writing)))))
 
 ;; add transient popup for yasnippet commands, bind to "C-c C-M-<"
 (with-eval-after-load 'yasnippet

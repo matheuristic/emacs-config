@@ -6749,6 +6749,40 @@ cursor type is set to ~bar~.
 (add-hook 'focus-in-hook #'my-pulse-line)
 #+end_src
 
+** Hide lines that are too long                                    :external:
+
+[[https://github.com/rakete/too-long-lines-mode][too-long-lines-mode]] provides a global minor mode that uses overlays to
+truncate very long lines, which can otherwise [[https://lists.gnu.org/archive/html/emacs-devel/2018-10/msg00470.html][slow]] [[https://debbugs.gnu.org/cgi/bugreport.cgi?bug=13675][down]] Emacs. This
+package is not in MELPA.
+
+An alternative way to reduce slowdown from long lines is using the
+built-in so-long package, which instead tries to disable major and
+minor modes that may contribute to the slowdown.
+
+#+name: too-long-lines-mode
+#+begin_src emacs-lisp
+(require 'too-long-lines-mode)
+(too-long-lines-mode 1)
+#+end_src
+
+*** Add too-long-lines-mode toggle to visual hydra
+
+Add toggle for ~too-long-lines-mode~ to visual hydra.
+
+#+name: add-too-long-lines-mode-toggle-to-visual-hydra
+#+begin_src emacs-lisp
+;; add `too-long-lines-mode' toggle to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params
+             '(:pre (progn
+                      (require 'too-long-lines-mode))))
+    ,(concat my-hydra/visual/docstring
+             "_L_  : too-long-lines-mode      [% 3`too-long-lines-mode]
+")
+    ("L" too-long-lines-mode :exit nil)))
+#+end_src
+
 * Web
 
 ** Browsing
@@ -9698,6 +9732,10 @@ The main configuration file.
 <<add-indent-guides-symbol-overlay-toggles-to-visual-hydra>>
 
 <<advise-select-window-after-pulse-line>>
+
+<<too-long-lines-mode>>
+
+<<add-too-long-lines-mode-toggle-to-visual-hydra>>
 
 ;; Web
 

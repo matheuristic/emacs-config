@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug 13 19:09:16 2020
+;; Generated: Thu Aug 13 22:36:26 2020
 
 ;;; Commentary:
 
@@ -3293,6 +3293,20 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
 
 ;; also pulse line when Emacs regains focus
 (add-hook 'focus-in-hook #'my-pulse-line)
+
+(require 'too-long-lines-mode)
+(too-long-lines-mode 1)
+
+;; add `too-long-lines-mode' toggle to visual hydra
+(eval
+ `(defhydra+ my-hydra/visual
+    ,(append my-hydra/visual/params
+             '(:pre (progn
+                      (require 'too-long-lines-mode))))
+    ,(concat my-hydra/visual/docstring
+             "_L_  : too-long-lines-mode      [% 3`too-long-lines-mode]
+")
+    ("L" too-long-lines-mode :exit nil)))
 
 ;; Web
 

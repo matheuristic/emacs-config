@@ -293,6 +293,8 @@
 
    ;; ace-window
    `(aw-background-face ((t (:foreground ,fg-dim))))
+   `(aw-leading-char-face ((t (:foreground "red" :weight bold :height 4.0))))
+   `(aw-minibuffer-leading-char-face ((t (:foreground "red" :weight bold))))
 
    ;; vterm
    `(vterm-color-default ((t (:inherit default :foreground ,fg :background ,bg :extend t))))

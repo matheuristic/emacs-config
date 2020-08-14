@@ -664,12 +664,33 @@ This is used by other packages, like ~markdown-mode~.
 (use-package edit-indirect)
 #+end_src
 
-* Utility functions
+* Custom variables and utility functions
 
 Various utility functions used in multiple config locations, usually
-non-interactive and added to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Hooks.html][hooks]] or as [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Advising-Functions.html][advice]] to other functions.
+non-interactive and added to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Hooks.html][hooks]] or as [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Advising-Functions.html][advice]] to other functions,
+and the custom variables that get used by them and/or other
+specific-use functions.
 
-** After jump context actions
+** Custom variables
+
+*** System command for opening paths and URLS externally
+
+~my-system-open-command~ should be set to the system command for
+opening generic file paths and URLS, for example ~xdg-open~ in Linux
+and ~open~ in macOS.
+
+#+name: my-system-open-command
+#+begin_src emacs-lisp
+(defcustom my-system-open-command "xdg-open"
+  "System command to open file/URL according to preferred app by filetype.
+Usually \"xdg-open\" on Linux and \"open\" on Mac."
+  :type 'string
+  :group 'convenience)
+#+end_src
+
+** Utility functions
+
+*** After jump context actions
 
 Define a function that performs a laundry list of useful
 context-specific actions useful after jumping to a new location.
@@ -690,7 +711,7 @@ around the new point location is visible."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
 #+end_src
 
-** Pulse the current line
+*** Pulse the current line
 
 Helper function for pulsing the current line. Adapted from [[https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f][here]].
 
@@ -713,7 +734,7 @@ if the point is in the minibuffer."
         (pulse-momentary-highlight-region start end nil))))
 #+end_src
 
-** Save and bury buffer
+*** Save and bury buffer
 
 Save current buffer and bury it.
 
@@ -849,35 +870,6 @@ them unkillable.
 (dolist (buf '("*scratch*" "*Messages*"))
   (with-current-buffer buf
     (emacs-lock-mode 'kill)))
-#+end_src
-
-*** Buffer manipulation hydra                                         :hydra:
-
-Hydra for basic [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Buffers.html][buffer]] manipulation.
-
-#+name: buffer-hydra
-#+begin_src emacs-lisp
-;; hydra for basic buffer management
-(defhydra my-hydra/buffer (:color amaranth :columns 4)
-  "
-Buffer (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("b" switch-to-buffer "switch" :exit t)
-  ("p" previous-buffer "previous")
-  ("n" next-buffer "next")
-  ("R" revert-buffer "revert")
-  ("B" bury-buffer "bury")
-  ("U" unbury-buffer "unbury")
-  ("s" save-buffer "save")
-  ("S" save-some-buffers "save-all") ;; call with "1 S" to save all
-  ("k" kill-this-buffer "kill")
-  ("K" kill-matching-buffers "kill-match")
-  ("t" (lambda ()
-         (interactive)
-         (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
-           (tramp-cleanup-all-buffers)))
-   "tramp-cleanup" :exit t))
-(global-set-key (kbd "C-c C-M-b") 'my-hydra/buffer/body)
 #+end_src
 
 *** Advanced buffer management with Ibuffer
@@ -1098,64 +1090,6 @@ between between those buffers associated with the current project.
   ;; unbind C-tab in org-mode to not conflict with nswbuff global binding
   (with-eval-after-load 'org
     (unbind-key "<C-tab>" org-mode-map)))
-#+end_src
-
-*** Kill all other buffers
-
-Kill buffers other than the current one.
-
-#+name: my-kill-other-buffers
-#+begin_src emacs-lisp
-(defun my-kill-other-buffers ()
-  "Kill all file buffers except the current one."
-  (interactive)
-  (when (y-or-n-p "Kill all file buffers except the current one? ")
-    (seq-each
-     #'kill-buffer
-     (delete (current-buffer)
-             (seq-filter #'buffer-file-name (buffer-list))))))
-#+end_src
-
-**** Add my-kill-other-buffers to buffer hydra                        :hydra:
-
-#+name: add-my-kill-other-buffers-to-buffer-hydra
-#+begin_src emacs-lisp
-;; add my-kill-other-buffers to buffer hydra
-(defhydra+ my-hydra/buffer nil
-  ("o" my-kill-other-buffers "only" :exit t))
-#+end_src
-
-*** Buffer cleanup hydra                                              :hydra:
-
-Buffer cleanup hydra, configured as a subhydra for the buffer hydra.
-
-#+name: buffer-cleanup-hydra
-#+begin_src emacs-lisp
-;; cleanup hydra
-(defhydra my-hydra/buffer/cleanup (:color amaranth :columns 3)
-  "
-Buffer → Cleanup (_q_: ←)"
-  ("q" my-hydra/buffer/body nil :exit t)
-  ("r" whitespace-report "whitespace-report" :exit t)
-  ("w" whitespace-cleanup "whitespace-cleanup")
-  ("i" (lambda ()
-         "Indent a selected region, or the buffer otherwise."
-         (interactive)
-         (cond
-          ((use-region-p) (indent-region (region-beginning) (region-end)))
-          (t (indent-region (point-min) (point-max)))))
-   "indent")
-  ("t" (lambda ()
-         "Indent a selected region, or the buffer otherwise."
-         (interactive)
-         (cond
-          ((use-region-p) (untabify (region-beginning) (region-end)))
-          (t (untabify (point-min) (point-max)))))
-   "untabify"))
-
-;; add entry point to cleanup hydra to buffer hydra
-(defhydra+ my-hydra/buffer nil
-  ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))
 #+end_src
 
 ** Window management
@@ -1939,12 +1873,6 @@ open dispatcher (typically ~xdg-open~ on Linux and ~open~ on Mac).
 
 #+name: dired-open-file-at-pt
 #+begin_src emacs-lisp
-(defcustom my-system-open-command "xdg-open"
-  "System command to open file according to preferred app by filetype.
-Usually \"xdg-open\" on Linux and \"open\" on Mac."
-  :type 'string
-  :group 'convenience)
-
 ;; bind "z" in dired-mode to open file at point using system command
 ;; to open files by type
 (with-eval-after-load 'dired
@@ -7400,18 +7328,6 @@ See ~M-x so-long-commentary~ for more information.
         so-long-threshold 500))
 #+end_src
 
-*** Extend buffer hydra with so-long                                  :hydra:
-
-Extend buffer hydra with toggles for ~so-long-mode~ and
-~so-long-minor-mode~.
-
-#+name: so-long-hydra
-#+begin_src emacs-lisp
-(defhydra+ my-hydra/buffer nil
-  ("l" so-long-mode "so-long")
-  ("L" so-long-minor-mode "so-long-mm"))
-#+end_src
-
 ** Uniquify file buffer names
 
 Disambiguate open file buffers with the same name but from different
@@ -7673,32 +7589,6 @@ Exclude Emacs source files from ~recentf~ history on macOS.
 (add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
 #+end_src
 
-*** Open Finder at directory of current buffer                        :hydra:
-
-Add a hydra head to the [[Buffer manipulation hydra]] that opens
-Finder at the directory of the current buffer.
-
-#+name: mac-open-finder-at-buffer-directory
-#+begin_src emacs-lisp
-;; add my-hydra/buffer head to open Finder at current buffer directory in macOS
-(when (eq system-type 'darwin)
-  (defun my-open-finder (&optional path)
-    "Opens a new Finder window to PATH if provided,
-or the current buffer file or directory if not (macOS)."
-    (interactive)
-    (let* ((my-path (cl-some 'identity (list path
-                                             (buffer-file-name)
-                                             default-directory)))
-           (my-full-path (expand-file-name my-path))
-           (my-process-args (list "my-open-finder" nil
-                                  "open" "-R" my-full-path)))
-      (if (eq system-type 'darwin)
-          (apply 'start-process my-process-args)
-        (message "my-open-finder is macOS-only"))))
-  (defhydra+ my-hydra/buffer nil
-    ("e" my-open-finder "open-finder" :exit t)))
-#+end_src
-
 *** Scale up Org-mode LaTeX fragment previews on macOS
 
 Due to the higher resolution of Retina screens on macOS, LaTeX preview
@@ -7843,6 +7733,96 @@ Transient for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs
    ]
   )
 (global-set-key (kbd "C-c C-M-j") #'transient/bookmarks)
+#+end_src
+
+*** Buffer transient
+
+Transient for accessing buffer management commands.
+
+#+name: buffer-transient
+#+begin_src emacs-lisp
+(defun transient/buffer--tramp-cleanup-buffers ()
+  "Clean up all TRAMP buffers and connections with confirm prompt."
+  (interactive)
+  (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
+    (tramp-cleanup-all-buffers)))
+
+(defun transient/buffer--kill-other-buffers ()
+  "Kill all file buffers except the current one."
+  (interactive)
+  (when (y-or-n-p "Kill all file buffers except the current one? ")
+    (seq-each
+     #'kill-buffer
+     (delete (current-buffer)
+             (seq-filter #'buffer-file-name (buffer-list))))))
+
+(defun transient/buffer--indent-region-or-buffer ()
+  "Indent a selected region, or the buffer otherwise."
+  (interactive)
+  (cond
+   ((use-region-p) (indent-region (region-beginning) (region-end)))
+   (t (indent-region (point-min) (point-max)))))
+
+(defun transient/buffer--untabify-region-or-buffer ()
+  "Convert tabs to spaces in a selected region, or the buffer otherwise."
+  (interactive)
+  (cond
+   ((use-region-p) (untabify (region-beginning) (region-end)))
+   (t (untabify (point-min) (point-max)))))
+
+(defun transient/buffer--apply-all-hygiene-ops-region-or-buffer ()
+  "Apply standard hygiene operations for selected region, or buffer otherwise.
+The standard hygiene operations include removing trailing
+whitespace, indenting and untabifying."
+  (interactive)
+  (progn
+    (whitespace-cleanup)
+    (transient/buffer--indent-region-or-buffer)
+    (transient/buffer--untabify-region-or-buffer)))
+
+(defun transient/buffer--open-containing-dir-externally (&optional path)
+  "Opens the directory containing PATH or the buffer if unspecified externally."
+  (interactive)
+  (let* ((my-path (cl-some 'identity (list path
+                                           (buffer-file-name)
+                                           default-directory)))
+         (my-full-path (expand-file-name my-path))
+         (my-dir-path (file-name-directory my-full-path))
+         (my-process-args (list "my-open-dir" nil
+                                my-system-open-command my-dir-path)))
+    (apply 'start-process my-process-args)))
+
+;; add transient for buffer management commands, bind to "C-c C-M-b"
+(transient-define-prefix transient/buffer ()
+  "Buffer management commands."
+  ["Buffer"
+   ["Select"
+    ("b" "Switch" switch-to-buffer)
+    ("n" "Next" next-buffer :transient t)
+    ("p" "Previous" previous-buffer :transient t)
+    ("e" "Open external" transient/buffer--open-containing-dir-externally)
+    ""
+    "Hygiene"
+    ("cr" "Whitespace report" whitespace-report)
+    ("cw" "Whitespace cleanup" whitespace-cleanup)
+    ("ci" "Indent" transient/buffer--indent-region-or-buffer)
+    ("ct" "Untabify" transient/buffer--untabify-region-or-buffer)
+    ("ca" "All hygiene ops" transient/buffer--apply-all-hygiene-ops-region-or-buffer)
+    ]
+   ["File operations"
+    ("R" "Revert" revert-buffer)
+    ("B" "Bury" bury-buffer)
+    ("U" "Unbury" unbury-buffer)
+    ("s" "Save" save-buffer)
+    ("S" "Save all" save-some-buffers)
+    ("k" "Kill" kill-this-buffer)
+    ("K" "Kill matching" kill-matching-buffers)
+    ("o" "Kill others" transient/buffer--kill-other-buffers)
+    ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-b") #'transient/buffer)
 #+end_src
 
 *** Conda transient
@@ -9301,7 +9281,11 @@ The main configuration file.
 
 <<edit-indirect>>
 
-;; Utility functions
+;; Custom variables and utility functions / Custom variables
+
+<<my-system-open-command>>
+
+;; Custom variables and utility functions / Utility functions
 
 <<my-after-jump-context-actions>>
 
@@ -9335,8 +9319,6 @@ The main configuration file.
 
 <<protect-buffers>>
 
-<<buffer-hydra>>
-
 <<ibuffer>>
 
 <<ibuffer-filter-groups>>
@@ -9347,15 +9329,9 @@ The main configuration file.
 
 <<all-the-icons-ibuffer>>
 
-;; Buffers, windows, frames, workspaces / Window management
-
 <<nswbuff>>
 
-<<my-kill-other-buffers>>
-
-<<add-my-kill-other-buffers-to-buffer-hydra>>
-
-<<buffer-cleanup-hydra>>
+;; Buffers, windows, frames, workspaces / Window management
 
 <<winner-mode>>
 
@@ -9793,8 +9769,6 @@ The main configuration file.
 
 <<so-long>>
 
-<<so-long-hydra>>
-
 <<uniquify>>
 
 <<calc>>
@@ -9823,8 +9797,6 @@ The main configuration file.
 
 <<mac-recentf-exclude>>
 
-<<mac-open-finder-at-buffer-directory>>
-
 <<mac-scale-org-latex-fragment-previews>>
 
 <<mac-emacs-mac-port-hydra-toggle-ligatures>>
@@ -9838,6 +9810,8 @@ The main configuration file.
 ;; Transient commands / Global transients
 
 <<bookmarks-transient>>
+
+<<buffer-transient>>
 
 <<conda-transient>>
 
@@ -10344,6 +10318,93 @@ building file jump lists and moving backwards and forwards through it.
 (defhydra+ my-hydra/buffer nil
   ("," better-jumper-jump-backward "jump-bwd")
   ("." better-jumper-jump-forward "jump-fwd"))
+#+end_src
+
+**** Buffer manipulation hydra                                        :hydra:
+
+Hydra for basic [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Buffers.html][buffer]] manipulation.
+
+#+name: buffer-hydra
+#+begin_src emacs-lisp
+;; hydra for basic buffer management
+(defhydra my-hydra/buffer (:color amaranth :columns 4)
+  "
+Buffer (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("b" switch-to-buffer "switch" :exit t)
+  ("p" previous-buffer "previous")
+  ("n" next-buffer "next")
+  ("R" revert-buffer "revert")
+  ("B" bury-buffer "bury")
+  ("U" unbury-buffer "unbury")
+  ("s" save-buffer "save")
+  ("S" save-some-buffers "save-all") ;; call with "1 S" to save all
+  ("k" kill-this-buffer "kill")
+  ("K" kill-matching-buffers "kill-match")
+  ("t" (lambda ()
+         (interactive)
+         (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
+           (tramp-cleanup-all-buffers)))
+   "tramp-cleanup" :exit t))
+(global-set-key (kbd "C-c C-M-b") 'my-hydra/buffer/body)
+#+end_src
+
+**** Kill all other buffers
+
+Kill buffers other than the current one.
+
+#+name: my-kill-other-buffers
+#+begin_src emacs-lisp
+(defun my-kill-other-buffers ()
+  "Kill all file buffers except the current one."
+  (interactive)
+  (when (y-or-n-p "Kill all file buffers except the current one? ")
+    (seq-each
+     #'kill-buffer
+     (delete (current-buffer)
+             (seq-filter #'buffer-file-name (buffer-list))))))
+#+end_src
+
+***** Add my-kill-other-buffers to buffer hydra                       :hydra:
+
+#+name: add-my-kill-other-buffers-to-buffer-hydra
+#+begin_src emacs-lisp
+;; add my-kill-other-buffers to buffer hydra
+(defhydra+ my-hydra/buffer nil
+  ("o" my-kill-other-buffers "only" :exit t))
+#+end_src
+
+**** Buffer cleanup hydra                                             :hydra:
+
+Buffer cleanup hydra, configured as a subhydra for the buffer hydra.
+
+#+name: buffer-cleanup-hydra
+#+begin_src emacs-lisp
+;; cleanup hydra
+(defhydra my-hydra/buffer/cleanup (:color amaranth :columns 3)
+  "
+Buffer → Cleanup (_q_: ←)"
+  ("q" my-hydra/buffer/body nil :exit t)
+  ("r" whitespace-report "whitespace-report" :exit t)
+  ("w" whitespace-cleanup "whitespace-cleanup")
+  ("i" (lambda ()
+         "Indent a selected region, or the buffer otherwise."
+         (interactive)
+         (cond
+          ((use-region-p) (indent-region (region-beginning) (region-end)))
+          (t (indent-region (point-min) (point-max)))))
+   "indent")
+  ("t" (lambda ()
+         "Indent a selected region, or the buffer otherwise."
+         (interactive)
+         (cond
+          ((use-region-p) (untabify (region-beginning) (region-end)))
+          (t (untabify (point-min) (point-max)))))
+   "untabify"))
+
+;; add entry point to cleanup hydra to buffer hydra
+(defhydra+ my-hydra/buffer nil
+  ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))
 #+end_src
 
 *** Workspace management
@@ -12760,6 +12821,20 @@ Help (_q_: quit)"
 (global-set-key (kbd "C-c C-M-S-h") 'my-hydra/help/body)
 #+end_src
 
+*** Auto-disable modes that slow down Emacs in files with long lines
+
+**** Extend buffer hydra with so-long                                 :hydra:
+
+Extend buffer hydra with toggles for ~so-long-mode~ and
+~so-long-minor-mode~.
+
+#+name: so-long-hydra
+#+begin_src emacs-lisp
+(defhydra+ my-hydra/buffer nil
+  ("l" so-long-mode "so-long")
+  ("L" so-long-minor-mode "so-long-mm"))
+#+end_src
+
 ** OS-specific
 
 *** macOS
@@ -12804,6 +12879,32 @@ Return nil if there isn't one."
           (setq loads (cdr loads)
                 load-elt (and loads (car loads)))))
       load-elt)))
+#+end_src
+
+**** Open Finder at directory of current buffer                       :hydra:
+
+Add a hydra head to the [[Buffer manipulation hydra]] that opens
+Finder at the directory of the current buffer.
+
+#+name: mac-open-finder-at-buffer-directory
+#+begin_src emacs-lisp
+;; add my-hydra/buffer head to open Finder at current buffer directory in macOS
+(when (eq system-type 'darwin)
+  (defun my-open-finder (&optional path)
+    "Opens a new Finder window to PATH if provided,
+or the current buffer file or directory if not (macOS)."
+    (interactive)
+    (let* ((my-path (cl-some 'identity (list path
+                                             (buffer-file-name)
+                                             default-directory)))
+           (my-full-path (expand-file-name my-path))
+           (my-process-args (list "my-open-finder" nil
+                                  "open" "-R" my-full-path)))
+      (if (eq system-type 'darwin)
+          (apply 'start-process my-process-args)
+        (message "my-open-finder is macOS-only"))))
+  (defhydra+ my-hydra/buffer nil
+    ("e" my-open-finder "open-finder" :exit t)))
 #+end_src
 
 * Local Variables                                                  :noexport:

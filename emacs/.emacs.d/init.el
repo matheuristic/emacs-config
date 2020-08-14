@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug 13 22:36:26 2020
+;; Generated: Fri Aug 14 15:01:52 2020
 
 ;;; Commentary:
 
@@ -130,7 +130,15 @@
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
 
-;; Utility functions
+;; Custom variables and utility functions / Custom variables
+
+(defcustom my-system-open-command "xdg-open"
+  "System command to open file/URL according to preferred app by filetype.
+Usually \"xdg-open\" on Linux and \"open\" on Mac."
+  :type 'string
+  :group 'convenience)
+
+;; Custom variables and utility functions / Utility functions
 
 (defun my-after-jump-context-actions (&rest _)
   "Useful context actions to perform after jumping to a new location.
@@ -282,28 +290,6 @@ if the point is in the minibuffer."
   (with-current-buffer buf
     (emacs-lock-mode 'kill)))
 
-;; hydra for basic buffer management
-(defhydra my-hydra/buffer (:color amaranth :columns 4)
-  "
-Buffer (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("b" switch-to-buffer "switch" :exit t)
-  ("p" previous-buffer "previous")
-  ("n" next-buffer "next")
-  ("R" revert-buffer "revert")
-  ("B" bury-buffer "bury")
-  ("U" unbury-buffer "unbury")
-  ("s" save-buffer "save")
-  ("S" save-some-buffers "save-all") ;; call with "1 S" to save all
-  ("k" kill-this-buffer "kill")
-  ("K" kill-matching-buffers "kill-match")
-  ("t" (lambda ()
-         (interactive)
-         (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
-           (tramp-cleanup-all-buffers)))
-   "tramp-cleanup" :exit t))
-(global-set-key (kbd "C-c C-M-b") 'my-hydra/buffer/body)
-
 ;; advanced buffer management with Ibuffer
 (add-hook 'ibuffer-mode-hook
           (lambda ()
@@ -454,8 +440,6 @@ Ibuffer → Filter (_q_: ←)"
     :after (all-the-icons ibuffer)
     :config (all-the-icons-ibuffer-mode 1)))
 
-;; Buffers, windows, frames, workspaces / Window management
-
 ;; quick buffer switching (configured to be within a project)
 (use-package nswbuff
   :after projectile
@@ -480,44 +464,7 @@ Ibuffer → Filter (_q_: ←)"
   (with-eval-after-load 'org
     (unbind-key "<C-tab>" org-mode-map)))
 
-(defun my-kill-other-buffers ()
-  "Kill all file buffers except the current one."
-  (interactive)
-  (when (y-or-n-p "Kill all file buffers except the current one? ")
-    (seq-each
-     #'kill-buffer
-     (delete (current-buffer)
-             (seq-filter #'buffer-file-name (buffer-list))))))
-
-;; add my-kill-other-buffers to buffer hydra
-(defhydra+ my-hydra/buffer nil
-  ("o" my-kill-other-buffers "only" :exit t))
-
-;; cleanup hydra
-(defhydra my-hydra/buffer/cleanup (:color amaranth :columns 3)
-  "
-Buffer → Cleanup (_q_: ←)"
-  ("q" my-hydra/buffer/body nil :exit t)
-  ("r" whitespace-report "whitespace-report" :exit t)
-  ("w" whitespace-cleanup "whitespace-cleanup")
-  ("i" (lambda ()
-         "Indent a selected region, or the buffer otherwise."
-         (interactive)
-         (cond
-          ((use-region-p) (indent-region (region-beginning) (region-end)))
-          (t (indent-region (point-min) (point-max)))))
-   "indent")
-  ("t" (lambda ()
-         "Indent a selected region, or the buffer otherwise."
-         (interactive)
-         (cond
-          ((use-region-p) (untabify (region-beginning) (region-end)))
-          (t (untabify (point-min) (point-max)))))
-   "untabify"))
-
-;; add entry point to cleanup hydra to buffer hydra
-(defhydra+ my-hydra/buffer nil
-  ("C" my-hydra/buffer/cleanup/body "→ Cleanup" :exit t))
+;; Buffers, windows, frames, workspaces / Window management
 
 ;; traverse window config changes, C-c left/right to undo/redo
 ;; uncomment to not bind C-c left/right keys by default
@@ -894,12 +841,6 @@ ARG is a prefix argument.  If nil, copy the current difference region."
       dired-recursive-deletes 'always) ;; always delete recursively
 (add-hook 'dired-mode-hook #'auto-revert-mode) ;; auto-refresh on file change
 (add-hook 'dired-mode-hook #'dired-hide-details-mode) ;; hide details initially
-
-(defcustom my-system-open-command "xdg-open"
-  "System command to open file according to preferred app by filetype.
-Usually \"xdg-open\" on Linux and \"open\" on Mac."
-  :type 'string
-  :group 'convenience)
 
 ;; bind "z" in dired-mode to open file at point using system command
 ;; to open files by type
@@ -3493,10 +3434,6 @@ Flyspell   [% 4(if flyspell-mode (if (eq flyspell-generic-check-word-predicate #
         so-long-max-lines 10
         so-long-threshold 500))
 
-(defhydra+ my-hydra/buffer nil
-  ("l" so-long-mode "so-long")
-  ("L" so-long-minor-mode "so-long-mm"))
-
 (require 'uniquify)
 (setq uniquify-buffer-name-style 'post-forward-angle-brackets)
 
@@ -3605,24 +3542,6 @@ for more information."
 ;; exclude Emacs source files from recentf history on macOS
 (add-to-list 'recentf-exclude "^/Applications/Emacs.app/")
 
-;; add my-hydra/buffer head to open Finder at current buffer directory in macOS
-(when (eq system-type 'darwin)
-  (defun my-open-finder (&optional path)
-    "Opens a new Finder window to PATH if provided,
-or the current buffer file or directory if not (macOS)."
-    (interactive)
-    (let* ((my-path (cl-some 'identity (list path
-                                             (buffer-file-name)
-                                             default-directory)))
-           (my-full-path (expand-file-name my-path))
-           (my-process-args (list "my-open-finder" nil
-                                  "open" "-R" my-full-path)))
-      (if (eq system-type 'darwin)
-          (apply 'start-process my-process-args)
-        (message "my-open-finder is macOS-only"))))
-  (defhydra+ my-hydra/buffer nil
-    ("e" my-open-finder "open-finder" :exit t)))
-
 ;; scale up LaTeX fragment preview images on macOS
 (if (and (display-graphic-p)
          (eq system-type 'darwin)
@@ -3695,6 +3614,89 @@ Example of use with transient suffix definitions in a
    ]
   )
 (global-set-key (kbd "C-c C-M-j") #'transient/bookmarks)
+
+(defun transient/buffer--tramp-cleanup-buffers ()
+  "Clean up all TRAMP buffers and connections with confirm prompt."
+  (interactive)
+  (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
+    (tramp-cleanup-all-buffers)))
+
+(defun transient/buffer--kill-other-buffers ()
+  "Kill all file buffers except the current one."
+  (interactive)
+  (when (y-or-n-p "Kill all file buffers except the current one? ")
+    (seq-each
+     #'kill-buffer
+     (delete (current-buffer)
+             (seq-filter #'buffer-file-name (buffer-list))))))
+
+(defun transient/buffer--indent-region-or-buffer ()
+  "Indent a selected region, or the buffer otherwise."
+  (interactive)
+  (cond
+   ((use-region-p) (indent-region (region-beginning) (region-end)))
+   (t (indent-region (point-min) (point-max)))))
+
+(defun transient/buffer--untabify-region-or-buffer ()
+  "Convert tabs to spaces in a selected region, or the buffer otherwise."
+  (interactive)
+  (cond
+   ((use-region-p) (untabify (region-beginning) (region-end)))
+   (t (untabify (point-min) (point-max)))))
+
+(defun transient/buffer--apply-all-hygiene-ops-region-or-buffer ()
+  "Apply standard hygiene operations for selected region, or buffer otherwise.
+The standard hygiene operations include removing trailing
+whitespace, indenting and untabifying."
+  (interactive)
+  (progn
+    (whitespace-cleanup)
+    (transient/buffer--indent-region-or-buffer)
+    (transient/buffer--untabify-region-or-buffer)))
+
+(defun transient/buffer--open-containing-dir-externally (&optional path)
+  "Opens the directory containing PATH or the buffer if unspecified externally."
+  (interactive)
+  (let* ((my-path (cl-some 'identity (list path
+                                           (buffer-file-name)
+                                           default-directory)))
+         (my-full-path (expand-file-name my-path))
+         (my-dir-path (file-name-directory my-full-path))
+         (my-process-args (list "my-open-dir" nil
+                                my-system-open-command my-dir-path)))
+    (apply 'start-process my-process-args)))
+
+;; add transient for buffer management commands, bind to "C-c C-M-b"
+(transient-define-prefix transient/buffer ()
+  "Buffer management commands."
+  ["Buffer"
+   ["Select"
+    ("b" "Switch" switch-to-buffer)
+    ("n" "Next" next-buffer :transient t)
+    ("p" "Previous" previous-buffer :transient t)
+    ("e" "Open external" transient/buffer--open-containing-dir-externally)
+    ""
+    "Hygiene"
+    ("cr" "Whitespace report" whitespace-report)
+    ("cw" "Whitespace cleanup" whitespace-cleanup)
+    ("ci" "Indent" transient/buffer--indent-region-or-buffer)
+    ("ct" "Untabify" transient/buffer--untabify-region-or-buffer)
+    ("ca" "All hygiene ops" transient/buffer--apply-all-hygiene-ops-region-or-buffer)
+    ]
+   ["File operations"
+    ("R" "Revert" revert-buffer)
+    ("B" "Bury" bury-buffer)
+    ("U" "Unbury" unbury-buffer)
+    ("s" "Save" save-buffer)
+    ("S" "Save all" save-some-buffers)
+    ("k" "Kill" kill-this-buffer)
+    ("K" "Kill matching" kill-matching-buffers)
+    ("o" "Kill others" transient/buffer--kill-other-buffers)
+    ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-b") #'transient/buffer)
 
 ;; add transient popup for conda commands, bind to "C-c C-M-S-v"
 (with-eval-after-load 'conda

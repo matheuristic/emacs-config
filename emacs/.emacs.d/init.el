@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug 14 21:02:22 2020
+;; Generated: Fri Aug 14 22:50:59 2020
 
 ;;; Commentary:
 
@@ -371,87 +371,6 @@ if the point is in the minibuffer."
 ;; enable winner-mode at end of initialization
 (add-hook 'after-init-hook #'winner-mode)
 
-(defhydra my-hydra/window (:color amaranth :columns 3)
-  "
-Window (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("u" winner-undo "winner-undo")
-  ("r" winner-redo "winner-redo")
-  ("n" (condition-case nil
-           (next-window-any-frame)
-         (error (next-multiframe-window)))
-   "next")
-  ("p" (condition-case nil
-           (previous-window-any-frame)
-         (error (previous-multiframe-window)))
-   "previous")
-  ("v" split-window-right "split-v")
-  ("s" split-window-below "split-h")
-  ("<left>" windmove-left "left")
-  ("<down>" windmove-down "down")
-  ("<up>" windmove-up "up")
-  ("<right>" windmove-right "right")
-  ("S-<left>" (my-transpose-windows 'windmove-left) "transpose-l")
-  ("S-<down>" (my-transpose-windows 'windmove-down) "transpose-d")
-  ("S-<up>" (my-transpose-windows 'windmove-up) "transpose-u")
-  ("S-<right>" (my-transpose-windows 'windmove-right) "transpose-r")
-  ("-" shrink-window "shrink-v")
-  ("+" enlarge-window "enlarge-v")
-  ("<" shrink-window-horizontally "shrink-h")
-  (">" enlarge-window-horizontally "enlarge-h")
-  ("M" minimize-window "minimize")
-  ("m" maximize-window "maximize")
-  ("=" balance-windows "balance")
-  ("_" balance-windows-area "balance-area")
-  ("o" delete-other-windows "only")
-  ("d" delete-window "delete")
-  ("D" kill-buffer-and-window "delete-buf"))
-(global-set-key (kbd "C-c C-M-w") 'my-hydra/window/body)
-
-(defun my-transpose-windows (selector)
-  "Call SELECTOR and transpose buffers between current and selected windows."
-  (let ((from-win (selected-window))
-        (from-buf (window-buffer)))
-    (funcall selector)
-    (set-window-buffer from-win (window-buffer))
-    (set-window-buffer (selected-window) from-buf)))
-
-(defun rotate-window-buffers (rotations)
-  "Rotate buffers in the windows of the current frame ROTATIONS times.
-ROTATIONS can be negative, which rotates in the opposite direction."
-  (interactive "P")
-  (let ((num-windows (count-windows)))
-    (if (not (> num-windows 1))
-        (message "Only one window in the frame. Nothing to rotate.")
-      (let* ((windows (window-list))
-             ;; original window order properties
-             (window-props (mapcar (lambda (w)
-                                     `(:buffer ,(window-buffer w)
-                                       :start ,(window-start w)
-                                       :point ,(window-point w)))
-                                   windows))
-             ;; new window order after rotation
-             (window-moves (mapcar
-                            (lambda (k)
-                              (elt windows (mod (+ k rotations) num-windows)))
-                            (number-sequence 0 (1- num-windows))))
-             ;; create alist for easier looping later
-             (wins-props (cl-mapcar #'cons window-moves window-props)))
-        ;; iteratively assign orig window props in new window order
-        (dolist (w-p wins-props)
-          (let ((win (car w-p))
-                (prop (cdr w-p)))
-            (set-window-buffer-start-and-point
-             win
-             (plist-get prop :buffer)
-             (plist-get prop :start)
-             (plist-get prop :point))))))))
-
-;; add entrypoint for `rotate-window-buffers' to window management hydra
-(defhydra+ my-hydra/window nil
-  ("," (lambda (n) (interactive "p") (rotate-window-buffers (- n))) "rotate-l")
-  ("." (lambda (n) (interactive "p") (rotate-window-buffers n)) "rotate-r"))
-
 ;; popup window manager, also auto-closes special buffers like
 ;; *compilation* and *Completions*
 (use-package popwin
@@ -467,10 +386,6 @@ ROTATIONS can be negative, which rotates in the opposite direction."
         aw-ignore-current nil
         aw-scope 'frame)
   (global-set-key (kbd "M-o") #'ace-window))
-
-;; add `ace-window' entry point to window hydra
-(defhydra+ my-hydra/window nil
-  ("a" ace-window "ace-window"))
 
 ;; Buffers, windows, frames, workspaces / Frame management
 
@@ -3950,6 +3865,128 @@ whitespace, indenting and untabifying."
   )
 (global-set-key (kbd "C-c C-M-S-s") #'transient/system)
 
+;; `next-multiframe-window' & `previous-multiframe-window' renamed to
+;; `next-window-any-frame' & `previous-window-any-frame' in Emacs 27
+(when (version< emacs-version "27")
+  (defalias 'next-window-any-frame 'next-multiframe-window)
+  (defalias 'previous-window-any-frame 'previous-multiframe-window))
+
+(defun transient/window--transpose-windows (selector)
+  "Call SELECTOR and transpose buffers between current and selected windows."
+  (let ((from-win (selected-window))
+        (from-buf (window-buffer)))
+    (funcall selector)
+    (set-window-buffer from-win (window-buffer))
+    (set-window-buffer (selected-window) from-buf)))
+
+(defun transient/window--transpose-window-up ()
+  "Transpose buffers between current and the window above it."
+  (interactive)
+  (transient/window--transpose-windows 'windmove-up))
+(defun transient/window--transpose-window-down ()
+  "Transpose buffers between current and the window below it."
+  (interactive)
+  (transient/window--transpose-windows 'windmove-down))
+(defun transient/window--transpose-window-left ()
+  "Transpose buffers between current and the window to its left."
+  (interactive)
+  (transient/window--transpose-windows 'windmove-left))
+(defun transient/window--transpose-window-right ()
+  "Transpose buffers between current and the window to its right."
+  (interactive)
+  (transient/window--transpose-windows 'windmove-right))
+
+(defun transient/window--rotate-window-buffers (rotations)
+  "Rotate buffers in the windows of the current frame ROTATIONS times.
+ROTATIONS can be negative, which rotates in the opposite direction."
+  (interactive "P")
+  (let* (;; windows that do not contain transient buffers
+         (windows (seq-filter (lambda (w)
+                                (not
+                                 (string= (buffer-name
+                                           (window-buffer w))
+                                          transient--buffer-name)))
+                              (window-list)))
+         (num-windows (length windows)))
+    (if (not (> num-windows 1))
+        (message "Only one window in the frame. Nothing to rotate.")
+      (let* (;; original window order properties
+             (window-props (mapcar (lambda (w)
+                                     `(:buffer ,(window-buffer w)
+                                       :start ,(window-start w)
+                                       :point ,(window-point w)))
+                                   windows))
+             ;; new window order after rotation
+             (window-moves (mapcar
+                            (lambda (k)
+                              (elt windows (mod (+ k rotations)
+                                                num-windows)))
+                            (number-sequence 0 (1- num-windows))))
+             ;; create alist for easier looping later
+             (wins-props (cl-mapcar #'cons window-moves window-props)))
+        ;; iteratively assign orig window props in new window order
+        (dolist (w-p wins-props)
+          (let ((win (car w-p))
+                (prop (cdr w-p)))
+            (set-window-buffer-start-and-point
+             win
+             (plist-get prop :buffer)
+             (plist-get prop :start)
+             (plist-get prop :point))))))))
+
+(defun transient/window--rotate-buffers-forward ()
+  "Rotate buffers in current frame's windows forward."
+  (interactive)
+  (transient/window--rotate-window-buffers 1))
+(defun transient/window--rotate-buffers-backward ()
+  "Rotate buffers in current frame's windows backward."
+  (interactive)
+  (transient/window--rotate-window-buffers (- 1)))
+
+;; add transient popup for window commands, bind to "C-c C-M-w"
+(transient-define-prefix transient/window ()
+  "Various window commands."
+  :transient-suffix 'transient--do-stay
+  ["Window"
+   ["Navigate"
+    ("n" "Next" next-window-any-frame)
+    ("p" "Previous" previous-window-any-frame)
+    ("o" "Other" other-window)
+    ("<up>" "↑" windmove-up)
+    ("<down>" "↓" windmove-down)
+    ("<left>" "←" windmove-left)
+    ("<right>" "→" windmove-right)
+    ]
+   ["Transpose"
+    ("S-<up>" "↑" transient/window--transpose-window-up)
+    ("S-<down>" "↓" transient/window--transpose-window-down)
+    ("S-<left>" "←" transient/window--transpose-window-left)
+    ("S-<right>" "→" transient/window--transpose-window-right)
+    ("," "Rotate bwd" transient/window--rotate-buffers-backward)
+    ("." "Rotate fwd" transient/window--rotate-buffers-forward)
+    ]
+   ["Layout"
+    ("0" "Delete window" delete-window)
+    ("1" "Delete other windows" delete-other-windows)
+    ("2" "Split horiz" split-window-right)
+    ("3" "Split vert" split-window-below)
+    ("40" "Kill buffer and window" kill-buffer-and-window)
+    ("u" "Winner undo" winner-undo)
+    ("r" "Winner redo" winner-redo)
+    ]
+   ["Resize"
+    ("-" "Shrink vert" shrink-window)
+    ("^" "Enlarge vert" enlarge-window)
+    ("{" "Shrink horiz" shrink-window-horizontally)
+    ("}" "Enlarge horiz" enlarge-window-horizontally)
+    ("M" "Maximize" maximize-window)
+    ("m" "Minimize" minimize-window)
+    ("+" "Balance" balance-windows)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-w") #'transient/window)
+
 ;; add transient popup for workspace commands, bind to "C-c C-M-e"
 (transient-define-prefix transient/workspace ()
   "Various workspace commands."
@@ -4447,6 +4484,7 @@ whitespace, indenting and untabifying."
              (ibuffer-toggle-filter-group)
            (error (ibuffer-visit-buffer))))
 
+;; major-mode specific transient for ibuffer-mode
 (transient-define-prefix transient/ibuffer-mode ()
   "Ibuffer mode commands."
   :transient-suffix 'transient--do-stay

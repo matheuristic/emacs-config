@@ -136,6 +136,7 @@ works sometimes.
 Host *
      ServerAliveInterval 5
 #+end_example
+
 ** Useful Emacs default bindings
 
 *** Moving to beginning of line text (M-m)
@@ -10117,6 +10118,7 @@ packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://g
 markup.
 
 ** Other
+
 *** [#C] literate-calc-mode
 
 [[https://github.com/sulami/literate-calc-mode.el][GitHub - sulami/literate-calc-mode.el]]
@@ -10229,6 +10231,7 @@ Bookmarks (_q_: quit)"
 #+end_src
 
 ** Buffers, windows, frames, workspaces
+
 *** Buffer management
 
 **** Bury scratch and message buffer instead of killing them

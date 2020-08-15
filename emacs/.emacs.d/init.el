@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug 14 15:54:50 2020
+;; Generated: Fri Aug 14 21:02:22 2020
 
 ;;; Commentary:
 
@@ -332,107 +332,6 @@ if the point is in the minibuffer."
   :after ibuffer
   :bind (:map ibuffer-mode-map
          ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
-
-;; hydras for Ibuffer commands
-;; adapted from https://github.com/abo-abo/hydra/wiki/Ibuffer
-(defhydra my-hydra/ibuffer-mode (:color amaranth :columns 3)
-  "
-Ibuffer (_q_: quit)"
-  ("q" nil nil :exit t)
-  ;; navigation
-  ("n" ibuffer-forward-line "next")
-  ("p" ibuffer-backward-line "prev")
-  ("RET" (condition-case nil
-             (progn (ibuffer-toggle-filter-group)
-                    (my-hydra/ibuffer-mode/body))
-           (error (ibuffer-visit-buffer))) "open" :exit t)
-  ;; mark
-  ("m" ibuffer-mark-forward "mark")
-  ("u" ibuffer-unmark-forward "unmark")
-  ("*" my-hydra/ibuffer-mode/mark/body "→ Mark" :exit t)
-  ;; actions
-  ("S" ibuffer-do-save "save")
-  ("D" ibuffer-do-delete "delete")
-  ("a" my-hydra/ibuffer-mode/action/body "→ Action" :exit t)
-  ;; view
-  ("`" ibuffer-switch-format "format")
-  ("g" ibuffer-update "refresh")
-  ("s" my-hydra/ibuffer-mode/sort/body "→ Sort" :exit t)
-  ("/" my-hydra/ibuffer-mode/filter/body "→ Filter" :exit t)
-  ;; other
-  ("o" ibuffer-visit-buffer-other-window "open-other" :exit t))
-(defhydra my-hydra/ibuffer-mode/mark (:color amaranth :columns 5
-                                      :after-exit (my-hydra/ibuffer-mode/body))
-  "
-Ibuffer → Mark (_q_: ←)"
-  ("q" nil nil :exit t)
-  ("*" ibuffer-unmark-all "unmark all")
-  ("M" ibuffer-mark-by-mode "mode")
-  ("m" ibuffer-mark-modified-buffers "modified")
-  ("u" ibuffer-mark-unsaved-buffers "unsaved")
-  ("s" ibuffer-mark-special-buffers "special")
-  ("r" ibuffer-mark-read-only-buffers "read-only")
-  ("/" ibuffer-mark-dired-buffers "dired")
-  ("e" ibuffer-mark-dissociated-buffers "dissociated")
-  ("h" ibuffer-mark-help-buffers "help")
-  ("z" ibuffer-mark-compressed-file-buffers "compressed"))
-(defhydra my-hydra/ibuffer-mode/action (:color teal :columns 3
-                                        :after-exit (if (eq major-mode 'ibuffer-mode)
-                                                        (my-hydra/ibuffer-mode/body)))
-  "
-Ibuffer → Action (_q_: ←)"
-  ("q" nil nil)
-  ("A" ibuffer-do-view "view")
-  ("E" ibuffer-do-eval "eval")
-  ("F" ibuffer-do-shell-command-file "shell-command-file")
-  ("I" ibuffer-do-query-replace-regexp "query-replace-regexp")
-  ("H" ibuffer-do-view-other-frame "view-other-frame")
-  ("N" ibuffer-do-shell-command-pipe-replace "shell-cmd-pipe-replace")
-  ("M" ibuffer-do-toggle-modified "toggle-modified")
-  ("O" ibuffer-do-occur "occur")
-  ("P" ibuffer-do-print "print")
-  ("Q" ibuffer-do-query-replace "query-replace")
-  ("R" ibuffer-do-rename-uniquely "rename-uniquely")
-  ("T" ibuffer-do-toggle-read-only "toggle-read-only")
-  ("U" ibuffer-do-replace-regexp "replace-regexp")
-  ("V" ibuffer-do-revert "revert")
-  ("W" ibuffer-do-view-and-eval "view-and-eval")
-  ("X" ibuffer-do-shell-command-pipe "shell-command-pipe"))
-(defhydra my-hydra/ibuffer-mode/sort (:color amaranth :columns 5)
-  "
-Ibuffer → Sort (_q_: ←)"
-  ("q" my-hydra/ibuffer-mode/body nil :exit t)
-  ("a" ibuffer-do-sort-by-alphabetic "alphabetic")
-  ("f" ibuffer-do-sort-by-filename/process "filename")
-  ("m" ibuffer-do-sort-by-major-mode "mode")
-  ("s" ibuffer-do-sort-by-size "size")
-  ("v" ibuffer-do-sort-by-recency "recency")
-  ("i" ibuffer-invert-sorting "invert"))
-(defhydra my-hydra/ibuffer-mode/filter (:color amaranth :columns 5
-                                        :pre (require 'ibuffer-vc))
-  "
-Ibuffer → Filter (_q_: ←)"
-  ("q" my-hydra/ibuffer-mode/body nil :exit t)
-  ("a" ibuffer-add-saved-filters "add-saved")
-  ("c" ibuffer-filter-by-content "content")
-  ("e" ibuffer-filter-by-predicate "predicate")
-  ("f" ibuffer-filter-by-filename "filename")
-  ("m" ibuffer-filter-by-used-mode "mode")
-  ("M" ibuffer-filter-by-derived-mode "derived mode")
-  ("n" ibuffer-filter-by-name "name")
-  ("p" ibuffer-pop-filter "pop")
-  (">" ibuffer-filter-by-size-gt "size-gt")
-  ("<" ibuffer-filter-by-size-lt "size-lt")
-  ("&" ibuffer-and-filter "and")
-  ("|" ibuffer-or-filter "or")
-  ("V" ibuffer-vc-set-filter-groups-by-vc-root "vc-groups")
-  ("R" ibuffer-switch-to-saved-filter-groups "saved-groups")
-  ("\\" ibuffer-clear-filter-groups "clear-groups")
-  ("/" ibuffer-filter-disable "disable"))
-
-;; bind Ibuffer hydra
-(with-eval-after-load 'ibuffer
-  (define-key ibuffer-mode-map (kbd "C-c C-M-m") #'my-hydra/ibuffer-mode/body))
 
 ;; use font icons in Ibuffer
 (when (display-graphic-p)
@@ -4444,6 +4343,137 @@ whitespace, indenting and untabifying."
      ]
     )
   (define-key eww-mode-map (kbd "C-c C-M-m") #'transient/eww-mode))
+
+(transient-define-prefix transient/ibuffer-mode/mark ()
+  "Ibuffer mode mark commands."
+  :transient-suffix 'transient--do-stay
+  ["Ibuffer → Mark"
+   [("*" "Unmark all" ibuffer-unmark-all)
+    ("M" "By mode" ibuffer-mark-by-mode)
+    ("m" "Modified" ibuffer-mark-modified-buffers)
+    ("u" "Unsaved" ibuffer-mark-unsaved-buffers)
+    ]
+   [("s" "Special" ibuffer-mark-special-buffers)
+    ("r" "Read-only" ibuffer-mark-read-only-buffers)
+    ("/" "Dired" ibuffer-mark-dired-buffers)
+    ("e" "Disassociated" ibuffer-mark-dissociated-buffers)
+    ]
+   [("h" "Help" ibuffer-mark-help-buffers)
+    ("z" "Compressed" ibuffer-mark-compressed-file-buffers)
+    ]
+   ]
+  )
+
+(transient-define-prefix transient/ibuffer-mode/action ()
+  "Ibuffer mode action commands."
+  ["Ibuffer → Action"
+   ["Properties"
+    ("R" "Rename uniquely" ibuffer-do-rename-uniquely)
+    ("M" "Toggle modified" ibuffer-do-toggle-modified)
+    ("T" "Toggle read-only" ibuffer-do-toggle-read-only)
+    ""
+    "Run"
+    ("E" "Eval in buffers" ibuffer-do-eval)
+    ("W" "View buffers and eval" ibuffer-do-view-and-eval)
+    ("F" "Command on files" ibuffer-do-shell-command-file)
+    ("X" "Pipe to command" ibuffer-do-shell-command-pipe)
+    ("N" "Pipe to command and replace" ibuffer-do-shell-command-pipe-replace)
+    ]
+   ["Search"
+    ("O" "Occur" ibuffer-do-occur)
+    ("U" "Replace regexp" ibuffer-do-replace-regexp)
+    ("Q" "Query/Replace" ibuffer-do-query-replace)
+    ("I" "Query/Replace regexp" ibuffer-do-query-replace-regexp)
+    ""
+    "Other"
+    ("A" "View" ibuffer-do-view)
+    ("H" "View (other)" ibuffer-do-view-other-frame)
+    ("V" "Revert" ibuffer-do-revert)
+    ("P" "Print" ibuffer-do-print)
+    ]
+   ]
+  )
+
+(transient-define-prefix transient/ibuffer-mode/sort ()
+  "Ibuffer mode sort commands."
+  :transient-suffix 'transient--do-stay
+  ["Ibuffer → Sort"
+   [("a" "Alphabetic" ibuffer-do-sort-by-alphabetic)
+    ("f" "Filename/Process" ibuffer-do-sort-by-filename/process)
+    ("m" "Mode" ibuffer-do-sort-by-major-mode)
+    ]
+   [("s" "Size" ibuffer-do-sort-by-size)
+    ("v" "Recency" ibuffer-do-sort-by-recency)
+    ("i" "Invert" ibuffer-invert-sorting)
+    ]
+   ]
+  )
+
+(require 'ibuffer-vc)
+(transient-define-prefix transient/ibuffer-mode/filter ()
+  "Ibuffer mode filter commands."
+  :transient-suffix 'transient--do-stay
+  ["Ibuffer → Filter"
+   ["Predicates"
+    ("a" "Add saved" ibuffer-add-saved-filters)
+    ("c" "By content" ibuffer-filter-by-content)
+    ("e" "By predicate" ibuffer-filter-by-predicate)
+    ("f" "By filename" ibuffer-filter-by-filename)
+    ("m" "By mode" ibuffer-filter-by-used-mode)
+    ("M" "By derived mode" ibuffer-filter-by-derived-mode)
+    ("n" "By name" ibuffer-filter-by-name)
+    (">" "By size gt" ibuffer-filter-by-size-gt)
+    ("<" "By size lt" ibuffer-filter-by-size-lt)
+    ]
+   ["Operators"
+    ("&" "AND" ibuffer-and-filter)
+    ("|" "OR" ibuffer-or-filter)]
+   ["Stack"
+    ("p" "Pop" ibuffer-pop-filter)
+    ("\\" "Clear" ibuffer-clear-filter-groups)
+    ]
+   ["Presets"
+    ("V" "VC groups" ibuffer-vc-set-filter-groups-by-vc-root)
+    ("R" "Saved" ibuffer-switch-to-saved-filter-groups)
+    ("/" "Disable" ibuffer-filter-disable)
+    ]
+   ]
+  )
+
+(defun transient/ibuffer-mode--activate-dwim ()
+  "Toggle filter group or visit buffer under point in `ibuffer-mode'."
+  (interactive)
+  (condition-case nil
+             (ibuffer-toggle-filter-group)
+           (error (ibuffer-visit-buffer))))
+
+(transient-define-prefix transient/ibuffer-mode ()
+  "Ibuffer mode commands."
+  :transient-suffix 'transient--do-stay
+  ["Ibuffer"
+   ["Navigation"
+    ("n" "Next line" ibuffer-forward-line)
+    ("p" "Previous line" ibuffer-backward-line)
+    ("RET" "Open" transient/ibuffer-mode--activate-dwim :transient nil)
+    ("o" "Open (other)" ibuffer-visit-buffer-other-window :transient nil)
+    ]
+   ["Actions"
+    ("m" "Mark" ibuffer-mark-forward)
+    ("u" "Unmark" ibuffer-unmark-forward)
+    ("*" "→ Mark" transient/ibuffer-mode/mark)
+    ("S" "Save" ibuffer-do-save)
+    ("D" "Delete" ibuffer-do-delete)
+    ("a" "→ Action" transient/ibuffer-mode/action)
+    ]
+   ["View"
+    ("`" "Switch format" ibuffer-switch-format)
+    ("g" "Refresh" ibuffer-update)
+    ("s" "→ Sort" transient/ibuffer-mode/sort)
+    ("/" "→ Filter" transient/ibuffer-mode/filter)
+    ]
+   ]
+  )
+(define-key ibuffer-mode-map (kbd "C-c C-M-m") #'transient/ibuffer-mode)
 
 ;; major-mode specific transient for markdown-mode
 (with-eval-after-load 'markdown-mode

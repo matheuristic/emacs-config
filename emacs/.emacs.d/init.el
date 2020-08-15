@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug 14 23:35:36 2020
+;; Generated: Sat Aug 15 14:49:16 2020
 
 ;;; Commentary:
 
@@ -822,6 +822,39 @@ With arg N, insert N newlines."
 (global-set-key [remap open-line] #'my-open-line-below)
 ;; binding for `my-open-line-above
 (global-set-key (kbd "C-S-o") #'my-open-line-above)
+
+;; show keyboard macros and latest commands as Elisp
+(use-package elmacro
+  :config
+  (elmacro-mode 1)
+  ;; add Elmacro entry under Tools in the menu bar
+  (easy-menu-define my-elmacro-menu nil
+    "Menu for Elmacro."
+    '("Elmacro"
+      ["Elmacro Mode"
+       (customize-save-variable 'elmacro-mode (not elmacro-mode))
+       :style toggle
+       :selected elmacro-mode
+       :help "(elmacro-mode &optional ARG)\n\nToggle emacs activity recording (elmacro mode).\nWith a prefix argument ARG, enable elmacro mode if ARG is\npositive, and disable it otherwise. If called from Lisp, enable\nthe mode if ARG is omitted or nil."]
+      "--"
+      ["Show Last Commands"
+       elmacro-show-last-commands
+       :active elmacro-mode
+       :help "(elmacro-show-last-commands &optional COUNT)\n\nTake the latest COUNT commands and show them as emacs lisp.\n\nThis is basically a better version of `kmacro-edit-lossage'.\n\nThe default number of commands shown is modifiable in variable\n`elmacro-show-last-commands-default'.\n\nYou can also modify this number by using a numeric prefix argument or\nby using the universal argument, in which case it'll ask for how many\nin the minibuffer."]
+      ["Show Last Macro"
+       elmacro-show-last-macro
+       :active elmacro-mode
+       :help "(elmacro-show-last-macro NAME)\n\nShow the last macro as emacs lisp with NAME."]
+      "--"
+      ["Clear Command History"
+       elmacro-clear-command-history
+       :active elmacro-mode
+       :help "(elmacro-clear-command-history)\n\nClear the list of recorded commands."]))
+  (dolist (menu-item '(["--" nil] my-elmacro-menu ["--" nil]))
+    (easy-menu-add-item
+     (current-global-map)
+     '("menu-bar" "Tools")
+     menu-item)))
 
 ;; Emacs as an edit server
 
@@ -2502,7 +2535,6 @@ Formatting a selected region only works on top-level objects."
 
 (use-package lsp-pyright
   :defer t
-  :ensure nil ;; being added to MELPA, currently in site-lisp
   :init
   (defun lsp-pyright--setup ()
     "Convenience function for setting up lsp-pyright."
@@ -3513,7 +3545,7 @@ whitespace, indenting and untabifying."
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-w") #'transient/frame)
+(global-set-key (kbd "C-c C-M-f") #'transient/frame)
 
 ;; add transient popup for help commands, bind to "C-c C-M-S-h"
 (transient-define-prefix transient/help ()
@@ -3553,39 +3585,47 @@ whitespace, indenting and untabifying."
 (global-set-key (kbd "C-c C-M-S-h") #'transient/help)
 
 ;; add transient for keyboard macros, bind to "C-c C-M-k"
-(transient-define-prefix transient/keyboard-macros ()
-  "Keyboard macro commands."
-  ["Keyboard Macros"
-   ["Actions"
-    ("(" "Start" kmacro-start-macro) ;; also "C-x ("
-    (")" "End/Call last" kmacro-end-or-call-macro) ;; also "C-x )"
-    ("r" "Call last on region" apply-macro-to-region-lines)
-    ]
-   ["Ring"
-    ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)
-    ("C-p" "Cycle prev" kmacro-cycle-ring-previous :transient t)
-    ("C-v" "View last" kmacro-view-macro :transient t)
-    ("C-d" "Delete head" kmacro-delete-ring-head :transient t)
-    ]
-   ["Edit"
-    ("e" "Named" edit-kbd-macro)
-    ("RET" "Last" kmacro-edit-macro)
-    ("l" "Lossage" kmacro-edit-lossage)
-    ("SPC" "Step" kmacro-step-edit-macro)
-    ]
-   ]
-  [
-   ["Bind/Name"
-    ("b" "Bind to key" kmacro-bind-to-key)
-    ("n" "Name last" kmacro-name-last-macro)
-    ("x" "To register" kmacro-to-register)
-    ]
-   ["Other"
-    ("i" "Insert named" insert-kbd-macro)
-    ]
-   ]
-  )
-(global-set-key (kbd "C-c C-M-k") #'transient/keyboard-macros)
+(with-eval-after-load 'elmacro
+  (transient-define-prefix transient/keyboard-macros ()
+    "Keyboard macro commands."
+    ["Keyboard Macros"
+     ["Actions"
+      ("(" "Start" kmacro-start-macro)              ;; also "C-x ("
+      (")" "End/Call last" kmacro-end-or-call-macro) ;; also "C-x )"
+      ("r" "Call last on region" apply-macro-to-region-lines)
+      ]
+     ["Ring"
+      ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)
+      ("C-p" "Cycle prev" kmacro-cycle-ring-previous :transient t)
+      ("C-v" "View last" kmacro-view-macro :transient t)
+      ("C-d" "Delete head" kmacro-delete-ring-head :transient t)
+      ]
+     ["Edit"
+      ("e" "Named" edit-kbd-macro)
+      ("RET" "Last" kmacro-edit-macro)
+      ("l" "Lossage" kmacro-edit-lossage)
+      ("SPC" "Step" kmacro-step-edit-macro)
+      ]
+     ]
+    [
+     ["Bind/Name"
+      ("b" "Bind to key" kmacro-bind-to-key)
+      ("n" "Name last" kmacro-name-last-macro)
+      ("x" "To register" kmacro-to-register)
+      ]
+     [:description (lambda ()
+                     (transient--make-description "Elmacro" elmacro-mode))
+      ("Em" "Toggle mode" elmacro-mode :transient t)
+      ("Ec" "Show last commands" elmacro-show-last-commands)
+      ("El" "Show last macro" elmacro-show-last-macro)
+      ("EC" "Clear history" elmacro-clear-command-history)
+      ]
+     ["Other"
+      ("i" "Insert named" insert-kbd-macro)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-k") #'transient/keyboard-macros))
 
 ;; add transient for neuron commands, bind to "C-c C-M-z"
 (with-eval-after-load 'neuron-mode

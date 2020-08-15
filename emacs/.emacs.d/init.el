@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug 14 22:50:59 2020
+;; Generated: Fri Aug 14 23:35:36 2020
 
 ;;; Commentary:
 
@@ -389,57 +389,9 @@ if the point is in the minibuffer."
 
 ;; Buffers, windows, frames, workspaces / Frame management
 
-(defhydra my-hydra/frame (:color amaranth :columns 4)
-  "
-Frame (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("<up>" (lambda (n) (interactive "p") (my-move-frame-pct 0 (- n))) "move-u")
-  ("<down>" (lambda (n) (interactive "p") (my-move-frame-pct 0 n)) "move-d")
-  ("<left>" (lambda (n) (interactive "p") (my-move-frame-pct (- n) 0)) "move-l")
-  ("<right>" (lambda (n) (interactive "p") (my-move-frame-pct n 0)) "move-r")
-  ("+" (lambda (n) (interactive "p") (my-enlarge-frame 0 n)) "enlarge-v")
-  ("-" (lambda (n) (interactive "p") (my-enlarge-frame 0 (- n))) "shrink-v")
-  (">" (lambda (n) (interactive "p") (my-enlarge-frame n 0)) "enlarge-h")
-  ("<" (lambda (n) (interactive "p") (my-enlarge-frame (- n) 0)) "shrink-h")
-  ("M" toggle-frame-maximized "maximize")
-  ("f" toggle-frame-fullscreen "fullscreen")
-  ("p" (other-frame -1) "previous")
-  ("n" other-frame "next")
-  ("s" select-frame-by-name "select")
-  ("m" (lambda () (interactive) (my-make-frame 15 20)) "make")
-  ("d" delete-frame "delete")
-  ("o" delete-other-frames "only"))
-(global-set-key (kbd "C-c C-M-f") 'my-hydra/frame/body)
-
-(defun my-enlarge-frame (w h)
-  "Enlarge width, height of selected frame by W, H lines (shrink if negative)."
-  (let ((this-frame (selected-frame)))
-    (set-frame-width this-frame (+ (frame-width this-frame) w))
-    (set-frame-height this-frame (+ (frame-height this-frame) h))))
-
-(defun my-move-frame (x y)
-  "Move selected frame by X pixels horizontally and Y pixels vertically."
-  (let* ((this-frame (selected-frame))
-         (fpos (frame-position this-frame)))
-    (set-frame-position this-frame (+ (car fpos) x) (+ (cdr fpos) y))))
-
-(defun my-move-frame-pct (x y)
-  "Move selected frame within display by X% horizontally and Y% vertically."
-  (my-move-frame (* x (/ (x-display-pixel-width) 100))
-                 (* y (/ (x-display-pixel-height) 100))))
-
-(defun my-make-frame (x y)
-  "Make new frame, offset by X pixels horizontally and Y pixels vertically."
-  (let ((cur-pos (frame-position)))
-    (select-frame (make-frame (list (cons 'left (+ x (car cur-pos)))
-                                    (cons 'top (+ y (cdr cur-pos))))))))
-
-(use-package transpose-frame)
-
-;; add entrypoint for transpose-frame to frame management hydra
-(defhydra+ my-hydra/frame nil
-  ("," (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-anticlockwise))) "rotate-l")
-  ("." (lambda (n) (interactive "p") (dotimes (_ n) (rotate-frame-clockwise))) "rotate-r"))
+(use-package transpose-frame
+  :bind (("C-x 5 [" . rotate-frame-anticlockwise)
+         ("C-x 5 ]" . rotate-frame-clockwise)))
 
 ;; Buffers, windows, frames, workspaces / Workspace management
 
@@ -3536,6 +3488,33 @@ whitespace, indenting and untabifying."
   )
 (global-set-key (kbd "C-c C-M-=") #'transient/ediff)
 
+(defun transient/frame--previous-frame ()
+  "Select previous frame."
+  (interactive)
+  (other-frame -1))
+
+;; add transient popup for frame commands, bind to "C-c C-M-f"
+(transient-define-prefix transient/frame ()
+  "Frame management commands."
+  ["Frame"
+   ["Select"
+    ("n" "Next" other-frame)
+    ("p" "Previous" transient/frame--previous-frame)
+    ("s" "By name" select-frame-by-name)
+    ]
+   ["Layout"
+    ("50" "Delete frame" delete-frame)
+    ("51" "Delete other frames" delete-other-frames)
+    ("52" "Create new frame" make-frame-command)
+    ]
+   ["Resize"
+    ("M" "Toggle maximized" toggle-frame-maximized :transient t)
+    ("f" "Toggle fullscreen" toggle-frame-fullscreen :transient t)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-w") #'transient/frame)
+
 ;; add transient popup for help commands, bind to "C-c C-M-S-h"
 (transient-define-prefix transient/help ()
   "Various help commands."
@@ -3941,11 +3920,11 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (defun transient/window--rotate-buffers-backward ()
   "Rotate buffers in current frame's windows backward."
   (interactive)
-  (transient/window--rotate-window-buffers (- 1)))
+  (transient/window--rotate-window-buffers -1))
 
 ;; add transient popup for window commands, bind to "C-c C-M-w"
 (transient-define-prefix transient/window ()
-  "Various window commands."
+  "Window management commands."
   :transient-suffix 'transient--do-stay
   ["Window"
    ["Navigate"
@@ -3962,8 +3941,8 @@ ROTATIONS can be negative, which rotates in the opposite direction."
     ("S-<down>" "↓" transient/window--transpose-window-down)
     ("S-<left>" "←" transient/window--transpose-window-left)
     ("S-<right>" "→" transient/window--transpose-window-right)
-    ("," "Rotate bwd" transient/window--rotate-buffers-backward)
-    ("." "Rotate fwd" transient/window--rotate-buffers-forward)
+    ("[" "Rotate bwd" transient/window--rotate-buffers-backward)
+    ("]" "Rotate fwd" transient/window--rotate-buffers-forward)
     ]
    ["Layout"
     ("0" "Delete window" delete-window)

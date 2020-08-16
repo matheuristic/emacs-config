@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug 16 13:50:12 2020
+;; Generated: Sun Aug 16 14:29:56 2020
 
 ;;; Commentary:
 
@@ -2661,33 +2661,6 @@ Formatting a selected region only works on top-level objects."
 
 ;; Search
 
-(defhydra my-hydra/search (:color teal :columns 3)
-  "
-Search (_q_: quit)"
-  ("q" nil nil)
-  ("gg" grep "grep")
-  ("gr" rgrep "rgrep")
-  ("gl" lgrep "lgrep")
-  ("gf" grep-find "grep-find")
-  ("gz" rzgrep "rzgrep")
-  ("oo" occur "occur")
-  ("om" multi-occur "multi-occur")
-  ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
-  ("rs" query-replace "replace string")
-  ("rr" query-replace-regexp "replace regexp")
-  ("kg" kill-grep "kill-grep")
-  ("." (lambda ()
-         (interactive)
-         (call-interactively #'xref-find-definitions))
-   "xref-find-def"))
-(global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
-
-;; bind over occur entry with helm-occur in search hydra
-(with-eval-after-load 'helm
-  (defhydra+ my-hydra/search nil
-    ("oo" helm-occur "occur")
-    ("ov" helm-occur-visible-buffers "occur-visible")))
-
 ;; "C-c C-p" in grep bufs allow writing with changes pushed to files
 (use-package wgrep
   :config (setq wgrep-auto-save-buffer nil
@@ -2696,10 +2669,6 @@ Search (_q_: quit)"
 (when (executable-find "rg")
   (use-package rg
     :bind ("<f6>" . rg-menu)))
-
-(when (executable-find "rg")
-  (defhydra+ my-hydra/search nil
-    ("R" rg-menu "ripgrep" :exit t)))
 
 ;; show current and total search matches, and preview query replace results
 (use-package anzu
@@ -3035,10 +3004,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
   ;; don't render images in HTML pages by default
   :config (setq-default shr-inhibit-images t))
-
-;; add eww entry point to search hydra
-(defhydra+ my-hydra/search nil
-  ("w" eww "eww" :exit t))
 
 (use-package restclient
   :defer t
@@ -3832,6 +3797,42 @@ whitespace, indenting and untabifying."
    ]
   )
 (global-set-key (kbd "C-c C-M-\"") #'transient/registers)
+
+;; add transient popup for search tools, bind to "C-c C-M-/"
+(with-eval-after-load 'helm
+  (defun transient/search--rg-menu-or-rgrep ()
+    "Dispatch to `rg-menu' if command available, else `rgrep'."
+    (interactive)
+    (if (and (executable-find "rg")
+             (fboundp 'rg-menu))
+        (call-interactively #'rg-menu)
+      (call-interactively #'rgrep)))
+  (transient-define-prefix transient/search ()
+    "Search commands."
+    ["Search"
+     ["Grep"
+      ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
+      ("gz" "Recursive (*.gz)" rzgrep)
+      ("gg" "With user args" grep)
+      ("gf" "Via find" grep-find)
+      ]
+     ["Occur in buffers"
+      ("oo" "Current" helm-occur)
+      ("ov" "Visible" helm-occur-visible-buffers)
+      ("ob" "Matching" multi-occur-in-matching-buffers)
+      ("om" "All" multi-occur)
+      ]
+     ["Query/Replace"
+      ("rs" "String" query-replace)
+      ("rr" "Regexp" query-replace-regexp)
+      ]
+     ["Other"
+      ("." "Find definition" xref-find-definitions)
+      ("w" "EWW web search" eww)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-/") #'transient/search))
 
 ;; add transient popup for shell tools, bind to "C-c C-M-t"
 (transient-define-prefix transient/shell ()

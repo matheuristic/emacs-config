@@ -5528,49 +5528,6 @@ Use icons from all-the-icons in Treemacs.
 
 * Search
 
-** Search hydra                                                       :hydra:
-
-Hydra for easier access to Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Search.html][search]] functionality.
-
-#+name: search-hydra
-#+begin_src emacs-lisp
-(defhydra my-hydra/search (:color teal :columns 3)
-  "
-Search (_q_: quit)"
-  ("q" nil nil)
-  ("gg" grep "grep")
-  ("gr" rgrep "rgrep")
-  ("gl" lgrep "lgrep")
-  ("gf" grep-find "grep-find")
-  ("gz" rzgrep "rzgrep")
-  ("oo" occur "occur")
-  ("om" multi-occur "multi-occur")
-  ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
-  ("rs" query-replace "replace string")
-  ("rr" query-replace-regexp "replace regexp")
-  ("kg" kill-grep "kill-grep")
-  ("." (lambda ()
-         (interactive)
-         (call-interactively #'xref-find-definitions))
-   "xref-find-def"))
-(global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
-#+end_src
-
-** Helm occur bindings in search hydra                                :hydra:
-
-Bind over the ~occur~ entry in the search hydra. Since the search
-hydra is only defined later, the binding action is added to the
-post-initialization hook.
-
-#+name: add-helm-occur-to-search-hydra
-#+begin_src emacs-lisp
-;; bind over occur entry with helm-occur in search hydra
-(with-eval-after-load 'helm
-  (defhydra+ my-hydra/search nil
-    ("oo" helm-occur "occur")
-    ("ov" helm-occur-visible-buffers "occur-visible")))
-#+end_src
-
 ** wgrep for writable grep buffers with changes pushed to files       :melpa:
 
 [[https://github.com/mhayashi1120/Emacs-wgrep][wgrep.el]] makes grep buffers writable with changes pushed to files.
@@ -5599,17 +5556,6 @@ through ~e~ while on the search results page.
 (when (executable-find "rg")
   (use-package rg
     :bind ("<f6>" . rg-menu)))
-#+end_src
-
-*** rg.el entrypoint in search hydra                                  :hydra:
-
-Add rg.el entrypoint to the search hydra.
-
-#+name: search-hydra-rg
-#+begin_src emacs-lisp
-(when (executable-find "rg")
-  (defhydra+ my-hydra/search nil
-    ("R" rg-menu "ripgrep" :exit t)))
 #+end_src
 
 ** Show match counts with Anzu                                        :melpa:
@@ -6449,17 +6395,6 @@ It supports text and images, but not webfonts or Javascript.
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
   ;; don't render images in HTML pages by default
   :config (setq-default shr-inhibit-images t))
-#+end_src
-
-*** Add eww entry point to search hydra                               :hydra:
-
-Add entry point into eww from search hydra.
-
-#+name: search-hydra-eww
-#+begin_src emacs-lisp
-;; add eww entry point to search hydra
-(defhydra+ my-hydra/search nil
-  ("w" eww "eww" :exit t))
 #+end_src
 
 ** REST development tools
@@ -7958,6 +7893,49 @@ Transient for easier access to [[https://www.gnu.org/software/emacs/manual/html_
    ]
   )
 (global-set-key (kbd "C-c C-M-\"") #'transient/registers)
+#+end_src
+
+*** Search transient
+
+Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Search.html][search]] functionality.
+
+#+name: search-transient
+#+begin_src emacs-lisp
+;; add transient popup for search tools, bind to "C-c C-M-/"
+(with-eval-after-load 'helm
+  (defun transient/search--rg-menu-or-rgrep ()
+    "Dispatch to `rg-menu' if command available, else `rgrep'."
+    (interactive)
+    (if (and (executable-find "rg")
+             (fboundp 'rg-menu))
+        (call-interactively #'rg-menu)
+      (call-interactively #'rgrep)))
+  (transient-define-prefix transient/search ()
+    "Search commands."
+    ["Search"
+     ["Grep"
+      ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
+      ("gz" "Recursive (*.gz)" rzgrep)
+      ("gg" "With user args" grep)
+      ("gf" "Via find" grep-find)
+      ]
+     ["Occur in buffers"
+      ("oo" "Current" helm-occur)
+      ("ov" "Visible" helm-occur-visible-buffers)
+      ("ob" "Matching" multi-occur-in-matching-buffers)
+      ("om" "All" multi-occur)
+      ]
+     ["Query/Replace"
+      ("rs" "String" query-replace)
+      ("rr" "Regexp" query-replace-regexp)
+      ]
+     ["Other"
+      ("." "Find definition" xref-find-definitions)
+      ("w" "EWW web search" eww)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-/") #'transient/search))
 #+end_src
 
 *** Shell entry transient
@@ -9731,15 +9709,9 @@ The main configuration file.
 
 ;; Search
 
-<<search-hydra>>
-
-<<add-helm-occur-to-search-hydra>>
-
 <<wgrep>>
 
 <<ripgrep>>
-
-<<search-hydra-rg>>
 
 <<anzu>>
 
@@ -9798,8 +9770,6 @@ The main configuration file.
 ;; Web
 
 <<eww>>
-
-<<search-hydra-eww>>
 
 <<restclient>>
 
@@ -9910,6 +9880,8 @@ The main configuration file.
 <<projectile-transient>>
 
 <<registers-transient>>
+
+<<search-transient>>
 
 <<shell-transient>>
 
@@ -12671,6 +12643,49 @@ Configure Org-mode support for Ebib.
 
 ** Search and navigation
 
+*** Search hydra                                                      :hydra:
+
+Hydra for easier access to Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Search.html][search]] functionality.
+
+#+name: search-hydra
+#+begin_src emacs-lisp
+(defhydra my-hydra/search (:color teal :columns 3)
+  "
+Search (_q_: quit)"
+  ("q" nil nil)
+  ("gg" grep "grep")
+  ("gr" rgrep "rgrep")
+  ("gl" lgrep "lgrep")
+  ("gf" grep-find "grep-find")
+  ("gz" rzgrep "rzgrep")
+  ("oo" occur "occur")
+  ("om" multi-occur "multi-occur")
+  ("ob" multi-occur-in-matching-buffers "multi-occur-match-buf")
+  ("rs" query-replace "replace string")
+  ("rr" query-replace-regexp "replace regexp")
+  ("kg" kill-grep "kill-grep")
+  ("." (lambda ()
+         (interactive)
+         (call-interactively #'xref-find-definitions))
+   "xref-find-def"))
+(global-set-key (kbd "C-c C-M-/") 'my-hydra/search/body)
+#+end_src
+
+*** Helm occur bindings in search hydra                               :hydra:
+
+Bind over the ~occur~ entry in the search hydra. Since the search
+hydra is only defined later, the binding action is added to the
+post-initialization hook.
+
+#+name: add-helm-occur-to-search-hydra
+#+begin_src emacs-lisp
+;; bind over occur entry with helm-occur in search hydra
+(with-eval-after-load 'helm
+  (defhydra+ my-hydra/search nil
+    ("oo" helm-occur "occur")
+    ("ov" helm-occur-visible-buffers "occur-visible")))
+#+end_src
+
 *** Ripgrep support                                          :hydra:external:
 
 Support for [[https://github.com/BurntSushi/ripgrep][ripgrep]], an alternative for the grep search tool that is
@@ -12693,6 +12708,19 @@ files and the buffer is switched back to ~deadgrep-mode~.
     :bind ("<f5>" . deadgrep))
   (defhydra+ my-hydra/search nil
     ("gR" deadgrep "ripgrep" :exit t)))
+#+end_src
+
+*** Ripgrep support with rg.el
+
+*** rg.el entrypoint in search hydra                                  :hydra:
+
+Add rg.el entrypoint to the search hydra.
+
+#+name: search-hydra-rg
+#+begin_src emacs-lisp
+(when (executable-find "rg")
+  (defhydra+ my-hydra/search nil
+    ("R" rg-menu "ripgrep" :exit t)))
 #+end_src
 
 *** dumb-jump hydra                                                   :hydra:
@@ -12973,6 +13001,17 @@ Helper functions for ~eww~:
   (setq-local shr-inhibit-images (not shr-inhibit-images))
   (eww-reload)
   (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+#+end_src
+
+**** Add eww entry point to search hydra                              :hydra:
+
+Add entry point into eww from search hydra.
+
+#+name: search-hydra-eww
+#+begin_src emacs-lisp
+;; add eww entry point to search hydra
+(defhydra+ my-hydra/search nil
+  ("w" eww "eww" :exit t))
 #+end_src
 
 *** REST development tools

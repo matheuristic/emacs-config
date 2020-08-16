@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug 15 15:41:16 2020
+;; Generated: Sun Aug 16 13:50:12 2020
 
 ;;; Commentary:
 
@@ -1165,28 +1165,6 @@ Assumes "
                       notmuch-show-mode-map
                       notmuch-tree-mode-map))
       (define-key keymap (kbd "M") #'org-msg-mode))))
-
-;; major mode-specific hydra for OrgMsg edit mode
-(with-eval-after-load 'org-msg
-  (defhydra my-hydra/org-msg-edit-mode (:color teal :columns 6)
-    "
-OrgMsg (_q_: quit)"
-    ("q" nil nil)
-    ("f" message-goto-from "from")
-    ("t" message-goto-to "to")
-    ("c" message-goto-cc "cc")
-    ("B" message-goto-bcc "bcc")
-    ("F" message-goto-fcc "fcc")
-    ("S" message-goto-subject "subj")
-    ("b" org-msg-goto-body "body")
-    ("C-a" org-msg-attach "attach")
-    ("C-e" org-msg-preview "preview")
-    ("C-c" org-ctrl-c-ctrl-c "send")
-    ("C-k" org-msg-edit-kill-buffer "kill"))
-
-  ;; binding for org-msg-edit-mode
-  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
-    #'my-hydra/org-msg-edit-mode/body))
 
 (condition-case nil
     (require 'ol-notmuch)
@@ -3718,6 +3696,19 @@ whitespace, indenting and untabifying."
     )
   (global-set-key (kbd "C-c C-M-z") #'transient/neuron))
 
+;; add transient for accessing Org entry points
+(with-eval-after-load 'org
+  (transient-define-prefix transient/org-launcher ()
+    "Launcher for Org entry points."
+    ["Org launcher"
+     ("a" "Agenda" org-agenda)
+     ("c" "Capture" org-capture)
+     ("b" "Switchb" org-switchb)
+     ("l" "Store link" org-store-link)
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-o") #'transient/org-launcher))
+
 ;; add transient for password-store commands, bind to "C-c C-M-S-p"
 (with-eval-after-load 'password-store
   (transient-define-prefix transient/password-store ()
@@ -4164,7 +4155,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; major-mode specific transient for csv-mode
 (with-eval-after-load 'csv-mode
   (transient-define-prefix transient/csv-mode ()
-    "CSV mode commands."
+    "`csv-mode' commands."
     ["CSV"
      ["Sort"
       ("s" "Lexicographic" csv-sort-fields)
@@ -4192,7 +4183,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; major-mode specific transient for debugger-mode
 (with-eval-after-load 'debug
   (transient-define-prefix transient/debugger-mode ()
-    "Debugger mode commands."
+    "`debugger-mode' commands."
     ["Emacs debugger"
      ["Stepping"
       ("d" "Step through" debugger-step-through)
@@ -4233,7 +4224,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
         (dired-goto-subdir parent-dir)
         (search-forward search-term)))
     (transient-define-prefix transient/dired-mode/filter ()
-      "Dired-Filter commands."
+      "`dired-mode' Dired-Filter commands."
       ;; have suffixes not exit the transient by default
       :transient-suffix 'transient--do-stay
       ["Dired → Filter"
@@ -4269,7 +4260,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
        ]
       )
     (transient-define-prefix transient/dired-mode ()
-      "Dired commands."
+      "`dired-mode' commands."
       ["Dired"
        ["File"
         ("RET" "Open" dired-find-file)
@@ -4332,7 +4323,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; major-mode specific transient for edebug-mode
 (with-eval-after-load 'edebug
   (transient-define-prefix transient/edebug-mode ()
-    "Edebug commands."
+    "`edebug-mode' commands."
     ["Edebug"
      ["Modes"
       ("SPC" "Step" edebug-step-mode)
@@ -4392,7 +4383,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
           ((string= ess-dialect "julia") (julia))
           (t (message "Unsupported dialect"))))
   (transient-define-prefix transient/ess-mode ()
-    "Emacs Speaks Statistics commands."
+    "Emacs Speaks Statistics `ess-mode' commands."
     ["Emacs Speaks Statistics"
      ["Session"
       ("N" "New" transient/ess-mode--new-session)
@@ -4663,18 +4654,29 @@ ROTATIONS can be negative, which rotates in the opposite direction."
     )
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
 
-;; add transient for accessing Org entry points
-(with-eval-after-load 'org
-  (transient-define-prefix transient/org-launcher ()
-    "Launcher for Org entry points."
-    ["Org launcher"
-     ("a" "Agenda" org-agenda)
-     ("c" "Capture" org-capture)
-     ("b" "Switchb" org-switchb)
-     ("l" "Store link" org-store-link)
+;; major-mode specific transient for org-msg-edit-mode
+(with-eval-after-load 'org-msg
+  (transient-define-prefix transient/org-msg-edit-mode ()
+    "`org-msg-edit-mode' commands."
+    ["OrgMsg"
+     ["Jump to"
+      ("f" "From" message-goto-from)
+      ("t" "To" message-goto-to)
+      ("c" "Cc" message-goto-cc)
+      ("B" "Bcc" message-goto-bcc)
+      ("F" "Fcc" message-goto-fcc)
+      ("S" "Subject" message-goto-subject)
+      ("b" "Body" org-msg-goto-body)
+      ]
+     ["Action"
+      ("C-a" "Manage attachments" org-msg-attach)
+      ("C-e" "Preview" org-msg-preview)
+      ("C-c" "Send" org-ctrl-c-ctrl-c)
+      ("C-k" "Kill" org-msg-edit-kill-buffer)
+      ]
      ]
     )
-  (global-set-key (kbd "C-c C-M-o") #'transient/org-launcher))
+  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m") #'transient/org-msg-edit-mode))
 
 ;; major-mode specific transient for python-mode
 (with-eval-after-load 'python
@@ -4683,7 +4685,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
     ;; using it to define `python-black-format-buffer-or-region' and
     ;; `python-black-format-on-save-mode'
     (transient-define-prefix transient/python-mode ()
-      "Python mode commands."
+      "`python-mode' commands."
       ["Python"
        ["REPL"
         ("p" "Start" run-python)
@@ -4716,7 +4718,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; major-mode specific transient for racket-mode
 (with-eval-after-load 'racket-mode
   (transient-define-prefix transient/racket-mode ()
-    "Racket mode commands."
+    "`racket-mode' commands."
     ["Racket"
      ["Run"
       ("rr" "Buffer in REPL" racket-run)
@@ -4800,7 +4802,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode
   (transient-define-prefix transient/smerge-mode ()
-    "smerge-mode commands."
+    "`smerge-mode' commands."
     ;; have suffixes not exit the transient by default
     :transient-suffix 'transient--do-stay
     ["Smerge"
@@ -4844,7 +4846,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
         (progn (term-char-mode) (message "line → char"))
       (progn (term-line-mode) (message "char → line"))))
   (transient-define-prefix transient/term-mode ()
-    "Term mode commands."
+    "`term-mode' commands."
     ["Term"
      ("m" "Toggle between `term-char-mode' and `term-line-mode'"
       transient/term-mode--toggle-char-mode-line-mode :transient t)
@@ -4856,7 +4858,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; major-mode specific transient for ztreedir-mode
 (with-eval-after-load 'ztree-dir
   (transient-define-prefix transient/ztreedir-mode ()
-    "Ztree directory commands."
+    "Ztree directory `ztreedir-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Ztree directory"
      ["Movement"
@@ -4883,7 +4885,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; major-mode specific transient for ztreediff-mode
 (with-eval-after-load 'ztree-diff
   (transient-define-prefix transient/ztreediff-mode ()
-    "Ztree difference commands."
+    "Ztree difference `ztreediff-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Ztree difference"
      ["Movement"
@@ -4922,7 +4924,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
     (condition-case nil (quit-windows-on "*Flycheck errors*" t)
       (error (flycheck-list-errors))))
   (transient-define-prefix transient/flycheck-mode ()
-    "Flycheck minor mode commands."
+    "Flycheck minor mode `flycheck-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Flycheck"
      ["Error"

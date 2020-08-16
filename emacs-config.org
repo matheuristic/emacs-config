@@ -2842,39 +2842,6 @@ by (by default, it is off).
       (define-key keymap (kbd "M") #'org-msg-mode))))
 #+end_src
 
-*** OrgMsg hydra                                                      :hydra:
-
-Major mode-specific hydra for ~org-msg-edit-mode~ for jumping to
-various parts of the email and performing email-related actions.
-
-*Note*: ~org-msg-edit-mode~ is in effect when editing email messages
-with ~org-msg-mode~ enabled.
-
-#+name: org-msg-edit-mode-hydra
-#+begin_src emacs-lisp
-;; major mode-specific hydra for OrgMsg edit mode
-(with-eval-after-load 'org-msg
-  (defhydra my-hydra/org-msg-edit-mode (:color teal :columns 6)
-    "
-OrgMsg (_q_: quit)"
-    ("q" nil nil)
-    ("f" message-goto-from "from")
-    ("t" message-goto-to "to")
-    ("c" message-goto-cc "cc")
-    ("B" message-goto-bcc "bcc")
-    ("F" message-goto-fcc "fcc")
-    ("S" message-goto-subject "subj")
-    ("b" org-msg-goto-body "body")
-    ("C-a" org-msg-attach "attach")
-    ("C-e" org-msg-preview "preview")
-    ("C-c" org-ctrl-c-ctrl-c "send")
-    ("C-k" org-msg-edit-kill-buffer "kill"))
-
-  ;; binding for org-msg-edit-mode
-  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
-    #'my-hydra/org-msg-edit-mode/body))
-#+end_src
-
 ** Link to notmuch messages in Org-mode documents                  :external:
 
 [[https://code.orgmode.org/bzg/org-mode/src/master/contrib/lisp/ol-notmuch.el][ol-notmuch]] is an Org-mode contributed package that adds Org-mode
@@ -8376,7 +8343,7 @@ CSV major mode transient.
 ;; major-mode specific transient for csv-mode
 (with-eval-after-load 'csv-mode
   (transient-define-prefix transient/csv-mode ()
-    "CSV mode commands."
+    "`csv-mode' commands."
     ["CSV"
      ["Sort"
       ("s" "Lexicographic" csv-sort-fields)
@@ -8411,7 +8378,7 @@ CSV major mode transient.
 ;; major-mode specific transient for debugger-mode
 (with-eval-after-load 'debug
   (transient-define-prefix transient/debugger-mode ()
-    "Debugger mode commands."
+    "`debugger-mode' commands."
     ["Emacs debugger"
      ["Stepping"
       ("d" "Step through" debugger-step-through)
@@ -8459,7 +8426,7 @@ Dired major mode transient.
         (dired-goto-subdir parent-dir)
         (search-forward search-term)))
     (transient-define-prefix transient/dired-mode/filter ()
-      "Dired-Filter commands."
+      "`dired-mode' Dired-Filter commands."
       ;; have suffixes not exit the transient by default
       :transient-suffix 'transient--do-stay
       ["Dired → Filter"
@@ -8495,7 +8462,7 @@ Dired major mode transient.
        ]
       )
     (transient-define-prefix transient/dired-mode ()
-      "Dired commands."
+      "`dired-mode' commands."
       ["Dired"
        ["File"
         ("RET" "Open" dired-find-file)
@@ -8565,7 +8532,7 @@ Dired major mode transient.
 ;; major-mode specific transient for edebug-mode
 (with-eval-after-load 'edebug
   (transient-define-prefix transient/edebug-mode ()
-    "Edebug commands."
+    "`edebug-mode' commands."
     ["Edebug"
      ["Modes"
       ("SPC" "Step" edebug-step-mode)
@@ -8632,7 +8599,7 @@ Emacs Speaks Statistics major mode transient.
           ((string= ess-dialect "julia") (julia))
           (t (message "Unsupported dialect"))))
   (transient-define-prefix transient/ess-mode ()
-    "Emacs Speaks Statistics commands."
+    "Emacs Speaks Statistics `ess-mode' commands."
     ["Emacs Speaks Statistics"
      ["Session"
       ("N" "New" transient/ess-mode--new-session)
@@ -8932,6 +8899,38 @@ Neuron major mode transient.
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
 #+end_src
 
+*** org-msg-edit-mode transient
+
+OrgMsg message compose major mode transient. This major mode is in
+effect when editing message buffers with ~org-msg-mode~ enabled.
+
+#+name: org-msg-edit-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for org-msg-edit-mode
+(with-eval-after-load 'org-msg
+  (transient-define-prefix transient/org-msg-edit-mode ()
+    "`org-msg-edit-mode' commands."
+    ["OrgMsg"
+     ["Jump to"
+      ("f" "From" message-goto-from)
+      ("t" "To" message-goto-to)
+      ("c" "Cc" message-goto-cc)
+      ("B" "Bcc" message-goto-bcc)
+      ("F" "Fcc" message-goto-fcc)
+      ("S" "Subject" message-goto-subject)
+      ("b" "Body" org-msg-goto-body)
+      ]
+     ["Action"
+      ("C-a" "Manage attachments" org-msg-attach)
+      ("C-e" "Preview" org-msg-preview)
+      ("C-c" "Send" org-ctrl-c-ctrl-c)
+      ("C-k" "Kill" org-msg-edit-kill-buffer)
+      ]
+     ]
+    )
+  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m") #'transient/org-msg-edit-mode))
+#+end_src
+
 *** python-mode transient
 
 Python major mode transient.
@@ -8945,7 +8944,7 @@ Python major mode transient.
     ;; using it to define `python-black-format-buffer-or-region' and
     ;; `python-black-format-on-save-mode'
     (transient-define-prefix transient/python-mode ()
-      "Python mode commands."
+      "`python-mode' commands."
       ["Python"
        ["REPL"
         ("p" "Start" run-python)
@@ -8985,7 +8984,7 @@ Major mode-specific hydra for ~racket-mode~.
 ;; major-mode specific transient for racket-mode
 (with-eval-after-load 'racket-mode
   (transient-define-prefix transient/racket-mode ()
-    "Racket mode commands."
+    "`racket-mode' commands."
     ["Racket"
      ["Run"
       ("rr" "Buffer in REPL" racket-run)
@@ -9087,7 +9086,7 @@ from [[https://github.com/alphapapa/unpackaged.el#hydra][here]].
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode
   (transient-define-prefix transient/smerge-mode ()
-    "smerge-mode commands."
+    "`smerge-mode' commands."
     ;; have suffixes not exit the transient by default
     :transient-suffix 'transient--do-stay
     ["Smerge"
@@ -9142,7 +9141,7 @@ to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#S
         (progn (term-char-mode) (message "line → char"))
       (progn (term-line-mode) (message "char → line"))))
   (transient-define-prefix transient/term-mode ()
-    "Term mode commands."
+    "`term-mode' commands."
     ["Term"
      ("m" "Toggle between `term-char-mode' and `term-line-mode'"
       transient/term-mode--toggle-char-mode-line-mode :transient t)
@@ -9161,7 +9160,7 @@ Ztree directory major mode transient.
 ;; major-mode specific transient for ztreedir-mode
 (with-eval-after-load 'ztree-dir
   (transient-define-prefix transient/ztreedir-mode ()
-    "Ztree directory commands."
+    "Ztree directory `ztreedir-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Ztree directory"
      ["Movement"
@@ -9195,7 +9194,7 @@ Ztree difference major mode transient.
 ;; major-mode specific transient for ztreediff-mode
 (with-eval-after-load 'ztree-diff
   (transient-define-prefix transient/ztreediff-mode ()
-    "Ztree difference commands."
+    "Ztree difference `ztreediff-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Ztree difference"
      ["Movement"
@@ -9245,7 +9244,7 @@ Flycheck minor mode transient.
     (condition-case nil (quit-windows-on "*Flycheck errors*" t)
       (error (flycheck-list-errors))))
   (transient-define-prefix transient/flycheck-mode ()
-    "Flycheck minor mode commands."
+    "Flycheck minor mode `flycheck-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Flycheck"
      ["Error"
@@ -9547,8 +9546,6 @@ The main configuration file.
 <<notmuch-toggle-search-tags-in-results>>
 
 <<org-msg>>
-
-<<org-msg-edit-mode-hydra>>
 
 <<ol-notmuch>>
 
@@ -9904,6 +9901,8 @@ The main configuration file.
 
 <<neuron-transient>>
 
+<<org-launcher-transient>>
+
 <<password-store-transient>>
 
 <<profiler-transient>>
@@ -9946,7 +9945,7 @@ The main configuration file.
 
 <<neuron-mode-transient>>
 
-<<org-launcher-transient>>
+<<org-msg-edit-mode-transient>>
 
 <<python-mode-transient>>
 
@@ -11481,6 +11480,39 @@ Modified copy of original using Gmail blockquotes."
             (mml-insert-part "text/html")
             ;; following line modified from original
             (insert (my-gmail-quote-html (org-msg-xml-to-str mail)))))))))
+#+end_src
+
+**** OrgMsg hydra                                                     :hydra:
+
+Major mode-specific hydra for ~org-msg-edit-mode~ for jumping to
+various parts of the email and performing email-related actions.
+
+*Note*: ~org-msg-edit-mode~ is in effect when editing email messages
+with ~org-msg-mode~ enabled.
+
+#+name: org-msg-edit-mode-hydra
+#+begin_src emacs-lisp
+;; major mode-specific hydra for OrgMsg edit mode
+(with-eval-after-load 'org-msg
+  (defhydra my-hydra/org-msg-edit-mode (:color teal :columns 6)
+    "
+OrgMsg (_q_: quit)"
+    ("q" nil nil)
+    ("f" message-goto-from "from")
+    ("t" message-goto-to "to")
+    ("c" message-goto-cc "cc")
+    ("B" message-goto-bcc "bcc")
+    ("F" message-goto-fcc "fcc")
+    ("S" message-goto-subject "subj")
+    ("b" org-msg-goto-body "body")
+    ("C-a" org-msg-attach "attach")
+    ("C-e" org-msg-preview "preview")
+    ("C-c" org-ctrl-c-ctrl-c "send")
+    ("C-k" org-msg-edit-kill-buffer "kill"))
+
+  ;; binding for org-msg-edit-mode
+  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m")
+    #'my-hydra/org-msg-edit-mode/body))
 #+end_src
 
 ** Information

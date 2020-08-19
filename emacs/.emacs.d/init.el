@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 19 13:17:42 2020
+;; Generated: Wed Aug 19 13:32:45 2020
 
 ;;; Commentary:
 
@@ -2593,7 +2593,9 @@ Formatting a selected region only works on top-level objects."
 ;; binding for calling Magit
 (use-package magit
   :commands magit-status
-  :bind ("C-c C-M-g" . magit-status))
+  :bind ("C-c C-M-g" . magit-status)
+  :config (add-hook 'magit-process-find-password-functions
+                    #'magit-process-password-auth-source))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html

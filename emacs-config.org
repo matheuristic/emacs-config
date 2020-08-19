@@ -5388,20 +5388,12 @@ Also add a corresponding entry type to ~org-capture-templates~.
 In other words, it is an high-level interface to the ~git~
 command-line program on the system.
 
-Under the below configuration, Magit uses [[https://www.gnu.org/software/emacs/manual/html_node/auth/index.html][auth-source]] to look up
-passwords (from the sources listed in ~auth-sources~). A user
-password/token can be stored using ~pass~ while a machine-specific
-password/token can be stored in =~/.authinfo.gpg= (both use GnuPG for
-encryption).
-
 #+name: magit
 #+begin_src emacs-lisp
 ;; binding for calling Magit
 (use-package magit
   :commands magit-status
-  :bind ("C-c C-M-g" . magit-status)
-  :config (add-hook 'magit-process-find-password-functions
-                    #'magit-process-password-auth-source))
+  :bind ("C-c C-M-g" . magit-status))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html

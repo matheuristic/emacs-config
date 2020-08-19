@@ -5388,12 +5388,20 @@ Also add a corresponding entry type to ~org-capture-templates~.
 In other words, it is an high-level interface to the ~git~
 command-line program on the system.
 
+Under the below configuration, Magit uses [[https://www.gnu.org/software/emacs/manual/html_node/auth/index.html][auth-source]] to look up
+passwords (from the sources listed in ~auth-sources~). A user
+password/token can be stored using ~pass~ while a machine-specific
+password/token can be stored in =~/.authinfo.gpg= (both use GnuPG for
+encryption).
+
 #+name: magit
 #+begin_src emacs-lisp
 ;; binding for calling Magit
 (use-package magit
   :commands magit-status
-  :bind ("C-c C-M-g" . magit-status))
+  :bind ("C-c C-M-g" . magit-status)
+  :config (add-hook 'magit-process-find-password-functions
+                    #'magit-process-password-auth-source))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
@@ -6989,7 +6997,20 @@ auth-source and [[https://www.passwordstore.org/][pass]].
 (when (executable-find "pass")
   (use-package auth-source-pass
     :demand t
-    :config (auth-source-pass-enable)))
+    :config
+    (defun my-auth-source-pass-enable ()
+      "Enable auth-source and pass integration."
+      (interactive)
+      (auth-source-pass-enable)
+      (message "auth-source-password-store enabled"))
+    (defun my-auth-source-pass-disable ()
+      "Disable auth-source and pass integration."
+      (interactive)
+      ;; To add password-store to the list of sources, evaluate the following:
+      (setq auth-sources (delete 'password-store auth-sources))
+      ;; clear the cache (required after each change to #'auth-source-pass-search)
+      (auth-source-forget-all-cached)
+      (message "auth-source-password-store disabled"))))
 #+end_src
 
 *** password-store.el                                                 :melpa:
@@ -7795,30 +7816,43 @@ Transient for accessing password-store.el commands.
 #+name: password-store-transient
 #+begin_src emacs-lisp
 ;; add transient for password-store commands, bind to "C-c C-M-S-p"
-(with-eval-after-load 'password-store
-  (transient-define-prefix transient/password-store ()
-    "Various password-store commands."
-    ["Password store"
-     ["Copy"
-      ("c" "Password" password-store-copy)
-      ("f" "Field" password-store-copy-field)
-      ("u" "URL" password-store-url)
-      ]
-     ["Add/Remove/Modify"
-      ("g" "Generate" password-store-generate)
-      ("i" "Insert" password-store-insert)
-      ("e" "Edit" password-store-edit)
-      ("r" "Rename" password-store-rename)
-      ("R" "Remove" password-store-remove)
-      ]
-     ["Other"
-      ("C" "Clear" password-store-clear)
-      ("I" "Init store" password-store-init)
-      ("v" "Version" password-store-version)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-S-p") #'transient/password-store))
+(with-eval-after-load 'auth-source-pass
+  (with-eval-after-load 'password-store
+    (defun transient/password-store--toggle-auth-source-pass-store ()
+      "Toggle auto-source and password-store integration."
+      (interactive)
+      (if (member 'password-store auth-sources)
+          (my-auth-source-pass-disable)
+        (my-auth-source-pass-enable)))
+    (transient-define-prefix transient/password-store ()
+      "Various password-store commands."
+      ["Password store"
+       ["Copy"
+        ("c" "Password" password-store-copy)
+        ("f" "Field" password-store-copy-field)
+        ("u" "URL" password-store-url)
+        ]
+       ["Add/Remove/Modify"
+        ("g" "Generate" password-store-generate)
+        ("i" "Insert" password-store-insert)
+        ("e" "Edit" password-store-edit)
+        ("r" "Rename" password-store-rename)
+        ("R" "Remove" password-store-remove)
+        ]
+       ["Other"
+        ("A" (lambda ()
+               (transient--make-description
+                "Auth-source integration"
+                (member 'password-store auth-sources)))
+         transient/password-store--toggle-auth-source-pass-store
+         :transient t)
+        ("C" "Clear" password-store-clear)
+        ("I" "Init store" password-store-init)
+        ("v" "Version" password-store-version)
+        ]
+       ]
+      )
+    (global-set-key (kbd "C-c C-M-S-p") #'transient/password-store)))
 #+end_src
 
 *** Profiler transient
@@ -8373,7 +8407,7 @@ CSV major mode transient.
      ["Other"
       ("r" "Specify return value" debugger-return-value)
       ("l" "List debug functions" debugger-list-functions)
-      ("v" "Toggle locals" debugger-toggle-locals)
+      ("v" "Toggle locals" backtrace-toggle-locals)
       ("h" "Help" describe-mode)
       ]
      ]

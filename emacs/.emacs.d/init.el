@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 19 15:15:03 2020
+;; Generated: Wed Aug 19 16:31:23 2020
 
 ;;; Commentary:
 
@@ -2593,7 +2593,9 @@ Formatting a selected region only works on top-level objects."
 ;; binding for calling Magit
 (use-package magit
   :commands magit-status
-  :bind ("C-c C-M-g" . magit-status))
+  :bind ("C-c C-M-g" . magit-status)
+  :config (add-hook 'magit-process-find-password-functions
+                    #'magit-process-password-auth-source))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
@@ -3158,7 +3160,20 @@ for more information."
 (when (executable-find "pass")
   (use-package auth-source-pass
     :demand t
-    :config (auth-source-pass-enable)))
+    :config
+    (defun my-auth-source-pass-enable ()
+      "Enable auth-source and pass integration."
+      (interactive)
+      (auth-source-pass-enable)
+      (message "auth-source-password-store enabled"))
+    (defun my-auth-source-pass-disable ()
+      "Disable auth-source and pass integration."
+      (interactive)
+      ;; To add password-store to the list of sources, evaluate the following:
+      (setq auth-sources (delete 'password-store auth-sources))
+      ;; clear the cache (required after each change to #'auth-source-pass-search)
+      (auth-source-forget-all-cached)
+      (message "auth-source-password-store disabled"))))
 
 ;; emacs integration with pass password-store
 (when (executable-find "pass")
@@ -3730,30 +3745,43 @@ whitespace, indenting and untabifying."
   (global-set-key (kbd "C-c C-M-o") #'transient/org-launcher))
 
 ;; add transient for password-store commands, bind to "C-c C-M-S-p"
-(with-eval-after-load 'password-store
-  (transient-define-prefix transient/password-store ()
-    "Various password-store commands."
-    ["Password store"
-     ["Copy"
-      ("c" "Password" password-store-copy)
-      ("f" "Field" password-store-copy-field)
-      ("u" "URL" password-store-url)
-      ]
-     ["Add/Remove/Modify"
-      ("g" "Generate" password-store-generate)
-      ("i" "Insert" password-store-insert)
-      ("e" "Edit" password-store-edit)
-      ("r" "Rename" password-store-rename)
-      ("R" "Remove" password-store-remove)
-      ]
-     ["Other"
-      ("C" "Clear" password-store-clear)
-      ("I" "Init store" password-store-init)
-      ("v" "Version" password-store-version)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-S-p") #'transient/password-store))
+(with-eval-after-load 'auth-source-pass
+  (with-eval-after-load 'password-store
+    (defun transient/password-store--toggle-auth-source-pass-store ()
+      "Toggle auto-source and password-store integration."
+      (interactive)
+      (if (member 'password-store auth-sources)
+          (my-auth-source-pass-disable)
+        (my-auth-source-pass-enable)))
+    (transient-define-prefix transient/password-store ()
+      "Various password-store commands."
+      ["Password store"
+       ["Copy"
+        ("c" "Password" password-store-copy)
+        ("f" "Field" password-store-copy-field)
+        ("u" "URL" password-store-url)
+        ]
+       ["Add/Remove/Modify"
+        ("g" "Generate" password-store-generate)
+        ("i" "Insert" password-store-insert)
+        ("e" "Edit" password-store-edit)
+        ("r" "Rename" password-store-rename)
+        ("R" "Remove" password-store-remove)
+        ]
+       ["Other"
+        ("A" (lambda ()
+               (transient--make-description
+                "Auth-source integration"
+                (member 'password-store auth-sources)))
+         transient/password-store--toggle-auth-source-pass-store
+         :transient t)
+        ("C" "Clear" password-store-clear)
+        ("I" "Init store" password-store-init)
+        ("v" "Version" password-store-version)
+        ]
+       ]
+      )
+    (global-set-key (kbd "C-c C-M-S-p") #'transient/password-store)))
 
 ;; add transient for Emacs profiler, bind to "C-c C-M-S-e"
 (transient-define-prefix transient/profiler ()
@@ -4211,7 +4239,7 @@ whitespace, indenting and untabifying."
      ["Other"
       ("r" "Specify return value" debugger-return-value)
       ("l" "List debug functions" debugger-list-functions)
-      ("v" "Toggle locals" debugger-toggle-locals)
+      ("v" "Toggle locals" backtrace-toggle-locals)
       ("h" "Help" describe-mode)
       ]
      ]

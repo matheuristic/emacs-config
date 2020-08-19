@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug 16 14:29:56 2020
+;; Generated: Tue Aug 18 20:14:40 2020
 
 ;;; Commentary:
 
@@ -386,6 +386,57 @@ if the point is in the minibuffer."
         aw-ignore-current nil
         aw-scope 'frame)
   (global-set-key (kbd "M-o") #'ace-window))
+
+(defun my-rotate-window-buffers (rotations)
+  "Rotate buffers in the windows of the current frame ROTATIONS times.
+ROTATIONS can be negative, which rotates in the opposite direction."
+  (interactive "P")
+  (let* (;; windows that do not contain transient buffers
+         (windows (seq-filter (lambda (w)
+                                (not
+                                 (string= (buffer-name
+                                           (window-buffer w))
+                                          transient--buffer-name)))
+                              (window-list)))
+         (num-windows (length windows)))
+    (if (not (> num-windows 1))
+        (message "Only one window in the frame. Nothing to rotate.")
+      (let* (;; original window order properties
+             (window-props (mapcar (lambda (w)
+                                     `(:buffer ,(window-buffer w)
+                                       :start ,(window-start w)
+                                       :point ,(window-point w)))
+                                   windows))
+             ;; new window order after rotation
+             (window-moves (mapcar
+                            (lambda (k)
+                              (elt windows (mod (+ k rotations)
+                                                num-windows)))
+                            (number-sequence 0 (1- num-windows))))
+             ;; create alist for easier looping later
+             (wins-props (cl-mapcar #'cons window-moves window-props)))
+        ;; iteratively assign orig window props in new window order
+        (dolist (w-p wins-props)
+          (let ((win (car w-p))
+                (prop (cdr w-p)))
+            (set-window-buffer-start-and-point
+             win
+             (plist-get prop :buffer)
+             (plist-get prop :start)
+             (plist-get prop :point))))))))
+
+(defun my-rotate-buffers-forward ()
+  "Rotate buffers in current frame's windows forward."
+  (interactive)
+  (my-rotate-window-buffers 1))
+(defun my-rotate-buffers-backward ()
+  "Rotate buffers in current frame's windows backward."
+  (interactive)
+  (my-rotate-window-buffers -1))
+
+;; bind "C-x 4 [" and "C-x 4 ]" to rotation of window buffers
+(global-set-key (kbd "C-x 4 [") #'my-rotate-buffers-backward)
+(global-set-key (kbd "C-x 4 ]") #'my-rotate-buffers-forward)
 
 ;; Buffers, windows, frames, workspaces / Frame management
 
@@ -3969,53 +4020,6 @@ whitespace, indenting and untabifying."
   (interactive)
   (transient/window--transpose-windows 'windmove-right))
 
-(defun transient/window--rotate-window-buffers (rotations)
-  "Rotate buffers in the windows of the current frame ROTATIONS times.
-ROTATIONS can be negative, which rotates in the opposite direction."
-  (interactive "P")
-  (let* (;; windows that do not contain transient buffers
-         (windows (seq-filter (lambda (w)
-                                (not
-                                 (string= (buffer-name
-                                           (window-buffer w))
-                                          transient--buffer-name)))
-                              (window-list)))
-         (num-windows (length windows)))
-    (if (not (> num-windows 1))
-        (message "Only one window in the frame. Nothing to rotate.")
-      (let* (;; original window order properties
-             (window-props (mapcar (lambda (w)
-                                     `(:buffer ,(window-buffer w)
-                                       :start ,(window-start w)
-                                       :point ,(window-point w)))
-                                   windows))
-             ;; new window order after rotation
-             (window-moves (mapcar
-                            (lambda (k)
-                              (elt windows (mod (+ k rotations)
-                                                num-windows)))
-                            (number-sequence 0 (1- num-windows))))
-             ;; create alist for easier looping later
-             (wins-props (cl-mapcar #'cons window-moves window-props)))
-        ;; iteratively assign orig window props in new window order
-        (dolist (w-p wins-props)
-          (let ((win (car w-p))
-                (prop (cdr w-p)))
-            (set-window-buffer-start-and-point
-             win
-             (plist-get prop :buffer)
-             (plist-get prop :start)
-             (plist-get prop :point))))))))
-
-(defun transient/window--rotate-buffers-forward ()
-  "Rotate buffers in current frame's windows forward."
-  (interactive)
-  (transient/window--rotate-window-buffers 1))
-(defun transient/window--rotate-buffers-backward ()
-  "Rotate buffers in current frame's windows backward."
-  (interactive)
-  (transient/window--rotate-window-buffers -1))
-
 ;; add transient popup for window commands, bind to "C-c C-M-w"
 (transient-define-prefix transient/window ()
   "Window management commands."
@@ -4035,8 +4039,8 @@ ROTATIONS can be negative, which rotates in the opposite direction."
     ("S-<down>" "↓" transient/window--transpose-window-down)
     ("S-<left>" "←" transient/window--transpose-window-left)
     ("S-<right>" "→" transient/window--transpose-window-right)
-    ("[" "Rotate bwd" transient/window--rotate-buffers-backward)
-    ("]" "Rotate fwd" transient/window--rotate-buffers-forward)
+    ("[" "Rotate bwd" my-rotate-buffers-backward)
+    ("]" "Rotate fwd" my-rotate-buffers-forward)
     ]
    ["Layout"
     ("0" "Delete window" delete-window)
@@ -4919,11 +4923,10 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 
 ;; add transient for Flycheck, bind to "C-c C-M-!"
 (with-eval-after-load 'flycheck
-  (defun transient/flycheck-mode--toggle-error-list ()
-    "Toggle the Flycheck error list, showing it in a side window."
+  (defun transient/flycheck-mode--close-error-list ()
+    "Close the Flycheck error list window if it is shown."
     (interactive)
-    (condition-case nil (quit-windows-on "*Flycheck errors*" t)
-      (error (flycheck-list-errors))))
+    (quit-windows-on "*Flycheck errors*" t))
   (transient-define-prefix transient/flycheck-mode ()
     "Flycheck minor mode `flycheck-mode' commands."
     :transient-suffix 'transient--do-stay
@@ -4931,7 +4934,8 @@ ROTATIONS can be negative, which rotates in the opposite direction."
      ["Error"
       ("n" "Next" flycheck-next-error)
       ("p" "Previous" flycheck-previous-error)
-      ("l" "List" transient/flycheck-mode--toggle-error-list)
+      ("l" "List open" flycheck-list-errors)
+      ("L" "List close" transient/flycheck-mode--close-error-list)
       ("H" "Local help at point" display-local-help)
       ("h" "Display at point" flycheck-display-error-at-point)
       ("e" "Explain at point" flycheck-explain-error-at-point)

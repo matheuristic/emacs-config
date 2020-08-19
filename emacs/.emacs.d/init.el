@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Aug 18 20:14:40 2020
+;; Generated: Wed Aug 19 13:17:42 2020
 
 ;;; Commentary:
 
@@ -1220,60 +1220,6 @@ Assumes "
 (condition-case nil
     (require 'ol-notmuch)
   (error (message "ol-notmuch requires Org 9.2.3+")))
-
-;; Marks and markers
-
-;; backtrack through the entire xref--marker-ring in a single action
-(defun xref-pop-marker-stack-all ()
-  "Pop back to where `xref-find-definitions' was first invoked.
-\\[xref-find-definitions] is the current binding for `xref-find-definitions'."
-  (interactive)
-  (let ((ring xref--marker-ring))
-    (when (ring-empty-p ring)
-      (user-error "Marker stack is empty"))
-    (let ((marker (ring-remove ring nil))) ;; oldest marker
-      (switch-to-buffer (or (marker-buffer marker)
-                            (user-error "The marked buffer has been deleted")))
-      (goto-char (marker-position marker))
-      (set-marker marker nil nil)
-      (run-hooks 'xref-after-return-hook)
-      (xref-clear-marker-stack)))) ;; clear the rest of the marker stack
-
-;; hydra for manipulating and managing marks and markers
-(defhydra my-hydra/marks-and-markers (:color amaranth :columns 3)
-  "
-Marks / Markers (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("SPC" (lambda ()
-           (interactive)
-           (push-mark))
-   "mark-push" :exit t)
-  ("S-SPC" (lambda ()
-             (interactive)
-             (set-mark-command t))
-   "mark-pop")
-  (")" mark-sexp "mark-sexp")
-  ("}" mark-paragraph "mark-paragraph")
-  ("]" mark-defun "mark-defun")
-  ("b" mark-whole-buffer "mark-whole-buf")
-  ("x" exchange-point-and-mark "exchange-pt-mk")
-  ("." (lambda ()
-         (interactive)
-         (xref-push-marker-stack))
-   "xref-push-marker" :exit t)
-  ("," xref-pop-marker-stack "xref-pop-marker")
-  ("<" xref-pop-marker-stack-all "xref-pop-markers")
-  ("c" (lambda ()
-         (interactive)
-         (xref-clear-marker-stack)
-         (message "Cleared xref--marker-ring"))
-   "xref-clear-markers"))
-(global-set-key (kbd "C-c C-M-,") 'my-hydra/marks-and-markers/body)
-
-(with-eval-after-load 'helm
-  (defhydra+ my-hydra/marks-and-markers nil
-    ("m" helm-mark-ring "helm-marks-buf" :exit t)
-    ("M" helm-all-mark-rings "helm-marks-all" :exit t)))
 
 ;; Non-programming files
 
@@ -3682,6 +3628,64 @@ whitespace, indenting and untabifying."
      ]
     )
   (global-set-key (kbd "C-c C-M-k") #'transient/keyboard-macros))
+
+(defun transient/marks-and-markers--xref-pop-marker-stack-all ()
+  "Pop back to where `xref-find-definitions' was first invoked.
+\\[xref-find-definitions] is the current binding for `xref-find-definitions'."
+  (interactive)
+  (let ((ring xref--marker-ring))
+    (when (ring-empty-p ring)
+      (user-error "Marker stack is empty"))
+    (let ((marker (ring-remove ring nil))) ;; oldest marker
+      (switch-to-buffer (or (marker-buffer marker)
+                            (user-error "The marked buffer has been deleted")))
+      (goto-char (marker-position marker))
+      (set-marker marker nil nil)
+      (run-hooks 'xref-after-return-hook)
+      (xref-clear-marker-stack)))) ;; clear the rest of the marker stack
+
+(defun transient/marks-and-markers--push-mark ()
+  "Push location of point into the mark ring."
+  (interactive)
+  (push-mark))
+(defun transient/marks-and-markers--pop-mark ()
+  "Pop the top location the mark ring and jump to it."
+  (interactive)
+  (set-mark-command t))
+(defun transient/marks-and-markers--push-marker ()
+  "Push location of point onto the marker stack."
+  (interactive)
+  (xref-push-marker-stack))
+(defun transient/marks-and-markers--clear-marker-stack ()
+  "Clear the marker stack."
+  (interactive)
+  (xref-clear-marker-stack)
+  (message "Cleared `xref--marker-ring'"))
+
+(with-eval-after-load 'helm
+  (transient-define-prefix transient/marks-and-markers ()
+    "Commands for manipulating and managing marks and markers."
+    ["Marks/Markers"
+     ["Mark"
+      ("SPC" "Push" transient/marks-and-markers--push-mark)
+      ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
+      (")" "Sexp" mark-sexp :transient t)
+      ("}" "Paragraph" mark-paragraph :transient t)
+      ("]" "Function" mark-defun :transient t)
+      ("b" "Buffer" mark-whole-buffer :transient t)
+      ("x" "Exchange with point" exchange-point-and-mark :transient t)
+      ("m" "Helm" helm-mark-ring)
+      ("M" "Helm (all)" helm-all-mark-rings)
+      ]
+     ["Marker"
+      ("." "Push" transient/marks-and-markers--push-marker)
+      ("," "Pop" xref-pop-marker-stack :transient t)
+      ("<" "Pop all" transient/marks-and-markers--xref-pop-marker-stack-all)
+      ("c" "Clear stack" transient/marks-and-markers--clear-marker-stack)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers))
 
 ;; add transient for neuron commands, bind to "C-c C-M-z"
 (with-eval-after-load 'neuron-mode

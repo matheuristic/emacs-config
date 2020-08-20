@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 19 23:33:51 2020
+;; Generated: Wed Aug 19 23:56:59 2020
 
 ;;; Commentary:
 
@@ -3369,9 +3369,9 @@ whitespace, indenting and untabifying."
     ("s" "By name" select-frame-by-name)
     ]
    ["Layout"
-    ("50" "Delete frame" delete-frame)
-    ("51" "Delete other frames" delete-other-frames)
-    ("52" "Create new frame" make-frame-command)
+    ("0" "Delete frame" delete-frame)
+    ("1" "Delete other frames" delete-other-frames)
+    ("2" "Create new frame" make-frame-command)
     ]
    ["Resize"
     ("M" "Toggle maximized" toggle-frame-maximized :transient t)
@@ -3896,7 +3896,7 @@ whitespace, indenting and untabifying."
     ("1" "Delete other windows" delete-other-windows)
     ("2" "Split horiz" split-window-right)
     ("3" "Split vert" split-window-below)
-    ("40" "Kill buffer and window" kill-buffer-and-window)
+    ("4" "Kill buffer and window" kill-buffer-and-window)
     ("u" "Winner undo" winner-undo)
     ("r" "Winner redo" winner-redo)
     ]

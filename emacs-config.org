@@ -7371,9 +7371,9 @@ Transient for frame management.
     ("s" "By name" select-frame-by-name)
     ]
    ["Layout"
-    ("50" "Delete frame" delete-frame)
-    ("51" "Delete other frames" delete-other-frames)
-    ("52" "Create new frame" make-frame-command)
+    ("0" "Delete frame" delete-frame)
+    ("1" "Delete other frames" delete-other-frames)
+    ("2" "Create new frame" make-frame-command)
     ]
    ["Resize"
     ("M" "Toggle maximized" toggle-frame-maximized :transient t)
@@ -7999,7 +7999,7 @@ Transient for window management.
     ("1" "Delete other windows" delete-other-windows)
     ("2" "Split horiz" split-window-right)
     ("3" "Split vert" split-window-below)
-    ("40" "Kill buffer and window" kill-buffer-and-window)
+    ("4" "Kill buffer and window" kill-buffer-and-window)
     ("u" "Winner undo" winner-undo)
     ("r" "Winner redo" winner-redo)
     ]

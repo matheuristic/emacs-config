@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 19 16:31:23 2020
+;; Generated: Wed Aug 19 21:06:57 2020
 
 ;;; Commentary:
 
@@ -2364,100 +2364,6 @@ Lisp function does not specify a special indentation."
          (cider-repl-mode . paredit-mode))
   :config (setq nrepl-log-messages t))
 
-;; hydras, adapted from https://github.com/clojure-emacs/cider-hydra
-(defhydra my-hydra/cider (:color teal :columns 3)
-  "
-CIDER (_q_: quit)"
-  ("q" nil nil)
-  ;; start a REPL and connect to it
-  ("j" cider-jack-in-clj "jack-in-clj")
-  ("s" cider-jack-in-cljs "jack-in-cljs")
-  ("b" cider-jack-in-clj&cljs "jack-in-clj&cljs")
-  ;; sub-hydras
-  ("d" my-hydra/cider-doc/body "→ Documentation")
-  ("e" my-hydra/cider-eval/body "→ Evaluation")
-  ("T" my-hydra/cider-test/body "→ Test")
-  ("D" my-hydra/cider-debug/body "→ Debug")
-  ("r" my-hydra/cider-repl/body "→ REPL"))
-(defhydra my-hydra/cider-doc (:color teal :columns 4)
-  "
-CIDER → Documentation (_q_: ←)"
-  ("q" my-hydra/cider/body nil)
-  ;; CiderDoc
-  ("d" cider-doc "cider-docs")
-  ;; ClojureDocs
-  ("r" cider-clojuredocs "clojure-docs")
-  ("h" cider-clojuredocs-web "clojure-docs-web")
-  ;; JavaDoc
-  ("j" cider-javadoc "java-docs-web")
-  ;; apropos
-  ("a" cider-apropos "search-symbols")
-  ("s" cider-apropos-select "select-symbols")
-  ("A" cider-apropos-documentation "search-docs")
-  ("e" cider-apropos-documentation-select "select-docs"))
-(defhydra my-hydra/cider-eval (:color teal :columns 3)
-  "
-CIDER → Eval (_q_: ←)"
-  ("q" my-hydra/cider/body nil)
-  ;; load
-  ("k" cider-load-buffer "load-buffer")
-  ("l" cider-load-file "load-file")
-  ("p" cider-load-all-project-ns "load-all-proj-ns")
-  ;; eval
-  ("r" cider-eval-region "eval-region")
-  ("n" cider-eval-ns-form "eval-ns-form")
-  ("e" cider-eval-last-sexp "eval-last-sexp")
-  ("P" cider-pprint-eval-last-sexp "eval-last-sexp-pp")
-  ("w" cider-eval-last-sexp-and-replace "eval-last-sexp-replace")
-  ("E" cider-eval-last-sexp-to-repl "eval-last-sexp-to-repl")
-  ("d" cider-eval-defun-at-point "eval-defun-at-point")
-  ("f" cider-pprint-eval-defun-at-point "eval-defun-at-point-pp")
-  (":" cider-read-and-eval "read-and-eval")
-  ;; inspect
-  ("i" cider-inspect "inspect")
-  ;; macro expansion
-  ("m" cider-macroexpand-1 "macroexpand-1")
-  ("M" cider-macroexpand-all "macroexpand-all"))
-(defhydra my-hydra/cider-test (:color teal :columns 4)
-  "
-CIDER → Test (_q_: ←)"
-  ("q" my-hydra/cider/body nil)
-  ("t" cider-test-run-test "run")
-  ("l" cider-test-run-loaded-tests "run-loaded")
-  ("p" cider-test-run-project-tests "run-project")
-  ("n" cider-test-run-ns-tests "run-ns")
-  ("r" cider-test-rerun-failed-tests "rerun-failed")
-  ("s" cider-test-show-report "show-report"))
-(defhydra my-hydra/cider-debug (:color teal :columns 3)
-  "
-CIDER → Debug (_q_: ←)"
-  ("q" my-hydra/cider/body nil)
-  ("x" (lambda () (interactive) (cider-eval-defun-at-point t)) "eval-defun-at-pt")
-  ("v" cider-toggle-trace-var "toggle-var-trace")
-  ("n" cider-toggle-trace-ns "toggle-ns-trace"))
-(defhydra my-hydra/cider-repl (:color teal :columns 3)
-  "
-CIDER → REPL (_q_: ←)"
-  ("q" my-hydra/cider/body nil)
-  ;; connection
-  ("d" cider-display-connection-info "disp-conn-info")
-  ("r" cider-rotate-default-connection "rot-default-conn")
-  ;; input
-  ("z" cider-switch-to-repl-buffer "switch-to-repl")
-  ("n" cider-repl-set-ns "set-repl-ns")
-  ("p" cider-insert-last-sexp-in-repl "ins-last-sexp-in-repl")
-  ("x" cider-refresh "refresh")
-  ;; output
-  ("o" cider-find-and-clear-repl-output "clear-repl-output")
-  ("O" (lambda () (interactive) (cider-find-and-clear-repl-output t)) "clear-repl-all")
-  ;; interrupt or quit connected REPL
-  ("b" cider-interrupt "interrupt")
-  ("Q" cider-quit "quit-cider"))
-
-;; binding for main CIDER hydra
-(with-eval-after-load 'clojure-mode
-  (define-key clojure-mode-map (kbd "C-c C-M-m") #'my-hydra/cider/body))
-
 ;; clojure linting, requires clj-kondo be installed on the system
 (when (executable-find "clj-kondo")
   (use-package flycheck-clj-kondo
@@ -4189,6 +4095,123 @@ whitespace, indenting and untabifying."
 
 ;; Transient commands / Major mode transients
 
+;; major-mode specific transient for clojure-mode
+(with-eval-after-load 'clojure-mode
+  (with-eval-after-load 'cider
+    (transient-define-prefix transient/clojure-mode/eval ()
+      "`clojure-mode' CIDER evaluation commands."
+      ["CIDER → Run"
+       ["Eval"
+        ("r" "Region" cider-eval-region)
+        ("n" "Namespace form" cider-eval-ns-form)
+        ("e" "Last sexp" cider-eval-last-sexp)
+        ("P" "Last sexp (pprint)" cider-pprint-eval-last-sexp)
+        ("w" "Last sexp replace" cider-eval-last-sexp-and-replace)
+        ("E" "Last sexp to REPL" cider-eval-last-sexp-to-repl)
+        ("d" "Function at point" cider-eval-defun-at-point)
+        ("f" "Function at point (pprint)" cider-pprint-eval-defun-at-point)
+        (":" "Minibuffer input" cider-read-and-eval)
+        ]
+       ["Load"
+        ("k" "Buffer" cider-load-buffer)
+        ("l" "File" cider-load-file)
+        ("p" "All proj ns" cider-load-all-project-ns)
+        ""
+        "Other"
+        ("i" "Inspect" cider-inspect)
+        ("m" "Macroexpand (single level)" cider-macroexpand-1)
+        ("M" "Macroexpand (all levels)" cider-macroexpand-all)
+        ]
+       ]
+      )
+
+    (transient-define-prefix transient/clojure-mode/test ()
+      "`clojure-mode' CIDER testing commands."
+      ["CIDER → Test"
+       ("t" "Run" cider-test-run-test)
+       ("l" "Run loaded" cider-test-run-loaded-tests)
+       ("p" "Run project" cider-test-run-project-tests)
+       ("n" "Run namespace" cider-test-run-ns-tests)
+       ("r" "Rerun failed" cider-test-rerun-failed-tests)
+       ("s" "Show report" cider-test-show-report)
+       ]
+      )
+
+    (transient-define-prefix transient/clojure-mode/help ()
+      "`clojure-mode' CIDER help/documentation commands."
+      ["CIDER → Help"
+       ("d" "CIDER docs" cider-doc)
+       ("c" "Clojure docs" cider-clojuredocs)
+       ("C" "Clojure docs (web)" cider-clojuredocs-web)
+       ("j" "Java docs (web)" cider-javadoc)
+       ("a" "Search symbols" cider-apropos)
+       ("s" "Select symbols" cider-apropos-select)
+       ("A" "Search docs" cider-apropos-documentation)
+       ("S" "Select docs" cider-apropos-documentation-select)
+       ]
+      )
+
+    (defun transient/clojure-mode/debug--eval-defun-at-point ()
+      "Debug version of `cider-eval-defun-at-point'."
+      (interactive)
+      (cider-eval-defun-at-point t))
+
+    (transient-define-prefix transient/clojure-mode/debug ()
+      "`clojure-mode' CIDER debug/documentation commands."
+      ["CIDER → Debug"
+       ("x" "Eval at point" transient/clojure-mode/debug--eval-defun-at-point)
+       ("v" "Toggle trace variable" cider-toggle-trace-var)
+       ("n" "Toggle trace namespace" cider-toggle-trace-ns)
+       ]
+      )
+
+    (defun transient/clojure-mode/repl--clear-output-all ()
+      "Clear all output in CIDER REPL buffer."
+      (interactive)
+      (cider-find-and-clear-repl-output t))
+
+    (transient-define-prefix transient/clojure-mode/repl ()
+      "`clojure-mode' CIDER REPL commands."
+      ["CIDER → REPL"
+       ["Input"
+        ("z" "Switch to buffer" cider-switch-to-repl-buffer)
+        ("n" "Set namespace" cider-repl-set-ns)
+        ("p" "Insert last sexp" cider-insert-last-sexp-in-repl)
+        ("x" "Refresh" cider-refresh)
+        ]
+       ["Output"
+        ("o" "Clear" cider-find-and-clear-repl-output)
+        ("O" "Clear all" transient/clojure-mode/repl--clear-output-all)
+        ]
+       [
+        "Other"
+        ("d" "Display conn info" cider-display-connection-info)
+        ("b" "Interrupt" cider-interrupt)
+        ("Q" "Quit CIDER" cider-quit)
+        ]
+       ]
+      )
+
+    (transient-define-prefix transient/clojure-mode ()
+      "`clojure-mode' CIDER commands."
+      ["CIDER"
+       ["Session"
+        ("jc" "Jack-in (Clojure)" cider-jack-in-clj)
+        ("js" "Jack-in (ClojureScript)" cider-jack-in-cljs)
+        ("jb" "Jack-in (Both)" cider-jack-in-clj&cljs)
+        ]
+       ["Submenus"
+        ("r" "→ REPL" transient/clojure-mode/repl)
+        ("e" "→ Run" transient/clojure-mode/eval)
+        ("t" "→ Test" transient/clojure-mode/test)
+        ("d" "→ Debug" transient/clojure-mode/debug)
+        ("h" "→ Help" transient/clojure-mode/help)
+        ]
+       ]
+      )
+
+    (define-key clojure-mode-map (kbd "C-c C-M-m") #'transient/clojure-mode)))
+
 ;; major-mode specific transient for csv-mode
 (with-eval-after-load 'csv-mode
   (transient-define-prefix transient/csv-mode ()
@@ -4222,7 +4245,11 @@ whitespace, indenting and untabifying."
   (transient-define-prefix transient/debugger-mode ()
     "`debugger-mode' commands."
     ["Emacs debugger"
-     ["Stepping"
+     ["Movement"
+      ("n" "Next line" next-line :transient t)
+      ("p" "Previous line" previous-line :transient t)
+      ""
+      "Stepping"
       ("d" "Step through" debugger-step-through)
       ("c" "Continue" debugger-continue)
       ("j" "Jump" debugger-jump)
@@ -4237,6 +4264,7 @@ whitespace, indenting and untabifying."
       ("R" "Sexp and record" debugger-record-expression)
       ]
      ["Other"
+      ("RET" "Follow at point" backtrace-help-follow-symbol)
       ("r" "Specify return value" debugger-return-value)
       ("l" "List debug functions" debugger-list-functions)
       ("v" "Toggle locals" backtrace-toggle-locals)

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 19 21:06:57 2020
+;; Generated: Wed Aug 19 23:33:51 2020
 
 ;;; Commentary:
 
@@ -1596,72 +1596,6 @@ call `open-line' on the very first character."
                   $2))")
         org-export-global-macros))
 
-;; hydra for org-mode
-(defhydra my-hydra/org-mode (:color amaranth :columns 3)
-  "
-Org-mode (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("M-s" org-narrow-to-subtree "narrow-subtree")
-  ("M-b" org-narrow-to-block "narrow-block")
-  ("M-w" widen "widen")
-  ("M-l" org-toggle-link-display "toggle-link-disp")
-  ("M-i" (lambda ()
-           (interactive)
-           (if org-image-actual-width
-               (setq org-image-actual-width nil)
-             (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
-           (org-redisplay-inline-images)) "toggle-img-width")
-  ("i" org-toggle-inline-images "toggle-images")
-  ("I" org-indent-mode "toggle-indent")
-  ("P" org-toggle-pretty-entities "toggle-prettify")
-  ("<tab>" org-cycle "cycle")
-  ("<S-tab>" org-global-cycle "global-cycle")
-  ("/" org-sparse-tree "sparse-tree")
-  ("c" org-remove-occur-highlights "occur-clear")
-  ("p" (lambda (n)
-         (interactive "p")
-         (if org-occur-highlights
-             (previous-error n)
-           (org-previous-visible-heading n)))
-   "previous")
-  ("n" (lambda (n)
-         (interactive "p")
-         (if org-occur-highlights
-             (next-error n)
-           (org-next-visible-heading n)))
-   "next")
-  ("g" org-goto "goto" :exit t)
-  ("s" org-sort "sort" :exit t)
-  ("o" org-occur "occur" :exit t)
-  ("r" org-refile "refile" :exit t)
-  ("t" org-todo "state" :exit t)
-  (":" org-set-tags-command "tags" :exit t)
-  ("," org-priority "priority" :exit t)
-  ("D" org-insert-drawer "drawer" :exit t)
-  ("P" org-set-property "property" :exit t)
-  ("N" org-add-note "note" :exit t)
-  ("F" org-footnote-action "footnote" :exit t)
-  ("a" org-archive-subtree-default "archive" :exit t)
-  ("<" org-insert-structure-template "structure" :exit t)
-  ("'" org-edit-special "edit-special" :exit t)
-  ("e" my-hydra/org-mode/emphasize/body "→ Emphasize" :exit t))
-
-;; hydra for org-mode text formatting
-(defhydra my-hydra/org-mode/emphasize (:color teal :columns 4)
-  "
-Org-mode → Emphasize (_q_: ←)"
-  ("q" my-hydra/org-mode/body nil)
-  ("b" (org-emphasize ?*) "bold")
-  ("i" (org-emphasize ?/) "italic")
-  ("u" (org-emphasize ?_) "underline")
-  ("s" (org-emphasize ?+) "strike-through")
-  ("c" (org-emphasize ?~) "code")
-  ("v" (org-emphasize ?=) "verbatim"))
-
-;; binding for org-mode hydra
-(with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-c C-M-m") #'my-hydra/org-mode/body))
-
 ;; org-agenda settings:
 ;; - narrow to subtree in org-agenda-follow-mode ("F" in agenda)
 ;; - full-frame Agenda view
@@ -1884,19 +1818,6 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
     (setq org-download-method 'my-org-download-method
           org-download-timestamp "%Y%m%d%H%M%S-")))
 
-(when (display-graphic-p)
-  ;; hydra for org-download
-  (defhydra my-hydra/org-mode/download (:color teal :columns 3)
-    "
-Org-mode → Download (_q_: ←)"
-    ("q" my-hydra/org-mode/body nil)
-    ("s" org-download-screenshot "screenshot")
-    ("y" org-download-yank "yank"))
-
-  ;; add entrypoint to download hydra to the org-mode hydra
-  (defhydra+ my-hydra/org-mode nil
-    ("d" my-hydra/org-mode/download/body "→ Download" :exit t)))
-
 ;; journaling using Org documents
 (use-package org-journal
   :after org
@@ -2002,16 +1923,6 @@ Org-mode → Download (_q_: ←)"
               :after (lambda () (my-org-present-extra-mode 1)))
   (advice-add 'org-present-read-write
               :after (lambda () (my-org-present-extra-mode 0))))
-
-;; add org-present present head to org-mode hydra
-(defhydra+ my-hydra/org-mode nil
-  ("C-p" (lambda ()
-           (interactive)
-           (let ((in-present-mode (condition-case nil
-                                      org-present-mode
-                                    (error nil))))
-             (if in-present-mode (org-present-quit) (org-present))))
-   "org-present" :exit t))
 
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
@@ -4718,6 +4629,116 @@ whitespace, indenting and untabifying."
      ]
     )
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
+
+;; major-mode specific transient for org-msg-edit-mode
+(with-eval-after-load 'org
+  (with-eval-after-load 'org-download
+   (with-eval-after-load 'org-present
+     (defun transient/org-mode--toggle-display-image-width ()
+       "Toggle resizing of inline images in `org-mode' to one-third screen width."
+       (interactive)
+       (if org-image-actual-width
+           (setq org-image-actual-width nil)
+         (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
+       (org-redisplay-inline-images))
+
+     (defun transient/org-mode--next-heading-dwim (n)
+       "Go to N-th next occur highlight or visible heading otherwise."
+       (interactive "p")
+       (if org-occur-highlights
+           (next-error n)
+         (org-next-visible-heading n)))
+
+     (defun transient/org-mode--previous-heading-dwim (n)
+       "Go to N-th previous occur highlight or visible heading otherwise."
+       (interactive "p")
+       (if org-occur-highlights
+           (previous-error n)
+         (org-previous-visible-heading n)))
+
+     (defun transient/org-mode--toggle-present-mode ()
+       "Enter or exit `org-present' presentation."
+       (interactive)
+       (let ((in-present-mode (condition-case nil
+                                  org-present-mode
+                                (error nil))))
+         (if in-present-mode (org-present-quit) (org-present))))
+
+     (transient-define-prefix transient/org-mode ()
+       "`org-mode' commands."
+       ["Org"
+        ["Node operations"
+         ("t" "Todo state" org-todo)
+         (":" "Tags" org-set-tags-command)
+         ("," "Priority" org-priority)
+         ("D" "Insert drawer" org-insert-drawer)
+         ("P" "Set property" org-set-property)
+         ("N" "Add note" org-add-note)
+         ("r" "Refile" org-refile)
+         ("s" "Sort" org-sort)
+         ""
+         "Toggle"
+         ("i" (lambda ()
+                (transient--make-description
+                 "Images"
+                 org-inline-image-overlays))
+          org-toggle-inline-images :transient t)
+         ("I" (lambda ()
+                (transient--make-description
+                 "Indent"
+                 org-indent-mode))
+          org-indent-mode :transient t)
+         ("P" (lambda ()
+                (transient--make-description
+                 "Prettify entities"
+                 org-pretty-entities))
+          org-toggle-pretty-entities :transient t)
+         ("M-l" (lambda ()
+                  (transient--make-description
+                   "Link display"
+                   (not org-link-descriptive)))
+          org-toggle-link-display :transient t)
+         ("M-i" (lambda ()
+                  (transient--make-description
+                   "Image resize"
+                   org-image-actual-width))
+          transient/org-mode--toggle-display-image-width :transient t)
+         ]
+        [:description (lambda ()
+                        (transient--make-description
+                         "Narrow"
+                         (buffer-narrowed-p)))
+         ("M-s" "Subtree" org-narrow-to-subtree)
+         ("M-b" "Block" org-narrow-to-block)
+         ("M-w" "Widen" widen)
+         ""
+         "Entry operations"
+         ("F" "Add footnote" org-footnote-action)
+         ("a" "Archive" org-archive-subtree-default)
+         ("<" "Insert structure" org-insert-structure-template)
+         ("'" "Edit (special)" org-edit-special)
+         ("e" "Emphasize text" org-emphasize)
+         ""
+         "Download"
+         ("ds" "Screenshot" org-download-screenshot)
+         ("dy" "Yank" org-download-yank)
+         ]
+        ["Search"
+         ("g" "Goto" org-goto)
+         ("o" "Occur" org-occur :transient t)
+         ("/" "Create sparse tree" org-sparse-tree :transient t)
+         ("c" "Clear search results" org-remove-occur-highlights :transient t)
+         ("n" "Next (sparse) node" transient/org-mode--next-heading-dwim :transient t)
+         ("p" "Previous (sparse) node" transient/org-mode--previous-heading-dwim :transient t)
+         ""
+         "Other"
+         ("<tab>" "Cycle node" org-cycle :transient t)
+         ("<S-tab>" "Cycle global" org-global-cycle :transient t)
+         ("C-p" "Present mode" transient/org-mode--toggle-present-mode)
+         ]
+        ]
+       )
+     (define-key org-mode-map (kbd "C-c C-M-m") #'transient/org-mode))))
 
 ;; major-mode specific transient for org-msg-edit-mode
 (with-eval-after-load 'org-msg

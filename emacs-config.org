@@ -3553,79 +3553,6 @@ To export different text for LaTeX and for other formats:
         org-export-global-macros))
 #+end_src
 
-** Org-mode hydra                                                     :hydra:
-
-Major mode-specific hydra for ~org-mode~.
-
-#+name: org-mode-hydra
-#+begin_src emacs-lisp
-;; hydra for org-mode
-(defhydra my-hydra/org-mode (:color amaranth :columns 3)
-  "
-Org-mode (_q_: quit)"
-  ("q" nil nil :exit t)
-  ("M-s" org-narrow-to-subtree "narrow-subtree")
-  ("M-b" org-narrow-to-block "narrow-block")
-  ("M-w" widen "widen")
-  ("M-l" org-toggle-link-display "toggle-link-disp")
-  ("M-i" (lambda ()
-           (interactive)
-           (if org-image-actual-width
-               (setq org-image-actual-width nil)
-             (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
-           (org-redisplay-inline-images)) "toggle-img-width")
-  ("i" org-toggle-inline-images "toggle-images")
-  ("I" org-indent-mode "toggle-indent")
-  ("P" org-toggle-pretty-entities "toggle-prettify")
-  ("<tab>" org-cycle "cycle")
-  ("<S-tab>" org-global-cycle "global-cycle")
-  ("/" org-sparse-tree "sparse-tree")
-  ("c" org-remove-occur-highlights "occur-clear")
-  ("p" (lambda (n)
-         (interactive "p")
-         (if org-occur-highlights
-             (previous-error n)
-           (org-previous-visible-heading n)))
-   "previous")
-  ("n" (lambda (n)
-         (interactive "p")
-         (if org-occur-highlights
-             (next-error n)
-           (org-next-visible-heading n)))
-   "next")
-  ("g" org-goto "goto" :exit t)
-  ("s" org-sort "sort" :exit t)
-  ("o" org-occur "occur" :exit t)
-  ("r" org-refile "refile" :exit t)
-  ("t" org-todo "state" :exit t)
-  (":" org-set-tags-command "tags" :exit t)
-  ("," org-priority "priority" :exit t)
-  ("D" org-insert-drawer "drawer" :exit t)
-  ("P" org-set-property "property" :exit t)
-  ("N" org-add-note "note" :exit t)
-  ("F" org-footnote-action "footnote" :exit t)
-  ("a" org-archive-subtree-default "archive" :exit t)
-  ("<" org-insert-structure-template "structure" :exit t)
-  ("'" org-edit-special "edit-special" :exit t)
-  ("e" my-hydra/org-mode/emphasize/body "→ Emphasize" :exit t))
-
-;; hydra for org-mode text formatting
-(defhydra my-hydra/org-mode/emphasize (:color teal :columns 4)
-  "
-Org-mode → Emphasize (_q_: ←)"
-  ("q" my-hydra/org-mode/body nil)
-  ("b" (org-emphasize ?*) "bold")
-  ("i" (org-emphasize ?/) "italic")
-  ("u" (org-emphasize ?_) "underline")
-  ("s" (org-emphasize ?+) "strike-through")
-  ("c" (org-emphasize ?~) "code")
-  ("v" (org-emphasize ?=) "verbatim"))
-
-;; binding for org-mode hydra
-(with-eval-after-load 'org
-  (define-key org-mode-map (kbd "C-c C-M-m") #'my-hydra/org-mode/body))
-#+end_src
-
 ** Org Agenda
 
 Org-mode provides [[https://orgmode.org/manual/Agenda-Views.html][agenda views]] that give an overview of open action
@@ -3958,27 +3885,6 @@ screenshot or by dragging and dropping an image onto the document.
           org-download-timestamp "%Y%m%d%H%M%S-")))
 #+end_src
 
-*** org-download hydra                                                :hydra:
-
-Hydra for ~org-download~.
-Add an entrypoint for the hydra to the org-mode hydra.
-
-#+name: org-download-hydra
-#+begin_src emacs-lisp
-(when (display-graphic-p)
-  ;; hydra for org-download
-  (defhydra my-hydra/org-mode/download (:color teal :columns 3)
-    "
-Org-mode → Download (_q_: ←)"
-    ("q" my-hydra/org-mode/body nil)
-    ("s" org-download-screenshot "screenshot")
-    ("y" org-download-yank "yank"))
-
-  ;; add entrypoint to download hydra to the org-mode hydra
-  (defhydra+ my-hydra/org-mode nil
-    ("d" my-hydra/org-mode/download/body "→ Download" :exit t)))
-#+end_src
-
 ** org-journal for journaling using Org-mode               :workaround:melpa:
 
 [[https://github.com/bastibe/org-journal][org-journal]] extends journaling capabilities to Org-mode.
@@ -4119,24 +4025,6 @@ slides, and =C-c C-q= will quit the presentation.
               :after (lambda () (my-org-present-extra-mode 1)))
   (advice-add 'org-present-read-write
               :after (lambda () (my-org-present-extra-mode 0))))
-#+end_src
-
-*** Add Org-mode presentation head to org-mode hydra                  :hydra:
-
-Add head for initializing an ~org-present~ presentation to org-mode
-hydra.
-
-#+name: add-org-present-to-org-mode-hydra
-#+begin_src emacs-lisp
-;; add org-present present head to org-mode hydra
-(defhydra+ my-hydra/org-mode nil
-  ("C-p" (lambda ()
-           (interactive)
-           (let ((in-present-mode (condition-case nil
-                                      org-present-mode
-                                    (error nil))))
-             (if in-present-mode (org-present-quit) (org-present))))
-   "org-present" :exit t))
 #+end_src
 
 ** ox-md for Org export backend to Markdown
@@ -8941,6 +8829,123 @@ Neuron major mode transient.
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
 #+end_src
 
+*** org-mode transient
+
+Org major mode transient.
+
+#+name: org-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for org-msg-edit-mode
+(with-eval-after-load 'org
+  (with-eval-after-load 'org-download
+   (with-eval-after-load 'org-present
+     (defun transient/org-mode--toggle-display-image-width ()
+       "Toggle resizing of inline images in `org-mode' to one-third screen width."
+       (interactive)
+       (if org-image-actual-width
+           (setq org-image-actual-width nil)
+         (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
+       (org-redisplay-inline-images))
+
+     (defun transient/org-mode--next-heading-dwim (n)
+       "Go to N-th next occur highlight or visible heading otherwise."
+       (interactive "p")
+       (if org-occur-highlights
+           (next-error n)
+         (org-next-visible-heading n)))
+
+     (defun transient/org-mode--previous-heading-dwim (n)
+       "Go to N-th previous occur highlight or visible heading otherwise."
+       (interactive "p")
+       (if org-occur-highlights
+           (previous-error n)
+         (org-previous-visible-heading n)))
+
+     (defun transient/org-mode--toggle-present-mode ()
+       "Enter or exit `org-present' presentation."
+       (interactive)
+       (let ((in-present-mode (condition-case nil
+                                  org-present-mode
+                                (error nil))))
+         (if in-present-mode (org-present-quit) (org-present))))
+
+     (transient-define-prefix transient/org-mode ()
+       "`org-mode' commands."
+       ["Org"
+        ["Node operations"
+         ("t" "Todo state" org-todo)
+         (":" "Tags" org-set-tags-command)
+         ("," "Priority" org-priority)
+         ("D" "Insert drawer" org-insert-drawer)
+         ("P" "Set property" org-set-property)
+         ("N" "Add note" org-add-note)
+         ("r" "Refile" org-refile)
+         ("s" "Sort" org-sort)
+         ""
+         "Toggle"
+         ("i" (lambda ()
+                (transient--make-description
+                 "Images"
+                 org-inline-image-overlays))
+          org-toggle-inline-images :transient t)
+         ("I" (lambda ()
+                (transient--make-description
+                 "Indent"
+                 org-indent-mode))
+          org-indent-mode :transient t)
+         ("P" (lambda ()
+                (transient--make-description
+                 "Prettify entities"
+                 org-pretty-entities))
+          org-toggle-pretty-entities :transient t)
+         ("M-l" (lambda ()
+                  (transient--make-description
+                   "Link display"
+                   (not org-link-descriptive)))
+          org-toggle-link-display :transient t)
+         ("M-i" (lambda ()
+                  (transient--make-description
+                   "Image resize"
+                   org-image-actual-width))
+          transient/org-mode--toggle-display-image-width :transient t)
+         ]
+        [:description (lambda ()
+                        (transient--make-description
+                         "Narrow"
+                         (buffer-narrowed-p)))
+         ("M-s" "Subtree" org-narrow-to-subtree)
+         ("M-b" "Block" org-narrow-to-block)
+         ("M-w" "Widen" widen)
+         ""
+         "Entry operations"
+         ("F" "Add footnote" org-footnote-action)
+         ("a" "Archive" org-archive-subtree-default)
+         ("<" "Insert structure" org-insert-structure-template)
+         ("'" "Edit (special)" org-edit-special)
+         ("e" "Emphasize text" org-emphasize)
+         ""
+         "Download"
+         ("ds" "Screenshot" org-download-screenshot)
+         ("dy" "Yank" org-download-yank)
+         ]
+        ["Search"
+         ("g" "Goto" org-goto)
+         ("o" "Occur" org-occur :transient t)
+         ("/" "Create sparse tree" org-sparse-tree :transient t)
+         ("c" "Clear search results" org-remove-occur-highlights :transient t)
+         ("n" "Next (sparse) node" transient/org-mode--next-heading-dwim :transient t)
+         ("p" "Previous (sparse) node" transient/org-mode--previous-heading-dwim :transient t)
+         ""
+         "Other"
+         ("<tab>" "Cycle node" org-cycle :transient t)
+         ("<S-tab>" "Cycle global" org-global-cycle :transient t)
+         ("C-p" "Present mode" transient/org-mode--toggle-present-mode)
+         ]
+        ]
+       )
+     (define-key org-mode-map (kbd "C-c C-M-m") #'transient/org-mode))))
+#+end_src
+
 *** org-msg-edit-mode transient
 
 OrgMsg message compose major mode transient. This major mode is in
@@ -9629,8 +9634,6 @@ The main configuration file.
 
 <<org-export-global-macros>>
 
-<<org-mode-hydra>>
-
 <<org-agenda>>
 
 <<org-agenda-hydra>>
@@ -9651,13 +9654,9 @@ The main configuration file.
 
 <<org-download>>
 
-<<org-download-hydra>>
-
 <<org-journal>>
 
 <<org-present>>
-
-<<add-org-present-to-org-mode-hydra>>
 
 <<ox-md>>
 
@@ -9978,6 +9977,8 @@ The main configuration file.
 <<markdown-mode-transient>>
 
 <<neuron-mode-transient>>
+
+<<org-mode-transient>>
 
 <<org-msg-edit-mode-transient>>
 
@@ -11982,6 +11983,122 @@ Org (_q_: quit)"
 
 ;; bind Org entrypoints hydra
 (global-set-key (kbd "C-c C-M-o") #'my-hydra/org-entrypoints/body)
+#+end_src
+
+*** Org-mode hydra                                                    :hydra:
+
+Major mode-specific hydra for ~org-mode~.
+
+#+name: org-mode-hydra
+#+begin_src emacs-lisp
+;; hydra for org-mode
+(defhydra my-hydra/org-mode (:color amaranth :columns 3)
+  "
+Org-mode (_q_: quit)"
+  ("q" nil nil :exit t)
+  ("M-s" org-narrow-to-subtree "narrow-subtree")
+  ("M-b" org-narrow-to-block "narrow-block")
+  ("M-w" widen "widen")
+  ("M-l" org-toggle-link-display "toggle-link-disp")
+  ("M-i" (lambda ()
+           (interactive)
+           (if org-image-actual-width
+               (setq org-image-actual-width nil)
+             (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
+           (org-redisplay-inline-images)) "toggle-img-width")
+  ("i" org-toggle-inline-images "toggle-images")
+  ("I" org-indent-mode "toggle-indent")
+  ("P" org-toggle-pretty-entities "toggle-prettify")
+  ("<tab>" org-cycle "cycle")
+  ("<S-tab>" org-global-cycle "global-cycle")
+  ("/" org-sparse-tree "sparse-tree")
+  ("c" org-remove-occur-highlights "occur-clear")
+  ("p" (lambda (n)
+         (interactive "p")
+         (if org-occur-highlights
+             (previous-error n)
+           (org-previous-visible-heading n)))
+   "previous")
+  ("n" (lambda (n)
+         (interactive "p")
+         (if org-occur-highlights
+             (next-error n)
+           (org-next-visible-heading n)))
+   "next")
+  ("g" org-goto "goto" :exit t)
+  ("s" org-sort "sort" :exit t)
+  ("o" org-occur "occur" :exit t)
+  ("r" org-refile "refile" :exit t)
+  ("t" org-todo "state" :exit t)
+  (":" org-set-tags-command "tags" :exit t)
+  ("," org-priority "priority" :exit t)
+  ("D" org-insert-drawer "drawer" :exit t)
+  ("P" org-set-property "property" :exit t)
+  ("N" org-add-note "note" :exit t)
+  ("F" org-footnote-action "footnote" :exit t)
+  ("a" org-archive-subtree-default "archive" :exit t)
+  ("<" org-insert-structure-template "structure" :exit t)
+  ("'" org-edit-special "edit-special" :exit t)
+  ("e" my-hydra/org-mode/emphasize/body "→ Emphasize" :exit t))
+
+;; hydra for org-mode text formatting
+(defhydra my-hydra/org-mode/emphasize (:color teal :columns 4)
+  "
+Org-mode → Emphasize (_q_: ←)"
+  ("q" my-hydra/org-mode/body nil)
+  ("b" (org-emphasize ?*) "bold")
+  ("i" (org-emphasize ?/) "italic")
+  ("u" (org-emphasize ?_) "underline")
+  ("s" (org-emphasize ?+) "strike-through")
+  ("c" (org-emphasize ?~) "code")
+  ("v" (org-emphasize ?=) "verbatim"))
+
+;; binding for org-mode hydra
+(with-eval-after-load 'org
+  (define-key org-mode-map (kbd "C-c C-M-m") #'my-hydra/org-mode/body))
+#+end_src
+
+*** org-download for dragging and dropping images into Org-mode
+
+**** org-download hydra                                               :hydra:
+
+Hydra for ~org-download~.
+Add an entrypoint for the hydra to the org-mode hydra.
+
+#+name: org-download-hydra
+#+begin_src emacs-lisp
+(when (display-graphic-p)
+  ;; hydra for org-download
+  (defhydra my-hydra/org-mode/download (:color teal :columns 3)
+    "
+Org-mode → Download (_q_: ←)"
+    ("q" my-hydra/org-mode/body nil)
+    ("s" org-download-screenshot "screenshot")
+    ("y" org-download-yank "yank"))
+
+  ;; add entrypoint to download hydra to the org-mode hydra
+  (defhydra+ my-hydra/org-mode nil
+    ("d" my-hydra/org-mode/download/body "→ Download" :exit t)))
+#+end_src
+
+*** org-present for minimalist presentations within Emacs
+
+**** Add Org-mode presentation head to org-mode hydra                 :hydra:
+
+Add head for initializing an ~org-present~ presentation to org-mode
+hydra.
+
+#+name: add-org-present-to-org-mode-hydra
+#+begin_src emacs-lisp
+;; add org-present present head to org-mode hydra
+(defhydra+ my-hydra/org-mode nil
+  ("C-p" (lambda ()
+           (interactive)
+           (let ((in-present-mode (condition-case nil
+                                      org-present-mode
+                                    (error nil))))
+             (if in-present-mode (org-present-quit) (org-present))))
+   "org-present" :exit t))
 #+end_src
 
 ** Programming

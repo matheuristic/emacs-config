@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Aug 19 23:56:59 2020
+;; Generated: Thu Aug 20 14:04:59 2020
 
 ;;; Commentary:
 
@@ -2439,6 +2439,8 @@ Formatting a selected region only works on top-level objects."
   :commands git-timemachine
   :bind ("C-c C-M-S-g" . git-timemachine))
 
+(use-package browse-at-remote)
+
 ;; per-project file trees
 (use-package treemacs
   :demand t
@@ -3254,7 +3256,13 @@ whitespace, indenting and untabifying."
     ("p" "Previous" previous-buffer :transient t)
     ("e" "Open external" transient/buffer--open-containing-dir-externally)
     ""
-    "Hygiene"
+    "Git-remote"
+    ;; commands below are autoloaded, so there should be no need
+    ;; to make sure (require 'browse-at-remote) is run prior
+    ("gb" "Browse" browse-at-remote)
+    ("gw" "Copy URL" browse-at-remote-kill)
+    ]
+   ["Hygiene"
     ("cr" "Whitespace report" whitespace-report)
     ("cw" "Whitespace cleanup" whitespace-cleanup)
     ("ci" "Indent" transient/buffer--indent-region-or-buffer)

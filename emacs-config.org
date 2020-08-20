@@ -5241,6 +5241,16 @@ historical versions of Git-controlled files.
   :bind ("C-c C-M-S-g" . git-timemachine))
 #+end_src
 
+** Browse Git-controlled file remotely or get its Url                 :melpa:
+
+[[https://github.com/rmuslimov/browse-at-remote][browse-at-remote.el]] provides an easy way to open a Git controlled file
+remotely in a browser or to copy its remote URL.
+
+#+name: browse-at-remote
+#+begin_src emacs-lisp
+(use-package browse-at-remote)
+#+end_src
+
 ** Treemacs                                                           :melpa:
 
 [[https://github.com/Alexander-Miller/treemacs][Treemacs]] is a per-project file tree explorer for Emacs.
@@ -7228,7 +7238,13 @@ whitespace, indenting and untabifying."
     ("p" "Previous" previous-buffer :transient t)
     ("e" "Open external" transient/buffer--open-containing-dir-externally)
     ""
-    "Hygiene"
+    "Git-remote"
+    ;; commands below are autoloaded, so there should be no need
+    ;; to make sure (require 'browse-at-remote) is run prior
+    ("gb" "Browse" browse-at-remote)
+    ("gw" "Copy URL" browse-at-remote-kill)
+    ]
+   ["Hygiene"
     ("cr" "Whitespace report" whitespace-report)
     ("cw" "Whitespace cleanup" whitespace-cleanup)
     ("ci" "Indent" transient/buffer--indent-region-or-buffer)
@@ -9755,6 +9771,8 @@ The main configuration file.
 <<magit-ibuffer-integration>>
 
 <<git-timemachine>>
+
+<<browse-at-remote>>
 
 <<treemacs>>
 

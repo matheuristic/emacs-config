@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug 20 14:04:59 2020
+;; Generated: Thu Aug 20 19:10:19 2020
 
 ;;; Commentary:
 
@@ -1626,65 +1626,6 @@ call `open-line' on the very first character."
               (alltodo "" ((org-agenda-todo-ignore-with-date t)
                            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up category-keep alpha-up)))))))
     (add-to-list 'org-agenda-custom-commands my-custom-cmd)))
-
-;; mode-specific hydra for org-agenda-mode
-(defhydra my-hydra/org-agenda-mode (:color amaranth :hint nil)
-  "
-Org agenda (_q_: quit)
-Headline    _ht_  : set status   _hk_  : kill         _hr_  : refile
-            _hA_  : archive      _h:_  : set tags     _hp_  : set priority
-Visit Entry _SPC_ : other window _TAB_ : & go to loc  _RET_ : & del other wins
-            _o_   : link
-Date        _ds_  : schedule     _dd_  : set deadline _dt_  : timestamp
-View        _vd_  : day          _vw_  : week         _vm_  : month
-            _vn_  : next span    _vp_  : prev span    _vr_  : reset
-Filter      _ft_  : by tag       _fc_  : by category  _fh_  : by top headline
-            _fx_  : by regex     _fd_  : reset
-Clock       _ci_  : in           _co_  : out          _cq_  : cancel
-            _cg_  : goto
-Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
-            _sd_  : hide done
-"
-  ("q" nil nil :exit t)
-  ("ht" org-agenda-todo)
-  ("hk" org-agenda-kill)
-  ("hr" org-agenda-refile)
-  ("hA" org-agenda-archive-default)
-  ("h:" org-agenda-set-tags)
-  ("hp" org-agenda-priority)
-  ("SPC" org-agenda-show-and-scroll-up)
-  ("TAB" org-agenda-goto :exit t)
-  ("RET" org-agenda-switch-to :exit t)
-  ("o" link-hint-open-link :exit t)
-  ("ds" org-agenda-schedule)
-  ("dd" org-agenda-deadline)
-  ("dt" org-agenda-date-prompt)
-  ("vd" org-agenda-day-view)
-  ("vw" org-agenda-week-view)
-  ("vm" org-agenda-month-view)
-  ("vn" org-agenda-later)
-  ("vp" org-agenda-earlier)
-  ("vr" org-agenda-reset-view)
-  ("ft" org-agenda-filter-by-tag)
-  ("fc" org-agenda-filter-by-category)
-  ("fh" org-agenda-filter-by-top-headline)
-  ("fx" org-agenda-filter-by-regexp)
-  ("fd" org-agenda-filter-remove-all)
-  ("ci" org-agenda-clock-in :exit t)
-  ("co" org-agenda-clock-out)
-  ("cq" org-agenda-clock-cancel)
-  ("cg" org-agenda-clock-goto :exit t)
-  ("gr" org-agenda-redo)
-  ("gd" org-agenda-goto-date)
-  ("." org-agenda-goto-today)
-  ("sd" (lambda () (interactive)
-          (progn (setq org-agenda-skip-scheduled-if-done
-                       (if org-agenda-skip-scheduled-if-done nil t))
-                 (org-agenda-redo-all t)))))
-
-;; bind org-agenda-mode hydra
-(with-eval-after-load 'org-agenda
-  (define-key org-agenda-mode-map (kbd "C-c C-M-m") #'my-hydra/org-agenda-mode/body))
 
 ;; allow refiling up to 9 levels deep in the current buffer
 ;; and 3 levels deep in Org agenda files
@@ -4638,7 +4579,85 @@ whitespace, indenting and untabifying."
     )
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
 
-;; major-mode specific transient for org-msg-edit-mode
+;; major-mode specific transient for org-agenda-mode
+(with-eval-after-load 'org-agenda
+  (defun transient/org-agenda-mode--hide-done ()
+    "Hide items with DONE state in `org-agenda-mode' buffer."
+    (interactive)
+    (setq org-agenda-skip-scheduled-if-done
+          (not org-agenda-skip-scheduled-if-done))
+    (org-agenda-redo-all t))
+
+  (transient-define-prefix transient/org-agenda-mode ()
+    "`org-agenda-mode' commands."
+    :transient-suffix 'transient--do-stay
+    ["Org agenda"
+     ["Agenda view"
+      ("d" "Day" org-agenda-day-view)
+      ("w" "Week" org-agenda-week-view)
+      ("f" "Later" org-agenda-later)
+      ("b" "Earlier" org-agenda-earlier)
+      ""
+      "Filter"
+      ("<" "By category" org-agenda-filter-by-category)
+      ("_" "By effort" org-agenda-filter-by-effort)
+      ("=" "By regexp" org-agenda-filter-by-regexp)
+      ("\\" "By tag" org-agenda-filter-by-tag)
+      ("^" "By top headline" org-agenda-filter-by-top-headline)
+      ("|" "Remove all" org-agenda-filter-remove-all)
+      ]
+     ["Date"
+      (">" "Prompt" org-agenda-date-prompt)
+      ("C-c C-s" "Schedule" org-agenda-schedule)
+      ("C-c C-d" "Deadline" org-agenda-deadline)
+      ""
+      "Item"
+      ("t" "Status" org-agenda-todo)
+      (":" "Tags" org-agenda-set-tags)
+      ("," "Priority" org-agenda-priority)
+      ("z" "Add note" org-agenda-add-note)
+      ("C-c C-x p" "Property" org-agenda-set-property)
+      ("$" "Archive" org-agenda-archive)
+      ("C-c C-w" "Refile" org-agenda-refile)
+      ("C-k" "Kill" org-agenda-kill)
+      ]
+     ["Clock"
+      ("I" "In" org-agenda-clock-in)
+      ("O" "Out" org-agenda-clock-out)
+      ("X" "Cancel" org-agenda-clock-cancel)
+      ("J" "Current task" org-agenda-clock-goto)
+      ("R" (lambda ()
+             (transient--make-description
+              "Clocktable"
+              org-agenda-clockreport-mode))
+       org-agenda-clockreport-mode)
+      ""
+      "Visit"
+      ("SPC" "Show" org-agenda-show-and-scroll-up :transient nil)
+      ("TAB" "Goto" org-agenda-goto :transient nil)
+      ("RET" "Switch to" org-agenda-switch-to :transient nil)
+      ("C-c C-o" "Link" org-agenda-open-link :transient nil)
+      ]
+     ["Other"
+      ("n" "Next line" org-agenda-next-line)
+      ("p" "Prev line" org-agenda-previous-line)
+      ("N" "Next item" org-agenda-next-item)
+      ("P" "Prev item" org-agenda-previous-item)
+      ("r" "Redisplay" org-agenda-redo)
+      ("j" "Goto date" org-agenda-goto-date)
+      ("." "Goto today" org-agenda-goto-today)
+      ("(" (lambda ()
+             (transient--make-description
+              "Hide DONE"
+              org-agenda-skip-scheduled-if-done))
+       transient/org-agenda-mode--hide-done)
+      ]
+     ]
+    )
+
+  (define-key org-agenda-mode-map (kbd "C-c C-M-m") #'transient/org-agenda-mode))
+
+;; major-mode specific transient for org-mode
 (with-eval-after-load 'org
   (with-eval-after-load 'org-download
    (with-eval-after-load 'org-present

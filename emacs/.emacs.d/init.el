@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug 20 19:10:19 2020
+;; Generated: Thu Aug 20 21:36:57 2020
 
 ;;; Commentary:
 
@@ -2002,94 +2002,6 @@ when buffer is clean, and more frequently when it has errors."
   :after lsp-mode
   :init (setq company-lsp-cache-candidates t))
 
-;; hydras adapted from lsp-mode's default command map, see lsp-command-map in
-;; https://github.com/emacs-lsp/lsp-mode/blob/master/lsp-mode.el
-(defhydra my-hydra/lsp (:color teal :columns 3)
-  "
-Language Server (_q_: quit)"
-  ("q" nil nil)
-  ("s" my-hydra/lsp-session/body "→ Session")
-  ("=" my-hydra/lsp-format/body "→ Format")
-  ("F" my-hydra/lsp-folder/body "→ Folder")
-  ("T" my-hydra/lsp-toggle/body "→ Toggle")
-  ("g" my-hydra/lsp-goto/body "→ Goto")
-  ("h" my-hydra/lsp-help/body "→ Help")
-  ("r" my-hydra/lsp-refactor/body "→ Refactor")
-  ("a" my-hydra/lsp-actions/body "→ Actions")
-  ("I" (lambda ()
-         (interactive)
-         (lsp-install-server t))
-   "install"))
-(defhydra my-hydra/lsp-session (:color teal :columns 3)
-  "
-Language Server → Session (_q_: ←)"
-  ("q" my-hydra/lsp/body nil)
-  ("r" (condition-case nil (lsp-restart-workspace) (error (lsp))) "(re-)start")
-  ("s" lsp-workspace-shutdown "shutdown")
-  ("d" lsp-describe-session "describe")
-  ("D" lsp-disconnect "disconnect"))
-(defhydra my-hydra/lsp-format (:color teal :columns 3)
-  "
-Language Server → Format (_q_: ←)"
-  ("q" my-hydra/lsp/body nil)
-  ("=" lsp-format-buffer "buffer")
-  ("r" lsp-format-region "range"))
-(defhydra my-hydra/lsp-folder (:color teal :columns 3)
-  "
-Language Server → Folder (_q_: ←)"
-  ("q" my-hydra/lsp/body nil)
-  ("a" lsp-workspace-folders-add "add")
-  ("r" lsp-workspace-folders-remove "remove")
-  ("b" lsp-workspace-blacklist-remove "un-blacklist"))
-(defhydra my-hydra/lsp-toggle (:color amaranth :columns 3)
-  "
-Language Server → Toggle (_q_: ←)"
-  ("q" my-hydra/lsp/body nil :exit t)
-  ("l" lsp-lens-mode "lens-mode")
-  ("L" lsp-toggle-trace-io "trace-io")
-  ("h" lsp-toggle-symbol-highlight "symbol-highlight")
-  ("b" lsp-headerline-breadcrumb-mode "headerline-breadcrumb")
-  ("s" lsp-toggle-signature-auto-activate "signature-help")
-  ("f" lsp-toggle-on-type-formatting "on-type-formatting"))
-(defhydra my-hydra/lsp-goto (:color teal :columns 3)
-  "
-Language Server → Goto (_q_: ←)"
-  ("q" my-hydra/lsp/body nil)
-  ("j" (lambda ()
-         (interactive)
-         (if (fboundp 'imenu-list-smart-toggle)
-             (imenu-list-smart-toggle)
-           (message "Requires imenu-list"))) "imenu")
-  ("g" lsp-find-definition "definition")
-  ("r" lsp-find-references "references")
-  ("i" lsp-find-implementation "implementation")
-  ("t" lsp-find-type-definition "type-implementation")
-  ("d" lsp-find-declaration "declaration")
-  ("a" xref-find-apropos "workspace-symbol"))
-(defhydra my-hydra/lsp-help (:color teal :columns 3)
-  "
-Language Server → Help (_q_: ←)"
-  ("q" my-hydra/lsp/body nil)
-  ("h" lsp-describe-thing-at-point "describe")
-  ("s" lsp-signature-activate "signature-activate"))
-(defhydra my-hydra/lsp-refactor (:color teal :columns 3)
-  "
-Language Server → Refactor (_q_: ←)"
-  ("q" my-hydra/lsp/body nil)
-  ("r" lsp-rename "rename")
-  ("o" lsp-organize-imports "organize-imports"))
-(defhydra my-hydra/lsp-actions (:color teal :columns 3)
-  "
-Language Server → Actions (_q_: ←)"
-  ("q" my-hydra/lsp/body nil)
-  ("a" lsp-execute-code-action "execute-code-action")
-  ("l" lsp-avy-lens "avy-lens")
-  ("h" lsp-document-highlight "document-highlight"))
-
-;; bind lsp-mode hydra
-(with-eval-after-load 'lsp-mode
-  (define-key lsp-mode-map (kbd "C-c C-M-l") #'my-hydra/lsp/body))
-
 ;; Programming / dap-mode Debug Adaptor Protocol client
 
 ;; client for Debug Adaptor Protocol servers
@@ -2097,12 +2009,6 @@ Language Server → Actions (_q_: ←)"
   :after lsp-mode
   :config (add-hook 'dap-stopped-hook
                     (lambda (arg) (call-interactively #'dap-hydra))))
-
-;; add dap-mode debugging function entry points to lsp-mode hydra
-(with-eval-after-load 'lsp-mode
-  (defhydra+ my-hydra/lsp nil
-    ("d" dap-debug "dap-debug" :exit t)
-    ("D" dap-debug-edit-template "dap-template" :exit t)))
 
 ;; Programming / Emacs Lisp
 
@@ -4308,7 +4214,7 @@ whitespace, indenting and untabifying."
           ((string= ess-dialect "julia") (julia))
           (t (message "Unsupported dialect"))))
   (transient-define-prefix transient/ess-mode ()
-    "Emacs Speaks Statistics `ess-mode' commands."
+    "`ess-mode' commands."
     ["Emacs Speaks Statistics"
      ["Session"
       ("N" "New" transient/ess-mode--new-session)
@@ -4344,7 +4250,7 @@ whitespace, indenting and untabifying."
     (eww-reload)
     (message "Images are now %s" (if shr-inhibit-images "off" "on")))
   (transient-define-prefix transient/eww-mode ()
-    "Emacs Web Wowser mode commands."
+    "`eww-mode' commands."
     ["Emacs Web Wowser"
      ["Navigation"
       ("G" "Search" eww)
@@ -4379,7 +4285,7 @@ whitespace, indenting and untabifying."
   (define-key eww-mode-map (kbd "C-c C-M-m") #'transient/eww-mode))
 
 (transient-define-prefix transient/ibuffer-mode/mark ()
-  "Ibuffer mode mark commands."
+  "`ibuffer-mode' mark commands."
   :transient-suffix 'transient--do-stay
   ["Ibuffer → Mark"
    [("*" "Unmark all" ibuffer-unmark-all)
@@ -4399,7 +4305,7 @@ whitespace, indenting and untabifying."
   )
 
 (transient-define-prefix transient/ibuffer-mode/action ()
-  "Ibuffer mode action commands."
+  "`ibuffer-mode' action commands."
   ["Ibuffer → Action"
    ["Properties"
     ("R" "Rename uniquely" ibuffer-do-rename-uniquely)
@@ -4429,7 +4335,7 @@ whitespace, indenting and untabifying."
   )
 
 (transient-define-prefix transient/ibuffer-mode/sort ()
-  "Ibuffer mode sort commands."
+  "`ibuffer-mode' sort commands."
   :transient-suffix 'transient--do-stay
   ["Ibuffer → Sort"
    [("a" "Alphabetic" ibuffer-do-sort-by-alphabetic)
@@ -4445,7 +4351,7 @@ whitespace, indenting and untabifying."
 
 (require 'ibuffer-vc)
 (transient-define-prefix transient/ibuffer-mode/filter ()
-  "Ibuffer mode filter commands."
+  "`ibuffer-mode' filter commands."
   :transient-suffix 'transient--do-stay
   ["Ibuffer → Filter"
    ["Predicates"
@@ -4483,7 +4389,7 @@ whitespace, indenting and untabifying."
 
 ;; major-mode specific transient for ibuffer-mode
 (transient-define-prefix transient/ibuffer-mode ()
-  "Ibuffer mode commands."
+  "`ibuffer-mode' commands."
   :transient-suffix 'transient--do-stay
   ["Ibuffer"
    ["Navigation"
@@ -4514,7 +4420,7 @@ whitespace, indenting and untabifying."
 (with-eval-after-load 'markdown-mode
   (with-eval-after-load 'markdown-toc
     (transient-define-prefix transient/markdown-mode ()
-      "Markdown mode commands."
+      "`markdown-mode' commands."
       :transient-suffix 'transient--do-stay
       ["Markdown mode"
        ["Outline"
@@ -4555,7 +4461,7 @@ whitespace, indenting and untabifying."
 ;; major-mode specific transient for neuron-mode
 (with-eval-after-load 'neuron-mode
   (transient-define-prefix transient/neuron-mode ()
-    "Neuron Zettelkasten mode commands."
+    "`neuron-mode' commands."
     ["Neuron mode"
      ["File"
       ("o" "Follow at point" neuron-follow-thing-at-point)
@@ -4887,7 +4793,7 @@ whitespace, indenting and untabifying."
         (call-interactively 'json-mode-pretty-print-dwim)
       (message "Requires the `json-mode' package be installed.")))
   (transient-define-prefix transient/restclient-mode ()
-    "REST client mode `restclient-mode' commands."
+    "`restclient-mode' commands."
     :transient-suffix 'transient--do-stay
     ["REST client"
      ["Send query"
@@ -4971,7 +4877,7 @@ whitespace, indenting and untabifying."
 ;; major-mode specific transient for ztreedir-mode
 (with-eval-after-load 'ztree-dir
   (transient-define-prefix transient/ztreedir-mode ()
-    "Ztree directory `ztreedir-mode' commands."
+    "`ztreedir-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Ztree directory"
      ["Movement"
@@ -4998,7 +4904,7 @@ whitespace, indenting and untabifying."
 ;; major-mode specific transient for ztreediff-mode
 (with-eval-after-load 'ztree-diff
   (transient-define-prefix transient/ztreediff-mode ()
-    "Ztree difference `ztreediff-mode' commands."
+    "`ztreediff-mode' commands."
     :transient-suffix 'transient--do-stay
     ["Ztree difference"
      ["Movement"
@@ -5064,6 +4970,112 @@ whitespace, indenting and untabifying."
     )
   (define-key flycheck-mode-map (kbd "C-c C-M-!") #'transient/flycheck-mode)
   )
+
+;; add transient for lsp-mode, bind to "C-c C-M-l"
+(with-eval-after-load 'lsp-mode
+  (with-eval-after-load 'dap-mode
+    (with-eval-after-load 'avy
+      (defun transient/lsp-mode--install-server ()
+        "Install or reinstall `lsp-mode' server."
+        (interactive)
+        (lsp-install-server t))
+      (transient-define-prefix transient/lsp-mode ()
+        "`lsp-mode' session commands."
+        ["Language server"
+         ["Session"
+          ("ss" "Start" lsp)
+          ("sr" "Restart" lsp-workspace-restart)
+          ("sq" "Shutdown" lsp-workspace-shutdown)
+          ("sd" "Describe" lsp-describe-session)
+          ("sD" "Disconnect" lsp-disconnect)
+          ""
+          "Folders"
+          ("Fa" "Add" lsp-workspace-folders-add)
+          ("Fr" "Remove" lsp-workspace-folders-remove)
+          ("Fb" "Blacklist remove" lsp-workspace-blacklist-remove)
+          ""
+          "Actions"
+          ("aa" "Execute code action" lsp-execute-code-action)
+          ("al" "Click lens with Avy" lsp-avy-lens)
+          ("ah" "Highlight relevant" lsp-document-highlight)
+          ]
+         ["Goto"
+          ("gg" "Definition" lsp-find-definition)
+          ("gr" "References" lsp-find-references)
+          ("gi" "Implementation" lsp-find-implementation)
+          ("gt" "Type definition" lsp-find-type-definition)
+          ("gd" "Declaration" lsp-find-declaration)
+          ("gh" "Call hierarchy" lsp-treemacs-call-hierarchy)
+          ("ga" "Apropos" xref-find-apropos)
+          ("ge" "Errors list" lsp-treemacs-errors-list)
+          ""
+          "Refactoring"
+          ("rr" "Rename" lsp-rename)
+          ("ro" "Organize imports" lsp-organize-imports)
+          ""
+          "Format"
+          ("==" "Buffer" lsp-format-buffer)
+          ("=r" "Region" lsp-format-region)
+          ]
+         ["Toggle"
+          ("Tl" (lambda ()
+                  (transient--make-description
+                   "Lens mode"
+                   lsp-lens-mode))
+           lsp-lens-mode :transient t)
+          ("TL" (lambda ()
+                  (transient--make-description
+                   "Trace I/O"
+                   lsp-print-io))
+           lsp-toggle-trace-io :transient t)
+          ("Th" (lambda ()
+                  (transient--make-description
+                   "Symbol highlight"
+                   lsp-enable-symbol-highlighting))
+           lsp-toggle-symbol-highlight :transient t)
+          ("Tb" (lambda ()
+                  (transient--make-description
+                   "Header breadcrumb"
+                   lsp-headerline-breadcrumb-mode))
+           lsp-headerline-breadcrumb-mode :transient t)
+          ("Ta" (lambda ()
+                  (transient--make-description
+                   "Modeline code actions"
+                   lsp-modeline-code-actions-mode))
+           lsp-modeline-code-actions-mode :transient t)
+          ("TD" (lambda ()
+                  (transient--make-description
+                   "Modeline diagnostics"
+                   lsp-modeline-diagnostics-mode))
+           lsp-modeline-diagnostics-mode :transient t)
+          ("Ts" (lambda ()
+                  (transient--make-description
+                   "Signature auto-activate"
+                   lsp-signature-auto-activate))
+           lsp-toggle-signature-auto-activate :transient t)
+          ("Tf" (lambda ()
+                  (transient--make-description
+                   "On type formatting"
+                   lsp-enable-on-type-formatting))
+           lsp-toggle-on-type-formatting :transient t)
+          ("TT" (lambda ()
+                  (transient--make-description
+                   "Treemacs sync"
+                   lsp-treemacs-sync-mode))
+           lsp-treemacs-sync-mode :transient t)
+          ""
+          "Help"
+          ("hh" "Describe" lsp-describe-thing-at-point)
+          ("hs" "Signature" lsp-signature-activate)
+          ""
+          "Other"
+          ("I" "Install server" transient/lsp-mode--install-server)
+          ("dd" "DAP debug" dap-debug)
+          ("de" "DAP edit template" dap-debug-edit-template)
+          ]
+         ]
+        )
+      (define-key lsp-mode-map (kbd "C-c C-M-l") #'transient/lsp-mode))))
 
 (provide 'init)
 ;;; init.el ends here

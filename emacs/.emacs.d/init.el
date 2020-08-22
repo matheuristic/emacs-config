@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug 21 21:27:00 2020
+;; Generated: Sat Aug 22 00:05:28 2020
 
 ;;; Commentary:
 
@@ -2007,9 +2007,7 @@ when buffer is clean, and more frequently when it has errors."
 
 ;; client for Debug Adaptor Protocol servers
 (use-package dap-mode
-  :after lsp-mode
-  :config (add-hook 'dap-stopped-hook
-                    (lambda (arg) (call-interactively #'dap-hydra))))
+  :after lsp-mode)
 
 ;; Programming / Emacs Lisp
 
@@ -2415,124 +2413,9 @@ Formatting a selected region only works on top-level objects."
 
 ;; Visual (part 2)
 
-;; hydra for visual settings
-(defhydra my-hydra/visual (:color amaranth :hint nil
-                           :pre (progn
-                                  (require 'follow)
-                                  (require 'hilit-chg)
-                                  (require 'hl-line)
-                                  (require 'display-line-numbers)
-                                  (require 'face-remap)
-                                  (require 'whitespace)))
-  "
-Visual (_q_: quit)
-_b_ : blink-cursor [% 5`blink-cursor-mode]^^^^^   _F_ : follow       [% 5`follow-mode]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _f_ : font-lock    [% 5`font-lock-mode]
-_H_ : hl-changes   [% 5`highlight-changes-mode]   _h_ : hl-line      [% 5`hl-line-mode]^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _l_ : line-nums    [% 5`display-line-numbers-mode]
-_p_ : show-paren   [% 5`show-paren-mode]^^^^^^^   _s_ : scroll-bar   [% 5(frame-parameter nil 'vertical-scroll-bars)]   _S_ : hscroll-bar  [% 5(frame-parameter nil 'horizontal-scroll-bars)]
-_T_ : transient-mk [% 5`transient-mark-mode]^^^   _t_ : truncate-lns [% 5`truncate-lines]^^^^^^^^^^^^^^^^^^^^^^^^^^^^   _v_ : visual-line  [% 5`visual-line-mode]
-_W_ : whitespace   [% 5`whitespace-mode]^^^^^^^   _w_ : trailing-ws  [% 5`show-trailing-whitespace]^^^^^^^^^^^^^^^^^^   _m_ : menu-bar     [% 5`menu-bar-mode]
-_nr_ / _np_ / _nd_ / _nw_ : narrow to-region / to-page / to-defun / widen      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[% 5(buffer-narrowed-p)]
-_+_  / _-_  / _0_    ^  ^ : zoom   in        / out     / reset                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[% 5(if text-scale-mode text-scale-mode-amount nil)]
-"
-  ("q" nil :exit t)
-  ("b" blink-cursor-mode)
-  ("F" follow-mode)
-  ("f" font-lock-mode)
-  ("H" highlight-changes-mode)
-  ("h" hl-line-mode)
-  ("l" display-line-numbers-mode)
-  ("m" menu-bar-mode)
-  ("p" show-paren-mode)
-  ("s" toggle-scroll-bar)
-  ("S" toggle-horizontal-scroll-bar)
-  ("T" transient-mark-mode)
-  ("t" toggle-truncate-lines)
-  ("v" visual-line-mode)
-  ("W" whitespace-mode)
-  ("w" (lambda ()
-         (interactive)
-         (setq-local show-trailing-whitespace
-                     (not show-trailing-whitespace))
-         (message "show-trailing-whitespace: %s"
-                  (if show-trailing-whitespace "yes" "no"))))
-  ("nr" narrow-to-region)
-  ("np" narrow-to-page)
-  ("nd" narrow-to-defun)
-  ("nw" widen)
-  ("+" text-scale-increase)
-  ("-" text-scale-decrease)
-  ("0" (text-scale-adjust 0))
-  ("r" (lambda ()
-         (interactive)
-         ;; refocus doom-modeline just in case
-         (when (and (boundp 'doom-modeline-mode)
-                    doom-modeline-mode)
-           (doom-modeline-focus))
-         ;; redraw display
-         (redraw-display))
-   "redraw"))
-
-(defvar-local my-hydra/visual/emphasis--face-remap-cookies '()
-  "Alist storing cookies for `face-remap-add-relative' calls.")
-
-(defun my-hydra/visual/emphasis--toggle-lighten-face (face)
-  "Toggle lightening of FACE color for emphasis or emphasis."
-  (let ((face-remap-cookie-old (alist-get face my-hydra/visual/emphasis--face-remap-cookies)))
-    (if face-remap-cookie-old
-        (progn
-          (face-remap-remove-relative face-remap-cookie-old)
-          (setq my-hydra/visual/emphasis--face-remap-cookies
-                (assq-delete-all
-                 face
-                 my-hydra/visual/emphasis--face-remap-cookies)))
-      (let* ((light-color (color-lighten-name
-                           (face-attribute face :foreground)
-                           50)) ;; lighten color by 50 percent
-             (face-remap-cookie-new (face-remap-add-relative
-                                     face
-                                     :foreground light-color)))
-        (push `(,face . ,face-remap-cookie-new)
-              my-hydra/visual/emphasis--face-remap-cookies)))))
-
-(defhydra my-hydra/visual/emphasis (:color amaranth :hint nil)
-  "
-Visual → Emphasis (_q_: quit)
-_c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emphasis--face-remap-cookies))]   _C_ : comment-delim  [% 3(null (assq 'font-lock-comment-delimiter-face my-hydra/visual/emphasis--face-remap-cookies))]   _d_ : doc            [% 3(null (assq 'font-lock-doc-face my-hydra/visual/emphasis--face-remap-cookies))]
-"
-  ("q" my-hydra/visual/body :exit t)
-  ("c" (lambda ()
-         (interactive)
-         (my-hydra/visual/emphasis--toggle-lighten-face
-          'font-lock-comment-face)))
-  ("C" (lambda ()
-         (interactive)
-         (my-hydra/visual/emphasis--toggle-lighten-face
-          'font-lock-comment-delimiter-face)))
-  ("d" (lambda ()
-         (interactive)
-         (my-hydra/visual/emphasis--toggle-lighten-face
-          'font-lock-doc-face))))
-
-;; bind visual hydra
-(global-set-key (kbd "C-c C-M-v") 'my-hydra/visual/body)
-
-;; add entrypoint to visual emphasis hydra to visual hydra
-(defhydra+ my-hydra/visual nil
-  ("e" my-hydra/visual/emphasis/body "→ Emphasis" :exit t))
-
 ;; provides toggleable modes that remove visual distractions
 (use-package darkroom
   :config (setq darkroom-text-increase-scale 2))
-
-;; extend visual hydra to support darkroom-mode and darkroom-tentative-mode
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params '(:pre (require 'darkroom)))
-    ,(concat my-hydra/visual/docstring
-             "_dm_ : darkroom-mode            [% 3`darkroom-mode]   _dt_ : darkroom-tentative-mode  [% 3`darkroom-tentative-mode]
-")
-    ("dm" darkroom-mode :exit nil)
-    ("dt" darkroom-tentative-mode :exit nil)))
 
 ;; color code by depth
 (use-package prism
@@ -2554,16 +2437,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
     :strings-fn
     (lambda (color)
       (prism-blend color "white" 0.5))))
-
-;; extend visual hydra to support prism-mode and prism-whitespace-mode
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params '(:pre (require 'prism)))
-    ,(concat my-hydra/visual/docstring
-             "_Pm_ : prism-mode               [% 3`prism-mode]   _Pw_ : prism-whitespace-mode    [% 3`prism-whitespace-mode]
-")
-    ("Pm" prism-mode :exit nil)
-    ("Pw" prism-whitespace-mode :exit nil)))
 
 ;; display line numbers by default when editing code
 (add-hook 'prog-mode-hook
@@ -2608,16 +2481,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
 
 (require 'censor)
 
-;; add `censor-mode' and `global-censor-mode' toggles to visual hydra
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params '(:pre (require 'censor)))
-    ,(concat my-hydra/visual/docstring
-             "_X_  : global-censor-mode       [% 3`global-censor-mode]   _x_  : censor-mode              [% 3`censor-mode]
-")
-    ("X" global-censor-mode :exit nil)
-    ("x" censor-mode :exit nil)))
-
 ;; add visual indentation guides
 (use-package highlight-indent-guides
   :init (setq highlight-indent-guides-method 'character
@@ -2626,19 +2489,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
   :config
   (add-hook 'python-mode-hook (lambda ()
                                 (highlight-indent-guides-mode 1))))
-
-;; add `highlight-indent-guides-mode' toggle to visual hydra
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params
-             '(:pre (progn
-                      (require 'symbol-overlay)
-                      (require 'highlight-indent-guides))))
-    ,(concat my-hydra/visual/docstring
-             "_O_  : symbol-overlay-mode      [% 3`symbol-overlay-mode]   _i_  : highlight-indent-guides  [% 3`highlight-indent-guides-mode]
-")
-    ("O" symbol-overlay-mode :exit nil)
-    ("i" highlight-indent-guides-mode :exit nil)))
 
 ;; pulse line after changing focused window using `ace-window'
 (with-eval-after-load 'ace-window
@@ -2649,17 +2499,6 @@ _c_ : comments      [% 3(null (assq 'font-lock-comment-face my-hydra/visual/emph
 
 (require 'too-long-lines-mode)
 (too-long-lines-mode 1)
-
-;; add `too-long-lines-mode' toggle to visual hydra
-(eval
- `(defhydra+ my-hydra/visual
-    ,(append my-hydra/visual/params
-             '(:pre (progn
-                      (require 'too-long-lines-mode))))
-    ,(concat my-hydra/visual/docstring
-             "_L_  : too-long-lines-mode      [% 3`too-long-lines-mode]
-")
-    ("L" too-long-lines-mode :exit nil)))
 
 ;; Web
 
@@ -2977,11 +2816,6 @@ for more information."
     (setq org-format-latex-options (plist-put org-format-latex-options
                                               :scale 1.5)))
 
-;; enable toggling of ligatures in visual hydra when using emacs-mac port
-(when (fboundp 'mac-auto-operator-composition-mode)
-  (defhydra+ my-hydra/visual nil
-    ("L" mac-auto-operator-composition-mode "toggle-ligature" :exit nil)))
-
 ;; increment DocView DPI resolution for Mac Retina screens
 ;; when using emacs-mac port
 (when (eq window-system 'mac)
@@ -3103,12 +2937,10 @@ whitespace, indenting and untabifying."
     ("n" "Next" next-buffer :transient t)
     ("p" "Previous" previous-buffer :transient t)
     ("e" "Open external" transient/buffer--open-containing-dir-externally)
-    ""
-    "Git-remote"
     ;; commands below are autoloaded, so there should be no need
     ;; to make sure (require 'browse-at-remote) is run prior
-    ("gb" "Browse" browse-at-remote)
-    ("gw" "Copy URL" browse-at-remote-kill)
+    ("gb" "Git browse" browse-at-remote)
+    ("gw" "Git copy URL" browse-at-remote-kill)
     ]
    ["Hygiene"
     ("cr" "Whitespace report" whitespace-report)
@@ -3359,7 +3191,7 @@ whitespace, indenting and untabifying."
       ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
       (")" "Sexp" mark-sexp :transient t)
       ("}" "Paragraph" mark-paragraph :transient t)
-      ("]" "Function" mark-defun :transient t)
+      ("]" "Defun" mark-defun :transient t)
       ("b" "Buffer" mark-whole-buffer :transient t)
       ("x" "Exchange with point" exchange-point-and-mark :transient t)
       ("m" "Helm" helm-mark-ring)
@@ -3493,11 +3325,6 @@ whitespace, indenting and untabifying."
       ("x" "Run Eshell" projectile-run-eshell)
       ("!" "Run command" projectile-run-shell-command-in-root)
       ("&" "Run command async" projectile-run-async-shell-command-in-root)
-      ""
-      "Search"
-      ("o" "Occur" projectile-multi-occur)
-      ("s" "Grep" projectile-grep)
-      ("r" "Replace" projectile-replace)
       ]
      ["Buffer"
       ("b" "Switchb" projectile-switch-to-buffer)
@@ -3506,8 +3333,19 @@ whitespace, indenting and untabifying."
       ("I" "Ibuffer" projectile-ibuffer)
       ("S" "Save" projectile-save-project-buffers)
       ("k" "Kill" projectile-kill-buffers)
-      ""
-      "File"
+      ]
+     ["Search"
+      ("o" "Occur" projectile-multi-occur)
+      ("s" "Grep" projectile-grep)
+      ("r" "Replace" projectile-replace)
+      ]
+     ["Tags"
+      ("j" "Find tag" projectile-find-tag)
+      ("R" "Regen tags" projectile-regenerate-tags)
+      ]
+     ]
+    [
+     ["File"
       ("f" "Find file" projectile-find-file)
       ("F" "Find file (known prjs)" projectile-find-file-in-known-projects)
       ("g" "Find file (dwim)" projectile-find-file-dwim)
@@ -3518,12 +3356,8 @@ whitespace, indenting and untabifying."
      ["Dir"
       ("d" "Find dir" projectile-find-dir)
       ("D" "Dired" projectile-dired)
-      ""
-      "Tags"
-      ("j" "Find tag" projectile-find-tag)
-      ("R" "Regen tags" projectile-regenerate-tags)
-      ""
-      "Other"
+      ]
+     ["Other"
       ("m" "Commander" projectile-commander)
       ("p" "Switch project" projectile-switch-project)
       ]
@@ -3694,6 +3528,263 @@ whitespace, indenting and untabifying."
   )
 (global-set-key (kbd "C-c C-M-S-s") #'transient/system)
 
+;; make sure functions used by visual transient are loaded
+(require 'follow)
+(require 'hilit-chg)
+(require 'hl-line)
+(require 'display-line-numbers)
+(require 'face-remap)
+(require 'whitespace)
+
+(require 'censor)
+(require 'darkroom)
+(require 'highlight-indent-guides)
+(require 'prism)
+(require 'symbol-overlay)
+(require 'too-long-lines-mode)
+
+(defvar-local transient/visual--face-remap-cookies '()
+  "Alist storing cookies for `face-remap-add-relative' calls.")
+
+(defun transient/visual--toggle-lighten-face (face)
+  "Toggle brightness of FACE color for emphasis or emphasis."
+  (let ((face-remap-cookie-old (alist-get
+                                face
+                                transient/visual--face-remap-cookies)))
+    (if face-remap-cookie-old
+        (progn
+          (face-remap-remove-relative face-remap-cookie-old)
+          (setq transient/visual--face-remap-cookies
+                (assq-delete-all
+                 face
+                 transient/visual--face-remap-cookies)))
+      (let* ((light-color (color-lighten-name
+                           (face-attribute face :foreground)
+                           50)) ;; lighten color by 50 percent
+             (face-remap-cookie-new (face-remap-add-relative
+                                     face
+                                     :foreground light-color)))
+        (push `(,face . ,face-remap-cookie-new)
+              transient/visual--face-remap-cookies)))))
+
+(defun transient/visual--toggle-lighten-font-lock-comment-face ()
+  "Toggle brightness of `font-lock-comment-face'."
+  (interactive)
+  (transient/visual--toggle-lighten-face
+   'font-lock-comment-face))
+
+(defun transient/visual--toggle-lighten-font-lock-comment-delimiter-face ()
+  "Toggle brightness of `font-lock-comment-delimiter-face'."
+  (interactive)
+  (transient/visual--toggle-lighten-face
+   'font-lock-comment-delimiter-face))
+
+(defun transient/visual--toggle-lighten-font-lock-doc-face ()
+  "Toggle brightness of `font-lock-doc-face'."
+  (interactive)
+  (transient/visual--toggle-lighten-face
+   'font-lock-doc-face))
+
+(defun transient/visual--display-toggle-trailing-whitespace ()
+  "Toggle the display of trailing whitespace."
+  (interactive)
+  (setq-local show-trailing-whitespace
+              (not show-trailing-whitespace))
+  (message "show-trailing-whitespace: %s"
+           (if show-trailing-whitespace "yes" "no")))
+
+(defun transient/visual--doom-modeline-focus-and-redraw-display ()
+  "Refocus doom-modeline and redraw display."
+  (interactive)
+  ;; refocus doom-modeline just in case
+  (when (and (boundp 'doom-modeline-mode)
+             doom-modeline-mode)
+    (doom-modeline-focus))
+  ;; redraw display
+  (redraw-display))
+
+(defun transient/visual--toggle-ligatures ()
+  "Toggle ligatures.
+Currently only works for Emacs Mac port."
+  (interactive)
+  (cond ((fboundp 'mac-auto-operator-composition-mode)
+         (mac-auto-operator-composition-mode))
+        (t (message "Not implemented for this Emacs build."))))
+
+;; add transient popup for visual commands, bind to "C-c C-M-v"
+(transient-define-prefix transient/visual ()
+  "Visual commands and toggles."
+  :transient-suffix 'transient--do-stay
+  ["Visual"
+   ["Display"
+    ("H" (lambda ()
+           (transient--make-description
+            "Highlight changes"
+            highlight-changes-mode))
+     highlight-changes-mode)
+    ("l" (lambda ()
+           (transient--make-description
+            "Line numbers"
+            display-line-numbers-mode))
+     display-line-numbers-mode)
+    ("m" (lambda ()
+           (transient--make-description
+            "Menu bar"
+            menu-bar-mode))
+     menu-bar-mode)
+    ("s" (lambda ()
+           (transient--make-description
+            "Vscroll bar"
+            (frame-parameter nil 'vertical-scroll-bars)))
+     toggle-scroll-bar)
+    ("S" (lambda ()
+           (transient--make-description
+            "Hscroll bar"
+            (frame-parameter nil 'horizontal-scroll-bars)))
+     toggle-horizontal-scroll-bar)
+    ("t" (lambda ()
+           (transient--make-description
+            "Truncate lines"
+            truncate-lines))
+     toggle-truncate-lines)
+    ("w" (lambda ()
+           (transient--make-description
+            "Trailing whitespace"
+            show-trailing-whitespace))
+     transient/visual--display-toggle-trailing-whitespace)
+    ("W" (lambda ()
+           (transient--make-description
+            "Whitespace"
+            whitespace-mode))
+     whitespace-mode)
+    ("i" (lambda ()
+           (transient--make-description
+            "Indent guides"
+            highlight-indent-guides-mode))
+     highlight-indent-guides-mode)
+    ("L" (lambda ()
+           (transient--make-description
+            "Hide long lines"
+            too-long-lines-mode))
+     too-long-lines-mode)
+    ("C-l" "Ligatures" transient/visual--toggle-ligatures)
+    ]
+   ["Cursor"
+    ("b" (lambda ()
+           (transient--make-description
+            "Blink"
+            blink-cursor-mode))
+     blink-cursor-mode)
+    ("h" (lambda ()
+           (transient--make-description
+            "Highlight line"
+            hl-line-mode))
+     hl-line-mode)
+    ("p" (lambda ()
+           (transient--make-description
+            "Show paren"
+            show-paren-mode))
+     show-paren-mode)
+    ("T" (lambda ()
+           (transient--make-description
+            "Transient mark"
+            transient-mark-mode))
+     transient-mark-mode)
+    ("O" (lambda ()
+           (transient--make-description
+            "Symbol overlay"
+            symbol-overlay-mode))
+     symbol-overlay-mode)
+    ]
+   ["Toggle color"
+    ("cf" (lambda ()
+            (transient--make-description
+             "Font locking"
+             font-lock-mode))
+     font-lock-mode)
+    ("cc" (lambda ()
+            (transient--make-description
+             "Comments"
+             (null (assq 'font-lock-comment-face
+                         transient/visual--face-remap-cookies))))
+     transient/visual--toggle-lighten-font-lock-comment-face)
+    ("cC" (lambda ()
+            (transient--make-description
+             "Comment delims"
+             (null (assq 'font-lock-comment-delimiter-face
+                         transient/visual--face-remap-cookies))))
+     transient/visual--toggle-lighten-font-lock-comment-delimiter-face)
+    ("cd" (lambda ()
+            (transient--make-description
+             "Docstrings"
+             (null (assq 'font-lock-doc-face
+                         transient/visual--face-remap-cookies))))
+     transient/visual--toggle-lighten-font-lock-doc-face)
+    ("cp" (lambda ()
+            (transient--make-description
+             "Prism"
+             prism-mode))
+     prism-mode)
+    ("cP" (lambda ()
+            (transient--make-description
+             "Prism whitespace"
+             prism-whitespace-mode))
+     prism-whitespace-mode)
+    ]
+   ]
+  [
+   [:description (lambda ()
+                   (transient--make-description
+                    "Narrow"
+                    (buffer-narrowed-p)))
+    ("nd" "Defun" narrow-to-defun)
+    ("nr" "Region" narrow-to-region)
+    ("np" "Page" narrow-to-page)
+    ("nw" "Widen" widen)
+    ]
+   [:description (lambda ()
+                   (concat "Zoom ["
+                           (if text-scale-mode
+                               (number-to-string text-scale-mode-amount)
+                             " ")
+                           "]"))
+    ("+" "Increase" text-scale-increase)
+    ("-" "Decrease" text-scale-decrease)
+    ("dm" (lambda ()
+            (transient--make-description
+             "Darkroom"
+             darkroom-mode))
+     darkroom-mode)
+    ("dt" (lambda ()
+            (transient--make-description
+             "Darkroom ttv"
+             darkroom-tentative-mode))
+     darkroom-tentative-mode)
+    ]
+   ["Other"
+    ("v" (lambda ()
+           (transient--make-description
+            "Visual line"
+            visual-line-mode))
+     visual-line-mode)
+    ("x" (lambda ()
+           (transient--make-description
+            "Censor"
+            censor-mode))
+     censor-mode)
+    ("X" (lambda ()
+           (transient--make-description
+            "Censor (global)"
+            global-censor-mode))
+     global-censor-mode)
+    ("F" (lambda ()
+           (transient--make-description "Follow" follow-mode))
+     follow-mode)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-v") #'transient/visual)
+
 ;; `next-multiframe-window' & `previous-multiframe-window' renamed to
 ;; `next-window-any-frame' & `previous-window-any-frame' in Emacs 27
 (when (version< emacs-version "27")
@@ -3792,14 +3883,7 @@ whitespace, indenting and untabifying."
         (transient-define-prefix transient/writing ()
           "Writing commands."
           ["Writing"
-           ["Typography"
-            ("y" (lambda ()
-                    (interactive)
-                    (transient--make-description "Typo mode"
-                                                 typo-mode))
-             typo-mode :transient t)
-            ""
-            "Spelling"
+           ["Spelling"
             ("sm" (lambda ()
                     (interactive)
                     (transient--make-description "Flyspell mode"
@@ -3808,10 +3892,6 @@ whitespace, indenting and untabifying."
             ("sb" "Check buffer" flyspell-buffer :transient t)
             ("sn" "Next error" flyspell-goto-next-error :transient t)
             ("sc" "Correct word" flyspell-auto-correct-word :transient t)
-            ""
-            "Dictionary"
-            ("ds" "Search" dictionary-search)
-            ("dm" "Match words" dictionary-match-words)
             ]
            ["Thesaurus"
             ("tm" (lambda ()
@@ -3822,14 +3902,26 @@ whitespace, indenting and untabifying."
             ("tl" "Lookup" synosaurus-lookup)
             ("tr" "Replace" synosaurus-choose-and-replace)
             ("ti" "Insert" synosaurus-choose-and-insert)
-            ""
-            "Grammar"
+            ]
+           ["Grammar"
             ("gs" "Start check" langtool-check)
             ("gc" "Correct buffer" langtool-correct-buffer)
             ("ge" "End check" langtool-check-done)
             ("gl" "Switch language" langtool-switch-default-language
              :transient t)
             ]
+           ]
+          [
+           ["Dictionary"
+            ("ds" "Search" dictionary-search)
+            ("dm" "Match words" dictionary-match-words)
+            ]
+           ["Typography"
+            ("y" (lambda ()
+                   (interactive)
+                   (transient--make-description "Typography mode"
+                                                typo-mode))
+             typo-mode :transient t)]
            ]
           )
         (global-set-key (kbd "C-c C-M-S-w") #'transient/writing)))))
@@ -3875,8 +3967,8 @@ whitespace, indenting and untabifying."
         ("P" "Last sexp (pprint)" cider-pprint-eval-last-sexp)
         ("w" "Last sexp replace" cider-eval-last-sexp-and-replace)
         ("E" "Last sexp to REPL" cider-eval-last-sexp-to-repl)
-        ("d" "Function at point" cider-eval-defun-at-point)
-        ("f" "Function at point (pprint)" cider-pprint-eval-defun-at-point)
+        ("d" "Defun at point" cider-eval-defun-at-point)
+        ("f" "Defun at point (pprint)" cider-pprint-eval-defun-at-point)
         (":" "Minibuffer input" cider-read-and-eval)
         ]
        ["Load"

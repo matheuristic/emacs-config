@@ -8060,8 +8060,8 @@ Clojure major mode transient. Mostly entry points to [[https://github.com/clojur
         ("k" "Buffer" cider-load-buffer)
         ("l" "File" cider-load-file)
         ("p" "All proj ns" cider-load-all-project-ns)
-        ""
-        "Other"
+        ]
+       ["Other"
         ("i" "Inspect" cider-inspect)
         ("m" "Macroexpand (single level)" cider-macroexpand-1)
         ("M" "Macroexpand (all levels)" cider-macroexpand-all)
@@ -8206,12 +8206,6 @@ CSV major mode transient.
      ["Movement"
       ("n" "Next line" next-line :transient t)
       ("p" "Previous line" previous-line :transient t)
-      ""
-      "Stepping"
-      ("d" "Step through" debugger-step-through)
-      ("c" "Continue" debugger-continue)
-      ("j" "Jump" debugger-jump)
-      ("q" "Exit" top-level)
       ]
      ["Breakpoints"
       ("b" "Set" debugger-frame)
@@ -8220,6 +8214,15 @@ CSV major mode transient.
      ["Evaluate"
       ("e" "Sexp" debugger-eval-expression)
       ("R" "Sexp and record" debugger-record-expression)
+      ]
+     ]
+    [
+     [
+      "Stepping"
+      ("d" "Step through" debugger-step-through)
+      ("c" "Continue" debugger-continue)
+      ("j" "Jump" debugger-jump)
+      ("q" "Exit" top-level)
       ]
      ["Other"
       ("RET" "Follow at point" backtrace-help-follow-symbol)
@@ -8259,19 +8262,19 @@ Dired major mode transient.
       :transient-suffix 'transient--do-stay
       ["Dired → Filter"
        ["Filter by"
-          ("n" "Name" dired-filter-by-name)
-          ("r" "Regexp" dired-filter-by-regexp)
-          ("." "Extension" dired-filter-by-extension)
-          ("h" "Hidden" dired-filter-by-dot-files)
-          ("o" "Omitted" dired-filter-by-omit)
-          ("g" "Garbage" dired-filter-by-garbage)
-          ("e" "Predicate" dired-filter-by-predicate)
-          ("f" "File" dired-filter-by-file)
-          ("d" "Directory" dired-filter-by-directory)
-          ("m" "Mode" dired-filter-by-mode)
-          ("s" "Symlink" dired-filter-by-symlink)
-          ("x" "Executable" dired-filter-by-executable)
-          ("ig" "Git-ignored" dired-filter-by-git-ignored)
+        ("n" "Name" dired-filter-by-name)
+        ("r" "Regexp" dired-filter-by-regexp)
+        ("." "Extension" dired-filter-by-extension)
+        ("h" "Hidden" dired-filter-by-dot-files)
+        ("o" "Omitted" dired-filter-by-omit)
+        ("g" "Garbage" dired-filter-by-garbage)
+        ("e" "Predicate" dired-filter-by-predicate)
+        ("f" "File" dired-filter-by-file)
+        ("d" "Directory" dired-filter-by-directory)
+        ("m" "Mode" dired-filter-by-mode)
+        ("s" "Symlink" dired-filter-by-symlink)
+        ("x" "Executable" dired-filter-by-executable)
+        ("ig" "Git-ignored" dired-filter-by-git-ignored)
         ]
        ["Operators"
         ("|" "OR" dired-filter-or)
@@ -8292,54 +8295,56 @@ Dired major mode transient.
     (transient-define-prefix transient/dired-mode ()
       "`dired-mode' commands."
       ["Dired"
-       ["File"
+       ["File open"
         ("RET" "Open" dired-find-file)
         ("o" "Open other" dired-find-file-other-window)
         ("F" "Open marked" dired-do-find-marked-files)
         ("z" "Open external" dired--open-file-at-pt)
         ("v" "View file" dired-view-file)
+        ("+" "Create dir" dired-create-directory)
+        ("=" "Diff" dired-diff)
+        ]
+       ["File operations"
         ("C" "Copy" dired-do-copy)
-        ("R" "Rename" dired-do-rename)
-        ("%R" "Rename by regexp" dired-do-rename-regexp)
         ("D" "Delete" dired-do-delete)
         ("x" "Delete marked" dired-do-flagged-delete)
         ("S" "Symlink" dired-do-symlink)
         ("Y" "Symlink to" dired-do-relsymlink)
         ("c" "Compress to" dired-do-compress-to)
         ("Z" "Compress" dired-do-compress)
-        ("+" "Create dir" dired-create-directory)
-        ("=" "Diff" dired-diff)
         ]
-       ["Search"
-        ("A" "Query" dired-do-find-regexp)
-        ("Q" "Query-replace" dired-do-find-regexp-and-replace)
-        ""
-        "Attributes"
+       ["File modification"
+        ("R" "Rename" dired-do-rename)
+        ("%R" "Rename by regexp" dired-do-rename-regexp)
         ("G" "chgrp" dired-do-chgrp)
         ("M" "chmod" dired-do-chmod)
         ("O" "chown" dired-do-chown)
         ("T" "Touch" dired-do-touch)
-        ""
-        "Mark"
+        ]
+       ["Mark"
         ("m" "File at pt" dired-mark :transient t)
         ("E" "By extension" dired-mark-extension :transient t)
         ("t" "Toggle marks" dired-toggle-marks :transient t)
         ("u" "Unmark" dired-unmark :transient t)
         ("U" "Unmark all" dired-unmark-all-marks :transient t)
         ]
-       ["Narrow"
+       ]
+      [
+       ["Search/Filter"
+        ("A" "Query" dired-do-find-regexp)
+        ("Q" "Query-replace" dired-do-find-regexp-and-replace)
         ("{" "Find by name" find-name-dired)
         ("}" "Find by query" find-grep-dired)
         ("/" "Filter" transient/dired-mode/filter)
-        ""
-        "View"
+        ]
+       ["View"
         ("(" "Toggle details" dired-hide-details-mode :transient t)
         (")" "Toggle omit" dired-omit-mode :transient t)
         ("i" "Insert subdir" dired-maybe-insert-subdir :transient t)
         ("K" "Kill subdir" transient/dired-mode--dired-kill-and-next-subdir :transient t)
         ("s" "Sort by date" dired-sort-toggle-or-edit :transient t)
-        ""
-        "Other"
+        ]
+       ["Other"
         ("y" "Show file type" dired-show-file-type :transient t)
         ("g" "Refresh" revert-buffer :transient t)
         ("l" "Redisplay" dired-do-redisplay :transient t)
@@ -8370,12 +8375,6 @@ Dired major mode transient.
       ("t" "Trace" edebug-Trace-fast-mode)
       ("c" "Continue" edebug-continue-mode)
       ("C" "Continue (fast)" edebug-Continue-fast-mode)
-      ""
-      "Quitting/Stopping"
-      ("q" "Top level" top-level)
-      ("Q" "Top level (nonstop)" edebug-top-level-nonstop)
-      ("a" "Abort recursive edit" abort-recursive-edit)
-      ("S" "Stop" edebug-stop)
       ]
      ["Stepping"
       ("f" "Forward sexp" edebug-forward-sexp)
@@ -8383,29 +8382,40 @@ Dired major mode transient.
       ("I" "Instrument callee" edebug-instrument-callee)
       ("i" "Step in" edebug-step-in)
       ("o" "Step out" edebug-step-out)
-      ""
-      "Breakpoints"
+      ]
+     ["Breakpoints"
       ("b" "Set" edebug-set-breakpoint)
       ("u" "Unset" edebug-unset-breakpoint)
       ("B" "Next" edebug-next-breakpoint)
       ("x" "Set (cond-at-pt)" edebug-set-conditional-breakpoint)
       ("X" "Set (global cond)" edebug-set-global-break-condition)
       ]
+     ]
+    [
      ["Evaluation"
       ("r" "Previous result" edebug-previous-result)
       ("e" "Sexp" edebug-eval-expression)
       ("C-e" "Last sexp" edebug-eval-last-sexp)
       ("E" "Visit eval list" edebug-visit-eval-list)
-      ""
-      "Views"
+      ]
+     ["Views"
       ("v" "Outside" edebug-view-outside)
       ("w" "Where" edebug-where)
       ("p" "Bounce point" edebug-bounce-point)
       ("W" "Toggle save windows" edebug-toggle-save-windows)
-      ""
-      "Other"
+      ]
+     ["Quitting/Stopping"
+      ("q" "Top level" top-level)
+      ("Q" "Top level (nonstop)" edebug-top-level-nonstop)
+      ("a" "Abort recursive edit" abort-recursive-edit)
+      ("S" "Stop" edebug-stop)
+      ]
+     ]
+    [
+     ["Other"
+      ("d" "Backtrace" edebug-pop-to-backtrace)
+      ("=" "Frequency count" edebug-temp-display-freq-count)
       ("?" "Help" edebug-help)
-      ("d" "Backtrace" edebug-backtrace)
       ]
      ]
     )
@@ -8485,8 +8495,8 @@ Emacs Web Wowser major mode transient.
      ["Bookmarks"
       ("b" "Add" eww-add-bookmark)
       ("B" "List" eww-list-bookmarks)
-      ""
-      "Toggle"
+      ]
+     ["Toggle"
       ("F" "Fonts" eww-toggle-fonts :transient t)
       ("I" "Images" transient/eww-mode--toggle-images :transient t)
       ("M-C" "Colors" eww-toggle-colors :transient t)
@@ -8534,12 +8544,7 @@ Ibuffer major mode transient.
 (transient-define-prefix transient/ibuffer-mode/action ()
   "`ibuffer-mode' action commands."
   ["Ibuffer → Action"
-   ["Properties"
-    ("R" "Rename uniquely" ibuffer-do-rename-uniquely)
-    ("M" "Toggle modified" ibuffer-do-toggle-modified)
-    ("T" "Toggle read-only" ibuffer-do-toggle-read-only)
-    ""
-    "Run"
+   ["Run"
     ("E" "Eval in buffers" ibuffer-do-eval)
     ("W" "View buffers and eval" ibuffer-do-view-and-eval)
     ("F" "Command on files" ibuffer-do-shell-command-file)
@@ -8551,8 +8556,15 @@ Ibuffer major mode transient.
     ("U" "Replace regexp" ibuffer-do-replace-regexp)
     ("Q" "Query/Replace" ibuffer-do-query-replace)
     ("I" "Query/Replace regexp" ibuffer-do-query-replace-regexp)
-    ""
-    "Other"
+    ]
+   ["Properties"
+    ("R" "Rename uniquely" ibuffer-do-rename-uniquely)
+    ("M" "Toggle modified" ibuffer-do-toggle-modified)
+    ("T" "Toggle read-only" ibuffer-do-toggle-read-only)
+    ]
+   ]
+  [
+   ["Other"
     ("A" "View" ibuffer-do-view)
     ("H" "View (other)" ibuffer-do-view-other-frame)
     ("V" "Revert" ibuffer-do-revert)
@@ -8657,11 +8669,13 @@ Markdown major mode transient.
       "`markdown-mode' commands."
       :transient-suffix 'transient--do-stay
       ["Markdown mode"
-       ["Outline"
+       ["Navigate"
         ("n" "Next" markdown-outline-next)
         ("p" "Previous" markdown-outline-previous)
         ("f" "Next (same level)" markdown-outline-next-same-level)
         ("b" "Previous (same level)" markdown-outline-previous-same-level)
+        ]
+       ["Move outline"
         ("<left>" "Promote" markdown-promote)
         ("<right>" "Demote" markdown-demote)
         ("<up>" "Move up" markdown-move-up)
@@ -8670,8 +8684,10 @@ Markdown major mode transient.
        ["Shift region"
         ("<" "Outdent" markdown-outdent-region)
         (">" "Indent" markdown-indent-region)
-        ""
-        "User interface"
+        ]
+       ]
+      [
+       ["User interface"
         ("E" "Toggle math" markdown-toggle-math)
         ("F" "Toggle code font" markdown-toggle-fontify-code-blocks-natively)
         ("I" "Toggle images" markdown-toggle-inline-images)
@@ -8681,8 +8697,8 @@ Markdown major mode transient.
        ["Table of contents"
         ("t" "Insert/Refresh" markdown-toc-generate-or-refresh-toc :transient nil)
         ("C-t" "Delete" markdown-toc-delete-toc)
-        ""
-        "Other"
+        ]
+       ["Other"
         ("d" "Do" markdown-do :transient nil)
         ("o" "Follow" markdown-follow-thing-at-point :transient nil)
         ("'" "Edit code block" markdown-edit-code-block :transient nil)
@@ -8708,8 +8724,8 @@ Neuron major mode transient.
       ("o" "Follow at point" neuron-follow-thing-at-point)
       ("u" "Edit uplink" neuron-edit-uplink)
       ("r" "Open current" neuron-open-current-zettel)
-      ""
-      "Tags"
+      ]
+     ["Tags"
       ("t" "Add" neuron-add-tag)
       ("T" "Add (multiple)" neuron-add-tags)
       ]
@@ -8717,8 +8733,10 @@ Neuron major mode transient.
       ("l" "Zettel link" neuron-create-and-insert-zettel-link)
       ("L" "Zettel link from region" neuron-create-zettel-from-selected-title)
       ("s" "Static link" neuron-insert-static-link)
-      ""
-      "Other"
+      ]
+     ]
+    [
+     ["Other"
       ("c" "Toggle link conn type" neuron-toggle-connection-type :transient nil)
       ("m" "Markdown major mode transient" transient/markdown-mode)
       ]
@@ -8751,29 +8769,38 @@ Org-agenda major mode transient.
       ("w" "Week" org-agenda-week-view)
       ("f" "Later" org-agenda-later)
       ("b" "Earlier" org-agenda-earlier)
-      ""
-      "Filter"
+      ]
+     ["Navigate"
+      ("n" "Next line" org-agenda-next-line)
+      ("p" "Prev line" org-agenda-previous-line)
+      ("N" "Next item" org-agenda-next-item)
+      ("P" "Prev item" org-agenda-previous-item)
+      ]
+     ["Visit"
+      ("SPC" "Show" org-agenda-show-and-scroll-up :transient nil)
+      ("TAB" "Goto" org-agenda-goto :transient nil)
+      ("RET" "Switch to" org-agenda-switch-to :transient nil)
+      ("C-c C-o" "Link" org-agenda-open-link :transient nil)
+      ]
+     ["Other"
+      ("r" "Redisplay" org-agenda-redo)
+      ("j" "Goto date" org-agenda-goto-date)
+      ("." "Goto today" org-agenda-goto-today)
+      ("(" (lambda ()
+             (transient--make-description
+              "Hide DONE"
+              org-agenda-skip-scheduled-if-done))
+       transient/org-agenda-mode--hide-done)
+      ]
+     ]
+    [
+     ["Filter"
       ("<" "By category" org-agenda-filter-by-category)
       ("_" "By effort" org-agenda-filter-by-effort)
       ("=" "By regexp" org-agenda-filter-by-regexp)
       ("\\" "By tag" org-agenda-filter-by-tag)
       ("^" "By top headline" org-agenda-filter-by-top-headline)
       ("|" "Remove all" org-agenda-filter-remove-all)
-      ]
-     ["Date"
-      (">" "Prompt" org-agenda-date-prompt)
-      ("C-c C-s" "Schedule" org-agenda-schedule)
-      ("C-c C-d" "Deadline" org-agenda-deadline)
-      ""
-      "Item"
-      ("t" "Status" org-agenda-todo)
-      (":" "Tags" org-agenda-set-tags)
-      ("," "Priority" org-agenda-priority)
-      ("z" "Add note" org-agenda-add-note)
-      ("C-c C-x p" "Property" org-agenda-set-property)
-      ("$" "Archive" org-agenda-archive)
-      ("C-c C-w" "Refile" org-agenda-refile)
-      ("C-k" "Kill" org-agenda-kill)
       ]
      ["Clock"
       ("I" "In" org-agenda-clock-in)
@@ -8785,26 +8812,25 @@ Org-agenda major mode transient.
               "Clocktable"
               org-agenda-clockreport-mode))
        org-agenda-clockreport-mode)
-      ""
-      "Visit"
-      ("SPC" "Show" org-agenda-show-and-scroll-up :transient nil)
-      ("TAB" "Goto" org-agenda-goto :transient nil)
-      ("RET" "Switch to" org-agenda-switch-to :transient nil)
-      ("C-c C-o" "Link" org-agenda-open-link :transient nil)
       ]
-     ["Other"
-      ("n" "Next line" org-agenda-next-line)
-      ("p" "Prev line" org-agenda-previous-line)
-      ("N" "Next item" org-agenda-next-item)
-      ("P" "Prev item" org-agenda-previous-item)
-      ("r" "Redisplay" org-agenda-redo)
-      ("j" "Goto date" org-agenda-goto-date)
-      ("." "Goto today" org-agenda-goto-today)
-      ("(" (lambda ()
-             (transient--make-description
-              "Hide DONE"
-              org-agenda-skip-scheduled-if-done))
-       transient/org-agenda-mode--hide-done)
+     ["Modify"
+      ("t" "Status" org-agenda-todo)
+      (":" "Tags" org-agenda-set-tags)
+      ("," "Priority" org-agenda-priority)
+      ("z" "Add note" org-agenda-add-note)
+      ("C-c C-x p" "Property" org-agenda-set-property)
+      ]
+     ]
+    [
+     ["Date"
+      (">" "Prompt" org-agenda-date-prompt)
+      ("C-c C-s" "Schedule" org-agenda-schedule)
+      ("C-c C-d" "Deadline" org-agenda-deadline)
+      ]
+     ["Node ops"
+      ("$" "Archive" org-agenda-archive)
+      ("C-c C-w" "Refile" org-agenda-refile)
+      ("C-k" "Kill" org-agenda-kill)
       ]
      ]
     )
@@ -8855,17 +8881,7 @@ Org major mode transient.
      (transient-define-prefix transient/org-mode ()
        "`org-mode' commands."
        ["Org"
-        ["Node operations"
-         ("t" "Todo state" org-todo)
-         (":" "Tags" org-set-tags-command)
-         ("," "Priority" org-priority)
-         ("D" "Insert drawer" org-insert-drawer)
-         ("P" "Set property" org-set-property)
-         ("N" "Add note" org-add-note)
-         ("r" "Refile" org-refile)
-         ("s" "Sort" org-sort)
-         ""
-         "Toggle"
+        ["Toggle"
          ("i" (lambda ()
                 (transient--make-description
                  "Images"
@@ -8892,25 +8908,6 @@ Org major mode transient.
                    org-image-actual-width))
           transient/org-mode--toggle-display-image-width :transient t)
          ]
-        [:description (lambda ()
-                        (transient--make-description
-                         "Narrow"
-                         (buffer-narrowed-p)))
-         ("M-s" "Subtree" org-narrow-to-subtree)
-         ("M-b" "Block" org-narrow-to-block)
-         ("M-w" "Widen" widen)
-         ""
-         "Entry operations"
-         ("F" "Add footnote" org-footnote-action)
-         ("a" "Archive" org-archive-subtree-default)
-         ("<" "Insert structure" org-insert-structure-template)
-         ("'" "Edit (special)" org-edit-special)
-         ("e" "Emphasize text" org-emphasize)
-         ""
-         "Download"
-         ("ds" "Screenshot" org-download-screenshot)
-         ("dy" "Yank" org-download-yank)
-         ]
         ["Search"
          ("g" "Goto" org-goto)
          ("o" "Occur" org-occur :transient t)
@@ -8918,11 +8915,42 @@ Org major mode transient.
          ("c" "Clear search results" org-remove-occur-highlights :transient t)
          ("n" "Next (sparse) node" transient/org-mode--next-heading-dwim :transient t)
          ("p" "Previous (sparse) node" transient/org-mode--previous-heading-dwim :transient t)
-         ""
-         "Other"
+         ]
+        ["Modify"
+         ("t" "Todo state" org-todo)
+         (":" "Tags" org-set-tags-command)
+         ("," "Priority" org-priority)
+         ("D" "Insert drawer" org-insert-drawer)
+         ("P" "Set property" org-set-property)
+         ("N" "Add note" org-add-note)
+         ]
+        ]
+       [
+        ["Node ops"
+         ("a" "Archive" org-archive-subtree-default)
+         ("r" "Refile" org-refile)
+         ("s" "Sort" org-sort)
+         ]
+        ["Text ops"
+         ("F" "Add footnote" org-footnote-action)
+         ("<" "Insert structure" org-insert-structure-template)
+         ("'" "Edit special" org-edit-special)
+         ("e" "Emphasize" org-emphasize)
+         ]
+        [:description (lambda ()
+                        (transient--make-description
+                         "Narrow"
+                         (buffer-narrowed-p)))
+         ("M-s" "Subtree" org-narrow-to-subtree)
+         ("M-b" "Block" org-narrow-to-block)
+         ("M-w" "Widen" widen)
+         ]
+        ["Other"
          ("<tab>" "Cycle node" org-cycle :transient t)
          ("<S-tab>" "Cycle global" org-global-cycle :transient t)
          ("C-p" "Present mode" transient/org-mode--toggle-present-mode)
+         ("ds" "Download screenshot" org-download-screenshot)
+         ("dy" "Download yank" org-download-yank)
          ]
         ]
        )
@@ -9020,32 +9048,34 @@ Major mode-specific hydra for ~racket-mode~.
       ("rr" "Buffer in REPL" racket-run)
       ("rm" "Module in REPL" racket-run-module-at-point)
       ("rR" "File in shell" racket-racket)
-      ""
-      "Profiling/Logging"
+      ]
+     ["Profiling/Logging"
       ("rp" "Profiler" racket-profile)
       ("rl" "Logger" racket-logger)
-      ""
-      "Testing"
-      ("tt" "Run tests in REPL" racket-test)
-      ("tr" "Raco test" racket-raco-test)
       ]
      ["Refactoring"
       ("Rb" "Base requires" racket-base-requires)
       ("Rt" "Tidy requires" racket-tidy-requires)
       ("RT" "Trim requires" racket-trim-requires)
-      ""
-      "Help"
+      ]
+     ["Editing"
+      ("a" "Align" racket-align)
+      ("u" "Unalign" racket-unalign)
+      ]
+     ]
+    [
+     ["Testing"
+      ("tt" "Run tests in REPL" racket-test)
+      ("tr" "Raco test" racket-raco-test)
+      ]
+     ["Help"
       ("." "Visit definition" racket-xp-visit-definition)
       ("C-." "Visit module" racket-visit-module)
       ("," "Unvisit" racket-unvisit)
       ("h" "Describe" racket-xp-describe)
       ("H" "Documentation" racket-xp-documentation)
       ]
-     ["Editing"
-      ("a" "Align" racket-align)
-      ("u" "Unalign" racket-unalign)
-      ""
-      "Other"
+     ["Other"
       ("S" "Recompile racket-mode" racket-mode-start-faster)
       ("f" "Find collection" racket-find-collection)
       ("x" "Explain/Explore mode" racket-xp-mode)
@@ -9292,8 +9322,8 @@ Flycheck minor mode transient.
       ("?" "Describe" flycheck-describe-checker :transient nil)
       ("c" "Run" flycheck-buffer)
       ("C-c" "Run via `compile'" flycheck-compile)
-      ""
-      "Other"
+      ]
+     ["Other"
       ("v" "Verify setup" flycheck-verify-setup :transient nil)
       ("i" "Online manual" flycheck-manual :transient nil)
       ]
@@ -9326,34 +9356,6 @@ LSP minor mode transient.
           ("sq" "Shutdown" lsp-workspace-shutdown)
           ("sd" "Describe" lsp-describe-session)
           ("sD" "Disconnect" lsp-disconnect)
-          ""
-          "Folders"
-          ("Fa" "Add" lsp-workspace-folders-add)
-          ("Fr" "Remove" lsp-workspace-folders-remove)
-          ("Fb" "Blacklist remove" lsp-workspace-blacklist-remove)
-          ""
-          "Actions"
-          ("aa" "Execute code action" lsp-execute-code-action)
-          ("al" "Click lens with Avy" lsp-avy-lens)
-          ("ah" "Highlight relevant" lsp-document-highlight)
-          ]
-         ["Goto"
-          ("gg" "Definition" lsp-find-definition)
-          ("gr" "References" lsp-find-references)
-          ("gi" "Implementation" lsp-find-implementation)
-          ("gt" "Type definition" lsp-find-type-definition)
-          ("gd" "Declaration" lsp-find-declaration)
-          ("gh" "Call hierarchy" lsp-treemacs-call-hierarchy)
-          ("ga" "Apropos" xref-find-apropos)
-          ("ge" "Errors list" lsp-treemacs-errors-list)
-          ""
-          "Refactoring"
-          ("rr" "Rename" lsp-rename)
-          ("ro" "Organize imports" lsp-organize-imports)
-          ""
-          "Format"
-          ("==" "Buffer" lsp-format-buffer)
-          ("=r" "Region" lsp-format-region)
           ]
          ["Toggle"
           ("Tl" (lambda ()
@@ -9401,15 +9403,47 @@ LSP minor mode transient.
                    "Treemacs sync"
                    lsp-treemacs-sync-mode))
            lsp-treemacs-sync-mode :transient t)
-          ""
-          "Help"
-          ("hh" "Describe" lsp-describe-thing-at-point)
-          ("hs" "Signature" lsp-signature-activate)
-          ""
-          "Other"
+          ]
+         ["Goto"
+          ("gg" "Definition" lsp-find-definition)
+          ("gr" "References" lsp-find-references)
+          ("gi" "Implementation" lsp-find-implementation)
+          ("gt" "Type definition" lsp-find-type-definition)
+          ("gd" "Declaration" lsp-find-declaration)
+          ("gh" "Call hierarchy" lsp-treemacs-call-hierarchy)
+          ("ga" "Apropos" xref-find-apropos)
+          ("ge" "Errors list" lsp-treemacs-errors-list)
+          ]
+         ]
+        [
+         ["Folders"
+          ("Fa" "Add" lsp-workspace-folders-add)
+          ("Fr" "Remove" lsp-workspace-folders-remove)
+          ("Fb" "Blacklist remove" lsp-workspace-blacklist-remove)
+          ]
+         ["Actions"
+          ("aa" "Execute code action" lsp-execute-code-action)
+          ("al" "Click lens with Avy" lsp-avy-lens)
+          ("ah" "Highlight relevant" lsp-document-highlight)
+          ]
+         ["Other"
           ("I" "Install server" transient/lsp-mode--install-server)
           ("dd" "DAP debug" dap-debug)
           ("de" "DAP edit template" dap-debug-edit-template)
+          ]
+         ]
+        [
+         ["Refactoring"
+          ("rr" "Rename" lsp-rename)
+          ("ro" "Organize imports" lsp-organize-imports)
+          ]
+         ["Format"
+          ("==" "Buffer" lsp-format-buffer)
+          ("=r" "Region" lsp-format-region)
+          ]
+         ["Help"
+          ("hh" "Describe" lsp-describe-thing-at-point)
+          ("hs" "Signature" lsp-signature-activate)
           ]
          ]
         )

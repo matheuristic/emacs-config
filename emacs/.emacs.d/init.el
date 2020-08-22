@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug 22 10:52:36 2020
+;; Generated: Sat Aug 22 12:24:16 2020
 
 ;;; Commentary:
 
@@ -109,10 +109,7 @@
   :after helm
   :config (helm-icons-enable))
 
-;; framework for defining temporary, repeatable bindings
-;; see https://github.com/abo-abo/hydra
-(use-package hydra
-  :demand t)
+
 
 ;; text completion framework
 (use-package company
@@ -2500,6 +2497,14 @@ Formatting a selected region only works on top-level objects."
 (require 'too-long-lines-mode)
 (too-long-lines-mode 1)
 
+(use-package hl-todo
+  :bind (:map hl-todo-mode-map
+         ("C-c n" . hl-todo-next)
+         ("C-c p" . hl-todo-prev)
+         ("C-c o" . hl-todo-occur)
+         ("C-c i" . hl-todo-insert))
+  :hook (prog-mode . hl-todo-mode))
+
 ;; Web
 
 ;; built-in Emacs text web browser
@@ -3539,6 +3544,7 @@ whitespace, indenting and untabifying."
 (require 'censor)
 (require 'darkroom)
 (require 'highlight-indent-guides)
+(require 'hl-todo)
 (require 'prism)
 (require 'symbol-overlay)
 (require 'too-long-lines-mode)
@@ -3730,6 +3736,11 @@ Currently only works for Emacs Mac port."
              "Prism whitespace"
              prism-whitespace-mode))
      prism-whitespace-mode)
+    ("cT" (lambda ()
+             (transient--make-description
+              "Highlight TODOs"
+              hl-todo-mode))
+     hl-todo-mode)
     ]
    ]
   [
@@ -3767,6 +3778,9 @@ Currently only works for Emacs Mac port."
             "Visual line"
             visual-line-mode))
      visual-line-mode)
+    ("F" (lambda ()
+           (transient--make-description "Follow" follow-mode))
+     follow-mode)
     ("x" (lambda ()
            (transient--make-description
             "Censor"
@@ -3777,9 +3791,6 @@ Currently only works for Emacs Mac port."
             "Censor (global)"
             global-censor-mode))
      global-censor-mode)
-    ("F" (lambda ()
-           (transient--make-description "Follow" follow-mode))
-     follow-mode)
     ]
    ]
   )

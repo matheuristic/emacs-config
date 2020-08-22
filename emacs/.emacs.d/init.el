@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Aug 20 21:36:57 2020
+;; Generated: Fri Aug 21 21:27:00 2020
 
 ;;; Commentary:
 
@@ -310,17 +310,18 @@ if the point is in the minibuffer."
         '(("default"
            ("Emacs" (or (name . "^\\*scratch\\*$")
                         (name . "^\\*Messages\\*$")))
-           ("Programming" (derived-mode . prog-mode))
+           ("Web" (or (mode . eww-mode)
+                      (mode . eww-bookmark-mode)))
+           ("Org" (or (derived-mode . org-mode)
+                      (mode . org-agenda-mode)))
+           ("Text" (derived-mode . text-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)
                         (name . "^vterm .*")))
-           ("Org" (or (derived-mode . org-mode)
-                      (mode . org-agenda-mode)))
-           ("Text" (derived-mode . text-mode))
+           ("Programming" (derived-mode . prog-mode))
+           ("Fundamental" (mode . fundamental-mode))
            ("Dired" (mode . dired-mode))
-           ("Web" (or (mode . eww-mode)
-                      (mode . eww-bookmark-mode)))
            ("Magit" (or (name . "\*magit.*\\*")
                         (mode . magit-mode)))
            ("Help" (or (derived-mode . apropos-mode)

@@ -214,7 +214,7 @@ deprecated ~cl~ library.
 (file-dependents (feature-file 'cl))
 #+end_example
 
-** Tags
+* Tags
 
 - ~early~: Configuration code (not boilerplate comments) that should
   be loaded in ~early-init.el~ to optimize startup time.

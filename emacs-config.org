@@ -10083,6 +10083,18 @@ The main configuration file.
 
 * TODO Backlog
 
+** Command-line interaction
+
+*** [#C] native-complete and company-native-complete
+
+[[https://github.com/CeleritasCelery/emacs-native-shell-complete][GitHub - CeleritasCelery/emacs-native-shell-complete: Completion in shell buffer]]
+
+** Editing text
+
+*** [#C] objed
+
+[[https://github.com/clemera/objed][GitHub - clemera/objed: Navigate and edit text objects with Emacs]]
+
 ** Email
 
 *** [#B] Multiple mailboxes

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug 23 23:09:00 2020
+;; Generated: Mon Aug 24 11:45:33 2020
 
 ;;; Commentary:
 
@@ -87,19 +87,19 @@
 
 ;; set typefaces for graphical Emacs
 ;; main fonts
-(set-face-attribute 'default nil :family "Iosevka Term SS08"
+(set-face-attribute 'default nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 150 110)
                     :weight 'normal :width 'normal)
-(set-face-attribute 'fixed-pitch nil :family "Iosevka Term SS08"
+(set-face-attribute 'fixed-pitch nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 150 110)
                     :weight 'normal :width 'normal)
 (set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
                     :height (if (eq system-type 'darwin) 150 110)
                     :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line nil :family "Iosevka Term SS08"
+(set-face-attribute 'mode-line nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 120 90)
                     :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line-inactive nil :family "Iosevka Term SS08"
+(set-face-attribute 'mode-line-inactive nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 120 90)
                     :weight 'normal :width 'normal)
 ;; fallback font

@@ -619,6 +619,26 @@ This is used by other packages, like ~markdown-mode~.
 (use-package edit-indirect)
 #+end_src
 
+** System notifications with alert                                    :melpa:
+
+[[https://github.com/jwiegley/alert][Alert]] is a [[http://growl.info/][Growl]]-like notification backend for Emacs.
+
+#+name: alert
+#+begin_src emacs-lisp
+;; notifications backend
+(use-package alert
+  :config (setq alert-default-style
+                (cond
+                 ;; use AppleScript for macOS notifications
+                 ((eq system-type 'darwin) 'osx-notifier)
+                 ;; use libnotify for Linux notifications if avilable
+                 ((and (eq system-type 'gnu/linux)
+                       (executable-find "notify-send"))
+                  'libnotify)
+                 ;; otherwise print message to minibuffer
+                 (t 'message))))
+#+end_src
+
 * Custom variables and utility functions
 
 Various utility functions used in multiple config locations, usually
@@ -4140,6 +4160,18 @@ Next configure the capture template used by the org-protocol bookmarklet.
 
 Clicking the bookmarklet will capture the selected text to the
 websnippets Org file.
+
+** org-wild-notifier for Org agenda event notifications               :melpa:
+
+[[https://github.com/akhramov/org-wild-notifier.el][org-wild-notifier.el]] adds notification support for Org agenda views,
+specifically it sends notifications for upcoming ~TODO~ entries.
+
+#+name: org-wild-notifier
+#+begin_src emacs-lisp
+;; send notifications for Org agenda deadlines and scheduled tasks
+(use-package org-wild-notifier
+  :hook (after-init . org-wild-notifier-mode))
+#+end_src
 
 * Programming
 
@@ -9514,6 +9546,8 @@ The main configuration file.
 
 <<edit-indirect>>
 
+<<alert>>
+
 ;; Custom variables and utility functions / Custom variables
 
 <<my-system-open-command>>
@@ -9755,6 +9789,8 @@ The main configuration file.
 <<org-protocol>>
 
 <<org-capture-websnippet>>
+
+<<org-wild-notifier>>
 
 ;; Programming / Buffer reformatter macro
 

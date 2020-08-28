@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Aug 24 11:45:33 2020
+;; Generated: Fri Aug 28 19:31:17 2020
 
 ;;; Commentary:
 
@@ -126,6 +126,19 @@
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
+
+;; notifications backend
+(use-package alert
+  :config (setq alert-default-style
+                (cond
+                 ;; use AppleScript for macOS notifications
+                 ((eq system-type 'darwin) 'osx-notifier)
+                 ;; use libnotify for Linux notifications if avilable
+                 ((and (eq system-type 'gnu/linux)
+                       (executable-find "notify-send"))
+                  'libnotify)
+                 ;; otherwise print message to minibuffer
+                 (t 'message))))
 
 ;; Custom variables and utility functions / Custom variables
 
@@ -1912,6 +1925,10 @@ call `open-line' on the very first character."
         (file+headline ,org-websnippet-capture-file "Unsorted")
         "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
       org-capture-templates)
+
+;; send notifications for Org agenda deadlines and scheduled tasks
+(use-package org-wild-notifier
+  :hook (after-init . org-wild-notifier-mode))
 
 ;; Programming / Buffer reformatter macro
 

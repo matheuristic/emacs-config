@@ -5303,19 +5303,19 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
 
 #+name: notdeft
 #+begin_src emacs-lisp
-;; load notdeft, make sure this comes after org-directory is set
-(require 'notdeft-autoloads)
-(setq notdeft-directories `(,(concat org-directory "journal/")
-                            ,(concat org-directory "scratch/"))
-      notdeft-extension "org"
-      notdeft-secondary-extensions '("md" "txt")
-      notdeft-directory (concat org-directory "scratch/")
-      notdeft-xapian-program (concat (file-name-directory
-                                      (locate-library "notdeft"))
-                                     "xapian/notdeft-xapian"))
-
-;; binding to access Notdeft
-(global-set-key (kbd "C-c C-M-s") #'notdeft)
+;; load notdeft if installed, make sure org-directory is set prior
+(require 'notdeft-autoloads nil t)
+(when (featurep 'notdeft-autoloads)
+  (setq notdeft-directories `(,(concat org-directory "journal/")
+                              ,(concat org-directory "scratch/"))
+        notdeft-extension "org"
+        notdeft-secondary-extensions '("md" "txt")
+        notdeft-directory (concat org-directory "scratch/")
+        notdeft-xapian-program (concat (file-name-directory
+                                        (locate-library "notdeft"))
+                                       "xapian/notdeft-xapian"))
+  ;; binding to access Notdeft
+  (global-set-key (kbd "C-c C-M-s") #'notdeft))
 #+end_src
 
 ** Imenu

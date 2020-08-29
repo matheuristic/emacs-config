@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug 29 00:16:21 2020
+;; Generated: Sat Aug 29 12:44:50 2020
 
 ;;; Commentary:
 
@@ -2391,19 +2391,19 @@ Formatting a selected region only works on top-level objects."
   (with-eval-after-load 'org-agenda
     (define-key org-agenda-mode-map (kbd "M-O") #'ace-link-org-agenda)))
 
-;; load notdeft, make sure this comes after org-directory is set
-(require 'notdeft-autoloads)
-(setq notdeft-directories `(,(concat org-directory "journal/")
-                            ,(concat org-directory "scratch/"))
-      notdeft-extension "org"
-      notdeft-secondary-extensions '("md" "txt")
-      notdeft-directory (concat org-directory "scratch/")
-      notdeft-xapian-program (concat (file-name-directory
-                                      (locate-library "notdeft"))
-                                     "xapian/notdeft-xapian"))
-
-;; binding to access Notdeft
-(global-set-key (kbd "C-c C-M-s") #'notdeft)
+;; load notdeft if installed, make sure org-directory is set prior
+(require 'notdeft-autoloads nil t)
+(when (featurep 'notdeft-autoloads)
+  (setq notdeft-directories `(,(concat org-directory "journal/")
+                              ,(concat org-directory "scratch/"))
+        notdeft-extension "org"
+        notdeft-secondary-extensions '("md" "txt")
+        notdeft-directory (concat org-directory "scratch/")
+        notdeft-xapian-program (concat (file-name-directory
+                                        (locate-library "notdeft"))
+                                       "xapian/notdeft-xapian"))
+  ;; binding to access Notdeft
+  (global-set-key (kbd "C-c C-M-s") #'notdeft))
 
 (setq imenu-auto-rescan t)
 

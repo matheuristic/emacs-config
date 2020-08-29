@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Aug 28 19:31:17 2020
+;; Generated: Sat Aug 29 00:16:21 2020
 
 ;;; Commentary:
 
@@ -92,7 +92,8 @@
   (define-key global-map [remap find-file] 'helm-find-files)
   (define-key global-map [remap occur] 'helm-occur)
   ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
-  (define-key global-map [remap switch-to-buffer] 'helm-mini)
+  ;; (define-key global-map [remap switch-to-buffer] 'helm-mini)
+  (define-key global-map [remap switch-to-buffer] 'helm-buffers-list)
   (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
   (define-key global-map [remap execute-extended-command] 'helm-M-x)
   (define-key global-map [remap apropos-command] 'helm-apropos)

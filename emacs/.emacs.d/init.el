@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug 30 11:06:09 2020
+;; Generated: Sun Aug 30 12:52:10 2020
 
 ;;; Commentary:
 
@@ -209,7 +209,7 @@ if the point is in the minibuffer."
     ;; workaround for modeline getting truncated in certain conditions
     ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
     (doom-modeline-def-modeline 'main
-      '("  " workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
+      '(bar workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
       '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker "  "))
     ;; hide left margin indicator bar
     (set-face-background 'doom-modeline-bar

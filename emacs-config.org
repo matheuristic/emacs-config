@@ -5533,7 +5533,7 @@ Requires the ~all-the-icons~ package.
     ;; workaround for modeline getting truncated in certain conditions
     ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
     (doom-modeline-def-modeline 'main
-      '("  " workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
+      '(bar workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
       '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker "  "))
     ;; hide left margin indicator bar
     (set-face-background 'doom-modeline-bar

@@ -5065,6 +5065,8 @@ historical versions of Git-controlled files.
 [[https://github.com/rmuslimov/browse-at-remote][browse-at-remote.el]] provides an easy way to open a Git controlled file
 remotely in a browser or to copy its remote URL.
 
+An alternative with comparable feature coverage is [[https://github.com/sshaw/git-link][git-link]].
+
 #+name: browse-at-remote
 #+begin_src emacs-lisp
 (use-package browse-at-remote)
@@ -10348,6 +10350,22 @@ Or can define using ~flymake-quickdef~.
 
 [[https://github.com/federicotdn/flymake-shellcheck][GitHub - federicotdn/flymake-shellcheck]]
 
+*** Emacs lisp
+
+**** [#C] Behavior-driven Emacs lisp testing with buttercup           :melpa:
+
+[[https://github.com/jorgenschaefer/emacs-buttercup][GitHub - jorgenschaefer/emacs-buttercup: Behavior-Driven Emacs Lisp Testing]]
+
+*** Go
+
+**** [#C] go-mode                                                     :melpa:
+
+[[https://github.com/dominikh/go-mode.el][GitHub - dominikh/go-mode.el: Emacs mode for the Go programming language]]
+
+**** [#C] go-playground                                               :melpa:
+
+[[https://github.com/grafov/go-playground][GitHub - grafov/go-playground: GNU/Emacs mode that setup local Go playground]]
+
 *** Python
 
 **** [#C] Tab completion in PDB
@@ -10356,6 +10374,44 @@ Or can define using ~flymake-quickdef~.
 
 Might not be needed if mostly debugging using ~dap-mode~ with the
 ~ptvsd~ debugger.
+
+*** Racket
+
+**** [#C] Racket support for Org-Mode Babel code blocks            :external:
+
+[[https://github.com/hasu/emacs-ob-racket][GitHub - hasu/emacs-ob-racket: Emacs Org-Mode Babel code block Racket support]]
+
+*** Shell scripts
+
+**** [#C] modern-sh                                                   :melpa:
+
+[[https://github.com/damon-kwok/modern-sh][GitHub - damon-kwok/modern-sh: An Emacs minor mode for editing shell script.]]
+
+*** Stan
+
+[[https://github.com/stan-dev/stan-mode][GitHub - stan-dev/stan-mode: Emacs mode for Stan.]]
+
+See [[https://github.com/stan-dev/stan-mode#configuration][link]] for an example configuration.
+
+**** [#C] Stan mode                                                   :melpa:
+
+[[https://melpa.org/#/stan-mode][stan-mode]]
+
+**** [#C] Stan support for company-mode                               :melpa:
+
+[[https://melpa.org/#/company-stan][company-stan]]
+
+**** [#C] Stan support for Eldoc minor mode                           :melpa:
+
+[[https://melpa.org/#/eldoc-stan][eldoc-stan]]
+
+**** [#C] Flycheck checker for Stan                                   :melpa:
+
+[[https://melpa.org/#/flycheck-stan][flycheck-stan]]
+
+**** [#C] Stan snippets for YASnippet                                 :melpa:
+
+[[https://melpa.org/#/stan-snippets][stan-snippets]]
 
 *** SQL
 
@@ -10459,6 +10515,10 @@ Not yet in MELPA. Depends on ~jq-mode~.
 
 [[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
 packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://github.com/sp1ff/elfeed-score][elfeed-score]].
+
+*** [#C] use-proxy                                                    :melpa:
+
+[[https://github.com/rayw000/use-proxy][GitHub - rayw000/use-proxy: Easy way to enable/disable proxies in Emacs]]
 
 ** Writing
 

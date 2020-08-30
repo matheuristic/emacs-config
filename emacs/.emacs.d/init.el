@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Aug 29 12:44:50 2020
+;; Generated: Sun Aug 30 00:18:40 2020
 
 ;;; Commentary:
 
@@ -2244,7 +2244,15 @@ Formatting a selected region only works on top-level objects."
 ;; Programming / Racket
 
 (use-package racket-mode
-  :defer t)
+  :defer t
+  :config
+  (defun racket-mode--maybe-enable-racket-xp-mode ()
+    "Enables `racket-xp-mode' if the \"racket\" executable is in system path.
+This is useful for only enabling `racket-xp-mode' when the active
+environment has Racket installed."
+    (when (executable-find "racket")
+      (racket-xp-mode 1)))
+  (add-hook 'racket-mode-hook #'racket-mode--maybe-enable-racket-xp-mode))
 
 ;; Project interaction
 
@@ -3386,8 +3394,7 @@ whitespace, indenting and untabifying."
       ]
      ]
     )
-  (define-key projectile-mode-map (kbd "C-c C-M-p")
-    #'transient/projectile))
+  (define-key projectile-mode-map (kbd "C-c C-M-p") #'transient/projectile))
 
 ;; add transient popup for register commands, bind to "C-c C-M-S-v"
 (transient-define-prefix transient/registers ()
@@ -4886,6 +4893,34 @@ Currently only works for Emacs Mac port."
 
 ;; major-mode specific transient for racket-mode
 (with-eval-after-load 'racket-mode
+  (defun transient/racket-mode--visit-definition ()
+    "Visits definition of identifier at point in `racket-mode' buffers.
+Uses `racket-xp-visit-definition' if `racket-xp-mode' is enabled,
+and `racket-repl-visit-definition' otherwise."
+    (interactive)
+    (if racket-xp-mode
+        (racket-xp-visit-definition)
+      (racket-repl-visit-definition)))
+
+  (defun transient/racket-mode--describe ()
+    "Describe identifier at point in `racket-mode' buffers.
+Uses `racket-xp-describe' if `racket-xp-mode' is enabled, and
+`racket-repl-describe' otherwise."
+    (interactive)
+    (if racket-xp-mode
+        (racket-xp-describe)
+      (racket-repl-describe)))
+
+  (defun transient/racket-mode--documentation ()
+    "Show documentation for identifier at point in `racket-mode' buffers.
+Documentation is opened in an external browser.
+Uses `racket-xp-documentation' if `racket-xp-mode' is enabled,
+and `racket-repl-documentation' otherwise."
+    (interactive)
+    (if racket-xp-mode
+        (racket-xp-documentation)
+      (racket-repl-documentation)))
+
   (transient-define-prefix transient/racket-mode ()
     "`racket-mode' commands."
     ["Racket"
@@ -4914,19 +4949,29 @@ Currently only works for Emacs Mac port."
       ("tr" "Raco test" racket-raco-test)
       ]
      ["Help"
-      ("." "Visit definition" racket-xp-visit-definition)
+      ("." "Visit definition" transient/racket-mode--visit-definition)
       ("C-." "Visit module" racket-visit-module)
       ("," "Unvisit" racket-unvisit)
-      ("h" "Describe" racket-xp-describe)
-      ("H" "Documentation" racket-xp-documentation)
+      ("h" "Describe" transient/racket-mode--describe)
+      ("H" "Documentation" transient/racket-mode--documentation)
       ]
      ["Other"
-      ("S" "Recompile racket-mode" racket-mode-start-faster)
       ("f" "Find collection" racket-find-collection)
-      ("x" "Explain/Explore mode" racket-xp-mode)
+      ("p" (lambda ()
+             (transient--make-description
+              "Paredit mode"
+              paredit-mode))
+       paredit-mode)
+      ("x" (lambda ()
+             (transient--make-description
+              "Explain/Explore mode"
+              racket-xp-mode))
+       racket-xp-mode :transient t)
+      ("s" "Recompile racket-mode" racket-mode-start-faster)
       ]
      ]
     )
+
   (define-key racket-mode-map (kbd "C-c C-M-m") #'transient/racket-mode))
 
 ;; major-mode specific transient for restclient-mode
@@ -4967,8 +5012,7 @@ Currently only works for Emacs Mac port."
       ]
      ]
     )
-  (define-key restclient-mode-map (kbd "C-c C-M-m") #'transient/restclient-mode)
-  )
+  (define-key restclient-mode-map (kbd "C-c C-M-m") #'transient/restclient-mode))
 
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode
@@ -5094,9 +5138,12 @@ Currently only works for Emacs Mac port."
     (interactive)
     (quit-windows-on "*Flycheck errors*" t))
   (transient-define-prefix transient/flycheck-mode ()
-    "Flycheck minor mode `flycheck-mode' commands."
+    "`flycheck-mode' commands."
     :transient-suffix 'transient--do-stay
-    ["Flycheck"
+    [:description (lambda ()
+                    (transient--make-description
+                     "Flycheck"
+                     flycheck-mode))
      ["Error"
       ("n" "Next" flycheck-next-error)
       ("p" "Previous" flycheck-previous-error)
@@ -5117,11 +5164,11 @@ Currently only works for Emacs Mac port."
      ["Other"
       ("v" "Verify setup" flycheck-verify-setup :transient nil)
       ("i" "Online manual" flycheck-manual :transient nil)
+      ("m" "Toggle mode" flycheck-mode)
       ]
      ]
     )
-  (define-key flycheck-mode-map (kbd "C-c C-M-!") #'transient/flycheck-mode)
-  )
+  (global-set-key (kbd "C-c C-M-!") #'transient/flycheck-mode))
 
 ;; add transient for lsp-mode, bind to "C-c C-M-l"
 (with-eval-after-load 'lsp-mode
@@ -5231,7 +5278,7 @@ Currently only works for Emacs Mac port."
           ]
          ]
         )
-      (define-key lsp-mode-map (kbd "C-c C-M-l") #'transient/lsp-mode))))
+      (global-set-key (kbd "C-c C-M-l") #'transient/lsp-mode))))
 
 (provide 'init)
 ;;; init.el ends here

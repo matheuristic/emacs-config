@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug 30 00:18:40 2020
+;; Generated: Sun Aug 30 11:06:09 2020
 
 ;;; Commentary:
 
@@ -2698,6 +2698,24 @@ for more information."
   (use-package auth-source-pass
     :demand t
     :config
+    (defcustom auth-source-pass-filename-list '("~/.password-store")
+      "Directory filenames of different pass repositories on the system."
+      :group 'auth-source
+      :type '(repeat string))
+    (defun auth-source-pass-cycle-active-store ()
+      "Sets `auth-source-pass-filename' by cycling through `auth-source-pass-filename-list'."
+      (interactive)
+      (let* ((cur-pos (seq-position auth-source-pass-filename-list
+                                    auth-source-pass-filename))
+             (new-pos (if cur-pos ; non-nil
+                          (mod (1+ cur-pos)
+                               (length auth-source-pass-filename-list))
+                        0)) ; default to first entry
+             (new-dir (elt auth-source-pass-filename-list
+                           new-pos)))
+        (setq auth-source-pass-filename new-dir)
+        (message (concat "auth-source-pass-filename set to: "
+                         auth-source-pass-filename))))
     (defun my-auth-source-pass-enable ()
       "Enable auth-source and pass integration."
       (interactive)
@@ -3291,7 +3309,10 @@ whitespace, indenting and untabifying."
         (my-auth-source-pass-enable)))
     (transient-define-prefix transient/password-store ()
       "Various password-store commands."
-      ["Password store"
+      [:description (lambda ()
+                      (concat "Password store ["
+                              (password-store-dir)
+                              "]"))
        ["Copy"
         ("c" "Password" password-store-copy)
         ("f" "Field" password-store-copy-field)
@@ -3305,6 +3326,7 @@ whitespace, indenting and untabifying."
         ("R" "Remove" password-store-remove)
         ]
        ["Other"
+        ("<tab>" "Cycle store" auth-source-pass-cycle-active-store :transient t)
         ("A" (lambda ()
                (transient--make-description
                 "Auth-source integration"

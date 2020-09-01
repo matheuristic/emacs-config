@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Aug 30 12:52:10 2020
+;; Generated: Mon Aug 31 23:21:46 2020
 
 ;;; Commentary:
 
@@ -326,6 +326,7 @@ if the point is in the minibuffer."
            ("Org" (or (derived-mode . org-mode)
                       (mode . org-agenda-mode)))
            ("Text" (derived-mode . text-mode))
+           ("DocView" (mode . doc-view-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)

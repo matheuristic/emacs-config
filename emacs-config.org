@@ -886,6 +886,7 @@ Set default rules for grouping files in Ibuffer.
            ("Org" (or (derived-mode . org-mode)
                       (mode . org-agenda-mode)))
            ("Text" (derived-mode . text-mode))
+           ("DocView" (mode . doc-view-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)

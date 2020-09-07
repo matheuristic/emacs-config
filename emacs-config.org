@@ -9132,7 +9132,7 @@ and `racket-repl-documentation' otherwise."
              (transient--make-description
               "Paredit mode"
               paredit-mode))
-       paredit-mode)
+       paredit-mode :transient t)
       ("x" (lambda ()
              (transient--make-description
               "Explain/Explore mode"

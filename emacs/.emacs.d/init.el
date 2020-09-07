@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Aug 31 23:21:46 2020
+;; Generated: Sun Sep  6 23:54:39 2020
 
 ;;; Commentary:
 
@@ -4984,7 +4984,7 @@ and `racket-repl-documentation' otherwise."
              (transient--make-description
               "Paredit mode"
               paredit-mode))
-       paredit-mode)
+       paredit-mode :transient t)
       ("x" (lambda ()
              (transient--make-description
               "Explain/Explore mode"

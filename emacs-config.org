@@ -2036,6 +2036,22 @@ See [[https://emacsnotes.wordpress.com/2018/11/15/elmacro-write-emacs-lisp-snipp
      menu-item)))
 #+end_src
 
+** beginend for dwim behavior for "M-<" and "M->"                     :melpa:
+
+[[https://github.com/DamienCassou/beginend][Beginend]] redefines ~beginning-of-buffer~ and ~end-of-buffer~ (~M-<~
+and ~M->~ by default) to move the point to locations that make sense
+for supported major modes. Go to the real beginning and end of buffer
+by pressing the same key sequence again.
+
+#+name: beginend
+#+begin_src emacs-lisp
+;; dwim behavior for `beginning-of-buffer' and `end-of-buffer'
+(use-package beginend
+  :config
+  ;; enable beginend-mode is all supported major modes
+  (beginend-global-mode))
+#+end_src
+
 * Emacs as an edit server
 
 ** Server mode
@@ -3694,7 +3710,7 @@ pasting/yanking the Org link in the todo using ~C-c C-l~.
   (defun org-journal-is-journal--around-workaround (orig-fun &rest args)
     "Drop-in replacement advice function for `org-journal-is-journal'."
     (let ((buf-file-name (or (buffer-file-name) "")))
-      (string-match (org-journal-dir-and-file-format->pattern)
+      (string-match (org-journal--dir-and-file-format->pattern)
                     buf-file-name)))
   (advice-add 'org-journal-is-journal :around
               #'org-journal-is-journal--around-workaround))
@@ -9539,6 +9555,8 @@ The main configuration file.
 
 <<elmacro>>
 
+<<beginend>>
+
 ;; Emacs as an edit server
 
 <<sigusr1-restart-emacs-server>>
@@ -9953,6 +9971,12 @@ The main configuration file.
 *** [#C] native-complete and company-native-complete
 
 [[https://github.com/CeleritasCelery/emacs-native-shell-complete][GitHub - CeleritasCelery/emacs-native-shell-complete: Completion in shell buffer]]
+
+** DevOps
+
+*** [#C] Magit-style interface to Kubernetes                          :melpa:
+
+[[https://github.com/chrisbarrett/kubernetes-el][GitHub - chrisbarrett/kubernetes-el: Emacs porcelain for Kubernetes.]]
 
 ** Editing text
 

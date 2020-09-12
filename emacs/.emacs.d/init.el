@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 12 14:51:25 2020
+;; Generated: Sat Sep 12 17:13:58 2020
 
 ;;; Commentary:
 
@@ -891,6 +891,12 @@ With arg N, insert N newlines."
      '("menu-bar" "Tools")
      menu-item)))
 
+;; dwim behavior for `beginning-of-buffer' and `end-of-buffer'
+(use-package beginend
+  :config
+  ;; enable beginend-mode is all supported major modes
+  (beginend-global-mode))
+
 ;; Emacs as an edit server
 
 ;; server mode restart safety valve
@@ -1758,7 +1764,7 @@ call `open-line' on the very first character."
   (defun org-journal-is-journal--around-workaround (orig-fun &rest args)
     "Drop-in replacement advice function for `org-journal-is-journal'."
     (let ((buf-file-name (or (buffer-file-name) "")))
-      (string-match (org-journal-dir-and-file-format->pattern)
+      (string-match (org-journal--dir-and-file-format->pattern)
                     buf-file-name)))
   (advice-add 'org-journal-is-journal :around
               #'org-journal-is-journal--around-workaround))

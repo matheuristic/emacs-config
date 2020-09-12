@@ -4877,7 +4877,7 @@ machine <hostname> login <login_name> password <password> [port <port_number_or_
 ;; binding for calling Magit
 (use-package magit
   :commands magit-status
-  :bind ("C-c C-M-g" . magit-status)
+  :bind ("C-x g" . magit-status)
   :config (add-hook 'magit-process-find-password-functions
                     #'magit-process-password-auth-source))
 
@@ -4925,7 +4925,7 @@ historical versions of Git-controlled files.
 ;; Browse older versions of Git-controlled files
 (use-package git-timemachine
   :commands git-timemachine
-  :bind ("C-c C-M-S-g" . git-timemachine))
+  :bind ("C-c C-M-g" . git-timemachine))
 #+end_src
 
 ** Browse Git-controlled file remotely or get its Url                 :melpa:

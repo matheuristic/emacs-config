@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 12 18:35:26 2020
+;; Generated: Sat Sep 12 19:16:57 2020
 
 ;;; Commentary:
 
@@ -2236,7 +2236,7 @@ environment has Racket installed."
 ;; binding for calling Magit
 (use-package magit
   :commands magit-status
-  :bind ("C-c C-M-g" . magit-status)
+  :bind ("C-x g" . magit-status)
   :config (add-hook 'magit-process-find-password-functions
                     #'magit-process-password-auth-source))
 
@@ -2263,7 +2263,7 @@ environment has Racket installed."
 ;; Browse older versions of Git-controlled files
 (use-package git-timemachine
   :commands git-timemachine
-  :bind ("C-c C-M-S-g" . git-timemachine))
+  :bind ("C-c C-M-g" . git-timemachine))
 
 (use-package browse-at-remote)
 

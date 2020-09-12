@@ -517,69 +517,42 @@ Emacs 27+ added a [[https://github.com/emacs-mirror/emacs/commit/fabfb54d1f60cf9
     (add-to-list 'completion-styles 'flex t)))
 #+end_src
 
-** Helm                                                               :melpa:
+** Minibuffer completion with Icomplete
 
-[[https://github.com/emacs-helm/helm][Helm]] is a framework for incremental completions and narrowing
-selections, in other words an alternative for Icomplete.
-
-It is much heavier but more featureful.
+Use [[https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el][Icomplete]] as the completion backend, emulating [[https://www.gnu.org/software/emacs/manual/html_mono/ido.html][Ido]] where possible.
+In Emacs 27+, there is a ~fido-mode~ that very close emulates Ido.
+In prior versions, we configure Icomplete behavior directly (though
+not as thoroughly as ~fido-mode~).
 
 In most instances, use only this or Icomplete but not both.
 
-*Configuration*:
-- Rebind standard Emacs commands that use completion like ~find-files~
-  to helm equivalents.
-- ~<tab>~ key triggers completion rather than action, which is closer
-  to standard Emacs minibuffer behavior and that of most shells.
-
-#+name: helm
+#+name: icomplete
 #+begin_src emacs-lisp
-(use-package helm
-  :init
-  (setq helm-allow-mouse t
-        helm-command-prefix-key "C-c C-M-h"
-        helm-prevent-escaping-from-minibuffer nil
-        ;; show helm completion buffer using default display function
-        ;; instead of always opening a new frame for it
-        helm-show-completion-display-function #'helm-show-completion-default-display-function
-        ;; show helm buffers by splitting current window instead of
-        ;; taking over another window in multi-window layout
-        helm-split-window-inside-p t)
-  (when (version< emacs-version "27")
-    (add-to-list 'completion-styles 'helm-flex t))
-  :config
-  (require 'helm-config)
-  (helm-mode 1)
-  (helm-autoresize-mode 1)
-  ;; bind over the standard Emacs commands
-  (define-key global-map [remap find-file] 'helm-find-files)
-  (define-key global-map [remap occur] 'helm-occur)
-  ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
-  ;; (define-key global-map [remap switch-to-buffer] 'helm-mini)
-  (define-key global-map [remap switch-to-buffer] 'helm-buffers-list)
-  (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
-  (define-key global-map [remap execute-extended-command] 'helm-M-x)
-  (define-key global-map [remap apropos-command] 'helm-apropos)
-  ;; make <tab> only complete names during helm completion, instead of
-  ;; default behavior that creates new buffer on the second press
-  ;; after which a third press kills the newly created buffer
-  (setq helm-ff-kill-or-find-buffer-fname-fn #'ignore)
-  (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
-  (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
-  (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
-  (define-key helm-map (kbd "C-z") #'helm-select-action))
-#+end_src
-
-*** Use icons in Helm                                                 :melpa:
-
-[[https://github.com/yyoncho/helm-icons][helm-icons]] shows file icons using those from Treemacs when using
-file-related Helm commands.
-
-#+name: helm-icons
-#+begin_src emacs-lisp
-(use-package helm-icons
-  :after helm
-  :config (helm-icons-enable))
+;; use Icomplete as the completion backend
+;; emulate ido behavior where possible
+(if (version< emacs-version "27")
+    ;; no `fido-mode' on older Emacs versions
+    (progn
+      (setq completion-category-defaults nil
+            icomplete-compute-delay 0
+            icomplete-hide-common-prefix nil
+            icomplete-prospects-height 2
+            icomplete-show-matches-on-no-input t
+            icomplete-tidy-shadowed-file-names t)
+      (icomplete-mode)
+      ;; C-s and C-r cycles through completion candidates like isearch
+      (define-key icomplete-minibuffer-map (kbd "C-s")
+        #'icomplete-forward-completions)
+      (define-key icomplete-minibuffer-map (kbd "C-r")
+        #'icomplete-backward-completions)
+      ;; RET selects current completion candidate like ido
+      ;; M-j uses input as is, e.g. to create new files or new dirs
+      (define-key icomplete-minibuffer-map (kbd "RET")
+        #'icomplete-force-complete-and-exit)
+      (define-key icomplete-minibuffer-map (kbd "M-j")
+        #'exit-minibuffer))
+  ;; enable `fido-mode'
+  (fido-mode))
 #+end_src
 
 ** Text completion with Company                                       :melpa:
@@ -742,6 +715,23 @@ Backup files to the =~/.backup/= directory, keeping only the newest three versio
 
 * Bookmarks and history
 
+** Minibuffer commands                                                :melpa:
+
+Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~.
+
+It is compatible with most completion systems and provides the
+following enhancements:
+- Prioritizing most-used commands.
+- Showing keyboard shortcuts.
+
+#+name: amx
+#+begin_src emacs-lisp
+;; alternative interface for M-x
+(use-package amx
+  :bind ("M-X" . amx-major-mode-commands)
+  :init (amx-mode))
+#+end_src
+
 ** Recent files
 
 The built in [[https://github.com/emacs-mirror/emacs/blob/master/lisp/recentf.el][recentf]] provides functionality to track and list recently
@@ -771,22 +761,8 @@ opened files.
               (dolist (exclude-file file-list)
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
-;; binding for recentf, use Helm version if available
+;; binding for recentf
 (global-set-key (kbd "C-c C-M-r") #'recentf-open-files)
-#+end_src
-
-*** Helm recentf
-
-Prefer ~helm-recentf~ to ~recentf-open-files~ for the main binding.
-
-#+name: helm-recentf
-#+begin_src emacs-lisp
-;; prefer helm-recentf to recentf-open-files
-(add-hook 'after-init-hook
-          (lambda ()
-            (when (featurep 'helm)
-              (define-key global-map [remap recentf-open-files]
-                'helm-recentf))))
 #+end_src
 
 ** Save location in file
@@ -1232,41 +1208,21 @@ autocomplete, or ~M-<right>~ or ~M-f~ to autocomplete just the next word.
   :hook (eshell-mode . esh-autosuggest-mode))
 #+end_src
 
-*** Helm completion in Eshell
+*** fish-completion of CLI options in Eshell                 :external:melpa:
 
-Extend [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] ([[https://www.masteringemacs.org/article/pcomplete-context-sensitive-completion-emacs][more info]]) to complete commands and files in Eshell
-using Helm, adapted from the [[https://github.com/emacs-helm/helm/wiki/Eshell][Helm wiki]].
+The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to power Eshell CLI
+option completions using [[https://fishshell.com/][fish]].
 
-#+name: helm-eshell-completion
+This package requires that ~fish~ be installed on the system and
+be on the system path.
+
+#+name: fish-completion
 #+begin_src emacs-lisp
-(when (featurep 'helm)
-  (add-hook 'eshell-mode-hook
-            (lambda ()
-              (eshell-cmpl-initialize)
-              (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
-              (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
-#+end_src
-
-*** Helm Fish Completion of CLI options in Eshell            :external:melpa:
-
-[[https://github.com/emacs-helm/helm-fish-completion][Helm Fish Completion]] provides a Helm-based extension of [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to
-complete CLI options using [[https://fishshell.com/][fish]] in Eshell and other shells.
-
-If using this, ~fish-completion-mode~ should be disabled.
-
-#+name: helm-fish-completion
-#+begin_src emacs-lisp
-(when (and (executable-find "fish") (featurep 'helm))
-  (use-package helm-fish-completion
-    :config
-    (setq helm-esh-pcomplete-build-source-fn
-          #'helm-fish-completion-make-eshell-source)
-    (with-eval-after-load 'shell
-      (define-key shell-mode-map (kbd "<tab>") #'helm-fish-completion))
-    (add-hook 'eshell-mode-hook
-              (lambda ()
-                (define-key eshell-mode-map (kbd "<tab>")
-                  #'helm-fish-completion)))))
+;; extend pcomplete with fish shell
+(when (executable-find "fish")
+  (use-package fish-completion
+    :after eshell
+    :config (add-hook 'eshell-mode-hook #'fish-completion-mode)))
 #+end_src
 
 *** eshell-z for jumping to frecent directories                       :melpa:
@@ -4960,7 +4916,7 @@ convenience functions to navigate, search and build projects.
 (use-package projectile
   :demand t
   :config
-  (setq projectile-completion-system (if (featurep 'helm) 'helm 'default)
+  (setq projectile-completion-system 'default
         projectile-create-missing-test-files t ;; create test file if none is found when toggling
         projectile-switch-project-action 'projectile-commander
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
@@ -5128,13 +5084,7 @@ Use icons from all-the-icons in Treemacs.
   (treemacs-load-theme "all-the-icons")
   ;; reduce tab-width to fix spacing between icons and text
   (add-hook 'treemacs-mode-hook
-            (lambda () (setq-local tab-width 2)))
-  ;; do the same if `helm-icons' is being used
-  (with-eval-after-load 'helm-icons
-    (add-hook 'helm-after-initialize-hook
-              (lambda ()
-                (with-helm-buffer
-                  (setq tab-width 2))))))
+            (lambda () (setq-local tab-width 2))))
 #+end_src
 
 * Search
@@ -5203,10 +5153,7 @@ It is configured here as a fallback backend for
   :init
   (setq dumb-jump-aggressive nil
         dumb-jump-default-project "./"
-        dumb-jump-prefer-searcher 'rg
-        dumb-jump-selector (if (fboundp 'helm)
-                               'helm
-                             'completing-read))
+        dumb-jump-prefer-searcher 'rg)
   :config
   ;; add dumb-jump to the end of the list of backends for
   ;; `xref-find-definitions' so it is used as a fallback option
@@ -6785,7 +6732,7 @@ Transient for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs
   "Various bookmark commands."
   ["Bookmarks"
    ["Navigate"
-    ("j" "Jump" helm-bookmarks) ;; helm `bookmark-jump' replacement
+    ("j" "Jump" bookmark-jump)
     ("l" "List" list-bookmarks)
     ]
    ["Add/Remove"
@@ -7163,30 +7110,27 @@ Transient for manipulating and managing marks and markers.
   (xref-clear-marker-stack)
   (message "Cleared `xref--marker-ring'"))
 
-(with-eval-after-load 'helm
-  (transient-define-prefix transient/marks-and-markers ()
-    "Commands for manipulating and managing marks and markers."
-    ["Marks/Markers"
-     ["Mark"
-      ("SPC" "Push" transient/marks-and-markers--push-mark)
-      ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
-      (")" "Sexp" mark-sexp :transient t)
-      ("}" "Paragraph" mark-paragraph :transient t)
-      ("]" "Defun" mark-defun :transient t)
-      ("b" "Buffer" mark-whole-buffer :transient t)
-      ("x" "Exchange with point" exchange-point-and-mark :transient t)
-      ("m" "Helm" helm-mark-ring)
-      ("M" "Helm (all)" helm-all-mark-rings)
-      ]
-     ["Marker"
-      ("." "Push" transient/marks-and-markers--push-marker)
-      ("," "Pop" xref-pop-marker-stack :transient t)
-      ("<" "Pop all" transient/marks-and-markers--xref-pop-marker-stack-all)
-      ("c" "Clear stack" transient/marks-and-markers--clear-marker-stack)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers))
+(transient-define-prefix transient/marks-and-markers ()
+  "Commands for manipulating and managing marks and markers."
+  ["Marks/Markers"
+   ["Mark"
+    ("SPC" "Push" transient/marks-and-markers--push-mark)
+    ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
+    (")" "Sexp" mark-sexp :transient t)
+    ("}" "Paragraph" mark-paragraph :transient t)
+    ("]" "Defun" mark-defun :transient t)
+    ("b" "Buffer" mark-whole-buffer :transient t)
+    ("x" "Exchange with point" exchange-point-and-mark :transient t)
+    ]
+   ["Marker"
+    ("." "Push" transient/marks-and-markers--push-marker)
+    ("," "Pop" xref-pop-marker-stack :transient t)
+    ("<" "Pop all" transient/marks-and-markers--xref-pop-marker-stack-all)
+    ("c" "Clear stack" transient/marks-and-markers--clear-marker-stack)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers)
 #+end_src
 
 *** Neuron transient
@@ -7422,40 +7366,38 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
 #+name: search-transient
 #+begin_src emacs-lisp
 ;; add transient popup for search tools, bind to "C-c C-M-/"
-(with-eval-after-load 'helm
-  (defun transient/search--rg-menu-or-rgrep ()
-    "Dispatch to `rg-menu' if command available, else `rgrep'."
-    (interactive)
-    (if (and (executable-find "rg")
-             (fboundp 'rg-menu))
-        (call-interactively #'rg-menu)
-      (call-interactively #'rgrep)))
-  (transient-define-prefix transient/search ()
-    "Search commands."
-    ["Search"
-     ["Grep"
-      ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
-      ("gz" "Recursive (*.gz)" rzgrep)
-      ("gg" "With user args" grep)
-      ("gf" "Via find" grep-find)
-      ]
-     ["Occur in buffers"
-      ("oo" "Current" helm-occur)
-      ("ov" "Visible" helm-occur-visible-buffers)
-      ("ob" "Matching" multi-occur-in-matching-buffers)
-      ("om" "All" multi-occur)
-      ]
-     ["Query/Replace"
-      ("rs" "String" query-replace)
-      ("rr" "Regexp" query-replace-regexp)
-      ]
-     ["Other"
-      ("." "Find definition" xref-find-definitions)
-      ("w" "EWW web search" eww)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-/") #'transient/search))
+(defun transient/search--rg-menu-or-rgrep ()
+  "Dispatch to `rg-menu' if command available, else `rgrep'."
+  (interactive)
+  (if (and (executable-find "rg")
+           (fboundp 'rg-menu))
+      (call-interactively #'rg-menu)
+    (call-interactively #'rgrep)))
+(transient-define-prefix transient/search ()
+  "Search commands."
+  ["Search"
+   ["Grep"
+    ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
+    ("gz" "Recursive (*.gz)" rzgrep)
+    ("gg" "With user args" grep)
+    ("gf" "Via find" grep-find)
+    ]
+   ["Occur in buffers"
+    ("oo" "Current" occur)
+    ("ob" "Matching" multi-occur-in-matching-buffers)
+    ("om" "All" multi-occur)
+    ]
+   ["Query/Replace"
+    ("rs" "String" query-replace)
+    ("rr" "Regexp" query-replace-regexp)
+    ]
+   ["Other"
+    ("." "Find definition" xref-find-definitions)
+    ("w" "EWW web search" eww)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-/") #'transient/search)
 #+end_src
 
 *** Shell entry transient
@@ -9609,11 +9551,7 @@ The main configuration file.
 
 <<flex-minibuffer-completion-style>>
 
-<<helm>>
-
-<<helm-icons>>
-
-<<hydra>>
+<<icomplete>>
 
 <<company>>
 
@@ -9647,9 +9585,9 @@ The main configuration file.
 
 ;; Bookmarks and history
 
-<<recentf>>
+<<amx>>
 
-<<helm-recentf>>
+<<recentf>>
 
 <<saveplace>>
 
@@ -9699,9 +9637,7 @@ The main configuration file.
 
 <<esh-autosuggest>>
 
-<<helm-eshell-completion>>
-
-<<helm-fish-completion>>
+<<fish-completion>>
 
 <<eshell-z>>
 
@@ -10236,9 +10172,11 @@ The main configuration file.
 
 [[https://github.com/jwiegley/nix-update-el][GitHub - jwiegley/nix-update-el]] ([[https://melpa.org/#/nix-update][MELPA]])
 
-*** [#C] jq-mode                                                      :melpa:
+*** [#A] jq-mode                                                      :melpa:
 
 [[https://github.com/ljos/jq-mode][GitHub - ljos/jq-mode: Emacs major mode for editing jq queries.]]
+
+Also set up support for ~jq-format~ using the ~reformatter-define~ macro.
 
 *** [#B] PlantUML                                                     :melpa:
 
@@ -10483,11 +10421,6 @@ start with a simpler workflow like copy DOI link \to Bilbio \to import
 into Ebib (~M-x ebib-import~ on region or with entries in a buffer).
 See the /Merging and Importing/ section of the Ebib [[http://joostkremers.github.io/ebib/ebib-manual.html][manual]].
 
-*** [#B] Helm-bibtex                                                  :melpa:
-
-Leverages Helm to search and manage BibTeX bilbiographies.
-Potentially useful complement to Ebib.
-
 ** Visual
 
 ** Web
@@ -10498,13 +10431,10 @@ References:
 - [[https://erick.navarro.io/blog/testing-an-api-with-emacs-and-restclient/][Testing an API with emacs and restclient · (ノ°Д°）ノ︵ ┻━┻]]
 
 Steps:
-- Add restclient-helm
 - Add transient for accessing restclient functionality
-- Add jq-mode
+- Add jq-mode and configure reformatting using ~jq-format~
 - Add restclient-jq
 - Add ob-restclient
-
-*** [#A] restclient-helm                                              :melpa:
 
 *** [#C] restclient-jq                                             :external:
 

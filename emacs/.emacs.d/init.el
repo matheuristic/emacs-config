@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Sep  6 23:54:39 2020
+;; Generated: Sat Sep 12 09:39:39 2020
 
 ;;; Commentary:
 
@@ -71,46 +71,70 @@
   (with-eval-after-load 'minibuffer
     (add-to-list 'completion-styles 'flex t)))
 
-(use-package helm
-  :init
-  (setq helm-allow-mouse t
-        helm-command-prefix-key "C-c C-M-h"
-        helm-prevent-escaping-from-minibuffer nil
-        ;; show helm completion buffer using default display function
-        ;; instead of always opening a new frame for it
-        helm-show-completion-display-function #'helm-show-completion-default-display-function
-        ;; show helm buffers by splitting current window instead of
-        ;; taking over another window in multi-window layout
-        helm-split-window-inside-p t)
-  (when (version< emacs-version "27")
-    (add-to-list 'completion-styles 'helm-flex t))
-  :config
-  (require 'helm-config)
-  (helm-mode 1)
-  (helm-autoresize-mode 1)
-  ;; bind over the standard Emacs commands
-  (define-key global-map [remap find-file] 'helm-find-files)
-  (define-key global-map [remap occur] 'helm-occur)
-  ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
-  ;; (define-key global-map [remap switch-to-buffer] 'helm-mini)
-  (define-key global-map [remap switch-to-buffer] 'helm-buffers-list)
-  (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
-  (define-key global-map [remap execute-extended-command] 'helm-M-x)
-  (define-key global-map [remap apropos-command] 'helm-apropos)
-  ;; make <tab> only complete names during helm completion, instead of
-  ;; default behavior that creates new buffer on the second press
-  ;; after which a third press kills the newly created buffer
-  (setq helm-ff-kill-or-find-buffer-fname-fn #'ignore)
-  (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
-  (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
-  (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
-  (define-key helm-map (kbd "C-z") #'helm-select-action))
+;; (use-package helm
+;;   :init
+;;   (setq helm-allow-mouse t
+;;         helm-command-prefix-key "C-c C-M-h"
+;;         helm-prevent-escaping-from-minibuffer nil
+;;         ;; show helm completion buffer using default display function
+;;         ;; instead of always opening a new frame for it
+;;         helm-show-completion-display-function #'helm-show-completion-default-display-function
+;;         ;; show helm buffers by splitting current window instead of
+;;         ;; taking over another window in multi-window layout
+;;         helm-split-window-inside-p t)
+;;   (when (version< emacs-version "27")
+;;     (add-to-list 'completion-styles 'helm-flex t))
+;;   :config
+;;   (require 'helm-config)
+;;   (helm-mode 1)
+;;   (helm-autoresize-mode 1)
+;;   ;; bind over the standard Emacs commands
+;;   (define-key global-map [remap find-file] 'helm-find-files)
+;;   (define-key global-map [remap occur] 'helm-occur)
+;;   ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
+;;   ;; (define-key global-map [remap switch-to-buffer] 'helm-mini)
+;;   (define-key global-map [remap switch-to-buffer] 'helm-buffers-list)
+;;   (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
+;;   (define-key global-map [remap execute-extended-command] 'helm-M-x)
+;;   (define-key global-map [remap apropos-command] 'helm-apropos)
+;;   ;; make <tab> only complete names during helm completion, instead of
+;;   ;; default behavior that creates new buffer on the second press
+;;   ;; after which a third press kills the newly created buffer
+;;   (setq helm-ff-kill-or-find-buffer-fname-fn #'ignore)
+;;   (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
+;;   (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
+;;   (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
+;;   (define-key helm-map (kbd "C-z") #'helm-select-action))
 
-(use-package helm-icons
-  :after helm
-  :config (helm-icons-enable))
+;; (use-package helm-icons
+;;   :after helm
+;;   :config (helm-icons-enable))
 
-
+;; use Icomplete as the completion backend
+;; emulate ido behavior where possible
+(if (version< emacs-version "27")
+    ;; no `fido-mode' on older Emacs versions
+    (progn
+      (setq completion-category-defaults nil
+            icomplete-compute-delay 0
+            icomplete-hide-common-prefix nil
+            icomplete-prospects-height 2
+            icomplete-show-matches-on-no-input t
+            icomplete-tidy-shadowed-file-names t)
+      (icomplete-mode)
+      ;; C-s and C-r cycles through completion candidates like isearch
+      (define-key icomplete-minibuffer-map (kbd "C-s")
+        #'icomplete-forward-completions)
+      (define-key icomplete-minibuffer-map (kbd "C-r")
+        #'icomplete-backward-completions)
+      ;; RET selects current completion candidate like ido
+      ;; M-j uses input as is, e.g. to create new files or new dirs
+      (define-key icomplete-minibuffer-map (kbd "RET")
+        #'icomplete-force-complete-and-exit)
+      (define-key icomplete-minibuffer-map (kbd "M-j")
+        #'exit-minibuffer))
+  ;; enable `fido-mode'
+  (fido-mode))
 
 ;; text completion framework
 (use-package company
@@ -244,6 +268,12 @@ if the point is in the minibuffer."
 
 ;; Bookmarks and history
 
+;; alternative interface for M-x
+(when (not (featurep 'helm))
+  (use-package amx
+    :bind ("M-X" . amx-major-mode-commands)
+    :init (amx-mode)))
+
 ;; recently opened files
 (setq recentf-max-menu-items 10
       recentf-max-saved-items 100
@@ -269,12 +299,12 @@ if the point is in the minibuffer."
 ;; binding for recentf, use Helm version if available
 (global-set-key (kbd "C-c C-M-r") #'recentf-open-files)
 
-;; prefer helm-recentf to recentf-open-files
-(add-hook 'after-init-hook
-          (lambda ()
-            (when (featurep 'helm)
-              (define-key global-map [remap recentf-open-files]
-                'helm-recentf))))
+;; ;; prefer helm-recentf to recentf-open-files
+;; (add-hook 'after-init-hook
+;;           (lambda ()
+;;             (when (featurep 'helm)
+;;               (define-key global-map [remap recentf-open-files]
+;;                 'helm-recentf))))
 
 (save-place-mode 1)
 
@@ -525,24 +555,31 @@ provided, the default interactive `eshell' command is run."
   :after eshell
   :hook (eshell-mode . esh-autosuggest-mode))
 
-(when (featurep 'helm)
-  (add-hook 'eshell-mode-hook
-            (lambda ()
-              (eshell-cmpl-initialize)
-              (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
-              (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
+;; (when (featurep 'helm)
+;;   (add-hook 'eshell-mode-hook
+;;             (lambda ()
+;;               (eshell-cmpl-initialize)
+;;               (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
+;;               (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
 
-(when (and (executable-find "fish") (featurep 'helm))
-  (use-package helm-fish-completion
-    :config
-    (setq helm-esh-pcomplete-build-source-fn
-          #'helm-fish-completion-make-eshell-source)
-    (with-eval-after-load 'shell
-      (define-key shell-mode-map (kbd "<tab>") #'helm-fish-completion))
-    (add-hook 'eshell-mode-hook
-              (lambda ()
-                (define-key eshell-mode-map (kbd "<tab>")
-                  #'helm-fish-completion)))))
+;; (when (and (executable-find "fish") (featurep 'helm))
+;;   (use-package helm-fish-completion
+;;     :config
+;;     (setq helm-esh-pcomplete-build-source-fn
+;;           #'helm-fish-completion-make-eshell-source)
+;;     (with-eval-after-load 'shell
+;;       (define-key shell-mode-map (kbd "<tab>") #'helm-fish-completion))
+;;     (add-hook 'eshell-mode-hook
+;;               (lambda ()
+;;                 (define-key eshell-mode-map (kbd "<tab>")
+;;                   #'helm-fish-completion)))))
+
+;; extend pcomplete with fish shell
+(when (executable-find "fish")
+  (use-package fish-completion
+    :after eshell
+    :config (when (not (featurep 'helm))
+              (add-hook 'eshell-mode-hook #'fish-completion-mode))))
 
 (use-package eshell-z
   :after eshell)
@@ -2261,7 +2298,7 @@ environment has Racket installed."
 (use-package projectile
   :demand t
   :config
-  (setq projectile-completion-system (if (featurep 'helm) 'helm 'default)
+  (setq projectile-completion-system 'default
         projectile-create-missing-test-files t ;; create test file if none is found when toggling
         projectile-switch-project-action 'projectile-commander
         projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
@@ -2369,10 +2406,7 @@ environment has Racket installed."
   :init
   (setq dumb-jump-aggressive nil
         dumb-jump-default-project "./"
-        dumb-jump-prefer-searcher 'rg
-        dumb-jump-selector (if (fboundp 'helm)
-                               'helm
-                             'completing-read))
+        dumb-jump-prefer-searcher 'rg)
   :config
   ;; add dumb-jump to the end of the list of backends for
   ;; `xref-find-definitions' so it is used as a fallback option
@@ -2911,7 +2945,7 @@ Example of use with transient suffix definitions in a
   "Various bookmark commands."
   ["Bookmarks"
    ["Navigate"
-    ("j" "Jump" helm-bookmarks) ;; helm `bookmark-jump' replacement
+    ("j" "Jump" bookmark-jump)
     ("l" "List" list-bookmarks)
     ]
    ["Add/Remove"
@@ -3232,30 +3266,27 @@ whitespace, indenting and untabifying."
   (xref-clear-marker-stack)
   (message "Cleared `xref--marker-ring'"))
 
-(with-eval-after-load 'helm
-  (transient-define-prefix transient/marks-and-markers ()
-    "Commands for manipulating and managing marks and markers."
-    ["Marks/Markers"
-     ["Mark"
-      ("SPC" "Push" transient/marks-and-markers--push-mark)
-      ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
-      (")" "Sexp" mark-sexp :transient t)
-      ("}" "Paragraph" mark-paragraph :transient t)
-      ("]" "Defun" mark-defun :transient t)
-      ("b" "Buffer" mark-whole-buffer :transient t)
-      ("x" "Exchange with point" exchange-point-and-mark :transient t)
-      ("m" "Helm" helm-mark-ring)
-      ("M" "Helm (all)" helm-all-mark-rings)
-      ]
-     ["Marker"
-      ("." "Push" transient/marks-and-markers--push-marker)
-      ("," "Pop" xref-pop-marker-stack :transient t)
-      ("<" "Pop all" transient/marks-and-markers--xref-pop-marker-stack-all)
-      ("c" "Clear stack" transient/marks-and-markers--clear-marker-stack)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers))
+(transient-define-prefix transient/marks-and-markers ()
+  "Commands for manipulating and managing marks and markers."
+  ["Marks/Markers"
+   ["Mark"
+    ("SPC" "Push" transient/marks-and-markers--push-mark)
+    ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
+    (")" "Sexp" mark-sexp :transient t)
+    ("}" "Paragraph" mark-paragraph :transient t)
+    ("]" "Defun" mark-defun :transient t)
+    ("b" "Buffer" mark-whole-buffer :transient t)
+    ("x" "Exchange with point" exchange-point-and-mark :transient t)
+    ]
+   ["Marker"
+    ("." "Push" transient/marks-and-markers--push-marker)
+    ("," "Pop" xref-pop-marker-stack :transient t)
+    ("<" "Pop all" transient/marks-and-markers--xref-pop-marker-stack-all)
+    ("c" "Clear stack" transient/marks-and-markers--clear-marker-stack)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers)
 
 ;; add transient for neuron commands, bind to "C-c C-M-z"
 (with-eval-after-load 'neuron-mode
@@ -3442,40 +3473,38 @@ whitespace, indenting and untabifying."
 (global-set-key (kbd "C-c C-M-\"") #'transient/registers)
 
 ;; add transient popup for search tools, bind to "C-c C-M-/"
-(with-eval-after-load 'helm
-  (defun transient/search--rg-menu-or-rgrep ()
-    "Dispatch to `rg-menu' if command available, else `rgrep'."
-    (interactive)
-    (if (and (executable-find "rg")
-             (fboundp 'rg-menu))
-        (call-interactively #'rg-menu)
-      (call-interactively #'rgrep)))
-  (transient-define-prefix transient/search ()
-    "Search commands."
-    ["Search"
-     ["Grep"
-      ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
-      ("gz" "Recursive (*.gz)" rzgrep)
-      ("gg" "With user args" grep)
-      ("gf" "Via find" grep-find)
-      ]
-     ["Occur in buffers"
-      ("oo" "Current" helm-occur)
-      ("ov" "Visible" helm-occur-visible-buffers)
-      ("ob" "Matching" multi-occur-in-matching-buffers)
-      ("om" "All" multi-occur)
-      ]
-     ["Query/Replace"
-      ("rs" "String" query-replace)
-      ("rr" "Regexp" query-replace-regexp)
-      ]
-     ["Other"
-      ("." "Find definition" xref-find-definitions)
-      ("w" "EWW web search" eww)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-/") #'transient/search))
+(defun transient/search--rg-menu-or-rgrep ()
+  "Dispatch to `rg-menu' if command available, else `rgrep'."
+  (interactive)
+  (if (and (executable-find "rg")
+           (fboundp 'rg-menu))
+      (call-interactively #'rg-menu)
+    (call-interactively #'rgrep)))
+(transient-define-prefix transient/search ()
+  "Search commands."
+  ["Search"
+   ["Grep"
+    ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
+    ("gz" "Recursive (*.gz)" rzgrep)
+    ("gg" "With user args" grep)
+    ("gf" "Via find" grep-find)
+    ]
+   ["Occur in buffers"
+    ("oo" "Current" occur)
+    ("ob" "Matching" multi-occur-in-matching-buffers)
+    ("om" "All" multi-occur)
+    ]
+   ["Query/Replace"
+    ("rs" "String" query-replace)
+    ("rr" "Regexp" query-replace-regexp)
+    ]
+   ["Other"
+    ("." "Find definition" xref-find-definitions)
+    ("w" "EWW web search" eww)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c C-M-/") #'transient/search)
 
 ;; add transient popup for shell tools, bind to "C-c C-M-t"
 (transient-define-prefix transient/shell ()

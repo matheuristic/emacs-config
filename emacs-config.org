@@ -6433,13 +6433,18 @@ Emacs for OS X keyboard settings:
   only passed on if they don't correspond to an existing system
   shortcut (say ~s-TAB~ or ~s-`~), which can limit the bindings
   available for use.
+- Unbind ~s-w~ and ~s-q~ to avoid accidentally closing the current
+  frame or Emacs.
 
 #+name: mac-emacs-for-os-x-keys
 #+begin_src emacs-lisp
 (when (eq window-system 'ns)
-  (setq mac-option-modifier 'meta ;; use Option key as Meta
-        mac-right-option-modifier 'left ;; right Option uses left's mapping
-        mac-command-modifier 'super)) ;; keep Super key as is
+  (setq mac-option-modifier 'meta ; use Option key as Meta
+        mac-right-option-modifier 'left ; right Option uses left's mapping
+        mac-command-modifier 'super) ; keep Super key as is
+  ;; unbind "s-w" and "s-q" to avoid unintended frame and Emacs closure
+  (global-unset-key (kbd "s-w"))
+  (global-unset-key (kbd "s-q")))
 #+end_src
 
 *** Revert Command bindings in Emacs Mac Port

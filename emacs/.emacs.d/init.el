@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 12 17:13:58 2020
+;; Generated: Sat Sep 12 18:35:26 2020
 
 ;;; Commentary:
 
@@ -2753,9 +2753,12 @@ for more information."
         mac-command-modifier 'super)) ;; keep Super key as is
 
 (when (eq window-system 'ns)
-  (setq mac-option-modifier 'meta ;; use Option key as Meta
-        mac-right-option-modifier 'left ;; right Option uses left's mapping
-        mac-command-modifier 'super)) ;; keep Super key as is
+  (setq mac-option-modifier 'meta ; use Option key as Meta
+        mac-right-option-modifier 'left ; right Option uses left's mapping
+        mac-command-modifier 'super) ; keep Super key as is
+  ;; unbind "s-w" and "s-q" to avoid unintended frame and Emacs closure
+  (global-unset-key (kbd "s-w"))
+  (global-unset-key (kbd "s-q")))
 
 ;; revert Command keys in Emacs Mac Port to match Emacs for Mac OS X bindings
 (when (eq window-system 'mac)

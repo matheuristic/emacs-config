@@ -509,6 +509,9 @@ Copy the environment variables over from the login shell.
 
 Emacs 27+ added a [[https://github.com/emacs-mirror/emacs/commit/fabfb54d1f60cf90e72b1efaabfbefbe877e076a][flexible completion]] similar to [[https://github.com/lewang/flx][flx]] for ~ido~.
 
+*Note*: If icomplete ~fido-mode~ is enabled, it sets matching to use
+~flex~ only as part of the minibuffer setup hook.
+
 #+name: flex-minibuffer-completion-style
 #+begin_src emacs-lisp
 ;; enable flex completion on Emacs 27+
@@ -3081,114 +3084,6 @@ add or modify the ~csv-separators~ list.
   :commands yaml-mode
   :mode ("\\.ya?ml\\'" . yaml-mode))
 #+end_src
-
-** neuron-mode                                               :external:melpa:
-
-[[https://github.com/felko/neuron-mode][neuron-mode]] is a mode for editing [[https://neuron.zettel.page/][neuron]] zettelkasten notes.
-
-Assumes that neuron Zettelkasten files are stored in the
-=~/zettelkasten= directory.
-
-Requires that neuron be installed, which currently requires [[https://nixos.org/][nixpkg]].
-
-#+name: neuron-mode
-#+begin_src emacs-lisp
-;; neuron-mode, settings adapted from
-;; https://gist.github.com/felko/cdb3fc19b3a60db27eb3c5bd319fc479
-(use-package neuron-mode
-  :init
-  (defface neuron-stub-face
-    '((((class color) (min-colors 88) (background dark)) :foreground "#C16069" :underline "#C16069")
-      (((class color) (min-colors 88) (background light)) :foreground "#C16069" :underline "#C16069")
-      (((class color) :foreground "Red" :underline "Red"))
-      (t :inherit neuron-title-overlay-face))
-    "Face for stub links."
-    :group 'neuron-faces)
-  (setq neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
-        neuron-default-tags '("stub")
-        neuron-id-format 'hash
-        neuron-tag-specific-title-faces '(("stub" neuron-stub-face)))
-  :config
-  ;; push location on to marker stack before following neuron link
-  ;; so backtracking is possible via `xref-pop-marker-stack' or "M-,"
-  (advice-add #'neuron-follow-thing-at-point :before #'xref-push-marker-stack))
-#+end_src
-
-*** Installing neuron
-
-Some ways to install neuron:
-- Download a static Linux bundle that can run as is (Linux-only).
-- Install using [[https://nixos.org/][Nix]] (Linux, Mac, Windows via WSL).
-
-**** Linux bundle
-
-Nightly builds of static Linux bundles are available from [[https://github.com/srid/neuron/releases/tag/nightly][here]],
-generated using [[https://github.com/matthewbauer/nix-bundle][nix-bundle]]. These can simply be run directly.
-
-Download ~neuron-linux-bundle~ to some location on disk, say to the
-=/path/to/= directory.
-
-#+begin_example
-$ chmod +x neuron-linux-bundle
-$ ./neuron-linux-bundle --help
-#+end_example
-
-Symlink the bundle file to ~neuron~ a directory in ~$PATH~ (change
-=./local/bin= and =/path/to/neuron-linux-bundle= as necessary).
-
-#+begin_example
-$ cd .local/bin
-$ ln -s /path/to/neuron-linux-bundle neuron
-#+end_example
-
-Test that neuron is installed correctly.
-
-#+begin_example
-$ neuron --help
-#+end_example
-
-**** Nix installation
-
-Install Nix. The following instructions show how to install Nix
-in single-user mode; see the [[https://nixos.org/nix/manual/][official documentation]] for a multi-user
-install.
-
-#+begin_example
-$ sudo mkdir /nix
-$ sudo chown $USER /nix
-$ curl -O https://nixos.org/nix/install
-$ bash install --no-daemon
-#+end_example
-
-Note that the Nix =install= script can be safely removed after this.
-
-Install neuron following [[https://neuron.zettel.page/2011501.html][instructions]] on the official website.
-
-Install [[https://cachix.org/][Cachix]] if haven't already done so.
-
-#+begin_example
-$ nix-env -iA cachix -f https://cachix.org/api/v1/install
-#+end_example
-
-Use the cache to fetch binaries instead of compiling most packages.
-
-#+begin_example
-$ cachix use srid
-#+end_example
-
-Install Neuron.
-
-#+begin_example
-$ nix-env -if https://github.com/srid/neuron/archive/master.tar.gz
-#+end_example
-
-*** Upgrading neuron
-
-Neuron upgrades can be done using the same command for installing it.
-
-#+begin_example
-$ nix-env -if https://github.com/srid/neuron/archive/master.tar.gz
-#+end_example
 
 * Org-mode
 
@@ -6996,7 +6891,9 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
     ]
    ["Describe"
     ("db" "Bindings" describe-bindings)
+    ("dc" "Char" describe-char)
     ("df" "Function" describe-function)
+    ("dF" "Face" describe-face)
     ("dk" "Key" describe-key)
     ("dm" "Mode" describe-mode)
     ("dp" "Package" describe-package)
@@ -7011,13 +6908,14 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
     ("is" "Symbol" info-lookup-symbol)
     ]
    ["Other"
+    ("lf" "List faces" list-faces-display)
     ("ve" "View messages" view-echo-area-messages)
     ("vl" "View lossage" view-lossage)
     ("w" "Where is" where-is)
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-S-h") #'transient/help)
+(global-set-key (kbd "C-c C-M-h") #'transient/help)
 #+end_src
 
 *** Keyboard macros transient
@@ -7131,42 +7029,6 @@ Transient for manipulating and managing marks and markers.
    ]
   )
 (global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers)
-#+end_src
-
-*** Neuron transient
-
-Transient for interfacing with neuron Zettelkasten.
-
-#+name: neuron-transient
-#+begin_src emacs-lisp
-;; add transient for neuron commands, bind to "C-c C-M-z"
-(with-eval-after-load 'neuron-mode
-  (transient-define-prefix transient/neuron ()
-    "Neuron Zettelkasten commands."
-    ["Neuron Zettelkasten"
-     ["File"
-      ("z" "New" neuron-new-zettel)
-      ("e" "Edit" neuron-edit-zettel)
-      ("j" "Daily" neuron-open-daily-notes)
-      ("o" "Open" neuron-open-zettel)
-      ("i" "Open index" neuron-open-index)
-      ]
-     ["Server"
-      ("rw" "Watch files" neuron-rib-watch)
-      ("rg" "Generate site" neuron-rib-generate)
-      ("rs" "Start" neuron-rib-serve)
-      ("ro" "Open" neuron-rib-open-zettel)
-      ("ri" "Open z-index" neuron-rib-open-z-index)
-      ("rk" "Kill" neuron-rib-kill)
-      ]
-     ["Other"
-      ("t" "Query tags" neuron-query-tags)
-      ("g" "Refresh cache" neuron-refresh)
-      ("c" "Configuration" neuron-edit-zettelkasten-configuration)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-z") #'transient/neuron))
 #+end_src
 
 *** Org launcher transient
@@ -8674,42 +8536,6 @@ Markdown major mode transient.
     (define-key markdown-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)))
 #+end_src
 
-*** neuron-mode transient
-
-Neuron major mode transient.
-
-#+name: neuron-mode-transient
-#+begin_src emacs-lisp
-;; major-mode specific transient for neuron-mode
-(with-eval-after-load 'neuron-mode
-  (transient-define-prefix transient/neuron-mode ()
-    "`neuron-mode' commands."
-    ["Neuron mode"
-     ["File"
-      ("o" "Follow at point" neuron-follow-thing-at-point)
-      ("u" "Edit uplink" neuron-edit-uplink)
-      ("r" "Open current" neuron-open-current-zettel)
-      ]
-     ["Tags"
-      ("t" "Add" neuron-add-tag)
-      ("T" "Add (multiple)" neuron-add-tags)
-      ]
-     ["Insert"
-      ("l" "Zettel link" neuron-create-and-insert-zettel-link)
-      ("L" "Zettel link from region" neuron-create-zettel-from-selected-title)
-      ("s" "Static link" neuron-insert-static-link)
-      ]
-     ]
-    [
-     ["Other"
-      ("c" "Toggle link conn type" neuron-toggle-connection-type :transient nil)
-      ("m" "Markdown major mode transient" transient/markdown-mode)
-      ]
-     ]
-    )
-  (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
-#+end_src
-
 *** org-agenda-mode transient
 
 Org-agenda major mode transient.
@@ -9747,8 +9573,6 @@ The main configuration file.
 
 <<yaml-mode>>
 
-<<neuron-mode>>
-
 ;; Org-mode
 
 <<org>>
@@ -10045,8 +9869,6 @@ The main configuration file.
 
 <<marks-and-markers-transient>>
 
-<<neuron-transient>>
-
 <<org-launcher-transient>>
 
 <<password-store-transient>>
@@ -10094,8 +9916,6 @@ The main configuration file.
 <<ibuffer-mode-transient>>
 
 <<markdown-mode-transient>>
-
-<<neuron-mode-transient>>
 
 <<org-agenda-mode-transient>>
 

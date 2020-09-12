@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 12 09:39:39 2020
+;; Generated: Sat Sep 12 14:51:25 2020
 
 ;;; Commentary:
 
@@ -70,45 +70,6 @@
 (when (not (version< emacs-version "27"))
   (with-eval-after-load 'minibuffer
     (add-to-list 'completion-styles 'flex t)))
-
-;; (use-package helm
-;;   :init
-;;   (setq helm-allow-mouse t
-;;         helm-command-prefix-key "C-c C-M-h"
-;;         helm-prevent-escaping-from-minibuffer nil
-;;         ;; show helm completion buffer using default display function
-;;         ;; instead of always opening a new frame for it
-;;         helm-show-completion-display-function #'helm-show-completion-default-display-function
-;;         ;; show helm buffers by splitting current window instead of
-;;         ;; taking over another window in multi-window layout
-;;         helm-split-window-inside-p t)
-;;   (when (version< emacs-version "27")
-;;     (add-to-list 'completion-styles 'helm-flex t))
-;;   :config
-;;   (require 'helm-config)
-;;   (helm-mode 1)
-;;   (helm-autoresize-mode 1)
-;;   ;; bind over the standard Emacs commands
-;;   (define-key global-map [remap find-file] 'helm-find-files)
-;;   (define-key global-map [remap occur] 'helm-occur)
-;;   ;; (define-key global-map [remap list-buffers] 'helm-buffers-list)
-;;   ;; (define-key global-map [remap switch-to-buffer] 'helm-mini)
-;;   (define-key global-map [remap switch-to-buffer] 'helm-buffers-list)
-;;   (define-key global-map [remap dabbrev-expand] 'helm-dabbrev)
-;;   (define-key global-map [remap execute-extended-command] 'helm-M-x)
-;;   (define-key global-map [remap apropos-command] 'helm-apropos)
-;;   ;; make <tab> only complete names during helm completion, instead of
-;;   ;; default behavior that creates new buffer on the second press
-;;   ;; after which a third press kills the newly created buffer
-;;   (setq helm-ff-kill-or-find-buffer-fname-fn #'ignore)
-;;   (define-key helm-map (kbd "TAB") #'helm-execute-persistent-action)
-;;   (define-key helm-map (kbd "<tab>") #'helm-execute-persistent-action)
-;;   (define-key helm-map (kbd "C-i") #'helm-execute-persistent-action)
-;;   (define-key helm-map (kbd "C-z") #'helm-select-action))
-
-;; (use-package helm-icons
-;;   :after helm
-;;   :config (helm-icons-enable))
 
 ;; use Icomplete as the completion backend
 ;; emulate ido behavior where possible
@@ -269,10 +230,9 @@ if the point is in the minibuffer."
 ;; Bookmarks and history
 
 ;; alternative interface for M-x
-(when (not (featurep 'helm))
-  (use-package amx
-    :bind ("M-X" . amx-major-mode-commands)
-    :init (amx-mode)))
+(use-package amx
+  :bind ("M-X" . amx-major-mode-commands)
+  :init (amx-mode))
 
 ;; recently opened files
 (setq recentf-max-menu-items 10
@@ -296,15 +256,8 @@ if the point is in the minibuffer."
               (dolist (exclude-file file-list)
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
-;; binding for recentf, use Helm version if available
+;; binding for recentf
 (global-set-key (kbd "C-c C-M-r") #'recentf-open-files)
-
-;; ;; prefer helm-recentf to recentf-open-files
-;; (add-hook 'after-init-hook
-;;           (lambda ()
-;;             (when (featurep 'helm)
-;;               (define-key global-map [remap recentf-open-files]
-;;                 'helm-recentf))))
 
 (save-place-mode 1)
 
@@ -555,31 +508,11 @@ provided, the default interactive `eshell' command is run."
   :after eshell
   :hook (eshell-mode . esh-autosuggest-mode))
 
-;; (when (featurep 'helm)
-;;   (add-hook 'eshell-mode-hook
-;;             (lambda ()
-;;               (eshell-cmpl-initialize)
-;;               (define-key eshell-mode-map [remap eshell-pcomplete] 'helm-esh-pcomplete)
-;;               (define-key eshell-mode-map (kbd "M-r") 'helm-eshell-history))))
-
-;; (when (and (executable-find "fish") (featurep 'helm))
-;;   (use-package helm-fish-completion
-;;     :config
-;;     (setq helm-esh-pcomplete-build-source-fn
-;;           #'helm-fish-completion-make-eshell-source)
-;;     (with-eval-after-load 'shell
-;;       (define-key shell-mode-map (kbd "<tab>") #'helm-fish-completion))
-;;     (add-hook 'eshell-mode-hook
-;;               (lambda ()
-;;                 (define-key eshell-mode-map (kbd "<tab>")
-;;                   #'helm-fish-completion)))))
-
 ;; extend pcomplete with fish shell
 (when (executable-find "fish")
   (use-package fish-completion
     :after eshell
-    :config (when (not (featurep 'helm))
-              (add-hook 'eshell-mode-hook #'fish-completion-mode))))
+    :config (add-hook 'eshell-mode-hook #'fish-completion-mode)))
 
 (use-package eshell-z
   :after eshell)
@@ -1411,26 +1344,6 @@ Assumes "
 (use-package yaml-mode
   :commands yaml-mode
   :mode ("\\.ya?ml\\'" . yaml-mode))
-
-;; neuron-mode, settings adapted from
-;; https://gist.github.com/felko/cdb3fc19b3a60db27eb3c5bd319fc479
-(use-package neuron-mode
-  :init
-  (defface neuron-stub-face
-    '((((class color) (min-colors 88) (background dark)) :foreground "#C16069" :underline "#C16069")
-      (((class color) (min-colors 88) (background light)) :foreground "#C16069" :underline "#C16069")
-      (((class color) :foreground "Red" :underline "Red"))
-      (t :inherit neuron-title-overlay-face))
-    "Face for stub links."
-    :group 'neuron-faces)
-  (setq neuron-default-zettelkasten-directory (expand-file-name "~/zettelkasten")
-        neuron-default-tags '("stub")
-        neuron-id-format 'hash
-        neuron-tag-specific-title-faces '(("stub" neuron-stub-face)))
-  :config
-  ;; push location on to marker stack before following neuron link
-  ;; so backtracking is possible via `xref-pop-marker-stack' or "M-,"
-  (advice-add #'neuron-follow-thing-at-point :before #'xref-push-marker-stack))
 
 ;; Org-mode
 
@@ -2376,13 +2289,7 @@ environment has Racket installed."
   (treemacs-load-theme "all-the-icons")
   ;; reduce tab-width to fix spacing between icons and text
   (add-hook 'treemacs-mode-hook
-            (lambda () (setq-local tab-width 2)))
-  ;; do the same if `helm-icons' is being used
-  (with-eval-after-load 'helm-icons
-    (add-hook 'helm-after-initialize-hook
-              (lambda ()
-                (with-helm-buffer
-                  (setq tab-width 2))))))
+            (lambda () (setq-local tab-width 2))))
 
 ;; Search
 
@@ -3167,7 +3074,9 @@ whitespace, indenting and untabifying."
     ]
    ["Describe"
     ("db" "Bindings" describe-bindings)
+    ("dc" "Char" describe-char)
     ("df" "Function" describe-function)
+    ("dF" "Face" describe-face)
     ("dk" "Key" describe-key)
     ("dm" "Mode" describe-mode)
     ("dp" "Package" describe-package)
@@ -3182,13 +3091,14 @@ whitespace, indenting and untabifying."
     ("is" "Symbol" info-lookup-symbol)
     ]
    ["Other"
+    ("lf" "List faces" list-faces-display)
     ("ve" "View messages" view-echo-area-messages)
     ("vl" "View lossage" view-lossage)
     ("w" "Where is" where-is)
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-S-h") #'transient/help)
+(global-set-key (kbd "C-c C-M-h") #'transient/help)
 
 ;; add transient for keyboard macros, bind to "C-c C-M-k"
 (with-eval-after-load 'elmacro
@@ -3287,35 +3197,6 @@ whitespace, indenting and untabifying."
    ]
   )
 (global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers)
-
-;; add transient for neuron commands, bind to "C-c C-M-z"
-(with-eval-after-load 'neuron-mode
-  (transient-define-prefix transient/neuron ()
-    "Neuron Zettelkasten commands."
-    ["Neuron Zettelkasten"
-     ["File"
-      ("z" "New" neuron-new-zettel)
-      ("e" "Edit" neuron-edit-zettel)
-      ("j" "Daily" neuron-open-daily-notes)
-      ("o" "Open" neuron-open-zettel)
-      ("i" "Open index" neuron-open-index)
-      ]
-     ["Server"
-      ("rw" "Watch files" neuron-rib-watch)
-      ("rg" "Generate site" neuron-rib-generate)
-      ("rs" "Start" neuron-rib-serve)
-      ("ro" "Open" neuron-rib-open-zettel)
-      ("ri" "Open z-index" neuron-rib-open-z-index)
-      ("rk" "Kill" neuron-rib-kill)
-      ]
-     ["Other"
-      ("t" "Query tags" neuron-query-tags)
-      ("g" "Refresh cache" neuron-refresh)
-      ("c" "Configuration" neuron-edit-zettelkasten-configuration)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c C-M-z") #'transient/neuron))
 
 ;; add transient for accessing Org entry points
 (with-eval-after-load 'org
@@ -4654,35 +4535,6 @@ Currently only works for Emacs Mac port."
       )
     (define-key gfm-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)
     (define-key markdown-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)))
-
-;; major-mode specific transient for neuron-mode
-(with-eval-after-load 'neuron-mode
-  (transient-define-prefix transient/neuron-mode ()
-    "`neuron-mode' commands."
-    ["Neuron mode"
-     ["File"
-      ("o" "Follow at point" neuron-follow-thing-at-point)
-      ("u" "Edit uplink" neuron-edit-uplink)
-      ("r" "Open current" neuron-open-current-zettel)
-      ]
-     ["Tags"
-      ("t" "Add" neuron-add-tag)
-      ("T" "Add (multiple)" neuron-add-tags)
-      ]
-     ["Insert"
-      ("l" "Zettel link" neuron-create-and-insert-zettel-link)
-      ("L" "Zettel link from region" neuron-create-zettel-from-selected-title)
-      ("s" "Static link" neuron-insert-static-link)
-      ]
-     ]
-    [
-     ["Other"
-      ("c" "Toggle link conn type" neuron-toggle-connection-type :transient nil)
-      ("m" "Markdown major mode transient" transient/markdown-mode)
-      ]
-     ]
-    )
-  (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
 
 ;; major-mode specific transient for org-agenda-mode
 (with-eval-after-load 'org-agenda

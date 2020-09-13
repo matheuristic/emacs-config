@@ -5669,8 +5669,17 @@ It supports text and images, but not webfonts or Javascript.
   :ensure nil ;; built-in
   :commands (eww eww-follow-link)
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
+  :config
   ;; don't render images in HTML pages by default
-  :config (setq-default shr-inhibit-images t))
+  (setq-default shr-inhibit-images t)
+  ;; toggle for enabling and disabling images
+  (defun eww--toggle-images ()
+    "Toggle displaying of images when rendering HTML."
+    (interactive)
+    (setq-local shr-inhibit-images (not shr-inhibit-images))
+    (eww-reload)
+    (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+  (define-key eww-mode-map "I" #'eww--toggle-images))
 #+end_src
 
 ** REST development tools
@@ -8321,12 +8330,6 @@ Emacs Web Wowser major mode transient.
 #+begin_src emacs-lisp
 ;; major-mode specific transient for eww-mode
 (with-eval-after-load 'eww
-  (defun transient/eww-mode--toggle-images ()
-    "Toggle displaying of images when rendering HTML."
-    (interactive)
-    (setq-local shr-inhibit-images (not shr-inhibit-images))
-    (eww-reload)
-    (message "Images are now %s" (if shr-inhibit-images "off" "on")))
   (transient-define-prefix transient/eww-mode ()
     "`eww-mode' commands."
     ["Emacs Web Wowser"
@@ -8346,7 +8349,7 @@ Emacs Web Wowser major mode transient.
       ]
      ["Toggle"
       ("F" "Fonts" eww-toggle-fonts :transient t)
-      ("I" "Images" transient/eww-mode--toggle-images :transient t)
+      ("I" "Images" eww--toggle-images :transient t)
       ("M-C" "Colors" eww-toggle-colors :transient t)
       ("D" "Text direction" eww-toggle-paragraph-direction :transient t)
       ]

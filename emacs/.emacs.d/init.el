@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 12 19:16:57 2020
+;; Generated: Sat Sep 12 20:33:06 2020
 
 ;;; Commentary:
 
@@ -2486,8 +2486,17 @@ environment has Racket installed."
   :ensure nil ;; built-in
   :commands (eww eww-follow-link)
   :init (setq eww-search-prefix "https://duckduckgo.com/lite?q=")
+  :config
   ;; don't render images in HTML pages by default
-  :config (setq-default shr-inhibit-images t))
+  (setq-default shr-inhibit-images t)
+  ;; toggle for enabling and disabling images
+  (defun eww--toggle-images ()
+    "Toggle displaying of images when rendering HTML."
+    (interactive)
+    (setq-local shr-inhibit-images (not shr-inhibit-images))
+    (eww-reload)
+    (message "Images are now %s" (if shr-inhibit-images "off" "on")))
+  (define-key eww-mode-map "I" #'eww--toggle-images))
 
 (use-package restclient
   :defer t
@@ -4324,12 +4333,6 @@ Currently only works for Emacs Mac port."
 
 ;; major-mode specific transient for eww-mode
 (with-eval-after-load 'eww
-  (defun transient/eww-mode--toggle-images ()
-    "Toggle displaying of images when rendering HTML."
-    (interactive)
-    (setq-local shr-inhibit-images (not shr-inhibit-images))
-    (eww-reload)
-    (message "Images are now %s" (if shr-inhibit-images "off" "on")))
   (transient-define-prefix transient/eww-mode ()
     "`eww-mode' commands."
     ["Emacs Web Wowser"
@@ -4349,7 +4352,7 @@ Currently only works for Emacs Mac port."
       ]
      ["Toggle"
       ("F" "Fonts" eww-toggle-fonts :transient t)
-      ("I" "Images" transient/eww-mode--toggle-images :transient t)
+      ("I" "Images" eww--toggle-images :transient t)
       ("M-C" "Colors" eww-toggle-colors :transient t)
       ("D" "Text direction" eww-toggle-paragraph-direction :transient t)
       ]

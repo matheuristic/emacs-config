@@ -1825,7 +1825,8 @@ and a keymap for different operations on the highlighted symbols.
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
          ("C->" . mc/mark-next-like-this)
-         ("C-<" . mc/mark-previous-like-this))
+         ("C-<" . mc/mark-previous-like-this)
+         ("C-S-<mouse-1>" . mc/toggle-cursor-on-click))
   :init (setq mc/always-run-for-all nil
               mc/always-repeat-command nil
               mc/insert-numbers-default 1)

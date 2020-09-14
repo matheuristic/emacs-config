@@ -3425,6 +3425,9 @@ Org agenda parsing and operations speedy ([[https://www.gnu.org/software/emacs/m
 ;; - use ~/ORG-DIRECTORY/*.org files as Org agenda files
 (setq org-agenda-follow-indirect t
       org-agenda-restore-windows-after-quit t
+      org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled
+      org-agenda-skip-scheduled-delay-if-deadline nil
+      org-agenda-skip-scheduled-if-deadline-is-shown t
       org-agenda-start-on-weekday nil
       org-agenda-window-setup 'only-window
       org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
@@ -3866,15 +3869,17 @@ When annotating in the split-screen mode:
 #+begin_src emacs-lisp
 (use-package org-super-agenda
   :config
-  (setq org-super-agenda-groups '((:name "Today"
+  (setq org-super-agenda-groups '((:name "Up next"
+                                   :todo "NEXT")
+                                  (:name "Overdue"
+                                   :deadline past)
+                                  (:name "Today"
                                    :time-grid t
                                    :scheduled today)
                                   (:name "Due today"
                                    :deadline today)
                                   (:name "Important"
                                    :priority "A")
-                                  (:name "Overdue"
-                                   :deadline past)
                                   (:name "Due soon"
                                    :deadline future)
                                   (:name "Backlog"

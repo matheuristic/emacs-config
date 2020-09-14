@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Sep 14 15:05:09 2020
+;; Generated: Mon Sep 14 18:55:05 2020
 
 ;;; Commentary:
 
@@ -1572,6 +1572,9 @@ call `open-line' on the very first character."
 ;; - use ~/ORG-DIRECTORY/*.org files as Org agenda files
 (setq org-agenda-follow-indirect t
       org-agenda-restore-windows-after-quit t
+      org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled
+      org-agenda-skip-scheduled-delay-if-deadline nil
+      org-agenda-skip-scheduled-if-deadline-is-shown t
       org-agenda-start-on-weekday nil
       org-agenda-window-setup 'only-window
       org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
@@ -1852,15 +1855,17 @@ call `open-line' on the very first character."
 
 (use-package org-super-agenda
   :config
-  (setq org-super-agenda-groups '((:name "Today"
+  (setq org-super-agenda-groups '((:name "Up next"
+                                   :todo "NEXT")
+                                  (:name "Overdue"
+                                   :deadline past)
+                                  (:name "Today"
                                    :time-grid t
                                    :scheduled today)
                                   (:name "Due today"
                                    :deadline today)
                                   (:name "Important"
                                    :priority "A")
-                                  (:name "Overdue"
-                                   :deadline past)
                                   (:name "Due soon"
                                    :deadline future)
                                   (:name "Backlog"

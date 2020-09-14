@@ -5091,8 +5091,8 @@ character-based decision tree.
   ;; bind over `goto-line' since it can be invoked by entering numbers
   ;; for `avy-goto-line' input instead characters in the decision tree
   (global-set-key [remap goto-line] #'avy-goto-line)
-  ;; jump to location in frame using "C-:"
-  (global-set-key (kbd "C-:") #'avy-goto-char-timer))
+  ;; jump to location in frame using "C-c j"
+  (global-set-key (kbd "C-c j") #'avy-goto-char-timer))
 #+end_src
 
 ** ace-link                                                           :melpa:

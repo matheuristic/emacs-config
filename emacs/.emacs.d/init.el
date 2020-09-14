@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Sep 13 10:56:36 2020
+;; Generated: Mon Sep 14 15:05:09 2020
 
 ;;; Commentary:
 
@@ -2333,8 +2333,8 @@ environment has Racket installed."
   ;; bind over `goto-line' since it can be invoked by entering numbers
   ;; for `avy-goto-line' input instead characters in the decision tree
   (global-set-key [remap goto-line] #'avy-goto-line)
-  ;; jump to location in frame using "C-:"
-  (global-set-key (kbd "C-:") #'avy-goto-char-timer))
+  ;; jump to location in frame using "C-c j"
+  (global-set-key (kbd "C-c j") #'avy-goto-char-timer))
 
 ;; display, select and jump to links in various major modes
 (use-package ace-link

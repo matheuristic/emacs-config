@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Sep 14 18:55:05 2020
+;; Generated: Mon Sep 14 21:12:39 2020
 
 ;;; Commentary:
 
@@ -1570,11 +1570,15 @@ call `open-line' on the very first character."
 ;; - narrow to subtree in org-agenda-follow-mode ("F" in agenda)
 ;; - full-frame Agenda view
 ;; - use ~/ORG-DIRECTORY/*.org files as Org agenda files
+;; - de-duplicate entries with both a scheduled and deadline date
+;; - don't show entries with scheduled or deadline dates that are done
 (setq org-agenda-follow-indirect t
       org-agenda-restore-windows-after-quit t
+      org-agenda-skip-deadline-if-done t
       org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled
       org-agenda-skip-scheduled-delay-if-deadline nil
       org-agenda-skip-scheduled-if-deadline-is-shown t
+      org-agenda-skip-scheduled-if-done t
       org-agenda-start-on-weekday nil
       org-agenda-window-setup 'only-window
       org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
@@ -1856,27 +1860,39 @@ call `open-line' on the very first character."
 (use-package org-super-agenda
   :config
   (setq org-super-agenda-groups '((:name "Up next"
-                                   :todo "NEXT")
+                                   :todo "NEXT"
+                                   :order 1)
+                                  (:name "Waiting"
+                                   :todo "WAIT"
+                                   :order 10)
+                                  (:name "On hold"
+                                   :todo "HOLD"
+                                   :order 11)
                                   (:name "Overdue"
-                                   :deadline past)
+                                   :deadline past
+                                   :order 2)
+                                  (:name "Due today"
+                                   :deadline today
+                                   :order 3)
                                   (:name "Today"
                                    :time-grid t
-                                   :scheduled today)
-                                  (:name "Due today"
-                                   :deadline today)
+                                   :scheduled today
+                                   :order 4)
                                   (:name "Important"
-                                   :priority "A")
+                                   :priority "A"
+                                   :order 5)
                                   (:name "Due soon"
-                                   :deadline future)
+                                   :deadline future
+                                   :order 6)
                                   (:name "Backlog"
-                                   :scheduled past)
+                                   :scheduled past
+                                   :order 7)
                                   (:name "Upcoming"
-                                   :scheduled future)
-                                  (:priority<= "B")
-                                  (:name "Waiting"
-                                   :todo "WAIT")
-                                  (:name "On hold"
-                                   :todo "HOLD")))
+                                   :scheduled future
+                                   :order 8)
+                                  (:name "Unprioritized"
+                                   :priority<= "B"
+                                   :order 9)))
   (org-super-agenda-mode 1))
 
 ;; start server and load org-protocol

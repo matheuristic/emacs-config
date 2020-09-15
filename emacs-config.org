@@ -10078,45 +10078,18 @@ of the look-alike in the old code.
 [[https://github.com/jkitchin/org-ref][Org-ref]] is a collection of modules for managing citations, references
 and BibTeX bibliographies in Org-mode.
 
-*** [#C] org-reveal or org-re-reveal                                  :melpa:
+*** [#C] org-re-reveal                                                :melpa:
 
 [[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] and [[https://github.com/yjwen/org-reveal][org-reveal]] are comparable packages support
 exporting Org documents to [[https://revealjs.com/#/][reveal.js]] presentations.
 
 One rationale for going with ~org-re-reveal~ is for its support for
-audio and video, improved support for [[https://github.com/viebel/klipse][klipse]], bilbliography
-support via the supporting ~org-re-reveal-ref~ and a number of quality of life
+audio and video, improved support for [[https://github.com/viebel/klipse][klipse]], bilbliography support
+via the supporting ~org-re-reveal-ref~ and a number of quality of life
 improvements for authoring [[https://en.wikipedia.org/wiki/Open_educational_resources][Open Educational Resources]] via the
-supporting ~oer-reveal~ package.
-
-One rationale for going with ~org-reveal~ is that it is more widely
-used, and could be earlier to have esoteric bugs fixed and
-cutting-edge features implemented.
-
-References:
-- [[http://www.zhangjiee.com/blog/2019/emacs-slide.html][Emacs 基于 org-reveal 做幻灯片]]
-
-*** [#B] ox-hugo                                             :external:melpa:
-
-[[https://github.com/kaushalmodi/ox-hugo][GitHub - kaushalmodi/ox-hugo: A carefully crafted Org exporter back-end for Hugo]]
-
-[[https://www.kengrimes.com/ox-hugo-tutorial/][Ken Grimes :: Using ox-hugo To Build Websites with Emacs]]
-
-**** [#C] Using Github Actions to build and deploy websites
-
-[[https://www.aaron-powell.com/posts/2019-12-17-implementing-github-actions-for-my-blog/][Implementing GitHub Actions for My Blog]]
-
-[[https://dev.to/bnb/an-unintentionally-comprehensive-introduction-to-github-actions-ci-blm][An Unintentionally Comprehensive Introduction to GitHub Actions CI - DEV]]
-
-**** [#C] hugo.el                                                  :external:
-
-[[https://github.com/aaronbieber/hugo.el][GitHub - aaronbieber/hugo.el: An interactive wrapper around the Hugo site gen...]]
-
-**** [#C] Javascript (optional)
-
-[[https://zihao.me/post/building-a-blog-with-hugo-and-webpack/][The Perfect Blog Setup with Hugo, Webpack 4 and Babel 7 in 2019 · Zihao Zhang]]
-
-[[https://simonclayson.co.uk/notebook/hugo-pipes-mounts-optimisation/][Minify CSS and JS with Hugo Pipes and Module Mounts | Simon Clayson]]
+supporting ~oer-reveal~ package. It is also more frequently updated.
+For instance, at the time of writing ~org-re-reveal~ supports
+~reveal.js~ 4 but ~org-reveal~ does not.
 
 *** [#C] org-static-blog                                              :melpa:
 
@@ -10138,13 +10111,6 @@ remote deployment for:
 References:
 - [[https://jao.io/blog/2020-02-11-simplicity.html][simplicity]]
 - [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
-
-*** [#C] Convert data to Org-mode representation using Orger       :external:
-
-Built-in modules support conversion from a variety of sources,
-alternative is Memacs.
-
-[[https://github.com/karlicoss/orger][GitHub - karlicoss/orger]]
 
 ** Programming
 
@@ -10181,7 +10147,7 @@ Or can define using ~flymake-quickdef~.
 
 *** Python
 
-**** [#C] Tab completion in PDB
+**** [#C] Tab completion in PDB                                       :melpa:
 
 [[https://github.com/muffinmad/emacs-pdb-capf][GitHub - muffinmad/emacs-pdb-capf: Completion-at-point function for pdb]]
 
@@ -10283,6 +10249,13 @@ project and the editor is automatically configured (built-in for some
 editors, using a plugin for others) to adhere to that code style when
 working on that project.
 
+*** [#B] envrc for buffer-local direnv support                        :melpa:
+
+[[https://github.com/purcell/envrc][GitHub - purcell/envrc: Emacs support for direnv which operates buffer-locally]]
+
+References:
+- [[https://www.digitalocean.com/community/tutorials/how-to-manage-python-with-pyenv-and-direnv][How To Manage Python with Pyenv and Direnv | DigitalOcean]]
+
 ** Reference management
 
 *** [#C] Biblio                                                       :melpa:
@@ -10294,8 +10267,6 @@ See [[https://juanjose.garciaripoll.com/blog/ebib-biblio-interface/index.html][l
 start with a simpler workflow like copy DOI link \to Bilbio \to import
 into Ebib (~M-x ebib-import~ on region or with entries in a buffer).
 See the /Merging and Importing/ section of the Ebib [[http://joostkremers.github.io/ebib/ebib-manual.html][manual]].
-
-** Visual
 
 ** Web
 
@@ -10316,7 +10287,7 @@ Not yet in MELPA. Depends on ~jq-mode~.
 
 *** [#C] ob-restclient
 
-*** [#A] Elfeed                                                       :melpa:
+*** [#C] Elfeed                                                       :melpa:
 
 [[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
 packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://github.com/sp1ff/elfeed-score][elfeed-score]].
@@ -10345,10 +10316,6 @@ overlays.
 *** [#C] org-trello for syncing between Org buffers and Trello boards
 
 [[https://github.com/org-trello/org-trello][GitHub - org-trello/org-trello: Org minor mode - 2-way sync org & trello]]
-
-*** [#B] org-kungfu for writing Confluence pages
-
-[[https://github.com/baohaojun/org-kungfu][GitHub - baohaojun/org-kungfu: Using Org-mode to write Confluence pages]]
 
 * Local Variables                                                  :noexport:
 

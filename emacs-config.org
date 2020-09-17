@@ -1822,8 +1822,11 @@ and a keymap for different operations on the highlighted symbols.
 #+name: multiple-cursors
 #+begin_src emacs-lisp
 ;; multiple cursors
+;; using `set-rectangular-region-anchor' is probably the easiest
+;; see https://emacs.stackexchange.com/a/773
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C-M-S-SPC" . set-rectangular-region-anchor)
          ("C->" . mc/mark-next-like-this)
          ("C-<" . mc/mark-previous-like-this)
          ("C-S-<mouse-1>" . mc/toggle-cursor-on-click))

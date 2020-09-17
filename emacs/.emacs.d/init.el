@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Sep 14 21:12:39 2020
+;; Generated: Thu Sep 17 12:49:38 2020
 
 ;;; Commentary:
 
@@ -772,6 +772,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 ;; multiple cursors
 (use-package multiple-cursors
   :bind (("C-S-c C-S-c" . mc/edit-lines)
+         ("C-M-S-SPC" . set-rectangular-region-anchor)
          ("C->" . mc/mark-next-like-this)
          ("C-<" . mc/mark-previous-like-this)
          ("C-S-<mouse-1>" . mc/toggle-cursor-on-click))

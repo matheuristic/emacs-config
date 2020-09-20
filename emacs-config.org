@@ -137,6 +137,16 @@ Host *
      ServerAliveInterval 5
 #+end_example
 
+** Emacs key binding conventions
+
+By convention, ~C-c <letter>~ bindings are reserved for user bindings.
+However, some packages do not adhere to this, like ~xcscope.el~ which
+bindings ~C-c s~ as a prefix for its cscope commands or ESS which binds
+~C-c h~ and ~C-c w~ for some of its package development commands.
+
+References:
+- [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Key-Binding-Conventions.html][Key Binding Conventions - GNU Emacs Lisp Reference Manual]]
+
 ** Useful Emacs default bindings
 
 *** Moving to beginning of line text (M-m)
@@ -765,7 +775,7 @@ opened files.
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
 ;; binding for recentf
-(global-set-key (kbd "C-c C-M-r") #'recentf-open-files)
+(global-set-key (kbd "C-c R") #'recentf-open-files)
 #+end_src
 
 ** Save location in file
@@ -1520,7 +1530,7 @@ comparison functionality similar to [[https://www.scootersoftware.com/][Beyond C
 ;; view and compare directory trees, like Beyond Compare
 (use-package ztree
   :bind (("C-x D" . ztree-dir)
-         ("C-c C-M--" . ztree-diff))
+         ("C-c d z" . ztree-diff))
   :config
   (setq ztree-dir-move-focus t ;; RET in ztree-dir also moves focus
         ztree-draw-unicode-lines t ;; unicode lines
@@ -1543,7 +1553,7 @@ Docker containers, images and volumes.
 #+begin_src emacs-lisp
 (when (executable-find "docker")
   (use-package docker
-    :bind ("C-c C-M-d" . docker)))
+    :bind ("C-c d d" . docker)))
 #+end_src
 
 * Dired
@@ -1673,6 +1683,9 @@ with completion.
 Completion support is provided through ~completing-read~, which is
 shadowed by completion frameworks like Icomplete, Ido, Ivy, etc.
 
+*Configuration*:
+- Rebind yank to completion-enabled yank function.
+
 #+name: completing-yank
 #+begin_src emacs-lisp
 (defun my-yank-from-kill-ring ()
@@ -1687,8 +1700,8 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
     ;; insert the selected entry from the kill ring
     (insert to-insert)))
 
-;; yank with completion key binding
-(global-set-key (kbd "C-c C-M-y") #'my-yank-from-kill-ring)
+;; bind `my-yank-from-kill-ring'
+(global-set-key (kbd "C-c y") #'my-yank-from-kill-ring)
 #+end_src
 
 ** Delete selected region on delete or character input
@@ -1737,7 +1750,7 @@ in the middle of a key sequence.
 #+begin_src emacs-lisp
 ;; display available bindings in popup
 (use-package which-key
-  :bind ("C-c C-M-?" . which-key-show-top-level)
+  :bind ("C-c H w" . which-key-show-top-level)
   :init
   (setq which-key-allow-multiple-replacements t
         which-key-compute-remaps t
@@ -1768,13 +1781,21 @@ Examples include character to word, word to sentence, etc.
 buffer simultaneously.
 
 *Usage notes*:
-- ~C-;~ to edit occurances of the word under point within the buffer,
-  or ~C-u 0 C-;~ to edit occurances only within the current function.
-- Fine control of the search area for occurances is done by using
-  ~M-I~ when in ~iedit-mode~ to restrict to current line and ~M-{~ and
-  ~M-}~ to expand search region one-line at a time upwards and
-  downwards (add a prefix argument to reverse instead).
-- ~C-'~ while editing to toggle narrowing to occurance lines.
+- ~C-;~ to edit occurrences of the word under point within the buffer,
+  or ~C-u 0 C-;~ to edit occurrences only within the current function.
+  The rest of the list describes bindings when ~iedit-mode~ is active.
+- ~M-H~ restricts iedit to the current function.
+- Selecting a region while in ~iedit-mode~ and calling ~C-'~ (or
+  calling ~M-x iedit-mode~) again restricts iedit to that region.
+- ~M-I~ restricts iedit to current line
+- ~M-{~ and ~M-}~ expands iedit region one-line at a time upwards and
+  downwards (add a prefix argument to reverse instead). This is useful
+  after restricting iedit to the current line, current function or a
+  selected region.
+- ~M-p~ and ~M-n~ expands up and down to the next occurrence.
+- ~M-C~ toggles case sensitivity when searching for occurrences.
+- ~C-'~ while editing to toggle narrowing to occurrence lines.
+- ~TAB~ and ~S-TAB~ to cycle between occurrences.
 - ~C-;~ when editing is done to apply changes.
 
 #+name: iedit
@@ -2480,7 +2501,7 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
 (when (executable-find "notmuch")
   (use-package notmuch
     :ensure nil ;; in site-lisp directory
-    :bind (("C-c C-M-n" . notmuch)
+    :bind (("C-c M" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
            :map notmuch-search-mode-map
@@ -3848,7 +3869,7 @@ header star replacements are configured.
 [[https://github.com/weirdNox/org-noter][Org-noter]] allows the creation of external synchronized notes for
 documents viewed using [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]] or [[https://depp.brause.cc/nov.el/][Nov.el]].
 
-Use ~C-c C-M-S-n~ or ~M-x org-noter~ while in an Org document or when
+Use ~C-c N~ or ~M-x org-noter~ while in an Org document or when
 viewing a document in the above tools to annotate.
 
 When annotating in the split-screen mode:
@@ -3864,7 +3885,7 @@ When annotating in the split-screen mode:
 #+begin_src emacs-lisp
 ;; create sychronized external notes in DocView and Nov.el
 (use-package org-noter
-  :bind ("C-c C-M-S-n" . org-noter)
+  :bind ("C-c N" . org-noter)
   :init (setq org-noter-always-create-frame nil))
 #+end_src
 
@@ -4950,7 +4971,7 @@ historical versions of Git-controlled files.
 ;; Browse older versions of Git-controlled files
 (use-package git-timemachine
   :commands git-timemachine
-  :bind ("C-c C-M-g" . git-timemachine))
+  :bind ("C-x G" . git-timemachine))
 #+end_src
 
 ** Browse Git-controlled file remotely or get its Url                 :melpa:
@@ -4974,7 +4995,7 @@ An alternative with comparable feature coverage is [[https://github.com/sshaw/gi
 ;; per-project file trees
 (use-package treemacs
   :demand t
-  :bind ("C-c C-M-S-t" . treemacs)
+  :bind ("C-c d t" . treemacs)
   :init
   ;; resize treemacs icon sizes to 75% of line-height
   (add-hook 'after-init-hook
@@ -5115,8 +5136,9 @@ character-based decision tree.
   ;; bind over `goto-line' since it can be invoked by entering numbers
   ;; for `avy-goto-line' input instead characters in the decision tree
   (global-set-key [remap goto-line] #'avy-goto-line)
-  ;; jump to location in frame using "C-c j"
-  (global-set-key (kbd "C-c j") #'avy-goto-char-timer))
+  ;; jump to location of any text that is visible in the current frame
+  ;; bind over "M-g g" (use "M-g M-g" for `goto-line' instead)
+  (global-set-key (kbd "M-g g") #'avy-goto-char-timer))
 #+end_src
 
 ** ace-link                                                           :melpa:
@@ -5209,7 +5231,7 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
                                         (locate-library "notdeft"))
                                        "xapian/notdeft-xapian"))
   ;; binding to access Notdeft
-  (global-set-key (kbd "C-c C-M-s") #'notdeft))
+  (global-set-key (kbd "C-c n") #'notdeft))
 #+end_src
 
 ** Imenu
@@ -5233,7 +5255,7 @@ definitions across all open buffers.
 (use-package imenu-anywhere
   :defer t
   :after imenu
-  :bind ("C-c C-M-;" . imenu-anywhere))
+  :bind ("C-c I" . imenu-anywhere))
 #+end_src
 
 *** Imenu extension to list headings in a side buffer                 :melpa:
@@ -5250,7 +5272,7 @@ and automatically closes the imenu-list.
 (use-package imenu-list
   :defer t
   :after imenu
-  :bind ("C-c C-M-'" . imenu-list-smart-toggle)
+  :bind ("C-c i" . imenu-list-smart-toggle)
   :config
   (setq imenu-list-focus-after-activation t)
   ;; pulse target after selecting
@@ -5667,10 +5689,10 @@ to control which keywords get highlighted.
 #+begin_src emacs-lisp
 (use-package hl-todo
   :bind (:map hl-todo-mode-map
-         ("C-c n" . hl-todo-next)
-         ("C-c p" . hl-todo-prev)
-         ("C-c o" . hl-todo-occur)
-         ("C-c i" . hl-todo-insert))
+         ("C-c t n" . hl-todo-next)
+         ("C-c t p" . hl-todo-prev)
+         ("C-c t o" . hl-todo-occur)
+         ("C-c t i" . hl-todo-insert))
   :hook (prog-mode . hl-todo-mode))
 #+end_src
 
@@ -6617,9 +6639,19 @@ following conventions:
   ~Q~ and ~M-q~ bindings defined in any transient to ~Q~, ~M-q~ and
   unbound respectively.
 - Globally-accessible transients are always bound to a key sequence
-  prefixed by ~C-c C-M-~ (like ~C-c C-M-b~ for the basic buffer
-  management hydra).
-- Major mode-specific transients are always bound to ~C-c C-M-m~.
+  prefixed by ~C-c-~ and followed by one or more characters (for
+  example ~C-c B~ for the basic buffer management hydra or ~C-c e p~
+  for the Emacs profiler). These should be chosen to not conflict with
+  common packages with bindings that don't conform to the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Key-Binding-Conventions.html][convention]]
+  of reserving ~C-c <letter>~ for user bindings (like ~xcscope.el~
+  with its ~C-c s~ bindings).
+- Transients for toggling settings should be prefixed with ~C-c l~
+  where ~l~ is a mnemonic for layer (for example, ~C-c l v~ for the
+  visual layer or ~C-c l w~ for the writing layer).
+- Transients for accessing global Emacs functionality should be
+  prefixed with ~C-c e~ where ~e~ is a mnemonic for Emacs (for example
+  ~C-c e f~ for Emacs frames and ~C-c e p~ for Emacs profiler).
+- Major mode-specific transients are always bound to ~C-c m~.
 - Transients are always defined in their own section after all other
   user configuration, such that all dependencies in transients are
   loaded before any are defined. This simplifies transient definitions
@@ -6668,7 +6700,7 @@ Example of use with transient suffix definitions in a
 
 ** Global transients
 
-Global transients have global bindings other than ~C-c C-M-m~ (that is
+Global transients have global bindings other than ~C-c m~ (that is
 reserved for major mode transients) and are always active.
 
 *** Bookmarks transient
@@ -6677,7 +6709,7 @@ Transient for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs
 
 #+name: bookmarks-transient
 #+begin_src emacs-lisp
-;; add transient popup for bookmark commands, bind to "C-c C-M-j"
+;; add transient popup for bookmark commands
 (transient-define-prefix transient/bookmarks ()
   "Various bookmark commands."
   ["Bookmarks"
@@ -6696,7 +6728,7 @@ Transient for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-j") #'transient/bookmarks)
+(global-set-key (kbd "C-c e B") #'transient/bookmarks)
 #+end_src
 
 *** Buffer transient
@@ -6756,7 +6788,7 @@ whitespace, indenting and untabifying."
                                 my-system-open-command my-dir-path)))
     (apply 'start-process my-process-args)))
 
-;; add transient for buffer management commands, bind to "C-c C-M-b"
+;; add transient for buffer management commands
 (transient-define-prefix transient/buffer ()
   "Buffer management commands."
   ["Buffer"
@@ -6790,7 +6822,7 @@ whitespace, indenting and untabifying."
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-b") #'transient/buffer)
+(global-set-key (kbd "C-c e b") #'transient/buffer)
 #+end_src
 
 *** Conda transient
@@ -6799,7 +6831,7 @@ Transient for switching conda environments.
 
 #+name: conda-transient
 #+begin_src emacs-lisp
-;; add transient popup for conda commands, bind to "C-c C-M-S-v"
+;; add transient popup for conda commands
 (with-eval-after-load 'conda
   (transient-define-prefix transient/conda ()
     "Conda commands."
@@ -6810,7 +6842,7 @@ Transient for switching conda environments.
      ("l" "List" conda-env-list)
      ]
     )
-  (global-set-key (kbd "C-c C-M-S-v") #'transient/conda))
+  (global-set-key (kbd "C-c C") #'transient/conda))
 #+end_src
 
 *** Debugger transient
@@ -6826,7 +6858,7 @@ Transient for modifying Emacs Lisp [[https://www.gnu.org/software/emacs/manual/h
   (interactive)
   (prin1 (debug--variable-list)))
 
-;; add transient popup for conda commands, bind to "C-c C-M-S-v"
+;; add transient popup for debugger commands
 (transient-define-prefix transient/debugger ()
   "Emacs debugger settings."
   ["Emacs debugger settings"
@@ -6850,7 +6882,7 @@ Transient for modifying Emacs Lisp [[https://www.gnu.org/software/emacs/manual/h
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-S-d") #'transient/debugger)
+(global-set-key (kbd "C-c e d") #'transient/debugger)
 #+end_src
 
 *** Ediff transient
@@ -6859,7 +6891,7 @@ Transient popup for launching Ediff commands.
 
 #+name: ediff-transient
 #+begin_src emacs-lisp
-;; add transient popup for Ediff commands, bind to "C-c C-M-="
+;; add transient popup for Ediff commands
 (transient-define-prefix transient/ediff ()
   "Various Ediff launch commands."
   ["Ediff"
@@ -6889,7 +6921,7 @@ Transient popup for launching Ediff commands.
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-=") #'transient/ediff)
+(global-set-key (kbd "C-c d f") #'transient/ediff)
 #+end_src
 
 *** Frame transient
@@ -6903,7 +6935,7 @@ Transient for frame management.
   (interactive)
   (other-frame -1))
 
-;; add transient popup for frame commands, bind to "C-c C-M-f"
+;; add transient popup for frame commands
 (transient-define-prefix transient/frame ()
   "Frame management commands."
   ["Frame"
@@ -6923,7 +6955,7 @@ Transient for frame management.
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-f") #'transient/frame)
+(global-set-key (kbd "C-c e f") #'transient/frame)
 #+end_src
 
 *** Help transient
@@ -6932,7 +6964,7 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
 
 #+name: help-transient
 #+begin_src emacs-lisp
-;; add transient popup for help commands, bind to "C-c C-M-S-h"
+;; add transient popup for help commands
 (transient-define-prefix transient/help ()
   "Various help commands."
   ["Help"
@@ -6970,7 +7002,7 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-h") #'transient/help)
+(global-set-key (kbd "C-c H h") #'transient/help)
 #+end_src
 
 *** Keyboard macros transient
@@ -6980,14 +7012,14 @@ For an example, see the writeup on [[https://www.emacswiki.org/emacs/KeyboardMac
 
 #+name: keyboard-macros-transient
 #+begin_src emacs-lisp
-;; add transient for keyboard macros, bind to "C-c C-M-k"
+;; add transient for keyboard macros
 (with-eval-after-load 'elmacro
   (transient-define-prefix transient/keyboard-macros ()
     "Keyboard macro commands."
     ["Keyboard Macros"
      ["Actions"
-      ("(" "Start" kmacro-start-macro)              ;; also "C-x ("
-      (")" "End/Call last" kmacro-end-or-call-macro) ;; also "C-x )"
+      ("(" "Start" kmacro-start-macro) ; also "C-x ("
+      (")" "Call last" kmacro-end-or-call-macro) ; also "C-x )"
       ("r" "Call last on region" apply-macro-to-region-lines)
       ]
      ["Ring"
@@ -7021,7 +7053,7 @@ For an example, see the writeup on [[https://www.emacswiki.org/emacs/KeyboardMac
       ]
      ]
     )
-  (global-set-key (kbd "C-c C-M-k") #'transient/keyboard-macros))
+  (global-set-key (kbd "C-c k") #'transient/keyboard-macros))
 #+end_src
 
 *** Marks and markers transient
@@ -7083,7 +7115,7 @@ Transient for manipulating and managing marks and markers.
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-:") #'transient/marks-and-markers)
+(global-set-key (kbd "C-c j") #'transient/marks-and-markers)
 #+end_src
 
 *** Org launcher transient
@@ -7103,7 +7135,7 @@ Transient for accessing Org entry points.
      ("l" "Store link" org-store-link)
      ]
     )
-  (global-set-key (kbd "C-c C-M-o") #'transient/org-launcher))
+  (global-set-key (kbd "C-c O") #'transient/org-launcher))
 #+end_src
 
 *** Password store transient
@@ -7112,7 +7144,7 @@ Transient for accessing password-store.el commands.
 
 #+name: password-store-transient
 #+begin_src emacs-lisp
-;; add transient for password-store commands, bind to "C-c C-M-S-p"
+;; add transient for password-store commands
 (with-eval-after-load 'auth-source-pass
   (with-eval-after-load 'password-store
     (defun transient/password-store--toggle-auth-source-pass-store ()
@@ -7153,7 +7185,7 @@ Transient for accessing password-store.el commands.
         ]
        ]
       )
-    (global-set-key (kbd "C-c C-M-S-p") #'transient/password-store)))
+    (global-set-key (kbd "C-c P") #'transient/password-store)))
 #+end_src
 
 *** Profiler transient
@@ -7162,7 +7194,7 @@ Transient for built in Emacs [[https://www.gnu.org/software/emacs/manual/html_no
 
 #+name: profiler-transient
 #+begin_src emacs-lisp
-;; add transient for Emacs profiler, bind to "C-c C-M-S-e"
+;; add transient for Emacs profiler
 (transient-define-prefix transient/profiler ()
   "Emacs profiler commands."
   [:description (lambda ()
@@ -7179,7 +7211,7 @@ Transient for built in Emacs [[https://www.gnu.org/software/emacs/manual/html_no
    ("e" "Stop" profiler-stop :transient t)
    ]
   )
-(global-set-key (kbd "C-c C-M-S-e") #'transient/profiler)
+(global-set-key (kbd "C-c e p") #'transient/profiler)
 #+end_src
 
 *** Projectile transient
@@ -7188,7 +7220,7 @@ Transient for interfacing with Projectile commands
 
 #+name: projectile-transient
 #+begin_src emacs-lisp
-;; add transient popup for projectile, bind to "C-c C-M-p"
+;; add transient popup for projectile
 (with-eval-after-load 'projectile
   (transient-define-prefix transient/projectile ()
     "Projectile commands"
@@ -7244,7 +7276,7 @@ Transient for interfacing with Projectile commands
       ]
      ]
     )
-  (define-key projectile-mode-map (kbd "C-c C-M-p") #'transient/projectile))
+  (define-key projectile-mode-map (kbd "C-c p") #'transient/projectile))
 #+end_src
 
 *** Registers transient
@@ -7253,7 +7285,7 @@ Transient for easier access to [[https://www.gnu.org/software/emacs/manual/html_
 
 #+name: registers-transient
 #+begin_src emacs-lisp
-;; add transient popup for register commands, bind to "C-c C-M-S-v"
+;; add transient popup for register commands
 (transient-define-prefix transient/registers ()
   "Register commands."
   ["Registers"
@@ -7273,7 +7305,7 @@ Transient for easier access to [[https://www.gnu.org/software/emacs/manual/html_
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-\"") #'transient/registers)
+(global-set-key (kbd "C-c J") #'transient/registers)
 #+end_src
 
 *** Search transient
@@ -7282,7 +7314,7 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
 
 #+name: search-transient
 #+begin_src emacs-lisp
-;; add transient popup for search tools, bind to "C-c C-M-/"
+;; add transient popup for search tools
 (defun transient/search--rg-menu-or-rgrep ()
   "Dispatch to `rg-menu' if command available, else `rgrep'."
   (interactive)
@@ -7314,7 +7346,7 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-/") #'transient/search)
+(global-set-key (kbd "C-c S") #'transient/search)
 #+end_src
 
 *** Shell entry transient
@@ -7323,7 +7355,7 @@ Transient providing entry points into Eshell and vterm.
 
 #+name: shell-transient
 #+begin_src emacs-lisp
-;; add transient popup for shell tools, bind to "C-c C-M-t"
+;; add transient popup for shell tools
 (transient-define-prefix transient/shell ()
   "Various shell tools."
   ["Shell tools"
@@ -7341,7 +7373,7 @@ Transient providing entry points into Eshell and vterm.
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-t") #'transient/shell)
+(global-set-key (kbd "C-c T") #'transient/shell)
 #+end_src
 
 *** Symbol overlay transient
@@ -7414,7 +7446,7 @@ restarting Emacs as a server.
                       "\n")))
 
 ;; add transient popup for system info, process and Emacs runtime
-;; commands (including `server-mode'), bind to "C-c C-M-S-s"
+;; commands (including `server-mode')
 (transient-define-prefix transient/system ()
   "System info, process and Emacs runtime/server-related commands."
   ;; suffix actions don't exit the transient popup by default
@@ -7441,7 +7473,7 @@ restarting Emacs as a server.
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-S-s") #'transient/system)
+(global-set-key (kbd "C-c e s") #'transient/system)
 #+end_src
 
 *** Visual transient
@@ -7534,7 +7566,7 @@ Currently only works for Emacs Mac port."
          (mac-auto-operator-composition-mode))
         (t (message "Not implemented for this Emacs build."))))
 
-;; add transient popup for visual commands, bind to "C-c C-M-v"
+;; add transient popup for visual commands
 (transient-define-prefix transient/visual ()
   "Visual commands and toggles."
   :transient-suffix 'transient--do-stay
@@ -7711,7 +7743,7 @@ Currently only works for Emacs Mac port."
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-v") #'transient/visual)
+(global-set-key (kbd "C-c l v") #'transient/visual)
 #+end_src
 
 *** Window transient
@@ -7751,7 +7783,7 @@ Transient for window management.
   (interactive)
   (transient/window--transpose-windows 'windmove-right))
 
-;; add transient popup for window commands, bind to "C-c C-M-w"
+;; add transient popup for window commands
 (transient-define-prefix transient/window ()
   "Window management commands."
   :transient-suffix 'transient--do-stay
@@ -7793,7 +7825,7 @@ Transient for window management.
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-w") #'transient/window)
+(global-set-key (kbd "C-c e w") #'transient/window)
 #+end_src
 
 *** Workspace transient
@@ -7802,7 +7834,7 @@ Transient for workspace manipulation and usage.
 
 #+name: workspace-transient
 #+begin_src emacs-lisp
-;; add transient popup for workspace commands, bind to "C-c C-M-e"
+;; add transient popup for workspace commands
 (transient-define-prefix transient/workspace ()
   "Various workspace commands."
   ["Workspace"
@@ -7815,7 +7847,7 @@ Transient for workspace manipulation and usage.
     ]
    ]
   )
-(global-set-key (kbd "C-c C-M-e") #'transient/workspace)
+(global-set-key (kbd "C-c e W") #'transient/workspace)
 #+end_src
 
 *** Writing transient
@@ -7824,7 +7856,7 @@ Transient for accessing writing-related commands.
 
 #+name: writing-transient
 #+begin_src emacs-lisp
-;; add transient popup for writing commands, bind to "C-c C-M-S-w"
+;; add transient popup for writing commands
 (with-eval-after-load 'dictionary
   (with-eval-after-load 'synosaurus
     (with-eval-after-load 'langtool
@@ -7873,7 +7905,7 @@ Transient for accessing writing-related commands.
              typo-mode :transient t)]
            ]
           )
-        (global-set-key (kbd "C-c C-M-S-w") #'transient/writing)))))
+        (global-set-key (kbd "C-c l w") #'transient/writing)))))
 #+end_src
 
 *** YASnippet transient
@@ -7883,7 +7915,7 @@ supporting packages.
 
 #+name: yasnippet-transient
 #+begin_src emacs-lisp
-;; add transient popup for yasnippet commands, bind to "C-c C-M-<"
+;; add transient popup for yasnippet commands
 (with-eval-after-load 'yasnippet
   (with-eval-after-load 'auto-yasnippet
     (defun transient/yasnippet--aya-show-current ()
@@ -7907,12 +7939,12 @@ supporting packages.
        ]
       ]
      )
-   (global-set-key (kbd "C-c C-M-<") #'transient/yasnippet)))
+   (global-set-key (kbd "C-c Y") #'transient/yasnippet)))
 #+end_src
 
 ** Major mode transients
 
-Major mode transients are always bound to ~C-c C-M-m~ and that binding
+Major mode transients are always bound to ~C-c m~ and that binding
 is active only when their corresponding major mode is active.
 
 *** clojure-mode transient
@@ -8036,7 +8068,7 @@ Clojure major mode transient. Mostly entry points to [[https://github.com/clojur
        ]
       )
 
-    (define-key clojure-mode-map (kbd "C-c C-M-m") #'transient/clojure-mode)))
+    (define-key clojure-mode-map (kbd "C-c m") #'transient/clojure-mode)))
 #+end_src
 
 *** csv-mode transient
@@ -8071,7 +8103,7 @@ CSV major mode transient.
       ]
      ]
     )
-  (define-key csv-mode-map (kbd "C-c C-M-m") #'transient/csv-mode))
+  (define-key csv-mode-map (kbd "C-c m") #'transient/csv-mode))
 #+end_src
 
 *** debugger-mode transient
@@ -8115,7 +8147,7 @@ CSV major mode transient.
       ]
      ]
     )
-  (define-key debugger-mode-map (kbd "C-c C-M-m") #'transient/debugger-mode))
+  (define-key debugger-mode-map (kbd "C-c m") #'transient/debugger-mode))
 #+end_src
 
 *** dired-mode transient
@@ -8235,7 +8267,7 @@ Dired major mode transient.
         ]
        ]
       )
-    (define-key dired-mode-map (kbd "C-c C-M-m") #'transient/dired-mode)))
+    (define-key dired-mode-map (kbd "C-c m") #'transient/dired-mode)))
 #+end_src
 
 *** edebug-mode transient
@@ -8301,7 +8333,7 @@ Dired major mode transient.
       ]
      ]
     )
-  (define-key edebug-mode-map (kbd "C-c C-M-m") #'transient/edebug-mode))
+  (define-key edebug-mode-map (kbd "C-c m") #'transient/edebug-mode))
 #+end_src
 
 *** ess-mode transient
@@ -8344,7 +8376,7 @@ Emacs Speaks Statistics major mode transient.
       ]
      ]
     )
-  (define-key ess-mode-map (kbd "C-c C-M-m") #'transient/ess-mode))
+  (define-key ess-mode-map (kbd "C-c m") #'transient/ess-mode))
 #+end_src
 
 *** eww-mode transient
@@ -8388,7 +8420,7 @@ Emacs Web Wowser major mode transient.
       ]
      ]
     )
-  (define-key eww-mode-map (kbd "C-c C-M-m") #'transient/eww-mode))
+  (define-key eww-mode-map (kbd "C-c m") #'transient/eww-mode))
 #+end_src
 
 *** ibuffer-mode transient
@@ -8529,7 +8561,7 @@ Ibuffer major mode transient.
     ]
    ]
   )
-(define-key ibuffer-mode-map (kbd "C-c C-M-m") #'transient/ibuffer-mode)
+(define-key ibuffer-mode-map (kbd "C-c m") #'transient/ibuffer-mode)
 #+end_src
 
 *** markdown-mode transient
@@ -8581,8 +8613,8 @@ Markdown major mode transient.
         ]
        ]
       )
-    (define-key gfm-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)
-    (define-key markdown-mode-map (kbd "C-c C-M-m") #'transient/markdown-mode)))
+    (define-key gfm-mode-map (kbd "C-c m") #'transient/markdown-mode)
+    (define-key markdown-mode-map (kbd "C-c m") #'transient/markdown-mode)))
 #+end_src
 
 *** org-agenda-mode transient
@@ -8675,7 +8707,7 @@ Org-agenda major mode transient.
      ]
     )
 
-  (define-key org-agenda-mode-map (kbd "C-c C-M-m") #'transient/org-agenda-mode))
+  (define-key org-agenda-mode-map (kbd "C-c m") #'transient/org-agenda-mode))
 #+end_src
 
 *** org-mode transient
@@ -8794,7 +8826,7 @@ Org major mode transient.
          ]
         ]
        )
-     (define-key org-mode-map (kbd "C-c C-M-m") #'transient/org-mode))))
+     (define-key org-mode-map (kbd "C-c m") #'transient/org-mode))))
 #+end_src
 
 *** org-msg-edit-mode transient
@@ -8826,7 +8858,7 @@ effect when editing message buffers with ~org-msg-mode~ enabled.
       ]
      ]
     )
-  (define-key org-msg-edit-mode-map (kbd "C-c C-M-m") #'transient/org-msg-edit-mode))
+  (define-key org-msg-edit-mode-map (kbd "C-c m") #'transient/org-msg-edit-mode))
 #+end_src
 
 *** python-mode transient
@@ -8870,7 +8902,7 @@ Python major mode transient.
         ]
        ]
       )
-    (define-key python-mode-map (kbd "C-c C-M-m") #'transient/python-mode)))
+    (define-key python-mode-map (kbd "C-c m") #'transient/python-mode)))
 #+end_src
 
 *** racket-mode transient
@@ -8960,7 +8992,7 @@ and `racket-repl-documentation' otherwise."
      ]
     )
 
-  (define-key racket-mode-map (kbd "C-c C-M-m") #'transient/racket-mode))
+  (define-key racket-mode-map (kbd "C-c m") #'transient/racket-mode))
 #+end_src
 
 *** restclient-mode transient
@@ -9007,7 +9039,7 @@ REST client major mode transient.
       ]
      ]
     )
-  (define-key restclient-mode-map (kbd "C-c C-M-m") #'transient/restclient-mode))
+  (define-key restclient-mode-map (kbd "C-c m") #'transient/restclient-mode))
 #+end_src
 
 *** smerge-mode transient
@@ -9056,7 +9088,7 @@ from [[https://github.com/alphapapa/unpackaged.el#hydra][here]].
       ]
      ]
     )
-  (define-key smerge-mode-map (kbd "C-c C-M-m") #'transient/smerge-mode))
+  (define-key smerge-mode-map (kbd "C-c m") #'transient/smerge-mode))
 #+end_src
 
 *** term-mode transient
@@ -9084,8 +9116,8 @@ to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#S
       transient/term-mode--toggle-char-mode-line-mode :transient t)
      ]
     )
-  (define-key term-mode-map (kbd "C-c C-M-m") #'transient/term-mode)
-  (define-key term-raw-map (kbd "C-c C-M-m") #'transient/term-mode))
+  (define-key term-mode-map (kbd "C-c m") #'transient/term-mode)
+  (define-key term-raw-map (kbd "C-c m") #'transient/term-mode))
 #+end_src
 
 *** ztreedir-mode transient
@@ -9119,7 +9151,7 @@ Ztree directory major mode transient.
       ]
      ]
     )
-  (define-key ztreedir-mode-map (kbd "C-c C-M-m") #'transient/ztreedir-mode))
+  (define-key ztreedir-mode-map (kbd "C-c m") #'transient/ztreedir-mode))
 #+end_src
 
 *** ztreediff-mode transient
@@ -9158,12 +9190,12 @@ Ztree difference major mode transient.
       ]
      ]
     )
-  (define-key ztreediff-mode-map (kbd "C-c C-M-m") #'transient/ztreediff-mode))
+  (define-key ztreediff-mode-map (kbd "C-c m") #'transient/ztreediff-mode))
 #+end_src
 
 ** Minor mode transients
 
-Minor mode transients are bound to a binding /other/ than ~C-c C-M-m~
+Minor mode transients are bound to a binding /other/ than ~C-c m~
 (which is reserved for major mode transients). These typically have
 global bindings to allow toggling of the minor mode in buffers.
 
@@ -9173,7 +9205,7 @@ Flycheck minor mode transient.
 
 #+name: flycheck-mode-transient
 #+begin_src emacs-lisp
-;; add transient for Flycheck, bind to "C-c C-M-!"
+;; add transient for Flycheck
 (with-eval-after-load 'flycheck
   (defun transient/flycheck-mode--close-error-list ()
     "Close the Flycheck error list window if it is shown."
@@ -9210,7 +9242,7 @@ Flycheck minor mode transient.
       ]
      ]
     )
-  (global-set-key (kbd "C-c C-M-!") #'transient/flycheck-mode))
+  (global-set-key (kbd "C-c E") #'transient/flycheck-mode))
 #+end_src
 
 *** lsp-mode transient
@@ -9219,7 +9251,7 @@ LSP minor mode transient.
 
 #+name: lsp-mode-transient
 #+begin_src emacs-lisp
-;; add transient for lsp-mode, bind to "C-c C-M-l"
+;; add transient for lsp-mode
 (with-eval-after-load 'lsp-mode
   (with-eval-after-load 'dap-mode
     (with-eval-after-load 'avy
@@ -9327,7 +9359,7 @@ LSP minor mode transient.
           ]
          ]
         )
-      (global-set-key (kbd "C-c C-M-l") #'transient/lsp-mode))))
+      (global-set-key (kbd "C-c L") #'transient/lsp-mode))))
 #+end_src
 
 * Back matter

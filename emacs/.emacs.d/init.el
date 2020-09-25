@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Sep 21 11:45:56 2020
+;; Generated: Fri Sep 25 12:28:40 2020
 
 ;;; Commentary:
 
@@ -1212,7 +1212,7 @@ Assumes "
 
 (condition-case nil
     (require 'ol-notmuch)
-  (error (message "ol-notmuch requires Org 9.2.3+")))
+  (error (message "ol-notmuch is not installed or requires Org 9.2.3+")))
 
 ;; Non-programming files
 
@@ -2101,31 +2101,6 @@ Lisp function does not specify a special indentation."
               (goto-char (+ 2 (elt state 1)))
               (current-column)))
            (t $else)))))))
-
-;; Programming / Clojure
-
-;; basic support
-(use-package clojure-mode
-  :defer t
-  :hook ((clojure-mode . paredit-mode)
-         (clojure-mode . subword-mode)))
-
-;; Clojure IDE
-(use-package cider
-  :after clojure-mode
-  :hook ((cider-mode . eldoc-mode)
-         (cider-repl-mode . eldoc-mode)
-         (cider-repl-mode . paredit-mode))
-  :config (setq nrepl-log-messages t))
-
-;; clojure linting, requires clj-kondo be installed on the system
-(when (executable-find "clj-kondo")
-  (use-package flycheck-clj-kondo
-    :after (flycheck clojure-mode)
-    :config
-    (require 'flycheck-clj-kondo)
-    ;; start flycheck-mode
-    (add-hook 'clojure-mode-hook (lambda () (flycheck-mode 1)) t)))
 
 ;; Programming / fish shell scripts
 
@@ -3452,7 +3427,7 @@ whitespace, indenting and untabifying."
   )
 (global-set-key (kbd "C-c T") #'transient/shell)
 
-;; add symbol-overlay transient popup and bind to "C-M-;"
+;; add symbol-overlay transient popup and bind to "C-:"
 (with-eval-after-load 'symbol-overlay
   (transient-define-prefix transient/symbol-overlay ()
     "Symbol overlay commands"
@@ -3483,7 +3458,7 @@ whitespace, indenting and untabifying."
       ]
      ]
     )
-  (global-set-key (kbd "C-M-;") 'transient/symbol-overlay))
+  (global-set-key (kbd "C-:") 'transient/symbol-overlay))
 
 (defun transient/system--display-current-datetime ()
   "Display the current time in the minibuffer."
@@ -3967,123 +3942,6 @@ Currently only works for Emacs Mac port."
    (global-set-key (kbd "C-c Y") #'transient/yasnippet)))
 
 ;; Transient commands / Major mode transients
-
-;; major-mode specific transient for clojure-mode
-(with-eval-after-load 'clojure-mode
-  (with-eval-after-load 'cider
-    (transient-define-prefix transient/clojure-mode/eval ()
-      "`clojure-mode' CIDER evaluation commands."
-      ["CIDER → Run"
-       ["Eval"
-        ("r" "Region" cider-eval-region)
-        ("n" "Namespace form" cider-eval-ns-form)
-        ("e" "Last sexp" cider-eval-last-sexp)
-        ("P" "Last sexp (pprint)" cider-pprint-eval-last-sexp)
-        ("w" "Last sexp replace" cider-eval-last-sexp-and-replace)
-        ("E" "Last sexp to REPL" cider-eval-last-sexp-to-repl)
-        ("d" "Defun at point" cider-eval-defun-at-point)
-        ("f" "Defun at point (pprint)" cider-pprint-eval-defun-at-point)
-        (":" "Minibuffer input" cider-read-and-eval)
-        ]
-       ["Load"
-        ("k" "Buffer" cider-load-buffer)
-        ("l" "File" cider-load-file)
-        ("p" "All proj ns" cider-load-all-project-ns)
-        ]
-       ["Other"
-        ("i" "Inspect" cider-inspect)
-        ("m" "Macroexpand (single level)" cider-macroexpand-1)
-        ("M" "Macroexpand (all levels)" cider-macroexpand-all)
-        ]
-       ]
-      )
-
-    (transient-define-prefix transient/clojure-mode/test ()
-      "`clojure-mode' CIDER testing commands."
-      ["CIDER → Test"
-       ("t" "Run" cider-test-run-test)
-       ("l" "Run loaded" cider-test-run-loaded-tests)
-       ("p" "Run project" cider-test-run-project-tests)
-       ("n" "Run namespace" cider-test-run-ns-tests)
-       ("r" "Rerun failed" cider-test-rerun-failed-tests)
-       ("s" "Show report" cider-test-show-report)
-       ]
-      )
-
-    (transient-define-prefix transient/clojure-mode/help ()
-      "`clojure-mode' CIDER help/documentation commands."
-      ["CIDER → Help"
-       ("d" "CIDER docs" cider-doc)
-       ("c" "Clojure docs" cider-clojuredocs)
-       ("C" "Clojure docs (web)" cider-clojuredocs-web)
-       ("j" "Java docs (web)" cider-javadoc)
-       ("a" "Search symbols" cider-apropos)
-       ("s" "Select symbols" cider-apropos-select)
-       ("A" "Search docs" cider-apropos-documentation)
-       ("S" "Select docs" cider-apropos-documentation-select)
-       ]
-      )
-
-    (defun transient/clojure-mode/debug--eval-defun-at-point ()
-      "Debug version of `cider-eval-defun-at-point'."
-      (interactive)
-      (cider-eval-defun-at-point t))
-
-    (transient-define-prefix transient/clojure-mode/debug ()
-      "`clojure-mode' CIDER debug/documentation commands."
-      ["CIDER → Debug"
-       ("x" "Eval at point" transient/clojure-mode/debug--eval-defun-at-point)
-       ("v" "Toggle trace variable" cider-toggle-trace-var)
-       ("n" "Toggle trace namespace" cider-toggle-trace-ns)
-       ]
-      )
-
-    (defun transient/clojure-mode/repl--clear-output-all ()
-      "Clear all output in CIDER REPL buffer."
-      (interactive)
-      (cider-find-and-clear-repl-output t))
-
-    (transient-define-prefix transient/clojure-mode/repl ()
-      "`clojure-mode' CIDER REPL commands."
-      ["CIDER → REPL"
-       ["Input"
-        ("z" "Switch to buffer" cider-switch-to-repl-buffer)
-        ("n" "Set namespace" cider-repl-set-ns)
-        ("p" "Insert last sexp" cider-insert-last-sexp-in-repl)
-        ("x" "Refresh" cider-refresh)
-        ]
-       ["Output"
-        ("o" "Clear" cider-find-and-clear-repl-output)
-        ("O" "Clear all" transient/clojure-mode/repl--clear-output-all)
-        ]
-       [
-        "Other"
-        ("d" "Display conn info" cider-display-connection-info)
-        ("b" "Interrupt" cider-interrupt)
-        ("Q" "Quit CIDER" cider-quit)
-        ]
-       ]
-      )
-
-    (transient-define-prefix transient/clojure-mode ()
-      "`clojure-mode' CIDER commands."
-      ["CIDER"
-       ["Session"
-        ("jc" "Jack-in (Clojure)" cider-jack-in-clj)
-        ("js" "Jack-in (ClojureScript)" cider-jack-in-cljs)
-        ("jb" "Jack-in (Both)" cider-jack-in-clj&cljs)
-        ]
-       ["Submenus"
-        ("r" "→ REPL" transient/clojure-mode/repl)
-        ("e" "→ Run" transient/clojure-mode/eval)
-        ("t" "→ Test" transient/clojure-mode/test)
-        ("d" "→ Debug" transient/clojure-mode/debug)
-        ("h" "→ Help" transient/clojure-mode/help)
-        ]
-       ]
-      )
-
-    (define-key clojure-mode-map (kbd "C-c m") #'transient/clojure-mode)))
 
 ;; major-mode specific transient for csv-mode
 (with-eval-after-load 'csv-mode

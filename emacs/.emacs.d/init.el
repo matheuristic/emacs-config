@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Sep 25 12:28:40 2020
+;; Generated: Fri Sep 25 14:17:50 2020
 
 ;;; Commentary:
 
@@ -2005,6 +2005,13 @@ when buffer is clean, and more frequently when it has errors."
 ;; client for Debug Adaptor Protocol servers
 (use-package dap-mode
   :after lsp-mode)
+
+;; Programming / Bash and sh shell scripts
+
+;; automatically enable Flycheck mode when shellcheck is installed
+(when (executable-find "shellcheck")
+  (with-eval-after-load 'flycheck
+    (add-hook 'sh-mode-hook #'flycheck-mode)))
 
 ;; Programming / Emacs Lisp
 

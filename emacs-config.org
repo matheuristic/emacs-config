@@ -4270,6 +4270,21 @@ Add company-mode support for lsp-mode.
   :after lsp-mode)
 #+end_src
 
+** Bash and sh shell scripts
+
+*** ShellCheck shell script static analyzer
+
+[[https://github.com/koalaman/shellcheck][ShellCheck]] is a static analyzer for Bash and sh scripts. Flycheck has
+built-in support for it. It can be installed using MacPorts or Conda (with the binary symlinked in one of the ~$PATH~ directories).
+
+#+name: shellcheck
+#+begin_src emacs-lisp
+;; automatically enable Flycheck mode when shellcheck is installed
+(when (executable-find "shellcheck")
+  (with-eval-after-load 'flycheck
+    (add-hook 'sh-mode-hook #'flycheck-mode)))
+#+end_src
+
 ** Emacs Lisp
 
 *** el-patch                                                          :melpa:
@@ -9586,6 +9601,10 @@ The main configuration file.
 
 <<dap-mode>>
 
+;; Programming / Bash and sh shell scripts
+
+<<shellcheck>>
+
 ;; Programming / Emacs Lisp
 
 <<el-patch>>
@@ -9990,21 +10009,6 @@ References:
 - [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
 
 ** Programming
-
-*** Bash
-
-**** [#C] Static analysis using ShellCheck                         :external:
-
-Install via MacPorts.
-
-[[https://github.com/koalaman/shellcheck][GitHub - koalaman/shellcheck]]
-
-Flycheck has built-in support.
-
-MELPA has a package for Flymake support.
-Or can define using ~flymake-quickdef~.
-
-[[https://github.com/federicotdn/flymake-shellcheck][GitHub - federicotdn/flymake-shellcheck]]
 
 *** Emacs lisp
 

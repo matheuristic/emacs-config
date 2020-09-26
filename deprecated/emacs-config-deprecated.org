@@ -3859,6 +3859,13 @@ Add a toggle for ~typo-mode~ to writing hydra.
     ("t" typo-mode :exit nil)))
 #+end_src
 
+** Proselint integration with Flycheck                             :external:
+
+[[https://github.com/amperser/proselint][Proselint]] is a linter for English prose. Flycheck has built-in
+integration for this, so there's no additional configuration
+necessary. It can be installed using most package managers or via
+Conda (with the =proselint= binary symlinked to a ~$PATH~ directory).
+
 * Other
 
 ** Auth sources

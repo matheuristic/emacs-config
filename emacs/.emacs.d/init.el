@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Sep 25 14:17:50 2020
+;; Generated: Sat Sep 26 18:18:53 2020
 
 ;;; Commentary:
 
@@ -339,7 +339,9 @@ if the point is in the minibuffer."
 (use-package nswbuff
   :after projectile
   :bind (("<C-tab>" . nswbuff-switch-to-next-buffer)
-         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer))
+         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer)
+         ;; see https://emacs.stackexchange.com/questions/53461/specifying-a-binding-for-control-shift-tab
+         ("<C-S-iso-lefttab>" . nswbuff-switch-to-previous-buffer))
   :init
   (setq nswbuff-buffer-list-function #'nswbuff-projectile-buffer-list
         nswbuff-clear-delay 2
@@ -2566,9 +2568,19 @@ environment has Racket installed."
               synosaurus-backend 'synosaurus-backend-wordnet))
 
 ;; grammar checking functions using LanguageTool
+;; n-gram data, if any, should be in ~/languagetool/ngram-data/<lang>
 (use-package langtool
-  :init (setq langtool-default-language "en-US"
-              langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
+  :init
+  (setq langtool-default-language "en-US"
+        langtool-user-arguments (let ((ngram-data-dir
+                                       (file-name-as-directory
+                                        (expand-file-name
+                                         "~/languagetool/ngram-data/"))))
+                                  (if (file-directory-p ngram-data-dir)
+                                      '("--languagemodel" ngram-data-dir)
+                                    nil))
+        langtool-language-tool-jar (expand-file-name
+                                    "~/jars/languagetool-commandline.jar")))
 
 (use-package typo)
 
@@ -3899,7 +3911,7 @@ Currently only works for Emacs Mac port."
             ("tr" "Replace" synosaurus-choose-and-replace)
             ("ti" "Insert" synosaurus-choose-and-insert)
             ]
-           ["Grammar"
+           ["LanguageTool"
             ("gs" "Start check" langtool-check)
             ("gc" "Correct buffer" langtool-correct-buffer)
             ("ge" "End check" langtool-check-done)

@@ -930,7 +930,9 @@ between between those buffers associated with the current project.
 (use-package nswbuff
   :after projectile
   :bind (("<C-tab>" . nswbuff-switch-to-next-buffer)
-         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer))
+         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer)
+         ;; see https://emacs.stackexchange.com/questions/53461/specifying-a-binding-for-control-shift-tab
+         ("<C-S-iso-lefttab>" . nswbuff-switch-to-previous-buffer))
   :init
   (setq nswbuff-buffer-list-function #'nswbuff-projectile-buffer-list
         nswbuff-clear-delay 2
@@ -5943,9 +5945,11 @@ $ sudo port install wordnet
               synosaurus-backend 'synosaurus-backend-wordnet))
 #+end_src
 
-** LanguageTool for grammar checking
+** LanguageTool for grammar, style and spell checking
 
-[[https://languagetool.org/][LanguageTool]] ([[https://github.com/languagetool-org/languagetool][Github]]) provides a standalone open-source grammar checking tool that can be used on the command line or run as a HTTP server.
+[[https://languagetool.org/][LanguageTool]] ([[https://github.com/languagetool-org/languagetool][Github]]) provides a standalone open-source grammar, style
+and spell checking tool that can be used on the command line or run as
+a HTTP server.
 
 *** Installing LanguageTool                                        :external:
 
@@ -5973,19 +5977,52 @@ $ cd ~/jars
 $ ln -s ~/build/LanguageTool-4.9.1/languagetool-commandline.jar
 #+end_example
 
-*** LanguageTool basic Emacs configuration                            :melpa:
+*** Finding errors using an n-gram dataset (OPTIONAL)              :external:
 
-[[https://github.com/mhayashi1120/Emacs-langtool][langtool]] provides support for using LanguageTool in Emacs as a grammar checking backend.
+LanguageTool can make use of n-gram data sets to detect errors ([[https://dev.languagetool.org/finding-errors-using-n-gram-data][link]]).
+This requires an 8GB download and a fast SSD, along with specifying
+some additional arguments when LanguageTool is run.
 
-The configuration here is for using the command-line version of LanguageTool.
+1. Download the data set for the desired language from [[http://languagetool.org/download/ngram-data/][here]].
+2. Unzip the data set to its own directory named ~en~, ~de~, ~fr~, or
+   ~rs~ (depending on the language). Suppose that the path to the
+   directory is ~/path/to/dataset/en~ for the English dataset.
+3. Make sure the CLI command is called with the argument
+   ~--languagemodel /path/to/dataset~ (this is one directory up from
+   where the unzipped files are). For the server command, use the
+   ~--languageModel~ option instead.
+
+*** LanguageTool Emacs configuration                            :melpa:
+
+[[https://github.com/mhayashi1120/Emacs-langtool][langtool]] provides support for using LanguageTool in Emacs as a grammar
+checking backend.
+
+The configuration here uses the command-line version of LanguageTool.
 See the website for setting up the HTTP server version.
+
+N-gram data sets, if any, are assumed to be stored in the
+=~/languagetool/ngram-data/= index directory (for example, the English
+data set should be unzipped to =~/languagetool/ngram-data/en/=). If
+the index directory exists on the filesystem, the configuration calls
+LanguageTool using the ~--languagemodel~ option with the index
+directory to use available n-gram data sets.
 
 #+name: langtool
 #+begin_src emacs-lisp
 ;; grammar checking functions using LanguageTool
+;; n-gram data, if any, should be in ~/languagetool/ngram-data/<lang>
 (use-package langtool
-  :init (setq langtool-default-language "en-US"
-              langtool-language-tool-jar (expand-file-name "~/jars/languagetool-commandline.jar")))
+  :init
+  (setq langtool-default-language "en-US"
+        langtool-user-arguments (let ((ngram-data-dir
+                                       (file-name-as-directory
+                                        (expand-file-name
+                                         "~/languagetool/ngram-data/"))))
+                                  (if (file-directory-p ngram-data-dir)
+                                      '("--languagemodel" ngram-data-dir)
+                                    nil))
+        langtool-language-tool-jar (expand-file-name
+                                    "~/jars/languagetool-commandline.jar")))
 #+end_src
 
 ** typo.el for typographical editing                                  :melpa:
@@ -6009,13 +6046,6 @@ Enabling ~typo-global-mode~ does the following:
 #+begin_src emacs-lisp
 (use-package typo)
 #+end_src
-
-** Proselint integration with Flycheck                             :external:
-
-[[https://github.com/amperser/proselint][Proselint]] is a linter for English prose. Flycheck has built-in
-integration for this, so there's no additional configuration
-necessary. It can be installed using most package managers or via
-Conda (with the =proselint= binary symlinked to a ~$PATH~ directory).
 
 * Other
 
@@ -7857,7 +7887,7 @@ Transient for accessing writing-related commands.
             ("tr" "Replace" synosaurus-choose-and-replace)
             ("ti" "Insert" synosaurus-choose-and-insert)
             ]
-           ["Grammar"
+           ["LanguageTool"
             ("gs" "Start check" langtool-check)
             ("gc" "Correct buffer" langtool-correct-buffer)
             ("ge" "End check" langtool-check-done)
@@ -10035,6 +10065,21 @@ References:
 Might not be needed if mostly debugging using ~dap-mode~ with the
 ~ptvsd~ debugger.
 
+*** R
+
+**** [#B] Insert objects in ESS-R                                     :melpa:
+
+[[https://github.com/ShuguangSun/ess-r-insert-obj][ess-r-insert-obj]] provides utilities for inserting variable and column
+names or their values in ESS-R.
+
+**** [#B] Tidyverse-like viewing and manipulation of data in ESS-R    :melpa:
+
+[[https://github.com/ShuguangSun/ess-view-data][ess-view-data]] provides functionality for viewing and manipulation of
+data in ESS-R using [[https://www.tidyverse.org/][tidyverse]] packages as the backend. It makes a copy
+of the data to be viewed and calls the configured R backend packages
+to transform the data for viewing. The entrypoint for viewing the data
+is the ~ess-view-data-print~ function.
+
 *** Racket
 
 **** [#C] Racket support for Org-Mode Babel code blocks            :external:
@@ -10173,6 +10218,25 @@ packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://g
 
 ** Writing
 
+*** [#C] Binder for managing a writing project with multiple files    :melpa:
+
+[[https://github.com/rnkn/binder][Binder]] is a global minor mode that facilitates working on a writing
+project structured as multiple files, inspired by the binder feature
+in [[https://www.literatureandlatte.com/scrivener/][Scrivener]].
+
+#+name: binder
+#+begin_src emacs-lisp
+;; facilitate work on writing projects structured as multiple files
+(use-package binder)
+#+end_src
+
+TODO:
+- Switch active projects by modifying ~binder-project-directory~
+- Use ~.dir-locals.el~ to automatically set up binder when editing a
+  project file
+- May want to wait to see if the project implements ability to work on
+  concurrent active projects (like projectile)
+
 *** [#C] fountain-mode for screenwriting in Fountain markup           :melpa:
 
 [[https://github.com/rnkn/fountain-mode][Fountain Mode]] provides a major mode for editing [[https://fountain.io/][Fountain]] plain-text
@@ -10191,6 +10255,19 @@ overlays.
 *** [#C] org-trello for syncing between Org buffers and Trello boards
 
 [[https://github.com/org-trello/org-trello][GitHub - org-trello/org-trello: Org minor mode - 2-way sync org & trello]]
+
+*** [#B] Hyperbole                                                     :elpa:
+
+[[https://elpa.gnu.org/packages/hyperbole.html][Hyperbole]] is a hypertext management system that has 5 major components:
+- Buttons and smart keys.
+- Hyrolo, a contact and text finder.
+- Hycontrol, a window and frame controller.
+- Koutliner, an outliner with multi-level automatic numbering.
+- A programming library for integration with other parts of Emacs.
+
+References:
+- [[https://www.gnu.org/software/hyperbole/][GNU Hyperbole - The Everyday Hypertextual Information Manager]]
+- [[https://www.reddit.com/r/emacs/comments/izx5yb/gnu_hyperbole_713_the_antiviral_release_is_now/][GNU Hyperbole 7.1.3, the Antiviral Release, is now available on GNU ELPA : emacs]]
 
 * Local Variables                                                  :noexport:
 

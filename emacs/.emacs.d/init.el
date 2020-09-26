@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 26 18:18:53 2020
+;; Generated: Sat Sep 26 19:53:56 2020
 
 ;;; Commentary:
 
@@ -2577,7 +2577,7 @@ environment has Racket installed."
                                         (expand-file-name
                                          "~/languagetool/ngram-data/"))))
                                   (if (file-directory-p ngram-data-dir)
-                                      '("--languagemodel" ngram-data-dir)
+                                      `("--languagemodel" ,ngram-data-dir)
                                     nil))
         langtool-language-tool-jar (expand-file-name
                                     "~/jars/languagetool-commandline.jar")))

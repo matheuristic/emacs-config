@@ -6019,7 +6019,7 @@ directory to use available n-gram data sets.
                                         (expand-file-name
                                          "~/languagetool/ngram-data/"))))
                                   (if (file-directory-p ngram-data-dir)
-                                      '("--languagemodel" ngram-data-dir)
+                                      `("--languagemodel" ,ngram-data-dir)
                                     nil))
         langtool-language-tool-jar (expand-file-name
                                     "~/jars/languagetool-commandline.jar")))

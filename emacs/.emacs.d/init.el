@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 26 22:33:32 2020
+;; Generated: Sun Sep 27 09:33:33 2020
 
 ;;; Commentary:
 
@@ -2198,12 +2198,16 @@ Formatting a selected region only works on top-level objects."
   (insert "<- "))
 
 ;; bindings for the above R operator shortcuts
-(with-eval-after-load 'ess-mode
-  (define-key ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
-  (define-key ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
-(with-eval-after-load 'ess-inf
-  (define-key inferior-ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
-  (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
+(with-eval-after-load 'ess-r-mode
+  (define-key ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+  (define-key ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator)
+  (define-key inferior-ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+  (define-key inferior-ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
+
+(use-package ess-view-data
+  :after ess-r-mode
+  :bind (:map ess-r-mode-map
+         ("C-c v" . ess-view-data-print)))
 
 (use-package poly-R)
 
@@ -2611,6 +2615,9 @@ environment has Racket installed."
 
 ;; scroll a line at a time at window edge
 (setq scroll-conservatively 101)
+
+;; preserve cursor vertical window location when scrolling
+(setq scroll-preserve-screen-position 'always)
 
 ;; turn off audio and visual bells
 (setq ring-bell-function 'ignore)
@@ -4209,6 +4216,7 @@ Currently only works for Emacs Mac port."
 
 ;; major-mode specific transient for ess-mode
 (with-eval-after-load 'ess-mode
+  (require 'ess-view-data)
   (defun transient/ess-mode--new-session ()
     "Opens a new ESS session depending the current `ess-dialect'."
     (interactive)
@@ -4233,6 +4241,7 @@ Currently only works for Emacs Mac port."
      ["Workspace"
       ("D" "Change dir" ess-change-directory)
       ("d" "R dired" ess-rdired)
+      ("v" "View data" ess-view-data-print)
       ]
      ["Help"
       ("h" "Object" ess-display-help-on-object)

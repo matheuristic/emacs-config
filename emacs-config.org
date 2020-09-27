@@ -4782,12 +4782,27 @@ Of these, the forward pipe operator ~%>%~ is most common in usage.
   (insert "<- "))
 
 ;; bindings for the above R operator shortcuts
-(with-eval-after-load 'ess-mode
-  (define-key ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
-  (define-key ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
-(with-eval-after-load 'ess-inf
-  (define-key inferior-ess-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
-  (define-key inferior-ess-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
+(with-eval-after-load 'ess-r-mode
+  (define-key ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+  (define-key ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator)
+  (define-key inferior-ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+  (define-key inferior-ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
+#+end_src
+
+*** Support for viewing data using tidyverse tools in ESS-R           :melpa:
+
+[[https://github.com/ShuguangSun/ess-view-data][ess-view-data]] provides functionality for viewing and manipulation of
+data in ESS-R using [[https://www.tidyverse.org/][tidyverse]] packages as the backend. It makes a copy
+of the data to be viewed and calls the configured R backend packages
+to transform the data for viewing. The entrypoint for viewing the data
+is the ~ess-view-data-print~ function.
+
+#+name: ess-view-data
+#+begin_src emacs-lisp
+(use-package ess-view-data
+  :after ess-r-mode
+  :bind (:map ess-r-mode-map
+         ("C-c v" . ess-view-data-print)))
 #+end_src
 
 *** Better support for R Markdown and bookdown files                  :melpa:
@@ -6127,6 +6142,19 @@ or line at a time instead of recentering.
 #+begin_src emacs-lisp
 ;; scroll a line at a time at window edge
 (setq scroll-conservatively 101)
+#+end_src
+
+** Preserve cursor location
+
+By default, scrolling commands pull the cursor along at the edge.
+Setting ~scroll-preserve-screen-position~ to a non-nil symbol that is
+not ~t~ configures scrolling to always preserve the cursor location
+relative to the top and bottom window boundaries.
+
+#+name: scroll-preserve-screen-position
+#+begin_src emacs-lisp
+;; preserve cursor vertical window location when scrolling
+(setq scroll-preserve-screen-position 'always)
 #+end_src
 
 ** Silence audio and visual bells
@@ -8239,6 +8267,7 @@ Emacs Speaks Statistics major mode transient.
 #+begin_src emacs-lisp
 ;; major-mode specific transient for ess-mode
 (with-eval-after-load 'ess-mode
+  (require 'ess-view-data)
   (defun transient/ess-mode--new-session ()
     "Opens a new ESS session depending the current `ess-dialect'."
     (interactive)
@@ -8263,6 +8292,7 @@ Emacs Speaks Statistics major mode transient.
      ["Workspace"
       ("D" "Change dir" ess-change-directory)
       ("d" "R dired" ess-rdired)
+      ("v" "View data" ess-view-data-print)
       ]
      ["Help"
       ("h" "Object" ess-display-help-on-object)
@@ -9681,6 +9711,8 @@ The main configuration file.
 
 <<ess-pipe-operators>>
 
+<<ess-view-data>>
+
 <<poly-R>>
 
 ;; Programming / Racket
@@ -9792,6 +9824,8 @@ The main configuration file.
 <<scratch-buffer-initial-mode>>
 
 <<scroll-conservatively>>
+
+<<scroll-preserve-screen-position>>
 
 <<silence-audio-and-visual-bells>>
 
@@ -10089,14 +10123,6 @@ Might not be needed if mostly debugging using ~dap-mode~ with the
 
 [[https://github.com/ShuguangSun/ess-r-insert-obj][ess-r-insert-obj]] provides utilities for inserting variable and column
 names or their values in ESS-R.
-
-**** [#B] Tidyverse-like viewing and manipulation of data in ESS-R    :melpa:
-
-[[https://github.com/ShuguangSun/ess-view-data][ess-view-data]] provides functionality for viewing and manipulation of
-data in ESS-R using [[https://www.tidyverse.org/][tidyverse]] packages as the backend. It makes a copy
-of the data to be viewed and calls the configured R backend packages
-to transform the data for viewing. The entrypoint for viewing the data
-is the ~ess-view-data-print~ function.
 
 *** Racket
 

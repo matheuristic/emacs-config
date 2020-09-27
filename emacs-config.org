@@ -4802,7 +4802,11 @@ is the ~ess-view-data-print~ function.
 (use-package ess-view-data
   :after ess-r-mode
   :bind (:map ess-r-mode-map
-         ("C-c v" . ess-view-data-print)))
+         ("C-c v" . ess-view-data-print))
+  :init
+  ;; set update print backend to knitr::kable() due to csv-mode
+  ;; header-line errors when using the default print backend
+  (setq ess-view-data-current-update-print-backend 'kable))
 #+end_src
 
 *** Better support for R Markdown and bookdown files                  :melpa:

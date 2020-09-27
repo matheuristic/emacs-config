@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Sep 27 09:33:33 2020
+;; Generated: Sun Sep 27 13:48:38 2020
 
 ;;; Commentary:
 
@@ -2207,7 +2207,11 @@ Formatting a selected region only works on top-level objects."
 (use-package ess-view-data
   :after ess-r-mode
   :bind (:map ess-r-mode-map
-         ("C-c v" . ess-view-data-print)))
+         ("C-c v" . ess-view-data-print))
+  :init
+  ;; set update print backend to knitr::kable() due to csv-mode
+  ;; header-line errors when using the default print backend
+  (setq ess-view-data-current-update-print-backend 'kable))
 
 (use-package poly-R)
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 26 21:12:46 2020
+;; Generated: Sat Sep 26 22:33:32 2020
 
 ;;; Commentary:
 
@@ -2394,9 +2394,8 @@ environment has Racket installed."
 
 ;; Visual (part 2)
 
-;; provides toggleable modes that remove visual distractions
-(use-package darkroom
-  :config (setq darkroom-text-increase-scale 2))
+;; resize window margins for nicer writing environment
+(use-package olivetti)
 
 ;; color code by depth
 (use-package prism
@@ -3543,7 +3542,7 @@ whitespace, indenting and untabifying."
 (require 'whitespace)
 
 (require 'censor)
-(require 'darkroom)
+(require 'olivetti)
 (require 'highlight-indent-guides)
 (require 'hl-todo)
 (require 'prism)
@@ -3618,6 +3617,11 @@ Currently only works for Emacs Mac port."
          (mac-auto-operator-composition-mode))
         (t (message "Not implemented for this Emacs build."))))
 
+(defun transient/visual--text-scale-reset ()
+  "Resets buffer `text-scale-mode-amount' to zero."
+  (interactive)
+  (text-scale-set 0))
+
 ;; add transient popup for visual commands
 (transient-define-prefix transient/visual ()
   "Visual commands and toggles."
@@ -3629,26 +3633,16 @@ Currently only works for Emacs Mac port."
             "Highlight changes"
             highlight-changes-mode))
      highlight-changes-mode)
+    ("i" (lambda ()
+           (transient--make-description
+            "Indent guides"
+            highlight-indent-guides-mode))
+     highlight-indent-guides-mode)
     ("l" (lambda ()
            (transient--make-description
             "Line numbers"
             display-line-numbers-mode))
      display-line-numbers-mode)
-    ("m" (lambda ()
-           (transient--make-description
-            "Menu bar"
-            menu-bar-mode))
-     menu-bar-mode)
-    ("s" (lambda ()
-           (transient--make-description
-            "Vscroll bar"
-            (frame-parameter nil 'vertical-scroll-bars)))
-     toggle-scroll-bar)
-    ("S" (lambda ()
-           (transient--make-description
-            "Hscroll bar"
-            (frame-parameter nil 'horizontal-scroll-bars)))
-     toggle-horizontal-scroll-bar)
     ("t" (lambda ()
            (transient--make-description
             "Truncate lines"
@@ -3664,11 +3658,6 @@ Currently only works for Emacs Mac port."
             "Whitespace"
             whitespace-mode))
      whitespace-mode)
-    ("i" (lambda ()
-           (transient--make-description
-            "Indent guides"
-            highlight-indent-guides-mode))
-     highlight-indent-guides-mode)
     ("L" (lambda ()
            (transient--make-description
             "Hide long lines"
@@ -3703,7 +3692,7 @@ Currently only works for Emacs Mac port."
             symbol-overlay-mode))
      symbol-overlay-mode)
     ]
-   ["Toggle color"
+   ["Color"
     ("cf" (lambda ()
             (transient--make-description
              "Font locking"
@@ -3762,16 +3751,29 @@ Currently only works for Emacs Mac port."
                            "]"))
     ("+" "Increase" text-scale-increase)
     ("-" "Decrease" text-scale-decrease)
-    ("dm" (lambda ()
-            (transient--make-description
-             "Darkroom"
-             darkroom-mode))
-     darkroom-mode)
-    ("dt" (lambda ()
-            (transient--make-description
-             "Darkroom ttv"
-             darkroom-tentative-mode))
-     darkroom-tentative-mode)
+    ("0" "Reset" transient/visual--text-scale-reset)
+    ]
+   ["Layout"
+    ("m" (lambda ()
+           (transient--make-description
+            "Menu bar"
+            menu-bar-mode))
+     menu-bar-mode)
+    ("s" (lambda ()
+           (transient--make-description
+            "Vscroll bar"
+            (frame-parameter nil 'vertical-scroll-bars)))
+     toggle-scroll-bar)
+    ("S" (lambda ()
+           (transient--make-description
+            "Hscroll bar"
+            (frame-parameter nil 'horizontal-scroll-bars)))
+     toggle-horizontal-scroll-bar)
+    ("o" (lambda ()
+           (transient--make-description
+            "Olivetti"
+            olivetti-mode))
+     olivetti-mode)
     ]
    ["Other"
     ("v" (lambda ()
@@ -3780,7 +3782,9 @@ Currently only works for Emacs Mac port."
             visual-line-mode))
      visual-line-mode)
     ("F" (lambda ()
-           (transient--make-description "Follow" follow-mode))
+           (transient--make-description
+            "Follow"
+            follow-mode))
      follow-mode)
     ("x" (lambda ()
            (transient--make-description

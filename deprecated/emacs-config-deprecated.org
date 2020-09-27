@@ -3866,6 +3866,25 @@ integration for this, so there's no additional configuration
 necessary. It can be installed using most package managers or via
 Conda (with the =proselint= binary symlinked to a ~$PATH~ directory).
 
+** darkroom for workspaces without visual distractions                 :elpa:
+
+[[http://elpa.gnu.org/packages/darkroom.html][darkroom]] provides two minor modes ~darkroom-mode~ and
+~darkroom-tentative-mode~ that remove visual distractions.
+
+Turning on any of the modes removes the mode line, increases the text
+scale and increases the text margins.
+
+The difference between ~darkroom-tentative-mode~ and ~darkroom-mode~
+is that ~darkroom-tentative-mode~ only removes visual distractions if
+the Emacs frame contains only one window.
+
+#+name: darkroom
+#+begin_src emacs-lisp
+;; provides toggleable modes that remove visual distractions
+(use-package darkroom
+  :config (setq darkroom-text-increase-scale 2))
+#+end_src
+
 * Other
 
 ** Auth sources

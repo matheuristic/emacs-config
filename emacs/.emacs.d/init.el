@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Sep 26 19:53:56 2020
+;; Generated: Sat Sep 26 21:12:46 2020
 
 ;;; Commentary:
 
@@ -2772,6 +2772,10 @@ for more information."
       "--"
       ["Revert" tablist-revert :help "(tablist-revert)\n\nRevert the list with marks preserved, position kept."]
       ["Quit" tablist-quit :help "(tablist-quit)"])))
+
+;; add remote user paths to the TRAMP remote search paths
+(with-eval-after-load 'tramp-sh
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
 
 ;; OS-specific / macOS
 

@@ -6460,6 +6460,25 @@ major mode is the one opened by ~list-packages~.
       ["Quit" tablist-quit :help "(tablist-quit)"])))
 #+end_src
 
+** Reuse path settings of remote account when using TRAMP
+
+By default, the paths on the remote machine used by TRAMP for
+executables is limited to the default remote system paths. The remote
+user's paths (whatever ~$PATH~ is set to when a login shell is
+created, usually this is whatever the default is together with any
+modifications in the =~/.profile= file) are not included by default.
+
+The TRAMP remote search paths are specified in in the
+~tramp-remote-path~ variable. Adding the ~tramp-own-remote-path~
+symbol to this list makes TRAMP also searches the remote user's paths.
+
+#+name: tramp-remote-search-paths
+#+begin_src emacs-lisp
+;; add remote user paths to the TRAMP remote search paths
+(with-eval-after-load 'tramp-sh
+  (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+#+end_src
+
 * OS-specific
 
 ** macOS
@@ -9802,6 +9821,8 @@ The main configuration file.
 <<password-store>>
 
 <<tablist>>
+
+<<tramp-remote-search-paths>>
 
 ;; OS-specific / macOS
 

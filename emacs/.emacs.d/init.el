@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Sep 27 23:24:32 2020
+;; Generated: Sun Sep 27 23:51:50 2020
 
 ;;; Commentary:
 
@@ -1371,6 +1371,7 @@ Assumes "
       org-catch-invisible-edits 'show-and-error
       org-confirm-babel-evaluate nil ;; don't confirm before evaluating code blocks in Org documents
       org-cycle-separator-lines 2 ;; collapse single item separator lines when cycling
+      org-deadline-warning-days 3 ;; warn starting 3 days before deadline
       org-edit-src-content-indentation 2
       org-fontify-done-headline t
       org-fontify-quote-and-verse-blocks t

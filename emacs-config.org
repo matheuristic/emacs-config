@@ -6694,8 +6694,8 @@ systems. It uses the system ~launchctl~ executable under the hood. The
 
 #+name: mac-launchctl
 #+begin_src emacs-lisp
-;; when using emacs-mac port
-(when (eq window-system 'mac)
+;; manage launchd jobs on macOS systems
+(when (eq system-type 'darwin)
   (use-package launchctl
     :mode ("\\.plist\\'" . nxml-mode)
     :bind ("C-c x l" . launchctl)))

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Sep 27 23:16:42 2020
+;; Generated: Sun Sep 27 23:24:32 2020
 
 ;;; Commentary:
 
@@ -2871,8 +2871,8 @@ for more information."
 (when (eq window-system 'mac)
   (setq doc-view-resolution 300))
 
-;; when using emacs-mac port
-(when (eq window-system 'mac)
+;; manage launchd jobs on macOS systems
+(when (eq system-type 'darwin)
   (use-package launchctl
     :mode ("\\.plist\\'" . nxml-mode)
     :bind ("C-c x l" . launchctl)))

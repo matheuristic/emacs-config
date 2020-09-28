@@ -5889,6 +5889,22 @@ unrecognized words:
 one needs to be installed on system. An appropriate dictionary or
 dictionaries for the spell checker should also be installed.
 
+**** Choose spelling corrections using completing-read                :melpa:
+
+The default ~flyspell-correct-word-before-point~ command creates a
+popup designed for mouse interaction. [[https://github.com/d12frosted/flyspell-correct][flyspell-correct]] provides a
+wrapper function that filters the corrections through a
+~completing-read~ interface.
+
+#+name: flyspell-correct
+#+begin_src emacs-lisp
+;; wrapper to filter Flyspell corrections through `completing-read'
+(use-package flyspell-correct
+  :after flyspell
+  :bind (:map flyspell-mode-map
+         ("C-c $" . flyspell-correct-wrapper)))
+#+end_src
+
 *** Aspell command-line spell checker                              :external:
 
 [[http://aspell.net/][Aspell]] is a spell checker. There are a number of alternatives but
@@ -7912,6 +7928,7 @@ Transient for accessing writing-related commands.
   (with-eval-after-load 'synosaurus
     (with-eval-after-load 'langtool
       (with-eval-after-load 'typo
+        (require 'flyspell-correct)
         (transient-define-prefix transient/writing ()
           "Writing commands."
           ["Writing"
@@ -7923,7 +7940,7 @@ Transient for accessing writing-related commands.
              flyspell-mode :transient t)
             ("sb" "Check buffer" flyspell-buffer :transient t)
             ("sn" "Next error" flyspell-goto-next-error :transient t)
-            ("sc" "Correct word" flyspell-auto-correct-word :transient t)
+            ("sc" "Correct word" flyspell-correct-wrapper :transient t)
             ]
            ["Thesaurus"
             ("tm" (lambda ()
@@ -9810,6 +9827,8 @@ The main configuration file.
 <<org-capture-readitlater>>
 
 ;; Writing
+
+<<flyspell-correct>>
 
 <<dictionary>>
 

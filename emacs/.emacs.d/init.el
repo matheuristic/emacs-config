@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Sep 27 13:48:38 2020
+;; Generated: Sun Sep 27 22:28:23 2020
 
 ;;; Commentary:
 
@@ -2562,6 +2562,12 @@ environment has Racket installed."
 
 ;; Writing
 
+;; wrapper to filter Flyspell corrections through `completing-read'
+(use-package flyspell-correct
+  :after flyspell
+  :bind (:map flyspell-mode-map
+         ("C-c $" . flyspell-correct-wrapper)))
+
 ;; provides word lookups from a dictionary server
 ;; `dictionary-server' can be set to "localhost" to use a local
 ;; dictionary server like dictd or GNU Dico that implements RFC 2229
@@ -3907,6 +3913,7 @@ Currently only works for Emacs Mac port."
   (with-eval-after-load 'synosaurus
     (with-eval-after-load 'langtool
       (with-eval-after-load 'typo
+        (require 'flyspell-correct)
         (transient-define-prefix transient/writing ()
           "Writing commands."
           ["Writing"
@@ -3918,7 +3925,7 @@ Currently only works for Emacs Mac port."
              flyspell-mode :transient t)
             ("sb" "Check buffer" flyspell-buffer :transient t)
             ("sn" "Next error" flyspell-goto-next-error :transient t)
-            ("sc" "Correct word" flyspell-auto-correct-word :transient t)
+            ("sc" "Correct word" flyspell-correct-wrapper :transient t)
             ]
            ["Thesaurus"
             ("tm" (lambda ()

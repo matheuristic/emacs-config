@@ -1555,7 +1555,7 @@ Docker containers, images and volumes.
 #+begin_src emacs-lisp
 (when (executable-find "docker")
   (use-package docker
-    :bind ("C-c d d" . docker)))
+    :bind ("C-c x d" . docker)))
 #+end_src
 
 * Dired
@@ -6686,6 +6686,21 @@ scale images).
   (setq doc-view-resolution 300))
 #+end_src
 
+*** Manage launchd jobs                                               :melpa:
+
+[[https://github.com/pekingduck/launchctl-el][launchctl]] provides a major mode for managing launchd jobs on macOS
+systems. It uses the system ~launchctl~ executable under the hood. The
+~launchctl~ command opens the launchd management buffer.
+
+#+name: mac-launchctl
+#+begin_src emacs-lisp
+;; when using emacs-mac port
+(when (eq window-system 'mac)
+  (use-package launchctl
+    :mode ("\\.plist\\'" . nxml-mode)
+    :bind ("C-c x l" . launchctl)))
+#+end_src
+
 * Transient commands                                              :transient:
 
 Temporary bindings that are shown in a popup window.
@@ -6983,7 +6998,7 @@ Transient popup for launching Ediff commands.
     ]
    ]
   )
-(global-set-key (kbd "C-c d f") #'transient/ediff)
+(global-set-key (kbd "C-c d e") #'transient/ediff)
 #+end_src
 
 *** Frame transient
@@ -9896,6 +9911,8 @@ The main configuration file.
 
 <<mac-emacs-mac-doc-view-resolution>>
 
+<<mac-launchctl>>
+
 ;; Transient commands
 
 <<transient>>
@@ -10113,6 +10130,14 @@ References:
 - [[https://jao.io/blog/2020-02-11-simplicity.html][simplicity]]
 - [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
 
+*** [#C] flatbuffers-mode                                             :melpa:
+
+[[https://github.com/Asalle/flatbuffers-mode][GitHub - Asalle/flatbuffers-mode: Emacs mode for flatbuffers]]
+
+*** [#B] jinja2-mode                                                  :melpa:
+
+[[https://github.com/paradoxxxzero/jinja2-mode][GitHub - paradoxxxzero/jinja2-mode: Jinja2 mode for emacs]]
+
 ** Programming
 
 *** Emacs lisp
@@ -10199,6 +10224,8 @@ It uses Clojure and so requires [[https://leiningen.org/][Leiningen]] be install
 
 *Note*: Uses ~auto-complete~ which may conflict with ~company-mode~.
 
+*Update*: Currently has experimental support for ~company-mode~.
+
 ** Project interaction
 
 *** [#B] Forge for working with Git forges from Magit                 :melpa:
@@ -10242,6 +10269,14 @@ working on that project.
 
 References:
 - [[https://www.digitalocean.com/community/tutorials/how-to-manage-python-with-pyenv-and-direnv][How To Manage Python with Pyenv and Direnv | DigitalOcean]]
+
+*** [#C] Create LICENSE using the GitHub API                          :melpa:
+
+[[https://github.com/jcs-elpa/license-templates][GitHub - jcs-elpa/license-templates: Create LICENSE using GitHub API]]
+
+*** [#C] Emacs-IDE                                                    :melpa:
+
+[[https://eide.hjuvi.fr.eu.org/][Emacs-IDE]] provides IDE features for languages supported by Ctags.
 
 ** Reference management
 
@@ -10335,6 +10370,10 @@ overlays.
 References:
 - [[https://www.gnu.org/software/hyperbole/][GNU Hyperbole - The Everyday Hypertextual Information Manager]]
 - [[https://www.reddit.com/r/emacs/comments/izx5yb/gnu_hyperbole_713_the_antiviral_release_is_now/][GNU Hyperbole 7.1.3, the Antiviral Release, is now available on GNU ELPA : emacs]]
+
+*** [#C] Client tools for competitive programming sites               :melpa:
+
+[[https://github.com/conao3/oj.el][GitHub - conao3/oj.el: Competitive programming tools client for AtCoder, Codeforces]]
 
 * Local Variables                                                  :noexport:
 

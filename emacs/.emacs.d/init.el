@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Sep 27 22:28:23 2020
+;; Generated: Sun Sep 27 23:16:42 2020
 
 ;;; Commentary:
 
@@ -630,7 +630,7 @@ ARG is a prefix argument.  If nil, copy the current difference region."
 
 (when (executable-find "docker")
   (use-package docker
-    :bind ("C-c d d" . docker)))
+    :bind ("C-c x d" . docker)))
 
 ;; Dired
 
@@ -2871,6 +2871,12 @@ for more information."
 (when (eq window-system 'mac)
   (setq doc-view-resolution 300))
 
+;; when using emacs-mac port
+(when (eq window-system 'mac)
+  (use-package launchctl
+    :mode ("\\.plist\\'" . nxml-mode)
+    :bind ("C-c x l" . launchctl)))
+
 ;; Transient commands
 
 (use-package transient
@@ -3090,7 +3096,7 @@ whitespace, indenting and untabifying."
     ]
    ]
   )
-(global-set-key (kbd "C-c d f") #'transient/ediff)
+(global-set-key (kbd "C-c d e") #'transient/ediff)
 
 (defun transient/frame--previous-frame ()
   "Select previous frame."

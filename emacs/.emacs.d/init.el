@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Sep 29 09:29:12 2020
+;; Generated: Tue Sep 29 12:46:32 2020
 
 ;;; Commentary:
 
@@ -2244,11 +2244,12 @@ environment has Racket installed."
   (setq ejc-completion-system 'standard
         ejc-keymap-prefix (kbd "C-c s"))
   :config
+  ;; ejc-sql setup code
   (defun my-ejc-sql-minor-mode-setup ()
     "Setup code to run when `ejc-sql-minor-mode' is enabled.
 This enables things like ElDoc and autocompletion."
     (company-mode 1) ; use company-mode for autocompletion
-    (ejc-eldoc-setup))
+    (ejc-eldoc-setup)) ; set up Eldoc support
   (add-hook 'ejc-sql-minor-mode-hook #'my-ejc-sql-minor-mode-setup)
   ;; load connection definitions from a local file
   (let ((local-f (expand-file-name "ejc-sql-connections.el"
@@ -5147,6 +5148,71 @@ and `racket-repl-documentation' otherwise."
   (define-key ztreediff-mode-map (kbd "C-c m") #'transient/ztreediff-mode))
 
 ;; Transient commands / Minor mode transients
+
+;; add transient for ejc-sql
+(with-eval-after-load 'ejc-sql
+  ;; interactive versions of ejc-sql output customization functions
+  (defun transient/ejc-sql-mode--set-fetch-size (n)
+    "Interactive version of `ejc-set-fetch-size'."
+    (interactive "NEnter fetch size (num records to output): ")
+    (ejc-set-fetch-size n))
+  (defun transient/ejc-sql-mode--set-max-rows (n)
+    "Interactive version of `ejc-set-max-rows'."
+    (interactive "NEnter max rows (RecordSet num row limit): ")
+    (ejc-set-max-rows n))
+  (defun transient/ejc-sql-mode--set-column-width-limit (n)
+    "Interactive version of `ejc-set-column-width-limit'."
+    (interactive "NEnter column width limit: ")
+    (ejc-set-column-width-limit n))
+
+  (transient-define-prefix transient/ejc-sql-mode ()
+    "`ejc-sql-mode' commands."
+    ["ejc-sql"
+     ["Session"
+      ("c" "Connect" ejc-connect)
+      ("i" "Connect-i" ejc-connect-interactive)
+      ("C-l" "Log" ejc-open-log)
+      ("q" "Quit" ejc-quit-connection)
+      ]
+     ["Show"
+      ("M-," "Prev result" ejc-show-prev-result :transient t)
+      ("<up>" "Result buffer" ejc-show-last-result)
+      ("t" "Tables list" ejc-show-tables-list)
+      ("v" "Views list" ejc-show-views-list)
+      ("p" "Procedures list" ejc-show-procedures-list)
+      ("T" "User types list" ejc-show-user-types-list)
+      ("C" "Constraints list" ejc-show-constraints-list)
+      ]
+     ["Format"
+      ("f" "Pprint" ejc-format-sql-at-point)
+      ("F" "Pprint region" ejc-format-sql-region)
+      ("s" "Strip SQL" ejc-strinp-sql-at-point)
+      ("S" "Dress SQL" ejc-dress-sql-at-point)
+      ]
+     ["Other"
+      ("b" "Temp buffer" ejc-get-temp-editor-buffer)
+      ("of" "Fetch size" transient/ejc-sql-mode--set-fetch-size)
+      ("or" "Max rows" transient/ejc-sql-mode--set-max-rows)
+      ("oc" "Col width" transient/ejc-sql-mode--set-column-width-limit)
+      ]
+     ]
+    [
+     ["Navigate"
+      ("M-b" "Previous" ejc-previous-sql :transient t)
+      ("M-f" "Next" ejc-next-sql :transient t)
+      ]
+     ["Run"
+      ("C-c" "Statement" ejc-eval-user-sql-at-point)
+      ("C-r" "Region" ejc-eval-user-sql-region)
+      ]
+     ["Describe"
+      ("ht" "Describe table" ejc-describe-table)
+      ("hd" "Describe entity" ejc-describe-entity)
+      ("hs" "Database structure" ejc-direx:pop-to-buffer)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c q") #'transient/ejc-sql-mode))
 
 ;; add transient for Flycheck
 (with-eval-after-load 'flycheck

@@ -994,6 +994,34 @@ Dired → Filter (_q_: ←)"
   ("/" my-hydra/dired-mode/filter/body "→ Filter" :exit t))
 #+end_src
 
+** Have recentf also track dired buffers
+
+Have recentf track dired buffers as well. From [[https://www.emacswiki.org/emacs/RecentFiles#toc21][here]].
+
+Alternative is [[https://github.com/Vifon/dired-recent.el][dired-recent]].
+
+#+name: recentf-track-dired-buffers
+#+begin_src emacs-lisp
+;; have recentf track dired buffers as well
+;; from https://www.emacswiki.org/emacs/RecentFiles#toc21
+
+(defun recentd-track-opened-file ()
+  "Insert the name of the directory just opened into the recent list."
+  (and (derived-mode-p 'dired-mode) default-directory
+       (recentf-add-file default-directory))
+  ;; Must return nil because it is run from `write-file-functions'.
+  nil)
+
+(defun recentd-track-closed-file ()
+  "Update the recent list when a dired buffer is killed.
+That is, remove a non kept dired from the recent list."
+  (and (derived-mode-p 'dired-mode) default-directory
+       (recentf-remove-if-non-kept default-directory)))
+
+(add-hook 'dired-after-readin-hook 'recentd-track-opened-file)
+(add-hook 'kill-buffer-hook 'recentd-track-closed-file)
+#+end_src
+
 * Editing text
 
 ** Keyboard macros hydra                                              :hydra:
@@ -2528,9 +2556,9 @@ integration with Flycheck.
     (add-hook 'clojure-mode-hook (lambda () (flycheck-mode 1)) t)))
 #+end_src
 
-*** Flymake-related
+** Clojure (old)
 
-**** Clojure linting using clj-kondo with Flymake                  :external:
+*** Clojure linting using clj-kondo with Flymake                   :external:
 
 Add a Flymake backend for [[https://github.com/borkdude/clj-kondo][clj-kondo]], a linter for Clojure code.
 Enable this backend automatically when editing Clojure buffers.
@@ -2570,11 +2598,9 @@ Enable this backend automatically when editing Clojure buffers.
       (add-hook 'clojure-mode-hook 'flymake-mode))))
 #+end_src
 
-*** Hydra-related
+*** CIDER for a more complete Clojure development environment
 
-**** CIDER for a more complete Clojure development environment
-
-***** CIDER hydra                                                     :hydra:
+**** CIDER hydra                                                      :hydra:
 
 Mode-specific Hydra for accessing CIDER in ~clojure-mode~.
 
@@ -2936,6 +2962,42 @@ Racket Mode (_q_: quit)"
 ;; bindings for racket-mode hydra
 (with-eval-after-load 'racket-mode
   (define-key racket-mode-map (kbd "C-c C-M-m") #'my-hydra/racket-mode/body))
+#+end_src
+
+** SQL
+
+*** ejc-sql to query databases using Clojure JDBC connections :external:melpa:
+
+[[https://github.com/kostafey/ejc-sql][ejc-sql]] is a SQL client that uses Clojure JDBC connections to connect
+to databases.
+
+It uses Clojure and so requires [[https://leiningen.org/][Leiningen]] be installed.
+
+Note that support for ~company-mode~ is currently experimental.
+
+The appropriate JDBC drivers may need to be installed using Maven. For
+more information, see the package website.
+
+#+name: ejc-sql
+#+begin_src emacs-lisp
+;; database SQL client using Clojure JDBC
+(use-package ejc-sql
+  :commands (ejc-connect ejc-connect-existing-repl ejc-sql-mode)
+  :init
+  ;; use `completing-read' for minibuffer completion
+  (setq ejc-completion-system 'standard)
+  :config
+  (defun my-ejc-sql-minor-mode-setup ()
+    "Setup code to run when `ejc-sql-minor-mode' is enabled.
+This enables things like ElDoc and autocompletion."
+    (company-mode 1) ; use company-mode for autocompletion
+    (ejc-eldoc-setup))
+  (add-hook 'ejc-sql-minor-mode-hook #'my-ejc-sql-minor-mode-setup)
+  ;; load connection definitions from a local file
+  (let ((local-f (expand-file-name "ejc-sql-connections.el"
+                                   user-emacs-directory)))
+    (when (file-exists-p local-f)
+      (load-file local-f))))
 #+end_src
 
 * Project interaction

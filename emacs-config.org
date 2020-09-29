@@ -1601,34 +1601,6 @@ This opens the file using the preferred application by filetype."
   (define-key dired-mode-map (kbd "z") #'dired--open-file-at-pt))
 #+end_src
 
-** Have recentf also track dired buffers
-
-Have recentf track dired buffers as well. From [[https://www.emacswiki.org/emacs/RecentFiles#toc21][here]].
-
-Alternative is [[https://github.com/Vifon/dired-recent.el][dired-recent]].
-
-#+name: recentf-track-dired-buffers
-#+begin_src emacs-lisp
-;; have recentf track dired buffers as well
-;; from https://www.emacswiki.org/emacs/RecentFiles#toc21
-
-(defun recentd-track-opened-file ()
-  "Insert the name of the directory just opened into the recent list."
-  (and (derived-mode-p 'dired-mode) default-directory
-       (recentf-add-file default-directory))
-  ;; Must return nil because it is run from `write-file-functions'.
-  nil)
-
-(defun recentd-track-closed-file ()
-  "Update the recent list when a dired buffer is killed.
-That is, remove a non kept dired from the recent list."
-  (and (derived-mode-p 'dired-mode) default-directory
-       (recentf-remove-if-non-kept default-directory)))
-
-(add-hook 'dired-after-readin-hook 'recentd-track-opened-file)
-(add-hook 'kill-buffer-hook 'recentd-track-closed-file)
-#+end_src
-
 ** dired-filter extension to add Ibuffer-like filters to Dired        :melpa:
 
 ~dired-filter~ from the [[https://github.com/Fuco1/dired-hacks][dired-hacks]] collection adds filtering capability like that of [[Advanced buffer management with Ibuffer][Ibuffer]] to Dired.
@@ -9556,8 +9528,6 @@ The main configuration file.
 
 <<dired-open-file-at-pt>>
 
-<<recentf-track-dired-buffers>>
-
 <<dired-filter>>
 
 <<all-the-icons-dired>>
@@ -10207,25 +10177,27 @@ See [[https://github.com/stan-dev/stan-mode#configuration][link]] for an example
 
 *** SQL
 
-**** WAIT [#B] ejc-sql database client using Clojure JDBC connections :external:melpa:
-:LOGBOOK:
-- State "WAIT"       from              [2020-06-07 Sun 16:24] \\
-  Currently uses ~auto-complete-mode~ for completion.
-  Wait until ~company-mode~ is supported.
-  See https://github.com/kostafey/ejc-sql/issues/67
-  For now, can use something like [[http://squirrel-sql.sourceforge.net/][SQuirreL SQL]] or [[https://www.knime.com/][KNIME]].
-:END:
+**** [#C] Better ODBC support in sqli-mode                         :external:
 
-[[https://github.com/kostafey/ejc-sql][ejc-sql]] is a SQL client that uses Clojure JDBC connections to connect
-to databases.
+[[https://github.com/sebasmonia/sqlcmdline][sqlcmdline]] provides a replacement for [[https://docs.microsoft.com/en-us/sql/tools/sqlcmd-utility][sqlcmd]] that works better with
+~sql-mode~ in Emacs. Useful for querying databases via ODBC.
 
-It uses Clojure and so requires [[https://leiningen.org/][Leiningen]] be installed.
+sqlcmdline requires Python 3.6+ along with the ~docopt~ and ~pyodbc~
+Python packages. It is easiest to create a bundle using PyInstaller.
 
-[[https://github.com/kostafey/ejc-sql][GitHub - kostafey/ejc-sql: Emacs SQL client uses Clojure JDBC.]]
+#+begin_example
+conda create -n sqlcmdline
+conda activate sqlcmdline
+conda install docopt pyodbc pyinstaller
+cd ~/packages
+git clone https://github.com/sebasmonia/sqlcmdline.git
+cd sqlcmdline
+pyinstaller sqlcmdline.py
+conda deactivate
+#+end_example
 
-*Note*: Uses ~auto-complete~ which may conflict with ~company-mode~.
-
-*Update*: Currently has experimental support for ~company-mode~.
+Using the above, ~sqlcmdline~ can be run by calling the
+~$HOME/packages/sqlcmdline/dist/sqlcmdline/sqlcmdline~ binary.
 
 ** Project interaction
 

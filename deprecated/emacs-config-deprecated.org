@@ -2092,6 +2092,31 @@ Other       _gr_  : reload       _gd_  : go to date   _._   : go to today
   (define-key org-agenda-mode-map (kbd "C-c C-M-m") #'my-hydra/org-agenda-mode/body))
 #+end_src
 
+** org-noter for document annotation                                  :melpa:
+
+[[https://github.com/weirdNox/org-noter][Org-noter]] allows the creation of external synchronized notes for
+documents viewed using [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]] or [[https://depp.brause.cc/nov.el/][Nov.el]].
+
+Use ~C-c N~ or ~M-x org-noter~ while in an Org document or when
+viewing a document in the above tools to annotate.
+
+When annotating in the split-screen mode:
+- ~i~ inserts a note approximately (document buffer-only).
+- ~M-i~ inserts a precise note (document buffer-only).
+- ~q~ exits the annotation session (document buffer-only).
+- ~M-n~ goes to the next page.
+- ~M-p~ goes to the previous page.
+- ~C-M-n~ goes to the next note.
+- ~C-M-p~ goes to the previous note.
+
+#+name: org-noter
+#+begin_src emacs-lisp
+;; create sychronized external notes in DocView and Nov.el
+(use-package org-noter
+  :bind ("C-c N" . org-noter)
+  :init (setq org-noter-always-create-frame nil))
+#+end_src
+
 * Programming
 
 ** Flymake syntax checker

@@ -775,7 +775,7 @@ opened files.
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
 ;; binding for recentf
-(global-set-key (kbd "C-c R") #'recentf-open-files)
+(global-set-key (kbd "C-c f") #'recentf-open-files)
 #+end_src
 
 ** Save location in file
@@ -2475,7 +2475,7 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
 (when (executable-find "notmuch")
   (use-package notmuch
     :ensure nil ;; in site-lisp directory
-    :bind (("C-c M" . notmuch)
+    :bind (("C-c n" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
            :map notmuch-search-mode-map
@@ -3837,31 +3837,6 @@ header star replacements are configured.
   :init (setq org-superstar-headline-bullets-list '("◉" "◇" "○" "▷")
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
-#+end_src
-
-** org-noter for document annotation                                  :melpa:
-
-[[https://github.com/weirdNox/org-noter][Org-noter]] allows the creation of external synchronized notes for
-documents viewed using [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Document-View.html][DocView]], [[https://github.com/politza/pdf-tools][PDF Tools]] or [[https://depp.brause.cc/nov.el/][Nov.el]].
-
-Use ~C-c N~ or ~M-x org-noter~ while in an Org document or when
-viewing a document in the above tools to annotate.
-
-When annotating in the split-screen mode:
-- ~i~ inserts a note approximately (document buffer-only).
-- ~M-i~ inserts a precise note (document buffer-only).
-- ~q~ exits the annotation session (document buffer-only).
-- ~M-n~ goes to the next page.
-- ~M-p~ goes to the previous page.
-- ~C-M-n~ goes to the next note.
-- ~C-M-p~ goes to the previous note.
-
-#+name: org-noter
-#+begin_src emacs-lisp
-;; create sychronized external notes in DocView and Nov.el
-(use-package org-noter
-  :bind ("C-c N" . org-noter)
-  :init (setq org-noter-always-create-frame nil))
 #+end_src
 
 ** org-super-agenda                                                   :melpa:
@@ -5281,7 +5256,7 @@ $ ln -s ~/build/notdeft ~/.emacs.d/site-lisp
                                         (locate-library "notdeft"))
                                        "xapian/notdeft-xapian"))
   ;; binding to access Notdeft
-  (global-set-key (kbd "C-c n") #'notdeft))
+  (global-set-key (kbd "C-c N") #'notdeft))
 #+end_src
 
 ** Imenu
@@ -5330,6 +5305,21 @@ and automatically closes the imenu-list.
             (lambda () (pulse-momentary-highlight-one-line (point))))
   ;; close imenu list after going to entry
   (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
+#+end_src
+
+** Automatically fold characters in Isearch
+
+Configure Isearch to automatically fold characters when searching, for
+instance when searching for a quote ~"~ the search will also match
+round quotes ~“~ and ~”~, or the left- and right-pointing double angle
+quotation marks ~«~ and ~»~.
+
+References:
+- [[https://endlessparentheses.com/new-in-emacs-25-1-easily-search-non-ascii-characters.html][New in Emacs 25.1: Easily search for non-ASCII characters · Endless Parentheses]]
+
+#+begin_src emacs-lisp
+;; fold characters when searching with Isearch
+(setq search-default-mode #'char-fold-to-regexp)
 #+end_src
 
 * Visual
@@ -5689,13 +5679,15 @@ Use when editing Python files by default.
                                 (highlight-indent-guides-mode 1))))
 #+end_src
 
-** Pulse line on when window focus changes
+** Pulse line on window focus changes or after popping the mark ring
 
 Advise ~select-window~ to pulse the line after selecting a new window.
 This helps to locate the position of the cursor, particularly when the
 cursor type is set to ~bar~.
 
-#+name: advise-select-window-after-pulse-line
+Also pulse the line after popping ~mark-ring~ or ~global-mark-ring~.
+
+#+name: pulse-line-after-focus-change-or-pop-mark-ring
 #+begin_src emacs-lisp
 ;; pulse line after changing focused window using `ace-window'
 (with-eval-after-load 'ace-window
@@ -5703,6 +5695,10 @@ cursor type is set to ~bar~.
 
 ;; also pulse line when Emacs regains focus
 (add-hook 'focus-in-hook #'my-pulse-line)
+
+;; as well as pulsing the line when popping the mark ring
+(advice-add 'pop-to-mark-command :after #'my-pulse-line)
+(advice-add 'pop-global-mark :after #'my-pulse-line)
 #+end_src
 
 ** Hide lines that are too long                                    :external:
@@ -6583,6 +6579,19 @@ symbol to this list makes TRAMP also searches the remote user's paths.
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
 #+end_src
 
+** Repeatable mark popping
+
+Setting ~set-mark-command-repeat-pop~ to through allows popping of the
+mark multiple times by repeating ~C-SPC~ after having run ~C-u C-SPC~
+(i.e. ~C-u C-SPC ... C-SPC~) instead of having to retype ~C-u C-SPC~
+(i.e. ~C-u C-SPC C-u C-SPC ... C-u C-SPC~).
+
+#+name: set-mark-command-repeat-pop
+#+begin_src emacs-lisp
+;; repeating "C-SPC" after popping mark with "C-u C-SPC" pops it again
+(setq set-mark-command-repeat-pop t)
+#+end_src
+
 * OS-specific
 
 ** macOS
@@ -7241,12 +7250,8 @@ Transient for manipulating and managing marks and markers.
   ["Marks/Markers"
    ["Mark"
     ("SPC" "Push" transient/marks-and-markers--push-mark)
-    ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
-    (")" "Sexp" mark-sexp :transient t)
-    ("}" "Paragraph" mark-paragraph :transient t)
-    ("]" "Defun" mark-defun :transient t)
-    ("b" "Buffer" mark-whole-buffer :transient t)
-    ("x" "Exchange with point" exchange-point-and-mark :transient t)
+    ("RET" "Pop" transient/marks-and-markers--pop-mark :transient t)
+    ("DEL" "Pop global" pop-global-mark :transient t)
     ]
    ["Marker"
     ("." "Push" transient/marks-and-markers--push-marker)
@@ -7256,7 +7261,7 @@ Transient for manipulating and managing marks and markers.
     ]
    ]
   )
-(global-set-key (kbd "C-c j") #'transient/marks-and-markers)
+(global-set-key (kbd "C-c M") #'transient/marks-and-markers)
 #+end_src
 
 *** Org launcher transient
@@ -7446,7 +7451,7 @@ Transient for easier access to [[https://www.gnu.org/software/emacs/manual/html_
     ]
    ]
   )
-(global-set-key (kbd "C-c J") #'transient/registers)
+(global-set-key (kbd "C-c R") #'transient/registers)
 #+end_src
 
 *** Search transient
@@ -9935,8 +9940,6 @@ The main configuration file.
 
 <<org-superstar>>
 
-<<org-noter>>
-
 <<org-super-agenda>>
 
 <<org-protocol>>
@@ -10089,7 +10092,7 @@ The main configuration file.
 
 <<highlight-indent-guides>>
 
-<<advise-select-window-after-pulse-line>>
+<<pulse-line-after-focus-change-or-pop-mark-ring>>
 
 <<too-long-lines-mode>>
 
@@ -10160,6 +10163,8 @@ The main configuration file.
 <<tablist>>
 
 <<tramp-remote-search-paths>>
+
+<<set-mark-command-repeat-pop>>
 
 ;; OS-specific / macOS
 

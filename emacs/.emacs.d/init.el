@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Sep 30 13:28:10 2020
+;; Generated: Wed Sep 30 19:08:55 2020
 
 ;;; Commentary:
 
@@ -257,7 +257,7 @@ if the point is in the minibuffer."
                 (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
 
 ;; binding for recentf
-(global-set-key (kbd "C-c R") #'recentf-open-files)
+(global-set-key (kbd "C-c f") #'recentf-open-files)
 
 (save-place-mode 1)
 
@@ -903,7 +903,7 @@ With arg N, insert N newlines."
 (when (executable-find "notmuch")
   (use-package notmuch
     :ensure nil ;; in site-lisp directory
-    :bind (("C-c M" . notmuch)
+    :bind (("C-c n" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
            :map notmuch-search-mode-map
@@ -1839,11 +1839,6 @@ call `open-line' on the very first character."
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 
-;; create sychronized external notes in DocView and Nov.el
-(use-package org-noter
-  :bind ("C-c N" . org-noter)
-  :init (setq org-noter-always-create-frame nil))
-
 (use-package org-super-agenda
   :config
   (setq org-super-agenda-groups '((:name "Up next"
@@ -2406,7 +2401,7 @@ This enables things like ElDoc and autocompletion."
                                         (locate-library "notdeft"))
                                        "xapian/notdeft-xapian"))
   ;; binding to access Notdeft
-  (global-set-key (kbd "C-c n") #'notdeft))
+  (global-set-key (kbd "C-c N") #'notdeft))
 
 (setq imenu-auto-rescan t)
 
@@ -2513,6 +2508,10 @@ This enables things like ElDoc and autocompletion."
 
 ;; also pulse line when Emacs regains focus
 (add-hook 'focus-in-hook #'my-pulse-line)
+
+;; as well as pulsing the line when popping the mark ring
+(advice-add 'pop-to-mark-command :after #'my-pulse-line)
+(advice-add 'pop-global-mark :after #'my-pulse-line)
 
 (require 'too-long-lines-mode)
 (too-long-lines-mode 1)
@@ -2821,6 +2820,9 @@ for more information."
 ;; add remote user paths to the TRAMP remote search paths
 (with-eval-after-load 'tramp-sh
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
+
+;; repeating "C-SPC" after popping mark with "C-u C-SPC" pops it again
+(setq set-mark-command-repeat-pop t)
 
 ;; OS-specific / macOS
 
@@ -3275,12 +3277,8 @@ whitespace, indenting and untabifying."
   ["Marks/Markers"
    ["Mark"
     ("SPC" "Push" transient/marks-and-markers--push-mark)
-    ("S-SPC" "Pop" transient/marks-and-markers--pop-mark)
-    (")" "Sexp" mark-sexp :transient t)
-    ("}" "Paragraph" mark-paragraph :transient t)
-    ("]" "Defun" mark-defun :transient t)
-    ("b" "Buffer" mark-whole-buffer :transient t)
-    ("x" "Exchange with point" exchange-point-and-mark :transient t)
+    ("RET" "Pop" transient/marks-and-markers--pop-mark :transient t)
+    ("DEL" "Pop global" pop-global-mark :transient t)
     ]
    ["Marker"
     ("." "Push" transient/marks-and-markers--push-marker)
@@ -3290,7 +3288,7 @@ whitespace, indenting and untabifying."
     ]
    ]
   )
-(global-set-key (kbd "C-c j") #'transient/marks-and-markers)
+(global-set-key (kbd "C-c M") #'transient/marks-and-markers)
 
 ;; add transient for accessing Org entry points
 (with-eval-after-load 'org
@@ -3445,7 +3443,7 @@ whitespace, indenting and untabifying."
     ]
    ]
   )
-(global-set-key (kbd "C-c J") #'transient/registers)
+(global-set-key (kbd "C-c R") #'transient/registers)
 
 ;; add transient popup for search tools
 (defun transient/search--rg-menu-or-rgrep ()

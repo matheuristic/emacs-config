@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Sep 29 12:46:32 2020
+;; Generated: Wed Sep 30 13:28:10 2020
 
 ;;; Commentary:
 
@@ -3197,12 +3197,12 @@ whitespace, indenting and untabifying."
 ;; add transient for keyboard macros
 (with-eval-after-load 'elmacro
   (transient-define-prefix transient/keyboard-macros ()
-    "Keyboard macro commands."
+    "Keyboard macro commands. Tries to adhere to \"C-x C-k\" bindings."
     ["Keyboard Macros"
      ["Actions"
-      ("(" "Start" kmacro-start-macro) ; also "C-x ("
-      (")" "Call last" kmacro-end-or-call-macro) ; also "C-x )"
-      ("r" "Call last on region" apply-macro-to-region-lines)
+      ("C-s" "Start" kmacro-start-macro)           ; also "C-x ("
+      ("C-k" "Call last" kmacro-end-or-call-macro) ; also "C-x )"
+      ("C-r" "Call last on region" apply-macro-to-region-lines)
       ]
      ["Ring"
       ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)

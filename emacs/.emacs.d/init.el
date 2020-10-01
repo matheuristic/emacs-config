@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Sep 30 19:08:55 2020
+;; Generated: Wed Sep 30 22:56:29 2020
 
 ;;; Commentary:
 
@@ -265,13 +265,16 @@ if the point is in the minibuffer."
 ;; don't persist kill-ring if in the habit of copy-pasting passwords
 (setq history-delete-duplicates t
       history-length 100
+      ;; if `desktop-save-mode' is enabled, it saves `register-alist'
+      ;; and `search-ring' by default so it is unnecessary to add
+      ;; those to `savehist-additional-variables'
       savehist-additional-variables '(Info-history-list
                                       ;; kill-ring
                                       kmacro-ring
                                       regexp-search-ring
-                                      register-alist
+                                      ;; register-alist
                                       last-kbd-macro
-                                      search-ring
+                                      ;; search-ring
                                       shell-command-history))
 
 ;; enable save history mode
@@ -2824,6 +2827,15 @@ for more information."
 ;; repeating "C-SPC" after popping mark with "C-u C-SPC" pops it again
 (setq set-mark-command-repeat-pop t)
 
+(defun my-clear-register (register)
+  "Clear the contents in register REGISTER."
+  (interactive (list (register-read-with-preview "Clear register: ")))
+  (set-register register nil)
+  (message "Cleared register %c" register))
+
+;; global binding for clearing a register's contents
+(global-set-key (kbd "C-x r DEL") #'my-clear-register)
+
 ;; OS-specific / macOS
 
 ;; on macOS, use Option keys as Meta and file polling for auto-revert
@@ -3437,7 +3449,8 @@ whitespace, indenting and untabifying."
     ("p" "Prepend region" prepend-to-register)
     ("r" "Copy rectangle" copy-rectangle-to-register)
     ]
-   [("i" "Insert" insert-register)
+   [("DEL" "Clear" my-clear-register)
+    ("i" "Insert" insert-register)
     ("l" "List" list-registers)
     ("v" "View" view-register)
     ]

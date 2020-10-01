@@ -807,13 +807,16 @@ by the ~history-length~ variable.
 ;; don't persist kill-ring if in the habit of copy-pasting passwords
 (setq history-delete-duplicates t
       history-length 100
+      ;; if `desktop-save-mode' is enabled, it saves `register-alist'
+      ;; and `search-ring' by default so it is unnecessary to add
+      ;; those to `savehist-additional-variables'
       savehist-additional-variables '(Info-history-list
                                       ;; kill-ring
                                       kmacro-ring
                                       regexp-search-ring
-                                      register-alist
+                                      ;; register-alist
                                       last-kbd-macro
-                                      search-ring
+                                      ;; search-ring
                                       shell-command-history))
 
 ;; enable save history mode
@@ -6592,6 +6595,22 @@ mark multiple times by repeating ~C-SPC~ after having run ~C-u C-SPC~
 (setq set-mark-command-repeat-pop t)
 #+end_src
 
+** Command for clearing registers
+
+Define a command for clearing registers.
+
+#+name: my-clear-register
+#+begin_src emacs-lisp
+(defun my-clear-register (register)
+  "Clear the contents in register REGISTER."
+  (interactive (list (register-read-with-preview "Clear register: ")))
+  (set-register register nil)
+  (message "Cleared register %c" register))
+
+;; global binding for clearing a register's contents
+(global-set-key (kbd "C-x r DEL") #'my-clear-register)
+#+end_src
+
 * OS-specific
 
 ** macOS
@@ -7445,7 +7464,8 @@ Transient for easier access to [[https://www.gnu.org/software/emacs/manual/html_
     ("p" "Prepend region" prepend-to-register)
     ("r" "Copy rectangle" copy-rectangle-to-register)
     ]
-   [("i" "Insert" insert-register)
+   [("DEL" "Clear" my-clear-register)
+    ("i" "Insert" insert-register)
     ("l" "List" list-registers)
     ("v" "View" view-register)
     ]
@@ -10165,6 +10185,8 @@ The main configuration file.
 <<tramp-remote-search-paths>>
 
 <<set-mark-command-repeat-pop>>
+
+<<my-clear-register>>
 
 ;; OS-specific / macOS
 

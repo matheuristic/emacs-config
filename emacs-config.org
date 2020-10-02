@@ -10387,6 +10387,14 @@ command-line.
 
 [[https://github.com/ledger/ledger-mode][ledger-mode]] provides a major mode for editing [[https://github.com/ledger/ledger][ledger]] files.
 
+*** [#C] flatbuffers-mode                                             :melpa:
+
+[[https://github.com/Asalle/flatbuffers-mode][GitHub - Asalle/flatbuffers-mode: Emacs mode for flatbuffers]]
+
+*** [#B] jinja2-mode                                                  :melpa:
+
+[[https://github.com/paradoxxxzero/jinja2-mode][GitHub - paradoxxxzero/jinja2-mode: Jinja2 mode for emacs]]
+
 ** Org-mode
 
 *** [#C] Org export backend to Tufte book and handout style PDFs   :external:
@@ -10437,14 +10445,6 @@ remote deployment for:
 References:
 - [[https://jao.io/blog/2020-02-11-simplicity.html][simplicity]]
 - [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
-
-*** [#C] flatbuffers-mode                                             :melpa:
-
-[[https://github.com/Asalle/flatbuffers-mode][GitHub - Asalle/flatbuffers-mode: Emacs mode for flatbuffers]]
-
-*** [#B] jinja2-mode                                                  :melpa:
-
-[[https://github.com/paradoxxxzero/jinja2-mode][GitHub - paradoxxxzero/jinja2-mode: Jinja2 mode for emacs]]
 
 ** Programming
 
@@ -10599,6 +10599,27 @@ See [[https://juanjose.garciaripoll.com/blog/ebib-biblio-interface/index.html][l
 start with a simpler workflow like copy DOI link \to Bilbio \to import
 into Ebib (~M-x ebib-import~ on region or with entries in a buffer).
 See the /Merging and Importing/ section of the Ebib [[http://joostkremers.github.io/ebib/ebib-manual.html][manual]].
+
+*** [#B] zotxt                                                        :melpa:
+
+[[https://github.com/egh/zotxt-emacs][zotxt-emacs]] is an Emacs package that works with the Zotero extension
+[[https://github.com/egh/zotxt][zotxt]] that allows working with plain text files in Zotero.
+
+References:
+- [[http://www.mkbehr.com/posts/a-research-workflow-with-zotero-and-org-mode/][A research workflow with Zotero and Org mode | mkbehr.com]]
+
+#+begin_src emacs-lisp
+(use-package zotxt
+  :hook (org-mode . org-zotxt-mode)
+  :config
+  (with-eval-after-load 'org
+    (defun org-zotxt-insert-reference-link--current-selected-item ()
+      "Insert currently selected item with `org-zotxt-insert-reference-link'."
+      (interactive)
+      (org-zotxt-insert-reference-link '(4)))
+    (define-key org-mode-map (kbd "C-c \" \"")
+      #'org-zotxt-insert-reference-link--current-selected-item)))
+#+end_src
 
 ** Web
 

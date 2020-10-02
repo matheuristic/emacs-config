@@ -692,7 +692,7 @@ if the point is in the minibuffer."
                        (line-beginning-position 0)
                      (line-beginning-position)))
             (end (line-beginning-position 2))
-            (pulse-delay .1))
+            (pulse-delay .2))
         (pulse-momentary-highlight-region start end nil))))
 #+end_src
 
@@ -3121,6 +3121,7 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
 - Use =~/org/= as the main Org directory.
 - Set =inbox.org= in ~org-directory~ as the default filing location to
   be utilized later.
+- Enforce [[https://www.orgmode.org/manual/TODO-dependencies.html][task dependencies]]
 
 #+name: org
 #+begin_src emacs-lisp
@@ -3129,34 +3130,36 @@ Examples of good configurations include [[http://doc.norang.ca/org-mode.html][th
       my-org-agenda-inbox (concat org-directory "inbox.org"))
 
 ;; basic Org-mode settings
-(setq org-adapt-indentation nil ;; don't auto-indent when promoting/demoting
-      org-attach-dir-relative t ;; use relative directories when setting DIR property using `org-attach-set-directory'
-      ;; org-blank-before-new-entry '((heading . nil) ;; don't auto-add new lines
-      ;;                              (plain-list-item . nil)) ;; same as above
+(setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
+      org-attach-dir-relative t ; use relative directories when setting DIR property using `org-attach-set-directory'
+      ;; org-blank-before-new-entry '((heading . nil) ; don't auto-add new lines
+      ;;                              (plain-list-item . nil)) ; same as above
       org-catch-invisible-edits 'show-and-error
-      org-confirm-babel-evaluate nil ;; don't confirm before evaluating code blocks in Org documents
-      org-cycle-separator-lines 2 ;; collapse single item separator lines when cycling
-      org-deadline-warning-days 3 ;; warn starting 3 days before deadline
+      org-confirm-babel-evaluate nil ; don't confirm before evaluating code blocks in Org documents
+      org-cycle-separator-lines 2 ; collapse single item separator lines when cycling
+      org-deadline-warning-days 3 ; warn starting 3 days before deadline
       org-edit-src-content-indentation 2
+      org-enforce-todo-checkbox-dependencies t
+      org-enforce-todo-dependencies t
       org-fontify-done-headline t
       org-fontify-quote-and-verse-blocks t
       org-fontify-whole-heading-line t
       org-hide-emphasis-markers nil
       org-hide-leading-stars nil
-      org-highlight-latex-and-related '(latex script entities) ;; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
-      org-image-actual-width (list (/ (display-pixel-width) 3)) ;; auto-resize displayed images to one-third of display width
-      org-link-file-path-type 'adaptive ;; use relative paths for links to files in Org file dir or subdirs, absolute otherwise
-      org-log-done 'time ;; log time that task was marked DONE
+      org-highlight-latex-and-related '(latex script entities) ; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
+      org-image-actual-width (list (/ (display-pixel-width) 3)) ; auto-resize displayed images to one-third of display width
+      org-link-file-path-type 'adaptive ; use relative paths for links to files in Org file dir or subdirs, absolute otherwise
+      org-log-done 'time ; log time that task was marked DONE
       org-log-into-drawer t
       org-outline-path-complete-in-steps nil
       org-pretty-entities t
-      org-pretty-entities-include-sub-superscripts nil ;; don't render sub/superscripts in-buffer
+      org-pretty-entities-include-sub-superscripts nil ; don't render sub/superscripts in-buffer
       org-return-follows-link t
-      org-src-fontify-natively nil ;; don't syntax color org source blocks
-      org-src-preserve-indentation t ;; preserve src code block indentation on export and when switching btw org buffer and edit buffer
+      org-src-fontify-natively nil ; don't syntax color org source blocks
+      org-src-preserve-indentation t ; preserve src code block indentation on export and when switching btw org buffer and edit buffer
       org-src-strip-leading-and-trailing-blank-lines t
       org-src-tab-acts-natively t
-      org-src-window-setup 'current-window ;; reuse Org file window for editing source blocks when using "C-c '"
+      org-src-window-setup 'current-window ; reuse Org file window for editing source blocks when using "C-c '"
       org-startup-folded t
       org-startup-indented nil
       org-treat-S-cursor-todo-selection-as-state-change nil
@@ -3655,14 +3658,20 @@ screenshot or by dragging and dropping an image onto the document.
     ;; save drag-and-drop images into folder of the same name as Org file
     ;; with filename prefixed by a timestamp of format `org-download-timestamp'
     ;; e.g. dragging test.png to abc.org saves it to abc/20180522183050-test.png
+    (require 'subr-x) ; for `string-remove-prefix'
     (defun my-org-download-method (link)
       """Returns download save path for LINK, for use with `org-download'"""
-      (let ((filename (format "%s%s"
-                              (format-time-string org-download-timestamp)
-                              (file-name-nondirectory
-                               (car (url-path-and-query
-                                     (url-generic-parse-url link))))))
-            (dirname (file-name-sans-extension (buffer-name))))
+      (let* ((filename (format "%s%s"
+                               (format-time-string org-download-timestamp)
+                               (file-name-nondirectory
+                                (car (url-path-and-query
+                                      (url-generic-parse-url link))))))
+             (bufname-sans-ext (file-name-sans-extension (buffer-name)))
+             (dirname (if (and (boundp 'org-capture-mode)
+                               org-capture-mode)
+                          (string-remove-prefix "CAPTURE-"
+                                                bufname-sans-ext)
+                        bufname-sans-ext)))
         ;; create dir if it does not exist
         (unless (file-exists-p dirname)
           (make-directory dirname))

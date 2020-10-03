@@ -3032,19 +3032,6 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
 
 ** ebib for managing BibTeX databases                                 :melpa:
 
-[[http://joostkremers.github.io/ebib/][ebib]] provides support for managing BibTeX bibliographic databases
-(=.bib= files).
-
-*Configuration*:
-- ~C-c C-M-S-b e~ calls ~ebib~ globally.
-
-#+name: ebib
-#+begin_src emacs-lisp
-;; manager for BibTeX bibliographic databases
-(use-package ebib
-  :bind (("C-c C-M-S-b e" . ebib)))
-#+end_src
-
 *** Ebib Org-mode support
 
 Configure Org-mode support for Ebib.

@@ -5081,6 +5081,43 @@ Use icons from all-the-icons in Treemacs.
             (lambda () (setq-local tab-width 2))))
 #+end_src
 
+* Reference management
+
+** ebib for managing BibTeX databases                                 :melpa:
+
+[[http://joostkremers.github.io/ebib/][ebib]] provides support for managing BibTeX bibliographic databases
+(=.bib= files).
+
+*Configuration*:
+- ~C-c B~ calls ~ebib~ globally.
+
+#+name: ebib
+#+begin_src emacs-lisp
+;; manager for BibTeX bibliographic databases
+(use-package ebib
+  :init (setq ebib-preload-bib-files '("main.bib")
+              ebib-bib-search-dirs '("~/bib/")))
+#+end_src
+
+** Biblio                                                             :melpa:
+
+[[https://github.com/cpitclaudel/biblio.el][Biblio]] provides Emacs functions to browse bibliographic references
+from a number of sources and import them as BibTeX records.
+
+It complements ebib very well, and one simple workflow is:
+1. Copy DOI link.
+2. Use Biblio to generate a BibTeX entry from looking up the DOI link.
+3. Call ~ebib-import~ on the region or buffer containing the BibTeX
+   entry to import the entry (or entries in the buffer) into the current
+   database in ebib.
+For more info, see /Merging and Importing/ in the Ebib [[http://joostkremers.github.io/ebib/ebib-manual.html][manual]].
+
+#+name: biblio
+#+begin_src emacs-lisp
+;; browse and import bibliographic references
+(use-package biblio)
+#+end_src
+
 * Search
 
 ** wgrep for writable grep buffers with changes pushed to files       :melpa:
@@ -6880,6 +6917,31 @@ Example of use with transient suffix definitions in a
 
 Global transients have global bindings other than ~C-c m~ (that is
 reserved for major mode transients) and are always active.
+
+*** Bibliography transient
+
+Transient for bibliography management.
+
+#+name: bibliography-transient
+#+begin_src emacs-lisp
+;; add transient popup for bibliography commands
+(transient-define-prefix transient/bibliography ()
+  "Various bibliography commands."
+  ["Bibliography"
+   ["Biblio"
+    ("bl" "Search" biblio-lookup)
+    ("bd" "Insert BibTeX from DOI" doi-insert-bibtex)
+    ("bo" "Show open access from DOI" dissemin-lookup)
+    ]
+   ["Ebib"
+    ("eb" "Open" ebib)
+    ("ei" "Import" ebib-import)
+    ("eI" "Cite" ebib-insert-citation)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c B") #'transient/bibliography)
+#+end_src
 
 *** Bookmarks transient
 
@@ -10077,6 +10139,12 @@ The main configuration file.
 
 <<treemacs-all-the-icons>>
 
+;; Reference management
+
+<<ebib>>
+
+<<biblio>>
+
 ;; Search
 
 <<wgrep>>
@@ -10222,6 +10290,8 @@ The main configuration file.
 <<transient>>
 
 ;; Transient commands / Global transients
+
+<<bibliography-transient>>
 
 <<bookmarks-transient>>
 
@@ -10590,17 +10660,13 @@ References:
 
 ** Reference management
 
-*** [#C] Biblio                                                       :melpa:
+*** [#B] Biblio-Ebib integration                                      :melpa:
 
-[[https://github.com/cpitclaudel/biblio.el][Biblio]] provides Emacs functions to browse bibliographic references
-from a number of sources and import them as BibTeX records.
+References:
+- [[http://juanjose.garciaripoll.com/blog/managing-bibliographies-from-emacs/index.html][Managing bibliographies from Emacs (v2)]]
+- [[https://juanjose.garciaripoll.com/blog/ebib-biblio-interface/index.html][eBib-Biblio interface, aka. Mendeley for Emacs]]
 
-See [[https://juanjose.garciaripoll.com/blog/ebib-biblio-interface/index.html][link]] for one reference configuration, but it's probaly better to
-start with a simpler workflow like copy DOI link \to Bilbio \to import
-into Ebib (~M-x ebib-import~ on region or with entries in a buffer).
-See the /Merging and Importing/ section of the Ebib [[http://joostkremers.github.io/ebib/ebib-manual.html][manual]].
-
-*** [#B] zotxt                                                        :melpa:
+*** [#C] zotxt                                                        :melpa:
 
 [[https://github.com/egh/zotxt-emacs][zotxt-emacs]] is an Emacs package that works with the Zotero extension
 [[https://github.com/egh/zotxt][zotxt]] that allows working with plain text files in Zotero.

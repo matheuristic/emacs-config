@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Oct  1 22:03:00 2020
+;; Generated: Fri Oct  2 23:42:30 2020
 
 ;;; Commentary:
 
@@ -2349,6 +2349,16 @@ This enables things like ElDoc and autocompletion."
   (add-hook 'treemacs-mode-hook
             (lambda () (setq-local tab-width 2))))
 
+;; Reference management
+
+;; manager for BibTeX bibliographic databases
+(use-package ebib
+  :init (setq ebib-preload-bib-files '("main.bib")
+              ebib-bib-search-dirs '("~/bib/")))
+
+;; browse and import bibliographic references
+(use-package biblio)
+
 ;; Search
 
 ;; "C-c C-p" in grep bufs allow writing with changes pushed to files
@@ -2962,6 +2972,24 @@ Example of use with transient suffix definitions in a
   (transient-bind-q-to-quit))
 
 ;; Transient commands / Global transients
+
+;; add transient popup for bibliography commands
+(transient-define-prefix transient/bibliography ()
+  "Various bibliography commands."
+  ["Bibliography"
+   ["Biblio"
+    ("bl" "Search" biblio-lookup)
+    ("bd" "Insert BibTeX from DOI" doi-insert-bibtex)
+    ("bo" "Show open access from DOI" dissemin-lookup)
+    ]
+   ["Ebib"
+    ("eb" "Open" ebib)
+    ("ei" "Import" ebib-import)
+    ("eI" "Cite" ebib-insert-citation)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c B") #'transient/bibliography)
 
 ;; add transient popup for bookmark commands
 (transient-define-prefix transient/bookmarks ()

@@ -5088,15 +5088,36 @@ Use icons from all-the-icons in Treemacs.
 [[http://joostkremers.github.io/ebib/][ebib]] provides support for managing BibTeX bibliographic databases
 (=.bib= files).
 
-*Configuration*:
-- ~C-c B~ calls ~ebib~ globally.
-
 #+name: ebib
 #+begin_src emacs-lisp
 ;; manager for BibTeX bibliographic databases
 (use-package ebib
   :init (setq ebib-preload-bib-files '("main.bib")
-              ebib-bib-search-dirs '("~/bib/")))
+              ebib-bib-search-dirs '("~/bib/"))
+  :config
+  ;; friendlier key bindings in `ebib-multiline-edit-mode' buffers
+  (define-key ebib-multiline-mode-map (kbd "C-c C-c")
+    #'ebib-quit-multiline-buffer-and-save)
+  (define-key ebib-multiline-mode-map (kbd "C-c C-s")
+    #'ebib-save-from-multiline-buffer)
+  (define-key ebib-multiline-mode-map (kbd "C-c C-q")
+    #'ebib-cancel-multiline-buffer)
+  ;; custom user interface setup for `ebib-multiline-mode' buffers
+  (defun my-ebib-multiline-mode--setup ()
+    "Custom user interface setup for `ebib-multiline-mode' buffers."
+    ;; show mode bindings in header
+    (setq-local header-line-format
+	        "Edit, then exit with ‘C-c C-c’, save with ‘C-c C-s’ or abort with ‘C-c C-q’"))
+  (add-hook 'ebib-multiline-mode-hook #'my-ebib-multiline-mode--setup)
+  ;; wrapper function for inserting citations differently by major-mode
+  (require 'org-ebib)
+  (defun my-ebib-insert-citation ()
+    "Wrapper function for inserting an ebib citation differently by major-mode."
+    (interactive)
+    (cond ((eq major-mode 'org-mode)
+           (call-interactively #'org-ebib-insert-link))
+          (t
+           (call-interactively #'ebib-insert-citation)))))
 #+end_src
 
 ** Biblio                                                             :melpa:
@@ -6951,7 +6972,7 @@ Transient for bibliography management.
    ["Ebib"
     ("eb" "Open" ebib)
     ("ei" "Import" ebib-import)
-    ("ec" "Cite" ebib-insert-citation)
+    ("ec" "Cite" my-ebib-insert-citation)
     ]
    ]
   )

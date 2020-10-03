@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct  3 12:31:09 2020
+;; Generated: Sat Oct  3 14:06:06 2020
 
 ;;; Commentary:
 
@@ -2354,7 +2354,31 @@ This enables things like ElDoc and autocompletion."
 ;; manager for BibTeX bibliographic databases
 (use-package ebib
   :init (setq ebib-preload-bib-files '("main.bib")
-              ebib-bib-search-dirs '("~/bib/")))
+              ebib-bib-search-dirs '("~/bib/"))
+  :config
+  ;; friendlier key bindings in `ebib-multiline-edit-mode' buffers
+  (define-key ebib-multiline-mode-map (kbd "C-c C-c")
+    #'ebib-quit-multiline-buffer-and-save)
+  (define-key ebib-multiline-mode-map (kbd "C-c C-s")
+    #'ebib-save-from-multiline-buffer)
+  (define-key ebib-multiline-mode-map (kbd "C-c C-q")
+    #'ebib-cancel-multiline-buffer)
+  ;; custom user interface setup for `ebib-multiline-mode' buffers
+  (defun my-ebib-multiline-mode--setup ()
+    "Custom user interface setup for `ebib-multiline-mode' buffers."
+    ;; show mode bindings in header
+    (setq-local header-line-format
+	        "Edit, then exit with ‘C-c C-c’, save with ‘C-c C-s’ or abort with ‘C-c C-q’"))
+  (add-hook 'ebib-multiline-mode-hook #'my-ebib-multiline-mode--setup)
+  ;; wrapper function for inserting citations differently by major-mode
+  (require 'org-ebib)
+  (defun my-ebib-insert-citation ()
+    "Wrapper function for inserting an ebib citation differently by major-mode."
+    (interactive)
+    (cond ((eq major-mode 'org-mode)
+           (call-interactively #'org-ebib-insert-link))
+          (t
+           (call-interactively #'ebib-insert-citation)))))
 
 ;; browse and import bibliographic references
 (use-package biblio
@@ -2999,7 +3023,7 @@ Example of use with transient suffix definitions in a
    ["Ebib"
     ("eb" "Open" ebib)
     ("ei" "Import" ebib-import)
-    ("ec" "Cite" ebib-insert-citation)
+    ("ec" "Cite" my-ebib-insert-citation)
     ]
    ]
   )

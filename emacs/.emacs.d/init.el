@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Oct  2 23:42:30 2020
+;; Generated: Sat Oct  3 12:31:09 2020
 
 ;;; Commentary:
 
@@ -2357,7 +2357,18 @@ This enables things like ElDoc and autocompletion."
               ebib-bib-search-dirs '("~/bib/")))
 
 ;; browse and import bibliographic references
-(use-package biblio)
+(use-package biblio
+  :config
+  ;; generate and pop up a BibTeX entry from DOI in a special buffer
+  (defun my-biblio--get-bibtex-from-doi (doi)
+    "Retrieves BibTeX entry matching DOI into the \"*Biblio output*\" buffer."
+    (interactive "MDOI: ")
+    (let ((buf (get-buffer-create "*Biblio output*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (doi-insert-bibtex doi)
+        (pop-to-buffer (current-buffer))
+        (current-buffer)))))
 
 ;; Search
 
@@ -2974,18 +2985,21 @@ Example of use with transient suffix definitions in a
 ;; Transient commands / Global transients
 
 ;; add transient popup for bibliography commands
+(require 'ebib)
+(require 'biblio)
 (transient-define-prefix transient/bibliography ()
   "Various bibliography commands."
   ["Bibliography"
    ["Biblio"
     ("bl" "Search" biblio-lookup)
-    ("bd" "Insert BibTeX from DOI" doi-insert-bibtex)
+    ("bd" "Show BibTeX from DOI" my-biblio--get-bibtex-from-doi)
+    ("bi" "Insert BibTeX from DOI" doi-insert-bibtex)
     ("bo" "Show open access from DOI" dissemin-lookup)
     ]
    ["Ebib"
     ("eb" "Open" ebib)
     ("ei" "Import" ebib-import)
-    ("eI" "Cite" ebib-insert-citation)
+    ("ec" "Cite" ebib-insert-citation)
     ]
    ]
   )

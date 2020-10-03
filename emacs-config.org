@@ -5104,7 +5104,8 @@ Use icons from all-the-icons in Treemacs.
 [[https://github.com/cpitclaudel/biblio.el][Biblio]] provides Emacs functions to browse bibliographic references
 from a number of sources and import them as BibTeX records.
 
-It complements ebib very well, and one simple workflow is:
+It complements ebib very well, and one simple workflow to look up
+bibliographic info from a [[https://www.doi.org/][Digital Object Identifier]] (DOI) link is:
 1. Copy DOI link.
 2. Use Biblio to generate a BibTeX entry from looking up the DOI link.
 3. Call ~ebib-import~ on the region or buffer containing the BibTeX
@@ -5115,7 +5116,18 @@ For more info, see /Merging and Importing/ in the Ebib [[http://joostkremers.git
 #+name: biblio
 #+begin_src emacs-lisp
 ;; browse and import bibliographic references
-(use-package biblio)
+(use-package biblio
+  :config
+  ;; generate and pop up a BibTeX entry from DOI in a special buffer
+  (defun my-biblio--get-bibtex-from-doi (doi)
+    "Retrieves BibTeX entry matching DOI into the \"*Biblio output*\" buffer."
+    (interactive "MDOI: ")
+    (let ((buf (get-buffer-create "*Biblio output*")))
+      (with-current-buffer buf
+        (erase-buffer)
+        (doi-insert-bibtex doi)
+        (pop-to-buffer (current-buffer))
+        (current-buffer)))))
 #+end_src
 
 * Search
@@ -6925,18 +6937,21 @@ Transient for bibliography management.
 #+name: bibliography-transient
 #+begin_src emacs-lisp
 ;; add transient popup for bibliography commands
+(require 'ebib)
+(require 'biblio)
 (transient-define-prefix transient/bibliography ()
   "Various bibliography commands."
   ["Bibliography"
    ["Biblio"
     ("bl" "Search" biblio-lookup)
-    ("bd" "Insert BibTeX from DOI" doi-insert-bibtex)
+    ("bd" "Show BibTeX from DOI" my-biblio--get-bibtex-from-doi)
+    ("bi" "Insert BibTeX from DOI" doi-insert-bibtex)
     ("bo" "Show open access from DOI" dissemin-lookup)
     ]
    ["Ebib"
     ("eb" "Open" ebib)
     ("ei" "Import" ebib-import)
-    ("eI" "Cite" ebib-insert-citation)
+    ("ec" "Cite" ebib-insert-citation)
     ]
    ]
   )

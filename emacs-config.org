@@ -3002,7 +3002,7 @@ add or modify the ~csv-separators~ list.
     (csv-align-fields nil (window-start) (window-end))))
 #+end_src
 
-** dockerfile-mode for Dockerfiles                                    :melpa:
+** dockerfile-mode for editing Dockerfiles                            :melpa:
 
 [[https://github.com/spotify/dockerfile-mode][dockerfile-mode]] provides a major mode for editing Docker files.
 
@@ -3013,7 +3013,7 @@ add or modify the ~csv-separators~ list.
   :config (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
 #+end_src
 
-** nov.el for EPUB reading
+** nov.el for reading EPUB files
 
 [[https://depp.brause.cc/nov.el/][nov.el]] is a major mode for reading EPUB files.
 
@@ -3025,7 +3025,21 @@ add or modify the ~csv-separators~ list.
                      '("\\.epub\\'" . nov-mode)))
 #+end_src
 
-** json-mode for JSON files                                           :melpa:
+** JSON
+
+*** jq-mode for editing jq scripts                                    :melpa:
+
+[[https://github.com/stedolan/jq][jq]] is a command-line JSON processor much like Awk or Sed for text
+processing. [[https://github.com/ljos/jq-mode][jq-mode]] provides a major mode for editing jq scripts.
+
+#+name: jq-mode
+#+begin_src emacs-lisp
+(when (executable-find "jq")
+  (use-package jq-mode
+    :mode "\\.jq\\'"))
+#+end_src
+
+*** json-mode for editing JSON files                                  :melpa:
 
 [[https://github.com/joshwnj/json-mode][json-mode]] provides a major mode for editing [[https://www.json.org/json-en.html][JSON]] files.
 
@@ -3036,7 +3050,57 @@ add or modify the ~csv-separators~ list.
   :defer t)
 #+end_src
 
-** markdown-mode for Markdown files                                   :melpa:
+*** JSON file reformatting using jq
+
+[[https://stedolan.github.io/jq/][jq]] can be used as a formatter for JSON codes. It pretty-prints by
+default, so it can be called with its ~.~ operator which the input to
+format JSON code. Reformatting commands can be defined using the
+~reformatter-define~ macro.
+
+#+name: json-jq-format
+#+begin_src emacs-lisp
+(when (executable-find "jq")
+  (with-eval-after-load 'json-mode
+    ;; use jq with the basic operator "." (to pretty print but leave
+    ;; the input unmodified otherwise) to format JSON code
+    (with-eval-after-load 'reformatter
+      ;; json
+      ;; define `json-jq-format-{buffer|region|on-save-mode}'
+      (reformatter-define json-jq-format
+        :program "jq"
+        :args '("--sort-keys" "." "-")
+        :group 'json-mode
+        :lighter " JSONFmt")
+      ;; dwim function calling `json-jq-format-region' if a region is
+      ;; selected, or `json-jq-format-buffer' otherwise
+      (defun json-jq-format-buffer-or-region ()
+        "Format the current JSON buffer or a region if selected.
+Formatting a selected region only works on top-level objects."
+        (interactive)
+        (cond
+         ((use-region-p) (json-jq-format-region (region-beginning)
+                                                (region-end)))
+         (t (json-jq-format-buffer))))
+      ;; jsonlines
+      ;; define `jsonl-jq-format-{buffer|region|on-save-mode}'
+      (reformatter-define jsonl-jq-format
+        :program "jq"
+        :args '("--compact-output" "--sort-keys" "." "-")
+        :group 'json-mode
+        :lighter " JSONLFmt")
+      ;; dwim function calling `jsonl-jq-format-region' if a region is
+      ;; selected, or `jsonl-jq-format-buffer' otherwise
+      (defun jsonl-jq-format-buffer-or-region ()
+        "Format the current JSONL buffer or a region if selected.
+Formatting a selected region only works on top-level objects."
+        (interactive)
+        (cond
+         ((use-region-p) (jsonl-jq-format-region (region-beginning)
+                                                 (region-end)))
+         (t (jsonl-jq-format-buffer)))))))
+#+end_src
+
+** markdown-mode for editing Markdown files                           :melpa:
 
 [[https://jblevins.org/projects/markdown-mode/][markdown-mode]] provdes a major mode for editing Markdown files.
 
@@ -9613,7 +9677,7 @@ Flycheck minor mode transient.
       ]
      ]
     )
-  (global-set-key (kbd "C-c E") #'transient/flycheck-mode))
+  (global-set-key (kbd "C-c F") #'transient/flycheck-mode))
 #+end_src
 
 *** lsp-mode transient
@@ -10017,7 +10081,11 @@ The main configuration file.
 
 <<nov>>
 
+<<jq-mode>>
+
 <<json-mode>>
+
+<<json-jq-format>>
 
 <<markdown-mode>>
 
@@ -10478,12 +10546,6 @@ The main configuration file.
 
 [[https://github.com/jwiegley/nix-update-el][GitHub - jwiegley/nix-update-el]] ([[https://melpa.org/#/nix-update][MELPA]])
 
-*** [#A] jq-mode                                                      :melpa:
-
-[[https://github.com/ljos/jq-mode][GitHub - ljos/jq-mode: Emacs major mode for editing jq queries.]]
-
-Also set up support for ~jq-format~ using the ~reformatter-define~ macro.
-
 *** [#B] PlantUML                                                     :melpa:
 
 *** [#C] Ledger                                                       :melpa:
@@ -10731,10 +10793,10 @@ References:
 - [[https://erick.navarro.io/blog/testing-an-api-with-emacs-and-restclient/][Testing an API with emacs and restclient · (ノ°Д°）ノ︵ ┻━┻]]
 
 Steps:
-- Add transient for accessing restclient functionality
-- Add jq-mode and configure reformatting using ~jq-format~
-- Add restclient-jq
-- Add ob-restclient
+- [ ] Add transient for accessing restclient functionality
+- [X] Add jq-mode and configure reformatting using ~jq-format~
+- [ ] Add restclient-jq
+- [ ] Add ob-restclient
 
 *** [#C] restclient-jq                                             :external:
 

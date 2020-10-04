@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct  3 14:06:06 2020
+;; Generated: Sat Oct  3 23:02:09 2020
 
 ;;; Commentary:
 
@@ -1297,9 +1297,53 @@ Assumes "
   :init (add-to-list 'auto-mode-alist
                      '("\\.epub\\'" . nov-mode)))
 
+(when (executable-find "jq")
+  (use-package jq-mode
+    :mode "\\.jq\\'"))
+
 ;; provides a major mode for editing JSON files
 (use-package json-mode
   :defer t)
+
+(when (executable-find "jq")
+  (with-eval-after-load 'json-mode
+    ;; use jq with the basic operator "." (to pretty print but leave
+    ;; the input unmodified otherwise) to format JSON code
+    (with-eval-after-load 'reformatter
+      ;; json
+      ;; define `json-jq-format-{buffer|region|on-save-mode}'
+      (reformatter-define json-jq-format
+        :program "jq"
+        :args '("--sort-keys" "." "-")
+        :group 'json-mode
+        :lighter " JSONFmt")
+      ;; dwim function calling `json-jq-format-region' if a region is
+      ;; selected, or `json-jq-format-buffer' otherwise
+      (defun json-jq-format-buffer-or-region ()
+        "Format the current JSON buffer or a region if selected.
+Formatting a selected region only works on top-level objects."
+        (interactive)
+        (cond
+         ((use-region-p) (json-jq-format-region (region-beginning)
+                                                (region-end)))
+         (t (json-jq-format-buffer))))
+      ;; jsonlines
+      ;; define `jsonl-jq-format-{buffer|region|on-save-mode}'
+      (reformatter-define jsonl-jq-format
+        :program "jq"
+        :args '("--compact-output" "--sort-keys" "." "-")
+        :group 'json-mode
+        :lighter " JSONLFmt")
+      ;; dwim function calling `jsonl-jq-format-region' if a region is
+      ;; selected, or `jsonl-jq-format-buffer' otherwise
+      (defun jsonl-jq-format-buffer-or-region ()
+        "Format the current JSONL buffer or a region if selected.
+Formatting a selected region only works on top-level objects."
+        (interactive)
+        (cond
+         ((use-region-p) (jsonl-jq-format-region (region-beginning)
+                                                 (region-end)))
+         (t (jsonl-jq-format-buffer)))))))
 
 ;; major mode for editing Markdown files
 (use-package markdown-mode
@@ -5336,7 +5380,7 @@ and `racket-repl-documentation' otherwise."
       ]
      ]
     )
-  (global-set-key (kbd "C-c E") #'transient/flycheck-mode))
+  (global-set-key (kbd "C-c F") #'transient/flycheck-mode))
 
 ;; add transient for lsp-mode
 (with-eval-after-load 'lsp-mode

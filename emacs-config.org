@@ -2938,7 +2938,7 @@ $ sudo port install djvu2pdf
 
 For more information, see [[https://emacsnotes.wordpress.com/2018/08/09/222/][this blog post]] on configuring and using DocView mode in Emacs.
 
-*** Configure enhanced menus for DocView mode (from the blog post above).
+*** Configure enhanced menus for DocView mode
 
 Configure enhanced menus for DocView mode, from the [[https://emacsnotes.wordpress.com/2018/08/09/222/][blog post]] above.
 
@@ -3019,21 +3019,41 @@ Configure enhanced menus for DocView mode, from the [[https://emacsnotes.wordpre
       ["Exit DocView Mode" doc-view-minor-mode])))
 #+end_src
 
-*** DocView resolution settings
+*** DocView resolution settings (requires scaling support)
 
-On high DPI screens, DocView's default dots per inch resolution
-setting can result in small blurry PDF renders. Modify the setting
-using the automatically detected DPI of the screen on Emacs startup.
+When Emacs is compiled with image scaling support (specifically
+DocView uses ImageMagick currently), DocView can render the image at a
+higher resolution and downsample it for a sharper image.
+
+This can help on high DPI screens, where DocView's default dots per
+inch resolution setting can result in small blurry PDF renders.
+
+The configuration here modifies DocView settings using automatically
+detected screen properties when Emacs starts up. The rendered image
+will be at a resolution suitable for full-screen viewing but will be
+downsampled so that the resulting image width is 40% of screen width.
 
 Useful keybindings in DocView mode:
 - ~H~ rescales the image to fit its height to the containing window.
 - ~W~ rescales the image to fit its width to the containing window.
 - ~P~ rescales the image so it fits in the containing window.
 
+Note that this config has effect only if:
+- Emacs is compiled with ImageMagick support, and
+- ImageMagick is installed on the system.
+
 #+name: doc-view-resolution
 #+begin_src emacs-lisp
-;; set DocView dots per inch resolution using monitor properties
-(setq doc-view-resolution (floor (my-frame-monitor-dpi)))
+  ;; set DocView dots per inch resolution using monitor properties and
+  ;; set the default image width to 40% of the start screen width
+  ;; (requires scaling support; specifically DocView uses ImageMagick)
+  (setq doc-view-scale-internally t
+        doc-view-resolution (floor (my-frame-monitor-dpi))
+        doc-view-image-width (let* ((attrs (frame-monitor-attributes))
+                                    (geom (assoc 'geometry attrs))
+                                    (width-pixels (nth 3 geom)))
+                               ;; default width is 40% of screen width
+                               (floor (* 0.4 width-pixels))))
 #+end_src
 
 ** csv-mode for comma-delimited and tab-delimited files (CSV, TSV)     :elpa:

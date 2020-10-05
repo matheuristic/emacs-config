@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct  4 22:36:32 2020
+;; Generated: Mon Oct  5 12:48:09 2020
 
 ;;; Commentary:
 
@@ -145,6 +145,35 @@ One useful context action example is to run `org-show-context'
 after jumping to an Org buffer location to ensure the region
 around the new point location is visible."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
+
+(defun my-frame-monitor-dpi (&optional frame)
+  "Get the pixel density in dots per inch (DPI) for the screen containing FRAME.
+If FRAME is nil, use the current frame.
+
+DPI (or really points per inch, PPI) is computed with the formula
+  PPI = diag_in_pixels / diag_in_inches
+where
+  diag_in_pixels = sqrt(width_in_pixels**2 + height_in_pixels**2)
+  diag_in_inches = sqrt(width_in_mm**2 + height_in_mm**2) / inch_in_mm
+  inch_in_mm = 25.4
+
+See https://en.wikipedia.org/wiki/Pixel_density for more details."
+  (let* ((attrs (frame-monitor-attributes frame))
+         (geom (assoc 'geometry attrs))
+         ;; diagonal in pixels
+         (width-pixels (nth 3 geom))
+         (height-pixels (nth 4 geom))
+         (diag-pixels (sqrt (+ (* width-pixels width-pixels)
+                               (* height-pixels height-pixels))))
+         ;; diagonal in inches
+         (scrn (assoc 'mm-size attrs))
+         (width-mm (nth 1 scrn))
+         (height-mm (nth 2 scrn))
+         (diag-mm (sqrt (+ (* width-mm width-mm)
+                           (* height-mm height-mm))))
+         (diag-inches (/ diag-mm 25.4))) ; 25.4mm per inch
+    ;; dpi (or ppi) = diagonal in pixels / diagonal in inches
+    (/ diag-pixels diag-inches)))
 
 ;; helper function for pulsing the current line, adapted from
 ;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
@@ -1275,6 +1304,9 @@ Assumes "
     '("DocView*"
       ["Display in DocView Mode" doc-view-toggle-display :help "View"]
       ["Exit DocView Mode" doc-view-minor-mode])))
+
+;; set DocView dots per inch resolution using monitor properties
+(setq doc-view-resolution (floor (my-frame-monitor-dpi)))
 
 (use-package csv-mode
   :commands csv-mode

@@ -3466,6 +3466,19 @@ To export different text for LaTeX and for other formats:
         org-export-global-macros))
 #+end_src
 
+** Set applications used by Org for opening different file types
+
+By default, Org mode uses the system defaults for several file types.
+Have Org mode open PDF files within Emacs instead of using the default
+(which is using the system viewer).
+
+#+name: org-file-apps
+#+begin_src emacs-lisp
+;; have Org mode open PDF files within Emacs
+(with-eval-after-load 'org
+  (push '("\\.pdf\\'" . emacs) org-file-apps))
+#+end_src
+
 ** Org Agenda
 
 Org-mode provides [[https://orgmode.org/manual/Agenda-Views.html][agenda views]] that give an overview of open action
@@ -10108,6 +10121,8 @@ The main configuration file.
 <<org-tags>>
 
 <<org-export-global-macros>>
+
+<<org-file-apps>>
 
 <<org-agenda>>
 

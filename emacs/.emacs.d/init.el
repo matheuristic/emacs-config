@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct  5 14:15:30 2020
+;; Generated: Mon Oct  5 14:39:49 2020
 
 ;;; Commentary:
 
@@ -1305,16 +1305,15 @@ Assumes "
       ["Display in DocView Mode" doc-view-toggle-display :help "View"]
       ["Exit DocView Mode" doc-view-minor-mode])))
 
-  ;; set DocView dots per inch resolution using monitor properties and
-  ;; set the default image width to 40% of the start screen width
-  ;; (requires scaling support; specifically DocView uses ImageMagick)
-  (setq doc-view-scale-internally t
-        doc-view-resolution (floor (my-frame-monitor-dpi))
-        doc-view-image-width (let* ((attrs (frame-monitor-attributes))
-                                    (geom (assoc 'geometry attrs))
-                                    (width-pixels (nth 3 geom)))
-                               ;; default width is 40% of screen width
-                               (floor (* 0.4 width-pixels))))
+;; render DocView images at full resolution and downsample using the
+;; built-in image scaler in Emacs 28+ or ImageMagick in prior versions
+(setq doc-view-scale-internally t
+      doc-view-resolution (floor (my-frame-monitor-dpi))
+      doc-view-image-width (let* ((attrs (frame-monitor-attributes))
+                                  (geom (assoc 'geometry attrs))
+                                  (width-pixels (nth 3 geom)))
+                             ;; default width is 40% of screen width
+                             (floor (* 0.4 width-pixels))))
 
 (use-package csv-mode
   :commands csv-mode

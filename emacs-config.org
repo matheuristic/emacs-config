@@ -3021,9 +3021,11 @@ Configure enhanced menus for DocView mode, from the [[https://emacsnotes.wordpre
 
 *** DocView resolution settings (requires scaling support)
 
-When Emacs is compiled with image scaling support (specifically
-DocView uses ImageMagick currently), DocView can render the image at a
-higher resolution and downsample it for a sharper image.
+When DocView-supported image scaling is available, DocView can render
+the image at a higher resolution and downsample it for a sharper
+image. For Emacs 28+, this is done using the built-in image scaling
+functionality. For prior versions, Emacs should be compiled with
+ImageMagick support and ImageMagic should be installed on the system.
 
 This can help on high DPI screens, where DocView's default dots per
 inch resolution setting can result in small blurry PDF renders.
@@ -3038,22 +3040,17 @@ Useful keybindings in DocView mode:
 - ~W~ rescales the image to fit its width to the containing window.
 - ~P~ rescales the image so it fits in the containing window.
 
-Note that this config has effect only if:
-- Emacs is compiled with ImageMagick support, and
-- ImageMagick is installed on the system.
-
 #+name: doc-view-resolution
 #+begin_src emacs-lisp
-  ;; set DocView dots per inch resolution using monitor properties and
-  ;; set the default image width to 40% of the start screen width
-  ;; (requires scaling support; specifically DocView uses ImageMagick)
-  (setq doc-view-scale-internally t
-        doc-view-resolution (floor (my-frame-monitor-dpi))
-        doc-view-image-width (let* ((attrs (frame-monitor-attributes))
-                                    (geom (assoc 'geometry attrs))
-                                    (width-pixels (nth 3 geom)))
-                               ;; default width is 40% of screen width
-                               (floor (* 0.4 width-pixels))))
+;; render DocView images at full resolution and downsample using the
+;; built-in image scaler in Emacs 28+ or ImageMagick in prior versions
+(setq doc-view-scale-internally t
+      doc-view-resolution (floor (my-frame-monitor-dpi))
+      doc-view-image-width (let* ((attrs (frame-monitor-attributes))
+                                  (geom (assoc 'geometry attrs))
+                                  (width-pixels (nth 3 geom)))
+                             ;; default width is 40% of screen width
+                             (floor (* 0.4 width-pixels))))
 #+end_src
 
 ** csv-mode for comma-delimited and tab-delimited files (CSV, TSV)     :elpa:

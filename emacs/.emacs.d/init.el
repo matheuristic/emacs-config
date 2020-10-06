@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Oct  6 12:45:00 2020
+;; Generated: Tue Oct  6 13:48:59 2020
 
 ;;; Commentary:
 
@@ -335,12 +335,13 @@ if the point is in the minibuffer."
 ;; advanced buffer management with Ibuffer
 (add-hook 'ibuffer-mode-hook
           (lambda ()
-            ;; refresh buffer after interactive commands
+            ;; uncomment below to refresh buffer after interactive
+            ;; commands, at the cost of some slowdown
+            ;; (ibuffer-auto-mode 1)
             ;; default to first saved group
-            (progn (ibuffer-auto-mode 1)
-                   (when ibuffer-saved-filter-groups
-                     (ibuffer-switch-to-saved-filter-groups
-                      (car (car ibuffer-saved-filter-groups)))))))
+            (when ibuffer-saved-filter-groups
+              (ibuffer-switch-to-saved-filter-groups
+               (car (car ibuffer-saved-filter-groups))))))
 (setq ibuffer-expert t ;; skip extraneous confirm messages
       ibuffer-show-empty-filter-groups nil)
 (global-set-key (kbd "C-x C-b") #'ibuffer)
@@ -918,7 +919,9 @@ With arg N, insert N newlines."
 ;; https://emacsnotes.wordpress.com/2018/11/15/elmacro-write-emacs-lisp-snippet-even-when-you-arent-a-programmer/
 (use-package elmacro
   :config
-  (elmacro-mode 1)
+  ;; uncomment below to enable `elmacro-mode' by default, at the cost
+  ;; of some slowdown (it is better to enable it only when needed)
+  ;; (elmacro-mode 1)
   ;; add Elmacro entry under Tools in the menu bar
   (easy-menu-define my-elmacro-menu nil
     "Menu for Elmacro."

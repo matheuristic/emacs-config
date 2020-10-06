@@ -795,12 +795,16 @@ opened files.
       recentf-max-saved-items 100
       recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
 (recentf-mode 1)
+;; exclude compressed files
+(add-to-list 'recentf-exclude ".gz")
+(add-to-list 'recentf-exclude ".xz")
+(add-to-list 'recentf-exclude ".zip")
 ;; exclude source code files in installed packages from ELPA-compatible repos
 (add-to-list 'recentf-exclude
              (concat "^" (expand-file-name "elpa/" user-emacs-directory)))
 ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
 ;; exclude files opened as the superuser with su or sudo
-(add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
+(add-to-list 'recentf-exclude "^/\\(?:scp\\|ssh\\|su\\|sudo\\)?:")
 ;; exclude files from /var/folder as these are temp files
 (add-to-list 'recentf-exclude "^/var/folders")
 ;; exclude files in `org-agenda-files' and `notdeft-directories'
@@ -810,7 +814,13 @@ opened files.
             (dolist (file-list (list org-agenda-files
                                      notdeft-directories))
               (dolist (exclude-file file-list)
-                (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
+                (add-to-list 'recentf-exclude
+                             (concat "^" exclude-file))))))
+;; exclude files in conda environments
+(add-hook 'after-init-hook
+          (lambda ()
+            (add-to-list 'recentf-exclude
+                         (concat "^" conda-anaconda-home))))
 
 ;; binding for recentf
 (global-set-key (kbd "C-c f") #'recentf-open-files)
@@ -911,17 +921,25 @@ Set default rules for grouping files in Ibuffer.
         '(("default"
            ("Emacs" (or (name . "^\\*scratch\\*$")
                         (name . "^\\*Messages\\*$")))
+           ("Calendar" (or (name . "^\\*?[Cc]alendar.*$")
+                           (name . "^diary$")))
+           ("Agenda" (mode . org-agenda-mode))
            ("Web" (or (mode . eww-mode)
                       (mode . eww-bookmark-mode)))
-           ("Org" (or (derived-mode . org-mode)
-                      (mode . org-agenda-mode)))
-           ("Text" (derived-mode . text-mode))
-           ("DocView" (mode . doc-view-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)
                         (name . "^vterm .*")))
+           ("Analytics" (or (mode . ess-r-mode)
+                            (mode . inferior-ess-r-mode)))
            ("Programming" (derived-mode . prog-mode))
+           ("Data" (or (mode . csv-mode)
+                       (mode . json-mode)
+                       (mode . nxml-mode)))
+           ("DocView" (mode . doc-view-mode))
+           ("Org" (or (derived-mode . org-mode)
+                      (mode . org-agenda-mode)))
+           ("Text" (derived-mode . text-mode))
            ("Fundamental" (mode . fundamental-mode))
            ("Dired" (mode . dired-mode))
            ("Magit" (or (name . "\*magit.*\\*")
@@ -1150,7 +1168,17 @@ manually and automatically.
 ;; - don't re-use frames
 (setq desktop-auto-save-timeout nil
       desktop-restore-in-current-display nil
-      desktop-restore-reuses-frames t)
+      desktop-restore-reuses-frames t
+      desktop-files-not-to-save (concat "\\("
+                                        (mapconcat
+                                         'identity
+                                         '("\\`/[^/:]*:"
+                                           "(ftp)\\'"
+                                           "\\.log"
+                                           "\\.gz")
+                                         "\\|"
+                                         )
+                                        "\\)"))
 (add-hook 'after-init-hook (lambda () (desktop-save-mode 1)))
 #+end_src
 
@@ -5628,6 +5656,12 @@ The key observations here are that:
 For a list of good free or open-source fonts, see this [[https://github.com/matheuristic/dotfiles/blob/master/font_notes.org][link]].
 For more information about fonts and fontsets in Emacs, see this [[https://idiocy.org/emacs-fonts-and-fontsets.html][link]].
 
+If using a large font, it is also a good idea to set
+~inhibit-compacting-font-caches~ to ~t~ which avoids garbage
+collecting font caches. This mitigates scenarios where the font is
+removed from the cache and reloaded again during redisplay which can
+slow down the redisplay.
+
 #+name: set-display-face-fonts
 #+begin_src emacs-lisp
 ;; set typefaces for graphical Emacs
@@ -5651,6 +5685,8 @@ For more information about fonts and fontsets in Emacs, see this [[https://idioc
 (set-fontset-font t nil "Symbola" nil 'append)
 ;; increase min underline offset for more readable underlined words
 (setq underline-minimum-offset 5)
+;; uncomment below if using a large font to not compact it duing GC
+(setq inhibit-compacting-font-caches t)
 #+end_src
 
 For some fonts, an alternative character may be preferable to the
@@ -8169,6 +8205,9 @@ Currently only works for Emacs Mac port."
             "Censor (global)"
             global-censor-mode))
      global-censor-mode)
+    ("r" "Redraw display"
+     transient/visual--doom-modeline-focus-and-redraw-display
+     :transient nil)
     ]
    ]
   )
@@ -10706,6 +10745,10 @@ remote deployment for:
 References:
 - [[https://jao.io/blog/2020-02-11-simplicity.html][simplicity]]
 - [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
+
+An alternative is to use the built-in Org publish facilities. See [[https://www.evenchick.com/blog/blogging-with-org-mode.html][here]]
+and [[https://ogbe.net/blog/blogging_with_org.html][here]] for more information. This is a bit more work, especially the
+RSS setup, but does not require adding another package dependency.
 
 ** Programming
 

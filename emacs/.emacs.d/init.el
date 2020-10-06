@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct  5 14:39:49 2020
+;; Generated: Tue Oct  6 10:49:36 2020
 
 ;;; Commentary:
 
@@ -268,12 +268,16 @@ if the point is in the minibuffer."
       recentf-max-saved-items 100
       recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
 (recentf-mode 1)
+;; exclude compressed files
+(add-to-list 'recentf-exclude ".gz")
+(add-to-list 'recentf-exclude ".xz")
+(add-to-list 'recentf-exclude ".zip")
 ;; exclude source code files in installed packages from ELPA-compatible repos
 (add-to-list 'recentf-exclude
              (concat "^" (expand-file-name "elpa/" user-emacs-directory)))
 ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
 ;; exclude files opened as the superuser with su or sudo
-(add-to-list 'recentf-exclude "^/\\(?:ssh\\|su\\|sudo\\)?:")
+(add-to-list 'recentf-exclude "^/\\(?:scp\\|ssh\\|su\\|sudo\\)?:")
 ;; exclude files from /var/folder as these are temp files
 (add-to-list 'recentf-exclude "^/var/folders")
 ;; exclude files in `org-agenda-files' and `notdeft-directories'
@@ -283,7 +287,13 @@ if the point is in the minibuffer."
             (dolist (file-list (list org-agenda-files
                                      notdeft-directories))
               (dolist (exclude-file file-list)
-                (add-to-list 'recentf-exclude (concat "^" exclude-file))))))
+                (add-to-list 'recentf-exclude
+                             (concat "^" exclude-file))))))
+;; exclude files in conda environments
+(add-hook 'after-init-hook
+          (lambda ()
+            (add-to-list 'recentf-exclude
+                         (concat "^" conda-anaconda-home))))
 
 ;; binding for recentf
 (global-set-key (kbd "C-c f") #'recentf-open-files)
@@ -336,17 +346,25 @@ if the point is in the minibuffer."
         '(("default"
            ("Emacs" (or (name . "^\\*scratch\\*$")
                         (name . "^\\*Messages\\*$")))
+           ("Calendar" (or (name . "^\\*?[Cc]alendar.*$")
+                           (name . "^diary$")))
+           ("Agenda" (mode . org-agenda-mode))
            ("Web" (or (mode . eww-mode)
                       (mode . eww-bookmark-mode)))
-           ("Org" (or (derived-mode . org-mode)
-                      (mode . org-agenda-mode)))
-           ("Text" (derived-mode . text-mode))
-           ("DocView" (mode . doc-view-mode))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)
                         (name . "^vterm .*")))
+           ("Analytics" (or (mode . ess-r-mode)
+                            (mode . inferior-ess-r-mode)))
            ("Programming" (derived-mode . prog-mode))
+           ("Data" (or (mode . csv-mode)
+                       (mode . json-mode)
+                       (mode . nxml-mode)))
+           ("DocView" (mode . doc-view-mode))
+           ("Org" (or (derived-mode . org-mode)
+                      (mode . org-agenda-mode)))
+           ("Text" (derived-mode . text-mode))
            ("Fundamental" (mode . fundamental-mode))
            ("Dired" (mode . dired-mode))
            ("Magit" (or (name . "\*magit.*\\*")
@@ -490,7 +508,17 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; - don't re-use frames
 (setq desktop-auto-save-timeout nil
       desktop-restore-in-current-display nil
-      desktop-restore-reuses-frames t)
+      desktop-restore-reuses-frames t
+      desktop-files-not-to-save (concat "\\("
+                                        (mapconcat
+                                         'identity
+                                         '("\\`/[^/:]*:"
+                                           "(ftp)\\'"
+                                           "\\.log"
+                                           "\\.gz")
+                                         "\\|"
+                                         )
+                                        "\\)"))
 (add-hook 'after-init-hook (lambda () (desktop-save-mode 1)))
 
 ;; Command-line interaction
@@ -4020,6 +4048,9 @@ Currently only works for Emacs Mac port."
             "Censor (global)"
             global-censor-mode))
      global-censor-mode)
+    ("r" "Redraw display"
+     transient/visual--doom-modeline-focus-and-redraw-display
+     :transient nil)
     ]
    ]
   )

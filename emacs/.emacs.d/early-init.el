@@ -2,11 +2,11 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Oct  6 10:49:36 2020
+;; Generated: Tue Oct  6 12:45:00 2020
 
 ;;; Commentary:
 
-;; Emacas early initialization configuration file, symlink or copy to
+;; Emacs early initialization configuration file, symlink or copy to
 ;; ~/.emacs.d/early-init.el or $XDG_CONFIG_HOME/.emacs.d/early-init.el
 
 ;; In Emacs 27+, the sequence of initialization is

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Oct  6 10:49:36 2020
+;; Generated: Tue Oct  6 12:45:00 2020
 
 ;;; Commentary:
 
@@ -25,12 +25,17 @@
   (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
     (when (file-exists-p local-f) (load-file local-f))))
 
-;; Customize file
+;; Customize file and local configuration
 
 ;; store Customize settings in a separate file, custom.el
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+
+;; load local init configuration and Customize settings on startup
 (add-hook 'after-init-hook
-          (load custom-file 'noerror))
+          (lambda ()
+            (require 'init-local nil t) ; don't raise errors
+            (load custom-file 'noerror))
+          10) ; load this after regular `after-init-hook' functions
 
 ;; Package management
 
@@ -292,8 +297,9 @@ if the point is in the minibuffer."
 ;; exclude files in conda environments
 (add-hook 'after-init-hook
           (lambda ()
-            (add-to-list 'recentf-exclude
-                         (concat "^" conda-anaconda-home))))
+            (with-eval-after-load 'conda
+              (add-to-list 'recentf-exclude
+                           (concat "^" conda-anaconda-home)))))
 
 ;; binding for recentf
 (global-set-key (kbd "C-c f") #'recentf-open-files)
@@ -519,7 +525,11 @@ ROTATIONS can be negative, which rotates in the opposite direction."
                                          "\\|"
                                          )
                                         "\\)"))
-(add-hook 'after-init-hook (lambda () (desktop-save-mode 1)))
+(add-hook 'after-init-hook
+          (lambda ()
+            (desktop-save-mode 1)
+            (desktop-read))
+          50) ; load after all other `after-init-hook' functions
 
 ;; Command-line interaction
 
@@ -2371,12 +2381,7 @@ environment has Racket installed."
 This enables things like ElDoc and autocompletion."
     (company-mode 1) ; use company-mode for autocompletion
     (ejc-eldoc-setup)) ; set up Eldoc support
-  (add-hook 'ejc-sql-minor-mode-hook #'my-ejc-sql-minor-mode-setup)
-  ;; load connection definitions from a local file
-  (let ((local-f (expand-file-name "ejc-sql-connections.el"
-                                   user-emacs-directory)))
-    (when (file-exists-p local-f)
-      (load-file local-f))))
+  (add-hook 'ejc-sql-minor-mode-hook #'my-ejc-sql-minor-mode-setup))
 
 ;; Project interaction
 

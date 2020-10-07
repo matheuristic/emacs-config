@@ -3619,6 +3619,30 @@ Add toggle for ~too-long-lines-mode~ to visual hydra.
     ("L" too-long-lines-mode :exit nil)))
 #+end_src
 
+** Add non-visible bottom window dividers for easier mouse resizing
+
+By default for GUI Emacs (at least for the Emacs Mac port), right
+window dividers are rendered and can be dragged with the mouse to
+resize windows horizontally.
+
+Add non-visible bottom window dividers to also allow vertical window
+resizing by dragging the space between two up-down adjacent windows.
+
+#+name: add-bottom-window-dividers
+#+begin_src emacs-lisp
+;; add non-visible bottom window dividers for mouse-based vertical resizing
+(setq window-divider-default-bottom-width (if (eq system-type 'darwin)
+                                              6
+                                            3)
+      window-divider-default-places 'bottom-only)
+(let ((fg-color (face-attribute 'default :foreground))
+      (bg-color (face-attribute 'default :background)))
+  (set-face-attribute 'window-divider nil :foreground bg-color)
+  (set-face-attribute 'window-divider-first-pixel nil :foreground bg-color)
+  (set-face-attribute 'window-divider-last-pixel nil :foreground bg-color))
+(window-divider-mode 1)
+#+end_src
+
 * Web
 
 ** Browsing

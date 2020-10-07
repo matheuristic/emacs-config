@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Oct  6 22:08:46 2020
+;; Generated: Wed Oct  7 14:35:04 2020
 
 ;;; Commentary:
 
@@ -2660,18 +2660,6 @@ This enables things like ElDoc and autocompletion."
           (lambda ()
             (add-hook 'kill-emacs-hook #'my-default-frame-border-teardown))
           t)
-
-;; add non-visisible bottom window dividers for mouse-based vertical resizing
-(setq window-divider-default-bottom-width (if (eq system-type 'darwin)
-                                              6
-                                            3)
-      window-divider-default-places 'bottom-only)
-(let ((fg-color (face-attribute 'default :foreground))
-      (bg-color (face-attribute 'default :background)))
-  (set-face-attribute 'window-divider nil :foreground bg-color)
-  (set-face-attribute 'window-divider-first-pixel nil :foreground bg-color)
-  (set-face-attribute 'window-divider-last-pixel nil :foreground bg-color))
-(window-divider-mode 1)
 
 (require 'censor)
 

@@ -91,7 +91,7 @@
    `(minibuffer-prompt ((t (:foreground ,fg :weight bold))))
    `(mode-line ((t (:background ,bg :foreground ,fg :overline ,fg))))
    `(mode-line-buffer ((t (:foreground ,fg :weight bold))))
-   `(mode-line-inactive ((t (:background ,bg :foreground ,fg-dim :overline ,fg))))
+   `(mode-line-inactive ((t (:background ,bg :foreground ,fg-dim :overline nil))))
    `(mode-line-minor-mode ((t (:weight ultra-light))))
    `(query-replace ((t (:background ,bg-search :strike-through t))))
    `(region ((t (:background ,bg-region :foreground ,fg))))

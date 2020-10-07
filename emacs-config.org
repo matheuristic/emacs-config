@@ -5926,30 +5926,6 @@ cost of displaying a few less characters on screen.
           t)
 #+end_src
 
-** Add non-visible bottom window dividers for easier mouse resizing
-
-By default for GUI Emacs (at least for the Emacs Mac port), right
-window dividers are rendered and can be dragged with the mouse to
-resize windows horizontally.
-
-Add non-visible bottom window dividers to also allow vertical window
-resizing by dragging the space between two up-down adjacent windows.
-
-#+name: add-bottom-window-dividers
-#+begin_src emacs-lisp
-;; add non-visisible bottom window dividers for mouse-based vertical resizing
-(setq window-divider-default-bottom-width (if (eq system-type 'darwin)
-                                              6
-                                            3)
-      window-divider-default-places 'bottom-only)
-(let ((fg-color (face-attribute 'default :foreground))
-      (bg-color (face-attribute 'default :background)))
-  (set-face-attribute 'window-divider nil :foreground bg-color)
-  (set-face-attribute 'window-divider-first-pixel nil :foreground bg-color)
-  (set-face-attribute 'window-divider-last-pixel nil :foreground bg-color))
-(window-divider-mode 1)
-#+end_src
-
 ** Censor text in specific buffers
 
 Custom package providing a minor mode for censoring text in a buffer.
@@ -10458,8 +10434,6 @@ The main configuration file.
 <<volatile-highlights>>
 
 <<add-frame-internal-border>>
-
-<<add-bottom-window-dividers>>
 
 <<censor>>
 

@@ -1674,15 +1674,18 @@ directory containing the current buffer.
 
 #+name: dired
 #+begin_src emacs-lisp
-(require 'dired-x) ;; extra features
-(require 'dired-aux) ;; even more extra features
-(setq dired-dwim-target t ;; use neighboring dired buffer as default target dir
-      dired-listing-switches "-alhvFG" ;; more readable file listings
-      dired-omit-files (concat dired-omit-files "\\|^\\..+$") ;; omit dot files in dired-omit-mode
-      dired-recursive-copies 'always ;; always copy recursively
-      dired-recursive-deletes 'always) ;; always delete recursively
-(add-hook 'dired-mode-hook #'auto-revert-mode) ;; auto-refresh on file change
-(add-hook 'dired-mode-hook #'dired-hide-details-mode) ;; hide details initially
+(require 'dired-x) ; extra features
+(require 'dired-aux) ; even more extra features
+(setq dired-auto-revert-buffer 'dired-directory-changed-p ; when revisiting Dired buffers, refresh if dir has changed on disk
+      dired-dwim-target t ; use neighboring dired buffer as default target dir
+      dired-listing-switches "-alhvFG" ; more readable file listings
+      dired-omit-files (concat dired-omit-files "\\|^\\..+$") ; omit dot files in dired-omit-mode
+      dired-recursive-copies 'always ; always copy recursively
+      dired-recursive-deletes 'always) ; always delete recursively
+;; uncomment below to automatically update Dired buffers every
+;; `auto-revert-interval' seconds, at cost of some slowdown
+;; (add-hook 'dired-mode-hook #'auto-revert-mode) ; auto-refresh on file change
+(add-hook 'dired-mode-hook #'dired-hide-details-mode) ; hide details initially
 #+end_src
 
 ** Open file at point in Dired using system file open dispatcher

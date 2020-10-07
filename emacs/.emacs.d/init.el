@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Oct  6 13:48:59 2020
+;; Generated: Tue Oct  6 22:08:46 2020
 
 ;;; Commentary:
 
@@ -705,15 +705,18 @@ ARG is a prefix argument.  If nil, copy the current difference region."
 
 ;; Dired
 
-(require 'dired-x) ;; extra features
-(require 'dired-aux) ;; even more extra features
-(setq dired-dwim-target t ;; use neighboring dired buffer as default target dir
-      dired-listing-switches "-alhvFG" ;; more readable file listings
-      dired-omit-files (concat dired-omit-files "\\|^\\..+$") ;; omit dot files in dired-omit-mode
-      dired-recursive-copies 'always ;; always copy recursively
-      dired-recursive-deletes 'always) ;; always delete recursively
-(add-hook 'dired-mode-hook #'auto-revert-mode) ;; auto-refresh on file change
-(add-hook 'dired-mode-hook #'dired-hide-details-mode) ;; hide details initially
+(require 'dired-x) ; extra features
+(require 'dired-aux) ; even more extra features
+(setq dired-auto-revert-buffer 'dired-directory-changed-p ; when revisiting Dired buffers, refresh if dir has changed on disk
+      dired-dwim-target t ; use neighboring dired buffer as default target dir
+      dired-listing-switches "-alhvFG" ; more readable file listings
+      dired-omit-files (concat dired-omit-files "\\|^\\..+$") ; omit dot files in dired-omit-mode
+      dired-recursive-copies 'always ; always copy recursively
+      dired-recursive-deletes 'always) ; always delete recursively
+;; uncomment below to automatically update Dired buffers every
+;; `auto-revert-interval' seconds, at cost of some slowdown
+;; (add-hook 'dired-mode-hook #'auto-revert-mode) ; auto-refresh on file change
+(add-hook 'dired-mode-hook #'dired-hide-details-mode) ; hide details initially
 
 ;; bind "z" in dired-mode to open file at point using system command
 ;; to open files by type

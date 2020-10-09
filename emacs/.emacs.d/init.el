@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Oct  8 20:05:10 2020
+;; Generated: Fri Oct  9 10:32:23 2020
 
 ;;; Commentary:
 
@@ -303,6 +303,15 @@ if the point is in the minibuffer."
 
 ;; binding for recentf
 (global-set-key (kbd "C-c f") #'recentf-open-files)
+
+;; select file to open from `recentf-list' using `completing-read'
+(defun my-recentf-find-file ()
+  "Use `completing-read' to find a recent file."
+  (interactive)
+  (find-file (completing-read "Find recent file: " recentf-list)))
+
+;; binding for `my-recentf-open-files' when in recentf dialog buffers
+(define-key recentf-dialog-mode-map (kbd "f") #'my-recentf-find-file)
 
 (save-place-mode 1)
 
@@ -2348,6 +2357,7 @@ Formatting a selected region only works on top-level objects."
   (define-key inferior-ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
   (define-key inferior-ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
 
+;; view data in ESS-R
 (use-package ess-view-data
   :after ess-r-mode
   :bind (:map ess-r-mode-map
@@ -2356,6 +2366,17 @@ Formatting a selected region only works on top-level objects."
   ;; set update print backend to knitr::kable() due to csv-mode
   ;; header-line errors when using the default print backend
   (setq ess-view-data-current-update-print-backend 'kable))
+
+;; insert column or variable names or values in ESS-R, useful when
+;; working with tidyverse
+(use-package ess-r-insert-obj
+  :after ess-r-mode
+  :bind (:map ess-r-mode-map
+         ("C-c i f" . ess-r-insert-obj-dt-name)
+         ("C-c i c" . ess-r-insert-obj-col-name)
+         ("C-c i C" . ess-r-insert-obj-col-name-all)
+         ("C-c i v" . ess-r-insert-obj-value)
+         ("C-c i V" . ess-r-insert-obj-value-all)))
 
 (use-package poly-R)
 
@@ -2377,7 +2398,7 @@ environment has Racket installed."
   :commands (ejc-connect ejc-connect-existing-repl ejc-sql-mode)
   :bind (:map ejc-sql-mode-keymap
          ("C-g" . nil) ; unbind C-g in mode-map shadowing regular C-g
-         ("C-M-g" . ejc-cancel-query)) ; rebind to C-M-g instead
+         ("C-c C-k" . ejc-cancel-query)) ; rebind to C-M-g instead
   :init
   ;; use `completing-read' for minibuffer completion
   ;; change ejc-sql keymap prefix to "C-c s" (from the default "C-c e")
@@ -2600,7 +2621,7 @@ This enables things like ElDoc and autocompletion."
 (use-package imenu-list
   :defer t
   :after imenu
-  :bind ("C-c i" . imenu-list-smart-toggle)
+  :bind ("C-c I" . imenu-list-smart-toggle)
   :config
   (setq imenu-list-focus-after-activation t)
   ;; pulse target after selecting
@@ -4410,7 +4431,7 @@ Currently only works for Emacs Mac port."
     )
   (define-key debugger-mode-map (kbd "C-c m") #'transient/debugger-mode))
 
-;; major-mode specific transient for ess-mode
+;; major-mode specific transient for dired-mode
 (with-eval-after-load 'dired
   (with-eval-after-load 'dired-filter
     (defun transient/dired-mode--dired-kill-and-next-subdir ()
@@ -4582,20 +4603,15 @@ Currently only works for Emacs Mac port."
     )
   (define-key edebug-mode-map (kbd "C-c m") #'transient/edebug-mode))
 
-;; major-mode specific transient for ess-mode
-(with-eval-after-load 'ess-mode
+;; major-mode specific transient for ess-r-mode
+(with-eval-after-load 'ess-r-mode
   (require 'ess-view-data)
-  (defun transient/ess-mode--new-session ()
-    "Opens a new ESS session depending the current `ess-dialect'."
-    (interactive)
-    (cond ((string= ess-dialect "R") (R))
-          ((string= ess-dialect "julia") (julia))
-          (t (message "Unsupported dialect"))))
-  (transient-define-prefix transient/ess-mode ()
-    "`ess-mode' commands."
+  (require 'ess-r-insert-obj)
+  (transient-define-prefix transient/ess-r-mode ()
+    "`ess-r-mode' commands."
     ["Emacs Speaks Statistics"
      ["Session"
-      ("N" "New" transient/ess-mode--new-session)
+      ("N" "New" R)
       ("R" "Request" ess-request-a-process)
       ("s" "Switch" ess-switch-to-ESS)
       ("q" "Quit" ess-quit)
@@ -4611,6 +4627,13 @@ Currently only works for Emacs Mac port."
       ("d" "R dired" ess-rdired)
       ("v" "View data" ess-view-data-print)
       ]
+     ["Insert"
+      ("if" "Dataframe name" ess-r-insert-obj-dt-name)
+      ("ic" "Column name" ess-r-insert-obj-col-name)
+      ("iC" "Column name (all)" ess-r-insert-obj-col-name-all)
+      ("iv" "Column value" ess-r-insert-obj-value)
+      ("iV" "Column value (all)" ess-r-insert-obj-value-all)
+      ]
      ["Help"
       ("h" "Object" ess-display-help-on-object)
       ("A" "Apropos" ess-display-help-apropos)
@@ -4618,7 +4641,7 @@ Currently only works for Emacs Mac port."
       ]
      ]
     )
-  (define-key ess-mode-map (kbd "C-c m") #'transient/ess-mode))
+  (define-key ess-r-mode-map (kbd "C-c m") #'transient/ess-r-mode))
 
 ;; major-mode specific transient for eww-mode
 (with-eval-after-load 'eww

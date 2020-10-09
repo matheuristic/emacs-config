@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Oct  7 14:35:04 2020
+;; Generated: Thu Oct  8 20:05:10 2020
 
 ;;; Commentary:
 
@@ -2375,6 +2375,9 @@ environment has Racket installed."
 ;; database SQL client using Clojure JDBC
 (use-package ejc-sql
   :commands (ejc-connect ejc-connect-existing-repl ejc-sql-mode)
+  :bind (:map ejc-sql-mode-keymap
+         ("C-g" . nil) ; unbind C-g in mode-map shadowing regular C-g
+         ("C-M-g" . ejc-cancel-query)) ; rebind to C-M-g instead
   :init
   ;; use `completing-read' for minibuffer completion
   ;; change ejc-sql keymap prefix to "C-c s" (from the default "C-c e")

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 10 20:28:06 2020
+;; Generated: Sat Oct 10 22:13:37 2020
 
 ;;; Commentary:
 
@@ -2380,6 +2380,36 @@ Formatting a selected region only works on top-level objects."
 
 (use-package poly-R)
 
+(with-eval-after-load 'reformatter
+  (with-eval-after-load 'ess-r-mode
+    ;; define `ess-r-styler-format-buffer', `ess-r-styler-format-region'
+    ;; and `ess-r-styler-format-on-save-mode'
+    (reformatter-define ess-r-styler-format
+      :program "Rscript"
+      :args `("--vanilla"
+              "-e"
+              ,(mapconcat
+                'identity
+                '("options(styler.colored_print.vertical=FALSE)"
+                  "con <- file(\"stdin\")"
+                  "out <- styler::style_text(readLines(con))"
+                  "close(con)"
+                  "out")
+                "; ")
+              "-")
+      :group 'ess-R
+      :lighter 'RStylFmt)
+    ;; dwim function that calls `ess-r-styler-format-region' if a region
+    ;; is selected, or `ess-r-styler-format-buffer' otherwise
+    (defun ess-r-styler-format-buffer-or-region ()
+      "Format the current R buffer or a region if selected using styler.
+Formatting a selected region only works on top-level objects."
+      (interactive)
+      (cond
+       ((use-region-p) (ess-r-styler-format-region (region-beginning)
+                                                   (region-end)))
+       (t (ess-r-styler-format-buffer))))))
+
 ;; Programming / Racket
 
 (use-package racket-mode
@@ -4640,6 +4670,17 @@ Currently only works for Emacs Mac port."
       ("H" "Browser" ess-display-help-in-browser)
       ]
      ]
+    [
+     ["Format"
+      ("y" "Region or buffer" ess-r-styler-format-buffer-or-region)
+      ("Y" (lambda ()
+             (interactive)
+             (transient--make-description
+              "Buffer on save"
+              ess-r-styler-format-on-save-mode))
+       ess-r-styler-format-on-save-mode :transient t)
+      ]
+     ]
     )
   (define-key ess-r-mode-map (kbd "C-c m") #'transient/ess-r-mode))
 
@@ -4831,7 +4872,6 @@ Currently only works for Emacs Mac port."
         ("r" "Reload" launchctl-reload)
         ("s" "Start" launchctl-start)
         ("o" "Stop" launchctl-stop)
-        ("a" "Restart" launchctl-restart)
         ("m" "Remove" launchctl-remove)
         ("d" "Disable" launchctl-disable)
         ("p" "Enable" launchctl-enable)
@@ -5153,12 +5193,17 @@ Currently only works for Emacs Mac port."
         ("l" "Send file" python-shell-send-file)
         ("z" "Switch to" python-shell-switch-to-shell)
         ]
-       ["Formatting"
+       ["Format"
         ("TAB" "Fill paragraph" python-fill-paragraph :transient t)
         ("<" "Indent left" python-indent-shift-left :transient t)
         (">" "Indent right" python-indent-shift-right :transient t)
-        ("y" "Region or buffer" python-black-format-buffer-or-region :transient t)
-        ("Y" "On save" python-black-format-on-save-mode)
+        ("y" "Region or buffer" python-black-format-buffer-or-region)
+        ("Y" (lambda ()
+               (interactive)
+               (transient--make-description
+                "Buffer on save"
+                python-black-format-on-save-mode))
+         python-black-format-on-save-mode :transient t)
         ]
        ["Other"
         ("j" "Imenu" imenu)

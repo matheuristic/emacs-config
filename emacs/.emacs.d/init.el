@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Oct  9 10:32:23 2020
+;; Generated: Sat Oct 10 20:28:06 2020
 
 ;;; Commentary:
 
@@ -4813,6 +4813,41 @@ Currently only works for Emacs Mac port."
    ]
   )
 (define-key ibuffer-mode-map (kbd "C-c m") #'transient/ibuffer-mode)
+
+;; major-mode specific transient for launchctl-mode
+(when (eq system-type 'darwin)
+  (with-eval-after-load 'launchctl
+    (transient-define-prefix transient/launchctl-mode ()
+      "`launchctl-mode' commands."
+      ["launchctl mode"
+       ["Config"
+        ("n" "New" launchctl-new)
+        ("e" "Edit" launchctl-edit)
+        ("v" "View" launchctl-view)
+        ]
+       ["Service"
+        ("l" "Load" launchctl-load)
+        ("u" "Unload" launchctl-unload)
+        ("r" "Reload" launchctl-reload)
+        ("s" "Start" launchctl-start)
+        ("o" "Stop" launchctl-stop)
+        ("a" "Restart" launchctl-restart)
+        ("m" "Remove" launchctl-remove)
+        ("d" "Disable" launchctl-disable)
+        ("p" "Enable" launchctl-enable)
+        ("i" "Info" launchctl-info)
+        ]
+       ["Other"
+        ("g" "Refresh" launchctl-refresh)
+        ("t" "Sort" tabulated-list-sort)
+        ("*" "Filter" launchctl-filter)
+        ("$" "Setenv" launchctl-setenv)
+        ("#" "Unsetenv" launchctl-unsetenv)
+        ("h" "Help" launchctl-help)
+        ]
+       ]
+      )
+    (define-key launchctl-mode-map (kbd "C-c m") #'transient/launchctl-mode)))
 
 ;; major-mode specific transient for markdown-mode
 (with-eval-after-load 'markdown-mode

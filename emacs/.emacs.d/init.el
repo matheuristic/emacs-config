@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 11 11:50:54 2020
+;; Generated: Sun Oct 11 12:06:32 2020
 
 ;;; Commentary:
 
@@ -987,7 +987,7 @@ With arg N, insert N newlines."
 (when (executable-find "notmuch")
   (use-package notmuch
     :ensure nil ;; in site-lisp directory
-    :bind (("C-c n" . notmuch)
+    :bind (("C-c N" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
            :map notmuch-search-mode-map

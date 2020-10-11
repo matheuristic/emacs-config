@@ -2594,7 +2594,7 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
 (when (executable-find "notmuch")
   (use-package notmuch
     :ensure nil ;; in site-lisp directory
-    :bind (("C-c n" . notmuch)
+    :bind (("C-c N" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
            :map notmuch-search-mode-map

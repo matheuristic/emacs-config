@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 10 22:13:37 2020
+;; Generated: Sun Oct 11 11:46:15 2020
 
 ;;; Commentary:
 
@@ -2624,20 +2624,6 @@ This enables things like ElDoc and autocompletion."
     (define-key org-mode-map (kbd "M-O") #'ace-link-org))
   (with-eval-after-load 'org-agenda
     (define-key org-agenda-mode-map (kbd "M-O") #'ace-link-org-agenda)))
-
-;; load notdeft if installed, make sure org-directory is set prior
-(require 'notdeft-autoloads nil t)
-(when (featurep 'notdeft-autoloads)
-  (setq notdeft-directories `(,(concat org-directory "journal/")
-                              ,(concat org-directory "scratch/"))
-        notdeft-extension "org"
-        notdeft-secondary-extensions '("md" "txt")
-        notdeft-directory (concat org-directory "scratch/")
-        notdeft-xapian-program (concat (file-name-directory
-                                        (locate-library "notdeft"))
-                                       "xapian/notdeft-xapian"))
-  ;; binding to access Notdeft
-  (global-set-key (kbd "C-c N") #'notdeft))
 
 (setq imenu-auto-rescan t)
 

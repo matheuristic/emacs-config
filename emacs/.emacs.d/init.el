@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 11 12:06:32 2020
+;; Generated: Sun Oct 11 13:09:54 2020
 
 ;;; Commentary:
 
@@ -502,6 +502,9 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (global-set-key (kbd "C-x 4 ]") #'my-rotate-buffers-forward)
 
 ;; Buffers, windows, frames, workspaces / Frame management
+
+;; resize frames by pixel instead of by character
+(setq frame-resize-pixelwise t)
 
 (use-package transpose-frame
   :bind (("C-x 5 [" . rotate-frame-anticlockwise)

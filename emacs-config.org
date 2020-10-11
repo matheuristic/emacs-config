@@ -1167,6 +1167,19 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 
 ** Frame management
 
+*** Resize frames pixelwise
+
+Resize frame by pixels rather than by characters (the default). This
+helps to resolve issues with fullscreen and maximized windows not
+filling up the entire screen in some window managers when the screen
+width and height are not multiples of the character width and height.
+
+#+name: frame-resize-pixelwise
+#+begin_src emacs-lisp
+;; resize frames by pixel instead of by character
+(setq frame-resize-pixelwise t)
+#+end_src
+
 *** transpose-frame for rotating frames                               :melpa:
 
 [[https://github.com/emacsorphanage/transpose-frame][transpose-frame]] allows for the rotation of the frame to get a new
@@ -5632,13 +5645,14 @@ References:
 
 ** Change default cursor type                                         :early:
 
-Change cursor type to a non-blinking bar.
+Change cursor type to a bar. By default, the cursor blinks 10 times
+and stops blinking after when idling. Modify ~blink-cursor-blinks~ to
+change this number.
 
 #+name: cursor
 #+begin_src emacs-lisp
 ;; set cursor after initialization
 (setq-default cursor-type 'bar)
-(blink-cursor-mode 0)
 #+end_src
 
 ** Decorations                                                        :early:
@@ -10168,6 +10182,8 @@ The main configuration file.
 <<my-rotate-window-buffers>>
 
 ;; Buffers, windows, frames, workspaces / Frame management
+
+<<frame-resize-pixelwise>>
 
 <<transpose-frame>>
 

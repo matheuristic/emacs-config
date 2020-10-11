@@ -96,6 +96,7 @@
    `(query-replace ((t (:background ,bg-search :strike-through t))))
    `(region ((t (:background ,bg-region :foreground ,fg))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
+   `(vertical-border ((t (:foreground ,bg-light))))
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))
 
    ;; org

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 11 11:46:15 2020
+;; Generated: Sun Oct 11 11:50:54 2020
 
 ;;; Commentary:
 
@@ -285,12 +285,11 @@ if the point is in the minibuffer."
 (add-to-list 'recentf-exclude "^/\\(?:scp\\|ssh\\|su\\|sudo\\)?:")
 ;; exclude files from /var/folder as these are temp files
 (add-to-list 'recentf-exclude "^/var/folders")
-;; exclude files in `org-agenda-files' and `notdeft-directories'
+;; exclude files in `org-agenda-files'
 ;; these files are quickly accessible from their respective tooling
 (add-hook 'after-init-hook
           (lambda ()
-            (dolist (file-list (list org-agenda-files
-                                     notdeft-directories))
+            (dolist (file-list (list org-agenda-files))
               (dolist (exclude-file file-list)
                 (add-to-list 'recentf-exclude
                              (concat "^" exclude-file))))))

@@ -533,6 +533,50 @@ bindings.
   (setq use-package-always-ensure t)) ;; default to ":ensure t"
 #+end_src
 
+** Convenience function for reinstalling packages
+
+At times, it is useful to be able to reinstall and reload an Emacs
+package without restarting.
+
+Define a convenience function ~my-reinstall-package~ that unloads all
+loaded features associated with a given package, reinstalls the
+package and reloads the features that were unloaded.
+
+Adapted from:
+- [[https://emacsredux.com/blog/2020/09/12/reinstalling-emacs-packages/][Reinstalling Emacs Packages | Emacs Redux]]
+
+#+name: my-reinstall-package
+#+begin_src emacs-lisp
+;; convenience function to reinstall and reload an Emacs package
+(require 'cl-macs)
+(require 'seq)
+(defun my-reinstall-package (pkg)
+  "Prompts for an installed package PKG and reinstalls it.
+
+All loaded features that correspond to Elisp filenames in the
+package install directory (but not its subdirectories) are
+unloaded, the package reinstalled, and the previously unloaded
+features are reloaded."
+  (interactive (list (intern (completing-read
+                              "Reinstall package: "
+                              (mapcar #'car package-alist)))))
+  (let* ((pkg-desc (car (alist-get pkg package-alist)))
+         (pkg-dir (file-name-as-directory
+                   (cl-struct-slot-value 'package-desc 'dir pkg-desc)))
+         (pkg-files (directory-files pkg-dir nil "\\.el$"))
+         (pkg-features (mapcar
+                        (lambda (fname)
+                          (intern (file-name-sans-extension fname)))
+                        pkg-files))
+         (reload-features (seq-filter 'featurep pkg-features)))
+    (dolist (feat reload-features)
+      (ignore-errors ; handle when pkg is a dependency of another package
+        (unload-feature feat t)))
+    (package-reinstall pkg)
+    (dolist (feat reload-features)
+      (require feat))))
+#+end_src
+
 * Environment variables                                     :semiearly:melpa:
 
 Copy the environment variables over from the login shell.
@@ -10104,6 +10148,8 @@ The main configuration file.
 <<package-init>>
 
 <<use-package>>
+
+<<my-reinstall-package>>
 
 ;; Environment variables
 

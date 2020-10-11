@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 11 13:09:54 2020
+;; Generated: Sun Oct 11 15:36:09 2020
 
 ;;; Commentary:
 
@@ -62,6 +62,35 @@
   (require 'use-package)
   (require 'bind-key)
   (setq use-package-always-ensure t)) ;; default to ":ensure t"
+
+;; convenience function to reinstall and reload an Emacs package
+(require 'cl-macs)
+(require 'seq)
+(defun my-reinstall-package (pkg)
+  "Prompts for an installed package PKG and reinstalls it.
+
+All loaded features that correspond to Elisp filenames in the
+package install directory (but not its subdirectories) are
+unloaded, the package reinstalled, and the previously unloaded
+features are reloaded."
+  (interactive (list (intern (completing-read
+                              "Reinstall package: "
+                              (mapcar #'car package-alist)))))
+  (let* ((pkg-desc (car (alist-get pkg package-alist)))
+         (pkg-dir (file-name-as-directory
+                   (cl-struct-slot-value 'package-desc 'dir pkg-desc)))
+         (pkg-files (directory-files pkg-dir nil "\\.el$"))
+         (pkg-features (mapcar
+                        (lambda (fname)
+                          (intern (file-name-sans-extension fname)))
+                        pkg-files))
+         (reload-features (seq-filter 'featurep pkg-features)))
+    (dolist (feat reload-features)
+      (ignore-errors ; handle when pkg is a dependency of another package
+        (unload-feature feat t)))
+    (package-reinstall pkg)
+    (dolist (feat reload-features)
+      (require feat))))
 
 ;; Environment variables
 

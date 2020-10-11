@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 11 15:36:09 2020
+;; Generated: Sun Oct 11 16:55:16 2020
 
 ;;; Commentary:
 
@@ -3003,6 +3003,9 @@ for more information."
   :config
   ;; enable `tablist-minor-mode' automatically
   (add-hook 'tabulated-list-mode-hook 'tablist-minor-mode)
+  ;; tablist-minor-mode shadows "U" binding in package-menu-mode-map
+  ;; so add an extra binding for package-menu-mark-upgrades
+  (define-key package-menu-mode-map (kbd "C-c u") #'package-menu-mark-upgrades)
   ;; add tablist entries to the menu bar
   (easy-menu-define my-tablist-minor-mode-menu tablist-minor-mode-map
     "Menu for Tablist Minor Mode Map."
@@ -3840,6 +3843,7 @@ whitespace, indenting and untabifying."
                            ")"))
     ("eb" "Build config" transient/system--display-emacs-build-config)
     ("ei" "Init time" emacs-init-time)
+    ("el" "List packages" list-packages :transient nil)
     ("ep" "Emacs PID" transient/system--display-emacs-pid)
     ("es" "Toggle server-mode" server-mode)
     ("er" "Restart server" restart-emacs-server)

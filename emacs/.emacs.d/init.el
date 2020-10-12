@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct 12 13:58:36 2020
+;; Generated: Mon Oct 12 14:13:59 2020
 
 ;;; Commentary:
 
@@ -199,15 +199,13 @@ cache before processing."
     (interactive "P")
     (when (and (not reload)
                (file-exists-p my-exec-path-envs-cache-file))
-      (message "Loading exec-path-from-shell envs cache file %s"
-               my-exec-path-envs-cache-file)
+      (message "Using existing exec-path-from-shell envs cache file")
       (load-file my-exec-path-envs-cache-file))
     (when (or reload
               (not my-exec-path-envs))
       (setq my-exec-path-envs (exec-path-from-shell-getenvs
                                exec-path-from-shell-variables))
-      (message "Saving exec-path-from-shell envs to cache file %s"
-               my-exec-path-envs-cache-file)
+      (message "Persisting exec-path-from-shell envs cache file")
       (my-persist-variables-to-file '(my-exec-path-envs)
                                     my-exec-path-envs-cache-file))
     ;; copied from exec-path-from-shell-copy-envs

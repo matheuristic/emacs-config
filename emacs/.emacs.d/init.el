@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct 12 10:16:39 2020
+;; Generated: Mon Oct 12 11:25:58 2020
 
 ;;; Commentary:
 
@@ -2738,13 +2738,12 @@ This enables things like ElDoc and autocompletion."
 (require 'censor)
 
 ;; add visual indentation guides
+;; don't enable this in any mode by default as it can cause slowdown
+;; when editing large files, as well as issues with copy-pasting
 (use-package highlight-indent-guides
   :init (setq highlight-indent-guides-method 'character
               highlight-indent-guides-responsive 'top
-              highlight-indent-guides-character ?\x2502)
-  :config
-  (add-hook 'python-mode-hook (lambda ()
-                                (highlight-indent-guides-mode 1))))
+              highlight-indent-guides-character ?\x2502))
 
 ;; pulse line after changing focused window using `ace-window'
 (with-eval-after-load 'ace-window

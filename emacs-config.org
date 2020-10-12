@@ -6021,13 +6021,12 @@ Use when editing Python files by default.
 #+name: highlight-indent-guides
 #+begin_src emacs-lisp
 ;; add visual indentation guides
+;; don't enable this in any mode by default as it can cause slowdown
+;; when editing large files, as well as issues with copy-pasting
 (use-package highlight-indent-guides
   :init (setq highlight-indent-guides-method 'character
               highlight-indent-guides-responsive 'top
-              highlight-indent-guides-character ?\x2502)
-  :config
-  (add-hook 'python-mode-hook (lambda ()
-                                (highlight-indent-guides-mode 1))))
+              highlight-indent-guides-character ?\x2502))
 #+end_src
 
 ** Pulse line on window focus changes or after popping the mark ring

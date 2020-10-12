@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct 12 13:50:58 2020
+;; Generated: Mon Oct 12 13:58:36 2020
 
 ;;; Commentary:
 
@@ -201,8 +201,7 @@ cache before processing."
                (file-exists-p my-exec-path-envs-cache-file))
       (message "Loading exec-path-from-shell envs cache file %s"
                my-exec-path-envs-cache-file)
-      (load-file my-exec-path-envs-cache-file)
-      (message "Loaded %s" my-exec-path-envs-cache-file))
+      (load-file my-exec-path-envs-cache-file))
     (when (or reload
               (not my-exec-path-envs))
       (setq my-exec-path-envs (exec-path-from-shell-getenvs
@@ -210,12 +209,12 @@ cache before processing."
       (message "Saving exec-path-from-shell envs to cache file %s"
                my-exec-path-envs-cache-file)
       (my-persist-variables-to-file '(my-exec-path-envs)
-                                    my-exec-path-envs-cache-file)
-      (message "Saved %s" my-exec-path-envs-cache-file))
+                                    my-exec-path-envs-cache-file))
     ;; copied from exec-path-from-shell-copy-envs
     (mapc (lambda (pair)
             (exec-path-from-shell-setenv (car pair) (cdr pair)))
-          my-exec-path-envs))
+          my-exec-path-envs)
+    (message "Initialized exec-path-from-shell environment variables"))
   (my-exec-path-from-shell-initialize nil))
 
 ;; Backend and frontend frameworks for building user interfaces

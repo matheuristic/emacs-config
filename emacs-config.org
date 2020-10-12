@@ -531,6 +531,9 @@ bindings.
   (require 'use-package)
   (require 'bind-key)
   (setq use-package-always-ensure t)) ;; default to ":ensure t"
+
+;; gather use-package stats, "M-x use-package-report" to see report
+(setq use-package-compute-statistics t)
 #+end_src
 
 ** Convenience function for reinstalling packages
@@ -545,12 +548,12 @@ package and reloads the features that were unloaded.
 Adapted from:
 - [[https://emacsredux.com/blog/2020/09/12/reinstalling-emacs-packages/][Reinstalling Emacs Packages | Emacs Redux]]
 
-#+name: my-reinstall-package
+#+name: my-package-reinstall
 #+begin_src emacs-lisp
 ;; convenience function to reinstall and reload an Emacs package
 (require 'cl-macs)
 (require 'seq)
-(defun my-reinstall-package (pkg)
+(defun my-package-reinstall (pkg)
   "Prompts for an installed package PKG and reinstalls it.
 
 All loaded features that correspond to Elisp filenames in the
@@ -7679,6 +7682,26 @@ Transient for accessing Org entry points.
   (global-set-key (kbd "C-c o") #'transient/org-launcher))
 #+end_src
 
+*** Package management transient
+
+Transient for accessing Emacs package management.
+
+#+name: package-transient
+#+begin_src emacs-lisp
+;; add transient popup for Emacs package management
+(transient-define-prefix transient/package ()
+  "Emacs package management commands."
+  ["Package management"
+   ("l" "List packages" list-packages)
+   ("i" "Install package" package-install)
+   ("k" "Delete package" package-delete)
+   ("r" "Reinstall package" my-package-reinstall)
+   ("R" "Use-package report" use-package-report) ; requires use-package-compute-statistics set to non-nil before use-package declarations
+   ]
+  )
+(global-set-key (kbd "C-c e P") #'transient/package)
+#+end_src
+
 *** Password store transient
 
 Transient for accessing password-store.el commands.
@@ -7891,6 +7914,30 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
 (global-set-key (kbd "C-c S") #'transient/search)
 #+end_src
 
+*** Server transient
+
+Transient for Emacs server management.
+
+#+name: server-transient
+#+begin_src emacs-lisp
+;; add transient popup for Emacs server management
+(transient-define-prefix transient/server ()
+  "Emacs server-related commands."
+  ;; suffix actions don't exit the transient popup by default
+  :transient-suffix 'transient--do-stay
+  [:description (lambda ()
+                  (transient--make-description
+                   "Emacs server-mode"
+                   server-mode))
+   ("s" "Toggle server-mode" server-mode)
+   ("r" "Restart server" restart-emacs-server)
+   ("e" "Next server editing buffer" server-edit)
+   ("k" "Stop server and delete connection file" server-force-delete)
+   ]
+  )
+(global-set-key (kbd "C-c e s") #'transient/server)
+#+end_src
+
 *** Shell entry transient
 
 Transient providing entry points into Eshell and vterm.
@@ -7987,36 +8034,26 @@ restarting Emacs as a server.
                                  system-configuration-features))
                       "\n")))
 
-;; add transient popup for system info, process and Emacs runtime
-;; commands (including `server-mode')
+;; add transient popup for system process management and info, and
+;; Emacs build and runtime info
 (transient-define-prefix transient/system ()
-  "System info, process and Emacs runtime/server-related commands."
-  ;; suffix actions don't exit the transient popup by default
-  :transient-suffix 'transient--do-stay
-  ["System, process and Emacs runtime/server"
-   [:description (lambda ()
-                   (concat "Emacs ("
-                           (transient--make-description
-                            "server-mode"
-                            server-mode)
-                           ")"))
+  "System process managment, general info and Emacs runtime commands."
+  ["System, process and Emacs runtime"
+   ["Emacs"
     ("eb" "Build config" transient/system--display-emacs-build-config)
     ("ei" "Init time" emacs-init-time)
-    ("el" "List packages" list-packages :transient nil)
     ("ep" "Emacs PID" transient/system--display-emacs-pid)
-    ("es" "Toggle server-mode" server-mode)
-    ("er" "Restart server" restart-emacs-server)
     ("eu" "Uptime" emacs-uptime)
     ("ev" "Version" emacs-version)
     ]
    ["System"
-    ("sp" "Proced" proced :transient nil)
-    ("st" "Datetime" transient/system--display-current-datetime)
-    ("sw" "World time" display-time-world :transient nil)
+    ("sp" "Proced" proced)
+    ("st" "Datetime" transient/system--display-current-datetime :transient t)
+    ("sw" "World time" display-time-world)
     ]
    ]
   )
-(global-set-key (kbd "C-c e s") #'transient/system)
+(global-set-key (kbd "C-c e S") #'transient/system)
 #+end_src
 
 *** Visual transient
@@ -10153,7 +10190,7 @@ The main configuration file.
 
 <<use-package>>
 
-<<my-reinstall-package>>
+<<my-package-reinstall>>
 
 ;; Environment variables
 
@@ -10695,6 +10732,8 @@ The main configuration file.
 
 <<org-launcher-transient>>
 
+<<package-transient>>
+
 <<password-store-transient>>
 
 <<profiler-transient>>
@@ -10704,6 +10743,8 @@ The main configuration file.
 <<registers-transient>>
 
 <<search-transient>>
+
+<<server-transient>>
 
 <<shell-transient>>
 

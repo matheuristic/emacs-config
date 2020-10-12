@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 11 16:55:16 2020
+;; Generated: Mon Oct 12 10:16:39 2020
 
 ;;; Commentary:
 
@@ -63,10 +63,13 @@
   (require 'bind-key)
   (setq use-package-always-ensure t)) ;; default to ":ensure t"
 
+;; gather use-package stats, "M-x use-package-report" to see report
+(setq use-package-compute-statistics t)
+
 ;; convenience function to reinstall and reload an Emacs package
 (require 'cl-macs)
 (require 'seq)
-(defun my-reinstall-package (pkg)
+(defun my-package-reinstall (pkg)
   "Prompts for an installed package PKG and reinstalls it.
 
 All loaded features that correspond to Elisp filenames in the
@@ -3577,6 +3580,19 @@ whitespace, indenting and untabifying."
     )
   (global-set-key (kbd "C-c o") #'transient/org-launcher))
 
+;; add transient popup for Emacs package management
+(transient-define-prefix transient/package ()
+  "Emacs package management commands."
+  ["Package management"
+   ("l" "List packages" list-packages)
+   ("i" "Install package" package-install)
+   ("k" "Delete package" package-delete)
+   ("r" "Reinstall package" my-package-reinstall)
+   ("R" "Use-package report" use-package-report) ; requires use-package-compute-statistics set to non-nil before use-package declarations
+   ]
+  )
+(global-set-key (kbd "C-c e P") #'transient/package)
+
 ;; add transient for password-store commands
 (with-eval-after-load 'auth-source-pass
   (with-eval-after-load 'password-store
@@ -3754,6 +3770,23 @@ whitespace, indenting and untabifying."
   )
 (global-set-key (kbd "C-c S") #'transient/search)
 
+;; add transient popup for Emacs server management
+(transient-define-prefix transient/server ()
+  "Emacs server-related commands."
+  ;; suffix actions don't exit the transient popup by default
+  :transient-suffix 'transient--do-stay
+  [:description (lambda ()
+                  (transient--make-description
+                   "Emacs server-mode"
+                   server-mode))
+   ("s" "Toggle server-mode" server-mode)
+   ("r" "Restart server" restart-emacs-server)
+   ("e" "Next server editing buffer" server-edit)
+   ("k" "Stop server and delete connection file" server-force-delete)
+   ]
+  )
+(global-set-key (kbd "C-c e s") #'transient/server)
+
 ;; add transient popup for shell tools
 (transient-define-prefix transient/shell ()
   "Various shell tools."
@@ -3828,36 +3861,26 @@ whitespace, indenting and untabifying."
                                  system-configuration-features))
                       "\n")))
 
-;; add transient popup for system info, process and Emacs runtime
-;; commands (including `server-mode')
+;; add transient popup for system process management and info, and
+;; Emacs build and runtime info
 (transient-define-prefix transient/system ()
-  "System info, process and Emacs runtime/server-related commands."
-  ;; suffix actions don't exit the transient popup by default
-  :transient-suffix 'transient--do-stay
-  ["System, process and Emacs runtime/server"
-   [:description (lambda ()
-                   (concat "Emacs ("
-                           (transient--make-description
-                            "server-mode"
-                            server-mode)
-                           ")"))
+  "System process managment, general info and Emacs runtime commands."
+  ["System, process and Emacs runtime"
+   ["Emacs"
     ("eb" "Build config" transient/system--display-emacs-build-config)
     ("ei" "Init time" emacs-init-time)
-    ("el" "List packages" list-packages :transient nil)
     ("ep" "Emacs PID" transient/system--display-emacs-pid)
-    ("es" "Toggle server-mode" server-mode)
-    ("er" "Restart server" restart-emacs-server)
     ("eu" "Uptime" emacs-uptime)
     ("ev" "Version" emacs-version)
     ]
    ["System"
-    ("sp" "Proced" proced :transient nil)
-    ("st" "Datetime" transient/system--display-current-datetime)
-    ("sw" "World time" display-time-world :transient nil)
+    ("sp" "Proced" proced)
+    ("st" "Datetime" transient/system--display-current-datetime :transient t)
+    ("sw" "World time" display-time-world)
     ]
    ]
   )
-(global-set-key (kbd "C-c e s") #'transient/system)
+(global-set-key (kbd "C-c e S") #'transient/system)
 
 ;; make sure functions used by visual transient are loaded
 (require 'follow)

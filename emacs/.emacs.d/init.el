@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct 12 14:13:59 2020
+;; Generated: Tue Oct 13 15:01:19 2020
 
 ;;; Commentary:
 
@@ -56,6 +56,35 @@ One useful context action example is to run `org-show-context'
 after jumping to an Org buffer location to ensure the region
 around the new point location is visible."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
+
+(defun my-always-revert-buffer ()
+  "Toggles always reverting the current buffer visiting a file.
+
+The value of `auto-revert-mode' is used to determine if automatic
+file reversion is already on.
+
+If `auto-revert-mode' is nil, then enable `auto-revert-mode' and
+add the path of the file the buffer is visiting to
+`revert-without-query'.
+
+If `auto-revert-mode' is non-nil, then disable `auto-revert-mode'
+and remove the path of the file the buffer is visiting from
+`revert-without-query'.
+
+No effect if the current buffer is not visiting a file."
+  (interactive)
+  (let ((fname (abbreviate-file-name ; match filename from `find-file-noselect'
+	        (expand-file-name (buffer-file-name)))))
+    (if buffer-file-name
+        (if (and (boundp 'auto-revert-mode) auto-revert-mode)
+            (progn
+              (auto-revert-mode -1)
+              (setq revert-without-query (remove fname revert-without-query))
+              (message "Always reverting buffer OFF."))
+          (auto-revert-mode 1)
+          (setq revert-without-query (add-to-list 'revert-without-query fname))
+          (message "Always revert buffer ON."))
+      (message "Current buffer is not visiting a file."))))
 
 (defun my-persist-variables-to-file (varlist filename)
   "Persist variables in VARLIST to a file FILENAME."
@@ -3358,7 +3387,7 @@ whitespace, indenting and untabifying."
     ("ca" "All hygiene ops" transient/buffer--apply-all-hygiene-ops-region-or-buffer)
     ]
    ["File operations"
-    ("R" "Revert" revert-buffer)
+    ("r" "Revert" revert-buffer)
     ("B" "Bury" bury-buffer)
     ("U" "Unbury" unbury-buffer)
     ("s" "Save" save-buffer)
@@ -3367,6 +3396,13 @@ whitespace, indenting and untabifying."
     ("K" "Kill matching" kill-matching-buffers)
     ("o" "Kill others" transient/buffer--kill-other-buffers)
     ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
+    ]
+   ["Other"
+    ("R" (lambda ()
+           (transient--make-description
+            "Autorevert"
+            (and (boundp 'auto-revert-mode) auto-revert-mode)))
+     my-always-revert-buffer :transient t)
     ]
    ]
   )

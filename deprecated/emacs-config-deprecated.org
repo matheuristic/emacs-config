@@ -4371,3 +4371,32 @@ Neuron major mode transient.
     )
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
 #+end_src
+
+* Backlog
+** Web
+
+*** [#C] org-static-blog                                              :melpa:
+
+[[https://github.com/bastibe/org-static-blog][org-static-blog]] is a static website generator.
+
+It integrates well with Github pages or GitLab pages.
+
+It is possible to set up auto-rendering using CI tooling a new blog
+post is pushed, see [[https://gitlab.com/_zngguvnf/org-static-blog-example][here]].
+
+To enable local development, may want to use a =.dir-locals= file in
+the repository that sets up a switcher between local development and
+remote deployment for:
+- ~org-static-blog-publish-url~
+- ~org-static-blog-publish-directory~
+- ~org-static-blog-posts-directory~
+- ~org-static-blog-drafts-directory~
+
+References:
+- [[https://jao.io/blog/2020-02-11-simplicity.html][simplicity]]
+- [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
+
+An alternative is to use the built-in Org publish facilities. See [[https://www.evenchick.com/blog/blogging-with-org-mode.html][here]]
+and [[https://ogbe.net/blog/blogging_with_org.html][here]] for more information. This is a bit more work, especially the
+RSS setup, but does not require adding another package dependency.
+

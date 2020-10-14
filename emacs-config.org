@@ -4340,7 +4340,7 @@ something else.
 
 #+begin_example
 on open location this_URL
-    do shell script "/Applications/Emacs.app/Contents/MacOS/bin/emacsclient \"" & this_URL & "\""
+    do shell script "/Applications/Emacs.app/Contents/MacOS/bin/emacsclient \"" & this_URL & "\" && open -a Emacs"
 end open location
 #+end_example
 
@@ -11028,31 +11028,6 @@ supporting ~oer-reveal~ package. It is also more frequently updated.
 For instance, at the time of writing ~org-re-reveal~ supports
 ~reveal.js~ 4 but ~org-reveal~ does not.
 
-*** [#C] org-static-blog                                              :melpa:
-
-[[https://github.com/bastibe/org-static-blog][org-static-blog]] is a static website generator.
-
-It integrates well with Github pages or GitLab pages.
-
-It is possible to set up auto-rendering using CI tooling a new blog
-post is pushed, see [[https://gitlab.com/_zngguvnf/org-static-blog-example][here]].
-
-To enable local development, may want to use a =.dir-locals= file in
-the repositort that sets up a switcher between local development and
-remote deployment for:
-- ~org-static-blog-publish-url~
-- ~org-static-blog-publish-directory~
-- ~org-static-blog-posts-directory~
-- ~org-static-blog-drafts-directory~
-
-References:
-- [[https://jao.io/blog/2020-02-11-simplicity.html][simplicity]]
-- [[https://favicon.io/emoji-favicons/floppy-disk/][Floppy Disk | Favicon.io]] (for favicon)
-
-An alternative is to use the built-in Org publish facilities. See [[https://www.evenchick.com/blog/blogging-with-org-mode.html][here]]
-and [[https://ogbe.net/blog/blogging_with_org.html][here]] for more information. This is a bit more work, especially the
-RSS setup, but does not require adding another package dependency.
-
 ** Programming
 
 *** Emacs lisp
@@ -11244,6 +11219,22 @@ packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://g
 *** [#C] use-proxy                                                    :melpa:
 
 [[https://github.com/rayw000/use-proxy][GitHub - rayw000/use-proxy: Easy way to enable/disable proxies in Emacs]]
+
+*** [#B] emacs-easy-hugo                                              :melpa:
+
+[[https://github.com/masasam/emacs-easy-hugo][GitHub - masasam/emacs-easy-hugo: Emacs major mode for managing hugo]]
+
+[[https://gohugo.io/hosting-and-deployment/hosting-on-github/][Host on GitHub | Hugo]]
+
+[[https://medium.com/zendesk-engineering/a-github-actions-workflow-to-generate-publish-your-hugo-website-f36375e56cf7][A Github Actions Workflow to Generate & Publish your Hugo Website | by Pete Smith]]
+
+[[https://sebastiandedeyne.com/how-to-schedule-posts-with-hugo-netlify-and-github-actions/][How to schedule posts on a static Hugo site with Netlify and GitHub Actions]]
+
+[[https://www.ying-ish.com/essay/easy-hugo/][Writing Hugo pages in org-mode with Easy-Hugo · she will never swims alone]]
+
+*** [#C] ox-hugo                                                      :melpa:
+
+[[https://ox-hugo.scripter.co/][ox-hugo - Org to Hugo exporter]]
 
 ** Writing
 

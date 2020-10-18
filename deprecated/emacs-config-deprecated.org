@@ -1157,6 +1157,22 @@ Registers (_q_: quit)"
 (global-set-key (kbd "C-c C-M-\"") 'my-hydra/registers/body)
 #+end_src
 
+** beginend for dwim behavior for "M-<" and "M->"                     :melpa:
+
+[[https://github.com/DamienCassou/beginend][Beginend]] redefines ~beginning-of-buffer~ and ~end-of-buffer~ (~M-<~
+and ~M->~ by default) to move the point to locations that make sense
+for supported major modes. Go to the real beginning and end of buffer
+by pressing the same key sequence again.
+
+#+name: beginend
+#+begin_src emacs-lisp
+;; dwim behavior for `beginning-of-buffer' and `end-of-buffer'
+(use-package beginend
+  :config
+  ;; enable beginend-mode is all supported major modes
+  (beginend-global-mode))
+#+end_src
+
 * Emacs as an edit server
 
 ** Emacs client-server hydra                                          :hydra:

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Oct 13 15:01:19 2020
+;; Generated: Sat Oct 17 23:29:39 2020
 
 ;;; Commentary:
 
@@ -336,10 +336,10 @@ cache before processing."
       '(bar workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
       '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker "  "))
     ;; hide left margin indicator bar
-    (set-face-background 'doom-modeline-bar
-                         (face-background 'mode-line))
-    (set-face-background 'doom-modeline-bar-inactive
-                         (face-background 'mode-line-inactive))
+    ;; (set-face-background 'doom-modeline-bar
+    ;;                      (face-background 'mode-line))
+    ;; (set-face-background 'doom-modeline-bar-inactive
+    ;;                      (face-background 'mode-line-inactive))
     ;; enable mode line
     (doom-modeline-mode 1)))
 
@@ -350,7 +350,7 @@ cache before processing."
       ;; modes in minions-direct are always shown
       ;; use UTF-8 mode line lighter
       (setq minions-direct '(overwrite-mode view-mode)
-            minions-mode-line-lighter "☰")
+            minions-mode-line-lighter "≡")
       (minions-mode 1)))
 
 ;; Backups
@@ -1070,12 +1070,6 @@ With arg N, insert N newlines."
      '("menu-bar" "Tools")
      menu-item)))
 
-;; dwim behavior for `beginning-of-buffer' and `end-of-buffer'
-(use-package beginend
-  :config
-  ;; enable beginend-mode is all supported major modes
-  (beginend-global-mode))
-
 ;; Emacs as an edit server
 
 ;; server mode restart safety valve
@@ -1468,13 +1462,14 @@ Assumes "
 
 ;; render DocView images at full resolution and downsample using the
 ;; built-in image scaler in Emacs 28+ or ImageMagick in prior versions
-(setq doc-view-scale-internally t
-      doc-view-resolution (floor (my-frame-monitor-dpi))
-      doc-view-image-width (let* ((attrs (frame-monitor-attributes))
-                                  (geom (assoc 'geometry attrs))
-                                  (width-pixels (nth 3 geom)))
-                             ;; default width is 40% of screen width
-                             (floor (* 0.4 width-pixels))))
+(when (display-graphic-p)
+  (setq doc-view-scale-internally t
+        doc-view-resolution (floor (my-frame-monitor-dpi))
+        doc-view-image-width (let* ((attrs (frame-monitor-attributes))
+                                    (geom (assoc 'geometry attrs))
+                                    (width-pixels (nth 3 geom)))
+                               ;; default width is 40% of screen width
+                               (floor (* 0.4 width-pixels)))))
 
 (use-package csv-mode
   :commands csv-mode
@@ -2184,7 +2179,10 @@ when buffer is clean, and more frequently when it has errors."
   (add-hook 'flycheck-after-syntax-check-hook
             #'flycheck--adjust-flycheck-idle-change-delay)
   ;; default modes within which to use Flycheck
-  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode))
+  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode)
+  ;; always show flycheck-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'flycheck-mode)))
 
 ;; Programming / DevSkim and Flycheck
 
@@ -2225,13 +2223,17 @@ when buffer is clean, and more frequently when it has errors."
 ;; show it activate it using `lsp-toggle-signature-auto-activate' or
 ;; C-S-SPC to peek, https://github.com/emacs-lsp/lsp-mode/issues/1223
 (use-package lsp-mode
-  :init (setq lsp-print-io nil ;; disable logging packets between Emacs and LS
-              lsp-print-performance nil ;; disable performance logging
-              lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
-              lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
-              lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
-              lsp-diagnostic-package :flycheck ;; use Flycheck for syntax checking
-              lsp-signature-auto-activate nil)) ;; don't automatically show signature
+  :init (setq lsp-print-io nil ; disable logging packets between Emacs and LS
+              lsp-print-performance nil ; disable performance logging
+              lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
+              lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
+              lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
+              lsp-diagnostic-package :flycheck ; use Flycheck for syntax checking
+              lsp-signature-auto-activate nil) ; don't automatically show signature
+  :config
+  ;; always show lsp-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'lsp-mode)))
 
 ;; company backend for LSP-driven completion
 (use-package company-lsp
@@ -2265,7 +2267,11 @@ when buffer is clean, and more frequently when it has errors."
   :hook ((cider-mode . eldoc-mode)
          (cider-repl-mode . eldoc-mode)
          (cider-repl-mode . paredit-mode))
-  :config (setq nrepl-log-messages t))
+  :init (setq nrepl-log-messages t)
+  :config
+  ;; always show cider-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'cider-mode)))
 
 ;; clojure linting, requires clj-kondo be installed on the system
 (when (executable-find "clj-kondo")
@@ -2556,12 +2562,19 @@ This enables things like ElDoc and autocompletion."
 ;; project interaction library
 (use-package projectile
   :demand t
+  :init (setq projectile-completion-system 'default
+              projectile-create-missing-test-files t ; create test file if none is found when toggling
+              projectile-mode-line-prefix " Prj"
+              projectile-switch-project-action 'projectile-commander
+              projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
   :config
-  (setq projectile-completion-system 'default
-        projectile-create-missing-test-files t ;; create test file if none is found when toggling
-        projectile-switch-project-action 'projectile-commander
-        projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
-  (projectile-mode)) ;; enable mode globally
+  ;; don't show project type in minor mode lighter
+  (defun my-projectile-mode-line ()
+    "Report project name in the modeline."
+    (format "%s[%s]" projectile-mode-line-prefix (or (projectile-project-name) "-")))
+  (setq projectile-mode-line-function 'my-projectile-mode-line)
+  ;; enable mode globally
+  (projectile-mode))
 
 ;; Org TODOs for projectile projects
 ;; use `org-capture' to capture and store TODOs for the current project
@@ -2578,7 +2591,10 @@ This enables things like ElDoc and autocompletion."
   :commands magit-status
   :bind ("C-x g" . magit-status)
   :config (add-hook 'magit-process-find-password-functions
-                    #'magit-process-password-auth-source))
+                    #'magit-process-password-auth-source)
+  ;; always show magit-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'magit-mode)))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
@@ -2697,7 +2713,9 @@ This enables things like ElDoc and autocompletion."
 (use-package anzu
   :bind (([remap query-replace] . anzu-query-replace)
          ([remap query-replace-regexp] . anzu-query-replace-regexp))
-  :init (global-anzu-mode))
+  :init (setq anzu-mode-lighter "" ; don't show in mode line since always activated
+              anzu-deactivate-region t) ; deactivate region after replacing text
+  :config (global-anzu-mode))
 
 ;; jump to definition using ag or rg and applying heuristics
 (use-package dumb-jump

@@ -2307,22 +2307,6 @@ See [[https://emacsnotes.wordpress.com/2018/11/15/elmacro-write-emacs-lisp-snipp
      menu-item)))
 #+end_src
 
-** beginend for dwim behavior for "M-<" and "M->"                     :melpa:
-
-[[https://github.com/DamienCassou/beginend][Beginend]] redefines ~beginning-of-buffer~ and ~end-of-buffer~ (~M-<~
-and ~M->~ by default) to move the point to locations that make sense
-for supported major modes. Go to the real beginning and end of buffer
-by pressing the same key sequence again.
-
-#+name: beginend
-#+begin_src emacs-lisp
-;; dwim behavior for `beginning-of-buffer' and `end-of-buffer'
-(use-package beginend
-  :config
-  ;; enable beginend-mode is all supported major modes
-  (beginend-global-mode))
-#+end_src
-
 * Emacs as an edit server
 
 ** Server mode
@@ -3280,13 +3264,14 @@ Useful keybindings in DocView mode:
 #+begin_src emacs-lisp
 ;; render DocView images at full resolution and downsample using the
 ;; built-in image scaler in Emacs 28+ or ImageMagick in prior versions
-(setq doc-view-scale-internally t
-      doc-view-resolution (floor (my-frame-monitor-dpi))
-      doc-view-image-width (let* ((attrs (frame-monitor-attributes))
-                                  (geom (assoc 'geometry attrs))
-                                  (width-pixels (nth 3 geom)))
-                             ;; default width is 40% of screen width
-                             (floor (* 0.4 width-pixels))))
+(when (display-graphic-p)
+  (setq doc-view-scale-internally t
+        doc-view-resolution (floor (my-frame-monitor-dpi))
+        doc-view-image-width (let* ((attrs (frame-monitor-attributes))
+                                    (geom (assoc 'geometry attrs))
+                                    (width-pixels (nth 3 geom)))
+                               ;; default width is 40% of screen width
+                               (floor (* 0.4 width-pixels)))))
 #+end_src
 
 ** csv-mode for comma-delimited and tab-delimited files (CSV, TSV)     :elpa:
@@ -4502,7 +4487,10 @@ when buffer is clean, and more frequently when it has errors."
   (add-hook 'flycheck-after-syntax-check-hook
             #'flycheck--adjust-flycheck-idle-change-delay)
   ;; default modes within which to use Flycheck
-  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode))
+  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode)
+  ;; always show flycheck-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'flycheck-mode)))
 #+end_src
 
 ** Security linting using DevSkim and Flycheck                     :external:
@@ -4578,13 +4566,17 @@ It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglo
 ;; show it activate it using `lsp-toggle-signature-auto-activate' or
 ;; C-S-SPC to peek, https://github.com/emacs-lsp/lsp-mode/issues/1223
 (use-package lsp-mode
-  :init (setq lsp-print-io nil ;; disable logging packets between Emacs and LS
-              lsp-print-performance nil ;; disable performance logging
-              lsp-eldoc-enable-hover nil ;; don't have eldoc display hover info
-              lsp-eldoc-render-all nil ;; don't show all returned from document/onHover, only symbol info
-              lsp-enable-on-type-formatting nil ;; don't have the LS automatically format the document when typing
-              lsp-diagnostic-package :flycheck ;; use Flycheck for syntax checking
-              lsp-signature-auto-activate nil)) ;; don't automatically show signature
+  :init (setq lsp-print-io nil ; disable logging packets between Emacs and LS
+              lsp-print-performance nil ; disable performance logging
+              lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
+              lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
+              lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
+              lsp-diagnostic-package :flycheck ; use Flycheck for syntax checking
+              lsp-signature-auto-activate nil) ; don't automatically show signature
+  :config
+  ;; always show lsp-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'lsp-mode)))
 #+end_src
 
 *** Installing and updating servers
@@ -4664,7 +4656,11 @@ definition and documentation lookup, and so on.
   :hook ((cider-mode . eldoc-mode)
          (cider-repl-mode . eldoc-mode)
          (cider-repl-mode . paredit-mode))
-  :config (setq nrepl-log-messages t))
+  :init (setq nrepl-log-messages t)
+  :config
+  ;; always show cider-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'cider-mode)))
 #+end_src
 
 *** flycheck-clj-kondo for Clojure linting using clj-kondo   :melpa:external:
@@ -5358,12 +5354,19 @@ convenience functions to navigate, search and build projects.
 ;; project interaction library
 (use-package projectile
   :demand t
+  :init (setq projectile-completion-system 'default
+              projectile-create-missing-test-files t ; create test file if none is found when toggling
+              projectile-mode-line-prefix " Prj"
+              projectile-switch-project-action 'projectile-commander
+              projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
   :config
-  (setq projectile-completion-system 'default
-        projectile-create-missing-test-files t ;; create test file if none is found when toggling
-        projectile-switch-project-action 'projectile-commander
-        projectile-use-git-grep t) ;; use git grep to skip backup, object, and untracked files when in a Git project
-  (projectile-mode)) ;; enable mode globally
+  ;; don't show project type in minor mode lighter
+  (defun my-projectile-mode-line ()
+    "Report project name in the modeline."
+    (format "%s[%s]" projectile-mode-line-prefix (or (projectile-project-name) "-")))
+  (setq projectile-mode-line-function 'my-projectile-mode-line)
+  ;; enable mode globally
+  (projectile-mode))
 #+end_src
 
 *** org-projectile for Projectile project Org TODOs                   :melpa:
@@ -5411,7 +5414,10 @@ machine <hostname> login <login_name> password <password> [port <port_number_or_
   :commands magit-status
   :bind ("C-x g" . magit-status)
   :config (add-hook 'magit-process-find-password-functions
-                    #'magit-process-password-auth-source))
+                    #'magit-process-password-auth-source)
+  ;; always show magit-mode in the mode line
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'magit-mode)))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
@@ -5647,7 +5653,9 @@ Consider turning off this mode for the buffer in those cases.
 (use-package anzu
   :bind (([remap query-replace] . anzu-query-replace)
          ([remap query-replace-regexp] . anzu-query-replace-regexp))
-  :init (global-anzu-mode))
+  :init (setq anzu-mode-lighter "" ; don't show in mode line since always activated
+              anzu-deactivate-region t) ; deactivate region after replacing text
+  :config (global-anzu-mode))
 #+end_src
 
 ** dumb-jump                                                          :melpa:
@@ -5957,10 +5965,10 @@ Requires the ~all-the-icons~ package.
       '(bar workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
       '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker "  "))
     ;; hide left margin indicator bar
-    (set-face-background 'doom-modeline-bar
-                         (face-background 'mode-line))
-    (set-face-background 'doom-modeline-bar-inactive
-                         (face-background 'mode-line-inactive))
+    ;; (set-face-background 'doom-modeline-bar
+    ;;                      (face-background 'mode-line))
+    ;; (set-face-background 'doom-modeline-bar-inactive
+    ;;                      (face-background 'mode-line-inactive))
     ;; enable mode line
     (doom-modeline-mode 1)))
 #+end_src
@@ -5978,7 +5986,7 @@ Hide minor modes by default using the [[https://github.com/tarsius/minions][mini
       ;; modes in minions-direct are always shown
       ;; use UTF-8 mode line lighter
       (setq minions-direct '(overwrite-mode view-mode)
-            minions-mode-line-lighter "☰")
+            minions-mode-line-lighter "≡")
       (minions-mode 1)))
 #+end_src
 
@@ -10477,8 +10485,6 @@ The main configuration file.
 <<my-open-line-below-and-above>>
 
 <<elmacro>>
-
-<<beginend>>
 
 ;; Emacs as an edit server
 

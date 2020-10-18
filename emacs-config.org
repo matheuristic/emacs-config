@@ -1239,7 +1239,7 @@ the ~C-z~ prefix (use ~C-x C-z~ to call ~suspend-frame~ instead).
 (use-package ace-window
   :config
   (setq aw-background t
-        aw-char-position 'left
+        aw-char-position 'top-left
         aw-ignore-current nil
         aw-scope 'frame)
   (global-set-key (kbd "M-o") #'ace-window))
@@ -3342,7 +3342,11 @@ processing. [[https://github.com/ljos/jq-mode][jq-mode]] provides a major mode f
 #+begin_src emacs-lisp
 ;; provides a major mode for editing JSON files
 (use-package json-mode
-  :defer t)
+  :defer t
+  :config
+  ;; enable Flycheck when editing JSON files
+  ;; needs a supported JSON checker be installed like "jq"
+  (add-hook 'json-mode-hook #'flycheck-mode))
 #+end_src
 
 *** JSON file reformatting using jq

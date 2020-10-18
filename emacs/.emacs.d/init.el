@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 17 23:29:39 2020
+;; Generated: Sat Oct 17 23:48:05 2020
 
 ;;; Commentary:
 
@@ -550,7 +550,7 @@ cache before processing."
 (use-package ace-window
   :config
   (setq aw-background t
-        aw-char-position 'left
+        aw-char-position 'top-left
         aw-ignore-current nil
         aw-scope 'frame)
   (global-set-key (kbd "M-o") #'ace-window))
@@ -1498,7 +1498,11 @@ Assumes "
 
 ;; provides a major mode for editing JSON files
 (use-package json-mode
-  :defer t)
+  :defer t
+  :config
+  ;; enable Flycheck when editing JSON files
+  ;; needs a supported JSON checker be installed like "jq"
+  (add-hook 'json-mode-hook #'flycheck-mode))
 
 (when (executable-find "jq")
   (with-eval-after-load 'json-mode

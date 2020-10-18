@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 18 16:48:55 2020
+;; Generated: Sun Oct 18 17:22:06 2020
 
 ;;; Commentary:
 
@@ -1562,7 +1562,8 @@ Formatting a selected region only works on top-level objects."
     (setq markdown-command (concat "pandoc --from markdown --to html"
                                    " --standalone"
                                    " --katex"
-                                   " --highlight-style=pygments")
+                                   " --highlight-style=pygments"
+                                   " --quiet") ; suppress warnings
           markdown-command-needs-filename t)))
 
 (use-package markdown-toc

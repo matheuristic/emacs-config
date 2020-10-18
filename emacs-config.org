@@ -3433,7 +3433,8 @@ be installed (e.g. using [[https://docs.conda.io/en/latest/][conda]] or by using
     (setq markdown-command (concat "pandoc --from markdown --to html"
                                    " --standalone"
                                    " --katex"
-                                   " --highlight-style=pygments")
+                                   " --highlight-style=pygments"
+                                   " --quiet") ; suppress warnings
           markdown-command-needs-filename t)))
 #+end_src
 

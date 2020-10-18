@@ -3401,15 +3401,17 @@ Formatting a selected region only works on top-level objects."
 
 ** markdown-mode for editing Markdown files                           :melpa:
 
-[[https://jblevins.org/projects/markdown-mode/][markdown-mode]] provdes a major mode for editing Markdown files.
+[[https://jblevins.org/projects/markdown-mode/][markdown-mode]] provides a major mode for editing Markdown files.
+
+[[https://pandoc.org/][Pandoc]] ([[https://github.com/jgm/pandoc][GitHub]]) is used for exporting to other formats, so it should
+be installed (e.g. using [[https://docs.conda.io/en/latest/][conda]] or by using a [[https://github.com/jgm/pandoc/releases][release binary]]).
 
 *Configuration*:
 - Enable ~markdown-mode~ automatically for the common suffixes, except
   for =README.md= where ~gfm-mode~ is enabled instead for editing
   Github-flavored Markdown.
-- Load the [[https://www.mathjax.org/][MathJax]] Javascript library in HTML output to render [[http://tug.org/][TeX]],
-  [[https://www.w3.org/Math/][MathML]] and [[http://asciimath.org/][AsciiMath]] expressions, target HTML+CSS (the loaded
-  configuration can be modified if targeting SVG or MathML instead).
+- Pandoc is configured to generate standalone (not self-contained)
+  HTML files and to render TeX expressions using [[https://katex.org/][KaTeX]] ([[https://github.com/KaTeX/KaTeX][GitHub]]).
 
 #+name: markdown-mode
 #+begin_src emacs-lisp
@@ -3428,22 +3430,11 @@ Formatting a selected region only works on top-level objects."
         markdown-italic-underscore t)
   ;; if available, use pandoc for converting markdown files
   (when (executable-find "pandoc")
-    (setq markdown-command "pandoc --from markdown --to html"
-          markdown-command-needs-filename t))
-  ;; render mathematical expressions in HTML previews
-  (setq markdown-xhtml-header-content
-        (concat "<script type=\"text/x-mathjax-config\">"
-                "MathJax.Hub.Config({"
-                "  tex2jax: {"
-                "    inlineMath: [ ['$','$'], [\"\\\\(\",\"\\\\)\"] ],"
-                "    processEscapes: true"
-                "  }"
-                "});"
-                "</script>"
-                "<script type=\"text/javascript\" async"
-                "        src=\"https://cdnjs.cloudflare.com/ajax/libs/"
-                "mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML\">"
-                "</script>")))
+    (setq markdown-command (concat "pandoc --from markdown --to html"
+                                   " --standalone"
+                                   " --katex"
+                                   " --highlight-style=pygments")
+          markdown-command-needs-filename t)))
 #+end_src
 
 *** markdown-toc for creating tables of content in Markdown buffers   :melpa:
@@ -10954,6 +10945,17 @@ The main configuration file.
 [[https://github.com/chrisbarrett/kubernetes-el][GitHub - chrisbarrett/kubernetes-el: Emacs porcelain for Kubernetes.]]
 
 ** Editing text
+
+*** [#B] broadcast.el                                                 :melpa:
+
+[[https://github.com/killdash9/broadcast.el][GitHub - killdash9/broadcast.el: A minor mode for linking buffers together for simultaneous navigation and editing]]
+
+#+begin_src emacs-lisp
+;; simultaneous navigation and editing across selected visible buffers
+(use-package broadcast
+  :ensure t
+  :commands broadcast-mode)
+#+end_src
 
 *** [#C] objed
 

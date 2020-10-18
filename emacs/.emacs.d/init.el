@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 17 23:48:05 2020
+;; Generated: Sun Oct 18 16:48:55 2020
 
 ;;; Commentary:
 
@@ -1559,22 +1559,11 @@ Formatting a selected region only works on top-level objects."
         markdown-italic-underscore t)
   ;; if available, use pandoc for converting markdown files
   (when (executable-find "pandoc")
-    (setq markdown-command "pandoc --from markdown --to html"
-          markdown-command-needs-filename t))
-  ;; render mathematical expressions in HTML previews
-  (setq markdown-xhtml-header-content
-        (concat "<script type=\"text/x-mathjax-config\">"
-                "MathJax.Hub.Config({"
-                "  tex2jax: {"
-                "    inlineMath: [ ['$','$'], [\"\\\\(\",\"\\\\)\"] ],"
-                "    processEscapes: true"
-                "  }"
-                "});"
-                "</script>"
-                "<script type=\"text/javascript\" async"
-                "        src=\"https://cdnjs.cloudflare.com/ajax/libs/"
-                "mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML\">"
-                "</script>")))
+    (setq markdown-command (concat "pandoc --from markdown --to html"
+                                   " --standalone"
+                                   " --katex"
+                                   " --highlight-style=pygments")
+          markdown-command-needs-filename t)))
 
 (use-package markdown-toc
   :after markdown-mode)

@@ -555,7 +555,7 @@ SITE is a URL to archive."
   (let* ((output-destination-options
           (mapcar (lambda (fstring) (format fstring directory))
                   org-readitlater-backend-dest-format))
-         (output-buffer-name "org-readitlater-backend-call"))
+         (output-buffer-name "*org-readitlater-backend-call*"))
     (append (list "org-readitlater-backend-process"
                   output-buffer-name
                   path)

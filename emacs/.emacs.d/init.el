@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct 19 19:12:08 2020
+;; Generated: Mon Oct 19 19:41:09 2020
 
 ;;; Commentary:
 
@@ -459,20 +459,20 @@ cache before processing."
                         (name . "^\\*Messages\\*$")))
            ("Calendar" (or (name . "^\\*?[Cc]alendar.*$")
                            (name . "^diary$")))
-           ("Agenda" (mode . org-agenda-mode))
+           ("DocView" (mode . doc-view-mode))
            ("Web" (or (mode . eww-mode)
                       (mode . eww-bookmark-mode)))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)
                         (name . "^vterm .*")))
-           ("Analytics" (or (mode . ess-r-mode)
-                            (mode . inferior-ess-r-mode)))
-           ("Programming" (derived-mode . prog-mode))
            ("Data" (or (mode . csv-mode)
                        (mode . json-mode)
                        (mode . nxml-mode)))
-           ("DocView" (mode . doc-view-mode))
+           ("Analytics" (or (mode . ess-r-mode)
+                            (mode . inferior-ess-r-mode)))
+           ("Programming" (derived-mode . prog-mode))
+           ("Agenda" (mode . org-agenda-mode))
            ("Journal" (mode . org-journal-mode))
            ("Org" (derived-mode . org-mode))
            ("Text" (derived-mode . text-mode))

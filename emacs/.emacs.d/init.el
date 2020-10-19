@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct 19 19:02:09 2020
+;; Generated: Mon Oct 19 19:12:08 2020
 
 ;;; Commentary:
 
@@ -2009,7 +2009,7 @@ call `open-line' on the very first character."
   ;; files elsewhere every so often if this is enabled
   ;; to limit to just current and future (i.e. scheduled) journal
   ;; entries, set `org-journal-enable-agenda-integration' to t instead
-  (push org-journal-dir org-agenda-files)
+  ;; (push org-journal-dir org-agenda-files)
   :config
   ;; workaround on `org-journal-is-journal' `string-match' error when
   ;; exporting to HTML due to `buffer-file-name' func returning nil

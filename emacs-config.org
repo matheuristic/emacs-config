@@ -4100,7 +4100,7 @@ todo entry using ~C-c C-l~.
   ;; files elsewhere every so often if this is enabled
   ;; to limit to just current and future (i.e. scheduled) journal
   ;; entries, set `org-journal-enable-agenda-integration' to t instead
-  (push org-journal-dir org-agenda-files)
+  ;; (push org-journal-dir org-agenda-files)
   :config
   ;; workaround on `org-journal-is-journal' `string-match' error when
   ;; exporting to HTML due to `buffer-file-name' func returning nil

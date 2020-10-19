@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 18 17:22:06 2020
+;; Generated: Mon Oct 19 16:54:06 2020
 
 ;;; Commentary:
 
@@ -1975,32 +1975,42 @@ call `open-line' on the very first character."
 (use-package org-journal
   :after org
   :init
-  ;; org-capture helper function from https://github.com/bastibe/org-journal
-  (defun my-org-journal-find-location ()
-    "Find location of today's Org journal, for use with `org-capture'."
-    ;; Open today's journal but specify a non-nil prefix argument in order to
-    ;; inhibit inserting the heading; org-capture will insert the heading.
-    (org-journal-new-entry t)
-    ;; Position point on the journal's top-level heading so that org-capture
-    ;; will add the new entry as a child entry.
-    (goto-char (point-min)))
-  ;; add org-capture-template for new journal entries
-  (push '("j" "Journal" entry (function my-org-journal-find-location)
-          "* %(format-time-string org-journal-time-format)%?\n%i")
-        org-capture-templates)
-  (setq org-journal-date-prefix "#+TITLE: Daily Journal "
-        ;; separate journal files into folders by year
-        org-journal-file-format "%Y/%Y%m%d.org"
+  (setq org-journal-file-format "%Y%m%d.org"
+        org-journal-file-header (mapconcat 'identity
+                                           '("#+TITLE: Daily Journal"
+                                             "#+DATE: %d %B %Y"
+                                             "#+FILETAGS: journal"
+                                             "")
+                                           "\n")
         org-journal-file-type 'daily
         ;; don't carry over TODO items from a previous days
         org-journal-carryover-items nil
         ;; use ORG-DIRECTORY/journal/ as the default journal directory
-        org-journal-dir (concat org-directory "journal/"))
+        org-journal-dir (concat org-directory "journal/")
+        ;; cache entries to speed up calendar operations, reset cache
+        ;; with `org-journal-invalidate-cache'
+        org-journal-enable-cache t)
+  ;; org-capture helper function from https://github.com/bastibe/org-journal
+  (defun my-org-journal-find-location ()
+    "Find location of today's Org journal, for use with `org-capture'."
+    ;; open today's journal but specify a non-nil prefix argument in order to
+    ;; inhibit inserting the heading; org-capture will insert the heading.
+    (org-journal-new-entry t)
+    (org-narrow-to-subtree)
+    (goto-char (point-max)))
+  ;; add org-capture-template for new journal entries
+  ;; capture template type should be plain instead of entry, see
+  ;; https://www.reddit.com/r/orgmode/comments/goivjp/orgcapture_template_doesnt_insert_entry_as_a/
+  (push '("j" "Journal" plain (function my-org-journal-find-location)
+          "** %(format-time-string org-journal-time-format)%?\n%i")
+        org-capture-templates)
   ;; add journal files to Org agenda
   ;; may cause the Org agenda parsing to slow down as the number as
   ;; the number of files grows, so make sure to prune or archive the
-  ;; files elsewhere every so often if this is enabled.
-  ;; (push org-journal-dir org-agenda-files)
+  ;; files elsewhere every so often if this is enabled
+  ;; to limit to just current and future (i.e. scheduled) journal
+  ;; entries, set `org-journal-enable-agenda-integration' to t instead
+  (push org-journal-dir org-agenda-files)
   :config
   ;; workaround on `org-journal-is-journal' `string-match' error when
   ;; exporting to HTML due to `buffer-file-name' func returning nil
@@ -2173,10 +2183,7 @@ when buffer is clean, and more frequently when it has errors."
   (add-hook 'flycheck-after-syntax-check-hook
             #'flycheck--adjust-flycheck-idle-change-delay)
   ;; default modes within which to use Flycheck
-  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode)
-  ;; always show flycheck-mode in the mode line
-  (with-eval-after-load 'minions
-    (add-to-list 'minions-direct 'flycheck-mode)))
+  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode))
 
 ;; Programming / DevSkim and Flycheck
 
@@ -2223,11 +2230,7 @@ when buffer is clean, and more frequently when it has errors."
               lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
               lsp-diagnostic-package :flycheck ; use Flycheck for syntax checking
-              lsp-signature-auto-activate nil) ; don't automatically show signature
-  :config
-  ;; always show lsp-mode in the mode line
-  (with-eval-after-load 'minions
-    (add-to-list 'minions-direct 'lsp-mode)))
+              lsp-signature-auto-activate nil)) ; don't automatically show signature
 
 ;; company backend for LSP-driven completion
 (use-package company-lsp
@@ -2261,11 +2264,7 @@ when buffer is clean, and more frequently when it has errors."
   :hook ((cider-mode . eldoc-mode)
          (cider-repl-mode . eldoc-mode)
          (cider-repl-mode . paredit-mode))
-  :init (setq nrepl-log-messages t)
-  :config
-  ;; always show cider-mode in the mode line
-  (with-eval-after-load 'minions
-    (add-to-list 'minions-direct 'cider-mode)))
+  :init (setq nrepl-log-messages t))
 
 ;; clojure linting, requires clj-kondo be installed on the system
 (when (executable-find "clj-kondo")
@@ -2585,10 +2584,7 @@ This enables things like ElDoc and autocompletion."
   :commands magit-status
   :bind ("C-x g" . magit-status)
   :config (add-hook 'magit-process-find-password-functions
-                    #'magit-process-password-auth-source)
-  ;; always show magit-mode in the mode line
-  (with-eval-after-load 'minions
-    (add-to-list 'minions-direct 'magit-mode)))
+                    #'magit-process-password-auth-source))
 
 ;; Uncomment to check VC info on file auto-revert (increases I/O load)
 ;; https://magit.vc/manual/magit/The-mode_002dline-information-isn_0027t-always-up_002dto_002ddate.html
@@ -3664,10 +3660,20 @@ whitespace, indenting and untabifying."
   (transient-define-prefix transient/org-launcher ()
     "Launcher for Org entry points."
     ["Org launcher"
-     ("a" "Agenda" org-agenda)
-     ("c" "Capture" org-capture)
-     ("b" "Switchb" org-switchb)
-     ("l" "Store link" org-store-link)
+     ["Main"
+      ("a" "Agenda" org-agenda)
+      ("c" "Capture" org-capture)
+      ("b" "Switchb" org-switchb)
+      ("l" "Store link" org-store-link)
+      ]
+     ["Journal"
+      ;; all autoloaded functions, no need to load org-journal first
+      ("jg" "Current file" org-journal-open-current-journal-file)
+      ("jj" "New entry" org-journal-new-entry)
+      ("jJ" "Schedule entry" org-journal-new-scheduled-entry)
+      ("js" "Search" org-journal-search)
+      ("jI" "Invalidate cache" org-journal-invalidate-cache)
+      ]
      ]
     )
   (global-set-key (kbd "C-c o") #'transient/org-launcher))

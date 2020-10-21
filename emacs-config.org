@@ -939,7 +939,8 @@ Backup files to the =~/.backup/= directory, keeping only the newest three versio
 
 ** Minibuffer commands                                                :melpa:
 
-Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~.
+Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~. It also has an additional
+binding ~M-X~ which is limited to major mode commands.
 
 It is compatible with most completion systems and provides the
 following enhancements:
@@ -11108,10 +11109,15 @@ Using the above, ~sqlcmdline~ can be run by calling the
 [[https://elpa.gnu.org/packages/project.html][project.el]] is a simple project interaction library. It is simpler than
 [[https://github.com/bbatsov/projectile][Projectile]] and is in Emacs core (but it's better to use the ELPA
 version as it's more ahead in functionality). Most of its
-functionality is accessed via the "C-x p" prefix which is bound by
-default.
+commands can be accessed via its default ~C-x p~ prefix.
 
-TODO also create a transient for accessing project.el functions.
+- TODO also create a transient for accessing project.el functions.
+- TODO add REPL buffers to ~project-kill-buffer-conditions~.
+- TODO add ~magit-status~, ~project-shell~, ~vterm~ and ~rg~ to
+  ~project-switch-commands~.
+
+References:
+- [[https://www.manueluberti.eu/emacs/2020/09/18/project/][It’s never too late – Manuel Uberti]]
 
 *** [#B] Forge for working with Git forges from Magit                 :melpa:
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Oct 19 19:41:09 2020
+;; Generated: Tue Oct 20 20:10:29 2020
 
 ;;; Commentary:
 
@@ -503,32 +503,6 @@ Hidden groups are \"Dired\", \"Help\", \"Journal\"  and \"Magit\"."
   (use-package all-the-icons-ibuffer
     :after (all-the-icons ibuffer)
     :config (all-the-icons-ibuffer-mode 1)))
-
-;; quick buffer switching (configured to be within a project)
-(use-package nswbuff
-  :after projectile
-  :bind (("<C-tab>" . nswbuff-switch-to-next-buffer)
-         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer)
-         ;; see https://emacs.stackexchange.com/questions/53461/specifying-a-binding-for-control-shift-tab
-         ("<C-S-iso-lefttab>" . nswbuff-switch-to-previous-buffer))
-  :init
-  (setq nswbuff-buffer-list-function #'nswbuff-projectile-buffer-list
-        nswbuff-clear-delay 2
-        nswbuff-display-intermediate-buffers t
-        ;; exclude all internal buffers from the nswbuff switch list
-        nswbuff-exclude-buffer-regexps '("^ "
-                                         "^\\*.*\\*"
-                                         "org-src-fontification")
-        nswbuff-exclude-mode-regexp (mapconcat
-                                     'identity
-                                     '("dired-mode"
-                                       "gnus-mode")
-                                     "\\|")
-        nswbuff-start-with-current-centered nil)
-  :config
-  ;; unbind C-tab in org-mode to not conflict with nswbuff global binding
-  (with-eval-after-load 'org
-    (unbind-key "<C-tab>" org-mode-map)))
 
 ;; Buffers, windows, frames, workspaces / Window management
 

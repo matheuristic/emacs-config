@@ -411,6 +411,42 @@ Ibuffer → Filter (_q_: ←)"
   (define-key ibuffer-mode-map (kbd "C-c C-M-m") #'my-hydra/ibuffer-mode/body))
 #+end_src
 
+*** Fast buffer switching with nswbuff                                :melpa:
+
+[[https://github.com/joostkremers/nswbuff][nswbuff]] allows for quick switching between open buffers.
+
+It can be configured to integrate with Projectile to only switch
+between between those buffers associated with the current project.
+
+#+name: nswbuff
+#+begin_src emacs-lisp
+;; quick buffer switching (configured to be within a project)
+(use-package nswbuff
+  :after projectile
+  :bind (("<C-tab>" . nswbuff-switch-to-next-buffer)
+         ("<C-S-tab>" . nswbuff-switch-to-previous-buffer)
+         ;; see https://emacs.stackexchange.com/questions/53461/specifying-a-binding-for-control-shift-tab
+         ("<C-S-iso-lefttab>" . nswbuff-switch-to-previous-buffer))
+  :init
+  (setq nswbuff-buffer-list-function #'nswbuff-projectile-buffer-list
+        nswbuff-clear-delay 2
+        nswbuff-display-intermediate-buffers t
+        ;; exclude all internal buffers from the nswbuff switch list
+        nswbuff-exclude-buffer-regexps '("^ "
+                                         "^\\*.*\\*"
+                                         "org-src-fontification")
+        nswbuff-exclude-mode-regexp (mapconcat
+                                     'identity
+                                     '("dired-mode"
+                                       "gnus-mode")
+                                     "\\|")
+        nswbuff-start-with-current-centered nil)
+  :config
+  ;; unbind C-tab in org-mode to not conflict with nswbuff global binding
+  (with-eval-after-load 'org
+    (unbind-key "<C-tab>" org-mode-map)))
+#+end_src
+
 ** Window management
 
 *** Window management hydra                                           :hydra:

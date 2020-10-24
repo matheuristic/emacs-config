@@ -1155,6 +1155,24 @@ Uses file icon API exposed by the ~all-the-icons~ package.
     :config (all-the-icons-ibuffer-mode 1)))
 #+end_src
 
+*** Visual buffer switching using a grid of windows                    :elpa:
+
+[[https://github.com/clemera/buffer-expose][buffer-expose]] visualizes buffers in a grid of windows and allows the
+user to switch to a selected buffer in that grid. Integrates with
+ace-window if available (set ~buffer-expose-auto-init-aw~ to ~t~ for
+automatically initializing grid buffer views with ace-window enabled).
+
+#+name: buffer-expose
+#+begin_src emacs-lisp
+;; visual buffer switching using a grid of windows
+(use-package buffer-expose
+  :init
+  (setq buffer-expose-show-current-buffer t)
+  ;; set auto initialization with ace-window after it has been loaded
+  (with-eval-after-load 'ace-window
+    (setq buffer-expose-auto-init-aw t)))
+#+end_src
+
 ** Window management
 
 *** Traverse window configuration history using Winner mode
@@ -7351,6 +7369,8 @@ Transient for buffer management.
 
 #+name: buffer-transient
 #+begin_src emacs-lisp
+(require 'buffer-expose)
+
 (defun transient/buffer--tramp-cleanup-buffers ()
   "Clean up all TRAMP buffers and connections with confirm prompt."
   (interactive)
@@ -7410,7 +7430,7 @@ whitespace, indenting and untabifying."
     ("b" "Switch" switch-to-buffer)
     ("n" "Next" next-buffer :transient t)
     ("p" "Previous" previous-buffer :transient t)
-    ("e" "Open external" transient/buffer--open-containing-dir-externally)
+    ("z" "Open external" transient/buffer--open-containing-dir-externally)
     ;; commands below are autoloaded, so there should be no need
     ;; to make sure (require 'browse-at-remote) is run prior
     ("gb" "Git browse" browse-at-remote)
@@ -7434,6 +7454,16 @@ whitespace, indenting and untabifying."
     ("o" "Kill others" transient/buffer--kill-other-buffers)
     ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
     ]
+   ["Expose"
+    ("ee" "All" buffer-expose)
+    ("em" "Current mode" buffer-expose-current-mode)
+    ("eM" "Major mode" buffer-expose-major-mode)
+    ("ed" "Dired" buffer-expose-dired-buffers)
+    ("e!" "Non-special" buffer-expose-no-stars)
+    ("e*" "Special" buffer-expose-stars)
+    ]
+   ]
+  [
    ["Other"
     ("R" (lambda ()
            (transient--make-description
@@ -10344,6 +10374,8 @@ The main configuration file.
 <<ibuffer-vc>>
 
 <<all-the-icons-ibuffer>>
+
+<<buffer-expose>>
 
 ;; Buffers, windows, frames, workspaces / Window management
 

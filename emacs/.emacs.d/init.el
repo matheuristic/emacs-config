@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Oct 23 22:08:33 2020
+;; Generated: Sat Oct 24 11:56:07 2020
 
 ;;; Commentary:
 
@@ -500,6 +500,14 @@ cache before processing."
   (use-package all-the-icons-ibuffer
     :after (all-the-icons ibuffer)
     :config (all-the-icons-ibuffer-mode 1)))
+
+;; visual buffer switching using a grid of windows
+(use-package buffer-expose
+  :init
+  (setq buffer-expose-show-current-buffer t)
+  ;; set auto initialization with ace-window after it has been loaded
+  (with-eval-after-load 'ace-window
+    (setq buffer-expose-auto-init-aw t)))
 
 ;; Buffers, windows, frames, workspaces / Window management
 
@@ -3289,6 +3297,8 @@ Example of use with transient suffix definitions in a
   )
 (global-set-key (kbd "C-c e B") #'transient/bookmarks)
 
+(require 'buffer-expose)
+
 (defun transient/buffer--tramp-cleanup-buffers ()
   "Clean up all TRAMP buffers and connections with confirm prompt."
   (interactive)
@@ -3348,7 +3358,7 @@ whitespace, indenting and untabifying."
     ("b" "Switch" switch-to-buffer)
     ("n" "Next" next-buffer :transient t)
     ("p" "Previous" previous-buffer :transient t)
-    ("e" "Open external" transient/buffer--open-containing-dir-externally)
+    ("z" "Open external" transient/buffer--open-containing-dir-externally)
     ;; commands below are autoloaded, so there should be no need
     ;; to make sure (require 'browse-at-remote) is run prior
     ("gb" "Git browse" browse-at-remote)
@@ -3372,6 +3382,16 @@ whitespace, indenting and untabifying."
     ("o" "Kill others" transient/buffer--kill-other-buffers)
     ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
     ]
+   ["Expose"
+    ("ee" "All" buffer-expose)
+    ("em" "Current mode" buffer-expose-current-mode)
+    ("eM" "Major mode" buffer-expose-major-mode)
+    ("ed" "Dired" buffer-expose-dired-buffers)
+    ("e!" "Non-special" buffer-expose-no-stars)
+    ("e*" "Special" buffer-expose-stars)
+    ]
+   ]
+  [
    ["Other"
     ("R" (lambda ()
            (transient--make-description

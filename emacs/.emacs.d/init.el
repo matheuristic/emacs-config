@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Oct 20 20:10:29 2020
+;; Generated: Fri Oct 23 22:08:33 2020
 
 ;;; Commentary:
 
@@ -151,9 +151,9 @@ if the point is in the minibuffer."
 ;; Package management
 
 ;; set ELPA-compatible package repositories and their priorities
-(setq package-archives '(("GNU"   . "https://elpa.gnu.org/packages/")
+(setq package-archives '(("ELPA"   . "https://elpa.gnu.org/packages/")
                          ("MELPA" . "https://melpa.org/packages/"))
-      package-archive-priorities '(("GNU"   . 1)
+      package-archive-priorities '(("ELPA"  . 1)
                                    ("MELPA" . 2)))
 
 ;; initialize package.el
@@ -446,8 +446,9 @@ cache before processing."
     (emacs-lock-mode 'kill)))
 
 ;; advanced buffer management with Ibuffer
-(setq ibuffer-expert t ;; skip extraneous confirm messages
+(setq ibuffer-expert t ; skip extraneous confirm messages
       ibuffer-show-empty-filter-groups nil)
+
 (global-set-key (kbd "C-x C-b") #'ibuffer)
 
 ;; configure Ibuffer filter groups
@@ -482,14 +483,10 @@ cache before processing."
            ("Help" (or (derived-mode . apropos-mode)
                        (derived-mode . help-mode)
                        (derived-mode . Info-mode))))))
-  ;; use "default" saved filter groups list by default, and collapse
-  ;; some less useful buffer groups by default
   (defun my-ibuffer-filter-groups-setup ()
-    "Load the \"default\" saved filter groups list and hide some groups.
-Hidden groups are \"Dired\", \"Help\", \"Journal\"  and \"Magit\"."
-    (ibuffer-switch-to-saved-filter-groups "default")
-    (setq ibuffer-hidden-filter-groups '("Dired" "Help" "Journal" "Magit"))
-    (ibuffer-update nil t))
+    "Custom configuration to load when a new Ibuffer buffer gets created."
+    ;; use "default" saved filter groups list by default
+    (ibuffer-switch-to-saved-filter-groups "default"))
   (add-hook 'ibuffer-mode-hook #'my-ibuffer-filter-groups-setup))
 
 ;; build VC project ibuffer filter groups
@@ -1462,6 +1459,7 @@ Assumes "
 
 ;; major mode for reading EPUBs
 (use-package nov
+  :after org
   :init (add-to-list 'auto-mode-alist
                      '("\\.epub\\'" . nov-mode)))
 
@@ -1548,6 +1546,11 @@ Formatting a selected region only works on top-level objects."
   :mode ("\\.ya?ml\\'" . yaml-mode))
 
 ;; Org-mode
+
+;; hacky workaround to use ELPA version of Org
+;; from https://github.com/jwiegley/use-package/issues/319
+(unless (file-expand-wildcards (concat package-user-dir "/org-[0-9]*"))
+  (package-install (elt (cdr (assoc 'org package-archive-contents)) 0)))
 
 ;; set Org directory and inbox file
 (setq org-directory (file-name-as-directory (expand-file-name "~/org"))
@@ -2004,70 +2007,46 @@ call `open-line' on the very first character."
   (advice-add 'org-journal-is-journal :around
               #'org-journal-is-journal--around-workaround))
 
-;; in-editor presentations using Org documents
-(use-package org-present
-  :after org
-  :hook ((org-present-mode . (lambda ()
-                               (org-present-big)
-                               (org-display-inline-images)
-                               (org-present-read-only)
-                               (my-hide-header-and-mode-lines)))
-         (org-present-mode-quit . (lambda ()
-                                    (org-present-small)
-                                    (org-remove-inline-images)
-                                    (org-present-read-write)
-                                    (my-unhide-header-and-mode-lines))))
+;; presentations from Org documents
+(use-package org-tree-slide
+  :init (setq org-tree-slide-activate-message "Start slideshow mode"
+              org-tree-slide-deactivate-message "End slideshow mode"
+              org-tree-slide-fold-subtrees-skipped nil)
   :config
-  ;; regenerate LaTeX fragment preview images on slide transition
-  (when (and (display-graphic-p)
-             (executable-find "dvipng"))
-    (add-hook 'org-present-after-navigate-functions
-              (lambda (&optional name header)
-                (my-org-display-latex-fragments))))
-  ;; functions for hiding header and mode lines when in a presentation
-  (defvar-local my-orig-mode-line-format nil
-    "Temporary variable to store original `mode-line-format'.")
-  (defvar-local my-orig-header-line-format nil
-    "Temporary variable to store original `header-line-format'.")
-  (defun my-hide-header-and-mode-lines ()
-    "Hide header and mode lines, and store originals in temporary variables."
+  ;; custom org-tree-slide profile
+  (defun my-org-tree-slide-custom-profile ()
+    "Set variables for custom org-tree-slide profile.
+
+`org-tree-slide-header'            => t
+`org-tree-slide-slide-in-effect'   => nil
+`org-tree-slide-heading-emphasis'  => t
+`org-tree-slide-cursor-init'       => t
+`org-tree-slide-modeline-display'  => 'outside
+`org-tree-slide-skip-done'         => nil
+`org-tree-slide-skip-comments'     => t"
     (interactive)
-    (when mode-line-format
-      (setq-local my-orig-mode-line-format mode-line-format)
-      (setq-local mode-line-format nil))
-    (when header-line-format
-      (setq-local my-orig-header-line-format header-line-format)
-      (setq-local header-line-format nil)))
-  (defun my-unhide-header-and-mode-lines ()
-    "Reset header and mode lines using originals in temporary variables."
-    (interactive)
-    (when (not mode-line-format)
-      (setq-local mode-line-format my-orig-mode-line-format)
-      (setq-local my-orig-mode-line-format nil))
-    (when (not header-line-format)
-      (setq-local header-line-format my-orig-header-line-format)
-      (setq-local my-orig-header-line-format nil)))
-  ;; easier nav keys for read-only presentations
-  (define-minor-mode my-org-present-extra-mode
-    "Overlay minor mode on top of org-present-mode with easier nav keys."
-    :keymap (let ((keymap (make-sparse-keymap)))
-              ;; <left>/<right> = previous/next slide
-              (define-key keymap (kbd "<up>") 'scroll-down-line)
-              (define-key keymap (kbd "<down>") 'scroll-up-line)
-              (define-key keymap (kbd "s-<up>") 'beginning-of-buffer)
-              (define-key keymap (kbd "s-<down>") 'end-of-buffer)
-              (define-key keymap (kbd "s-<left>") 'org-present-beginning)
-              (define-key keymap (kbd "s-<right>") 'org-present-end)
-              (define-key keymap (kbd "f") 'toggle-frame-fullscreen)
-              (define-key keymap (kbd "q") 'org-present-quit)
-              (define-key keymap (kbd "-") 'text-scale-decrease)
-              (define-key keymap (kbd "+") 'text-scale-increase)
-              keymap))
-  ;; toggle minor mode after the relevant org-present funcalls
-  (advice-add 'org-present-read-only
-              :after (lambda () (my-org-present-extra-mode 1)))
-  (advice-add 'org-present-read-write
-              :after (lambda () (my-org-present-extra-mode 0))))
+    (setq org-tree-slide-header t
+          org-tree-slide-slide-in-effect nil
+          org-tree-slide-heading-emphasis t
+          org-tree-slide-cursor-init t
+          org-tree-slide-modeline-display 'outside
+          org-tree-slide-skip-done nil
+          org-tree-slide-skip-comments t)
+    (message "custom profile: ON"))
+  ;; use custom profile
+  (call-interactively #'my-org-tree-slide-custom-profile)
+  ;; unbind some default mode bindings
+  (define-key org-tree-slide-mode-map (kbd "C-x s c") nil)
+  ;; (define-key org-tree-slide-mode-map (kbd "C-x <") nil)
+  ;; (define-key org-tree-slide-mode-map (kbd "C-x >") nil)
+  ;; add mode bindings
+  (define-key org-tree-slide-mode-map (kbd "C-c c") #'org-tree-slide-content)
+  (define-key org-mode-map (kbd "<f8>") #'org-tree-slide-mode)
+  (define-key org-mode-map (kbd "S-<f8>") #'org-tree-slide-skip-done-toggle)
+  (define-key org-tree-slide-mode-map (kbd "<f9>") 'org-tree-slide-move-previous-tree)
+  (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree)
+  (with-eval-after-load 'minions
+    (add-to-list 'minions-direct 'org-tree-slide-mode)))
 
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
@@ -2208,6 +2187,7 @@ when buffer is clean, and more frequently when it has errors."
 (use-package lsp-mode
   :init (setq lsp-print-io nil ; disable logging packets between Emacs and LS
               lsp-print-performance nil ; disable performance logging
+              lsp-enable-file-watchers nil ; disable file watchers by default, use dir local vars if needed
               lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
               lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
@@ -2360,6 +2340,11 @@ Lisp function does not specify a special indentation."
               fish-indent-offset 4))
 
 ;; Programming / Python
+
+;; hacky workaround to use ELPA version of Python
+;; adapted from from https://github.com/jwiegley/use-package/issues/319
+(unless (file-expand-wildcards (concat package-user-dir "/python-[0-9]*"))
+  (package-install (elt (cdr (assoc 'python package-archive-contents)) 0)))
 
 (setq python-shell-interpreter "py"
       python-shell-interpreter-args ""
@@ -5153,133 +5138,129 @@ Currently only works for Emacs Mac port."
 
 ;; major-mode specific transient for org-mode
 (with-eval-after-load 'org
-  (with-eval-after-load 'org-download
-    (with-eval-after-load 'org-readitlater
-      (with-eval-after-load 'org-present
-        (defun transient/org-mode--toggle-display-image-width ()
-          "Toggle resizing of inline images in `org-mode' to one-third screen width."
-          (interactive)
-          (if org-image-actual-width
-              (setq org-image-actual-width nil)
-            (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
-          (org-redisplay-inline-images))
+  (require 'org-download)
+  (require 'org-readitlater)
+  (require 'org-tree-slide)
+  (defun transient/org-mode--toggle-display-image-width ()
+    "Toggle resizing of inline images in `org-mode' to one-third screen width."
+    (interactive)
+    (if org-image-actual-width
+        (setq org-image-actual-width nil)
+      (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
+    (org-redisplay-inline-images))
 
-        (defun transient/org-mode--next-heading-dwim (n)
-          "Go to N-th next occur highlight or visible heading otherwise."
-          (interactive "p")
-          (if org-occur-highlights
-              (next-error n)
-            (org-next-visible-heading n)))
+  (defun transient/org-mode--next-heading-dwim (n)
+    "Go to N-th next occur highlight or visible heading otherwise."
+    (interactive "p")
+    (if org-occur-highlights
+        (next-error n)
+      (org-next-visible-heading n)))
 
-        (defun transient/org-mode--previous-heading-dwim (n)
-          "Go to N-th previous occur highlight or visible heading otherwise."
-          (interactive "p")
-          (if org-occur-highlights
-              (previous-error n)
-            (org-previous-visible-heading n)))
+  (defun transient/org-mode--previous-heading-dwim (n)
+    "Go to N-th previous occur highlight or visible heading otherwise."
+    (interactive "p")
+    (if org-occur-highlights
+        (previous-error n)
+      (org-previous-visible-heading n)))
 
-        (defun transient/org-mode--toggle-present-mode ()
-          "Enter or exit `org-present' presentation."
-          (interactive)
-          (let ((in-present-mode (condition-case nil
-                                     org-present-mode
-                                   (error nil))))
-            (if in-present-mode (org-present-quit) (org-present))))
+  (transient-define-prefix transient/org-mode/readitlater ()
+    "org-readitlater commands."
+    ["Org → Read-it-later"
+     ("a" "Archive" org-readitlater-archive)
+     ("r" "Dry run" org-board-archive-dry-run)
+     ("n" "New entry" org-readitlater-new)
+     ("k" "Delete archives" org-readitlater-delete-all)
+     ("o" "Open archive" org-readitlater-open)
+     ("d" "Diff" org-readitlater-diff)
+     ("3" "Diff3" org-readitlater-diff3)
+     ("c" "Cancel in-progress archive" org-readitlater-cancel)
+     ("x" "Run post-archive functions" org-readitlater-run-after-archive-function)
+     ("O" "Open archive directory" org-attach-reveal-in-emacs)
+     ]
+    )
 
-        (transient-define-prefix transient/org-mode/readitlater ()
-          "org-readitlater commands."
-          ["Org → Read-it-later"
-           ("a" "Archive" org-readitlater-archive)
-           ("r" "Dry run" org-board-archive-dry-run)
-           ("n" "New entry" org-readitlater-new)
-           ("k" "Delete archives" org-readitlater-delete-all)
-           ("o" "Open archive" org-readitlater-open)
-           ("d" "Diff" org-readitlater-diff)
-           ("3" "Diff3" org-readitlater-diff3)
-           ("c" "Cancel in-progress archive" org-readitlater-cancel)
-           ("x" "Run post-archive functions" org-readitlater-run-after-archive-function)
-           ("O" "Open archive directory" org-attach-reveal-in-emacs)
-           ]
-          )
-
-        (transient-define-prefix transient/org-mode ()
-          "`org-mode' commands."
-          ["Org"
-           ["Toggle"
-            ("i" (lambda ()
-                   (transient--make-description
-                    "Images"
-                    org-inline-image-overlays))
-             org-toggle-inline-images :transient t)
-            ("I" (lambda ()
-                   (transient--make-description
-                    "Indent"
-                    org-indent-mode))
-             org-indent-mode :transient t)
-            ("P" (lambda ()
-                   (transient--make-description
-                    "Prettify entities"
-                    org-pretty-entities))
-             org-toggle-pretty-entities :transient t)
-            ("M-l" (lambda ()
+  (transient-define-prefix transient/org-mode ()
+    "`org-mode' commands."
+    ["Org"
+     ["Toggle"
+      ("i" (lambda ()
+             (transient--make-description
+              "Images"
+              org-inline-image-overlays))
+       org-toggle-inline-images :transient t)
+      ("I" (lambda ()
+             (transient--make-description
+              "Indent"
+              org-indent-mode))
+       org-indent-mode :transient t)
+      ("P" (lambda ()
+             (transient--make-description
+              "Prettify entities"
+              org-pretty-entities))
+       org-toggle-pretty-entities :transient t)
+      ("M-l" (lambda ()
+               (transient--make-description
+                "Link display"
+                (not org-link-descriptive)))
+       org-toggle-link-display :transient t)
+      ("M-i" (lambda ()
+               (transient--make-description
+                "Image resize"
+                org-image-actual-width))
+       transient/org-mode--toggle-display-image-width :transient t)
+      ]
+     ["Search"
+      ("g" "Goto" org-goto)
+      ("o" "Occur" org-occur :transient t)
+      ("/" "Create sparse tree" org-sparse-tree :transient t)
+      ("c" "Clear search results" org-remove-occur-highlights :transient t)
+      ("n" "Next (sparse) node" transient/org-mode--next-heading-dwim :transient t)
+      ("p" "Previous (sparse) node" transient/org-mode--previous-heading-dwim :transient t)
+      ]
+     ["Modify"
+      ("t" "Todo state" org-todo)
+      (":" "Tags" org-set-tags-command)
+      ("," "Priority" org-priority)
+      ("D" "Insert drawer" org-insert-drawer)
+      ("P" "Set property" org-set-property)
+      ("N" "Add note" org-add-note)
+      ]
+     ]
+    [
+     ["Node ops"
+      ("a" "Archive" org-archive-subtree-default)
+      ("r" "Refile" org-refile)
+      ("s" "Sort" org-sort)
+      ]
+     ["Text ops"
+      ("F" "Add footnote" org-footnote-action)
+      ("<" "Insert structure" org-insert-structure-template)
+      ("'" "Edit special" org-edit-special)
+      ("e" "Emphasize" org-emphasize)
+      ]
+     [:description (lambda ()
                      (transient--make-description
-                      "Link display"
-                      (not org-link-descriptive)))
-             org-toggle-link-display :transient t)
-            ("M-i" (lambda ()
-                     (transient--make-description
-                      "Image resize"
-                      org-image-actual-width))
-             transient/org-mode--toggle-display-image-width :transient t)
-            ]
-           ["Search"
-            ("g" "Goto" org-goto)
-            ("o" "Occur" org-occur :transient t)
-            ("/" "Create sparse tree" org-sparse-tree :transient t)
-            ("c" "Clear search results" org-remove-occur-highlights :transient t)
-            ("n" "Next (sparse) node" transient/org-mode--next-heading-dwim :transient t)
-            ("p" "Previous (sparse) node" transient/org-mode--previous-heading-dwim :transient t)
-            ]
-           ["Modify"
-            ("t" "Todo state" org-todo)
-            (":" "Tags" org-set-tags-command)
-            ("," "Priority" org-priority)
-            ("D" "Insert drawer" org-insert-drawer)
-            ("P" "Set property" org-set-property)
-            ("N" "Add note" org-add-note)
-            ]
-           ]
-          [
-           ["Node ops"
-            ("a" "Archive" org-archive-subtree-default)
-            ("r" "Refile" org-refile)
-            ("s" "Sort" org-sort)
-            ]
-           ["Text ops"
-            ("F" "Add footnote" org-footnote-action)
-            ("<" "Insert structure" org-insert-structure-template)
-            ("'" "Edit special" org-edit-special)
-            ("e" "Emphasize" org-emphasize)
-            ]
-           [:description (lambda ()
-                           (transient--make-description
-                            "Narrow"
-                            (buffer-narrowed-p)))
-            ("M-s" "Subtree" org-narrow-to-subtree)
-            ("M-b" "Block" org-narrow-to-block)
-            ("M-w" "Widen" widen)
-            ]
-           ["Other"
-            ("<tab>" "Cycle node" org-cycle :transient t)
-            ("<S-tab>" "Cycle global" org-global-cycle :transient t)
-            ("C-p" "Present mode" transient/org-mode--toggle-present-mode)
-            ("ds" "Download screenshot" org-download-screenshot)
-            ("dy" "Download yank" org-download-yank)
-            ("R" "→ Read-it-later" transient/org-mode/readitlater)
-            ]
-           ]
-          )
-        (define-key org-mode-map (kbd "C-c m") #'transient/org-mode)))))
+                      "Narrow"
+                      (buffer-narrowed-p)))
+      ("M-s" "Subtree" org-narrow-to-subtree)
+      ("M-b" "Block" org-narrow-to-block)
+      ("M-w" "Widen" widen)
+      ]
+     ["Other"
+      ("<tab>" "Cycle node" org-cycle :transient t)
+      ("<S-tab>" "Cycle global" org-global-cycle :transient t)
+      ("C-p" (lambda ()
+               (transient--make-description
+                "Slideshow mode"
+                org-tree-slide-mode))
+       org-tree-slide-mode)
+      ("ds" "Download screenshot" org-download-screenshot)
+      ("dy" "Download yank" org-download-yank)
+      ("R" "→ Read-it-later" transient/org-mode/readitlater)
+      ]
+     ]
+    )
+  (define-key org-mode-map (kbd "C-c m") #'transient/org-mode))
 
 ;; major-mode specific transient for org-msg-edit-mode
 (with-eval-after-load 'org-msg
@@ -5705,7 +5686,7 @@ and `racket-repl-documentation' otherwise."
          ["Session"
           ("ss" "Start" lsp)
           ("sr" "Restart" lsp-workspace-restart)
-          ("sq" "Shutdown" lsp-workspace-shutdown)
+          ("sQ" "Shutdown" lsp-workspace-shutdown) ; should normally be "sq", but using "sQ" to work around transient bug with `transient-bind-q-to-quit'
           ("sd" "Describe" lsp-describe-session)
           ("sD" "Disconnect" lsp-disconnect)
           ]

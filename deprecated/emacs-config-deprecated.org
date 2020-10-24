@@ -2169,6 +2169,94 @@ When annotating in the split-screen mode:
   :init (setq org-noter-always-create-frame nil))
 #+end_src
 
+** org-present for minimalist presentations within Emacs              :melpa:
+
+[[https://github.com/rlister/org-present][org-present]] extends org-mode so that it can be used for minimalist
+presentations within Emacs.
+
+Each top-level heading will correspond to a presentation slide.
+=LEFT= and =RIGHT= will move forward and backward through the
+slides, and =C-c C-q= will quit the presentation.
+
+*Customizations*:
+- Hide header and mode lines when presentation is active.
+- Additional keybindings during presentation
+  - =UP=/=DOWN=: Scroll up/down.
+  - =SHIFT-UP=/=SHIFT-DOWN=: Go to top/bottom of slide.
+  - =SHIFT-LEFT=/=SHIFT-RIGHT=: Go to first/last slide.
+  - =f=: Toggle fullscreen.
+  - =q=: Quit presentation (like =C-c C-q=).
+  - =-=: Decrease text scale.
+  - =+=: Increase text scale.
+
+#+name: org-present
+#+begin_src emacs-lisp
+;; in-editor presentations using Org documents
+(use-package org-present
+  :after org
+  :hook ((org-present-mode . (lambda ()
+                               (org-present-big)
+                               (org-display-inline-images)
+                               (org-present-read-only)
+                               (my-hide-header-and-mode-lines)))
+         (org-present-mode-quit . (lambda ()
+                                    (org-present-small)
+                                    (org-remove-inline-images)
+                                    (org-present-read-write)
+                                    (my-unhide-header-and-mode-lines))))
+  :config
+  ;; regenerate LaTeX fragment preview images on slide transition
+  (when (and (display-graphic-p)
+             (executable-find "dvipng"))
+    (add-hook 'org-present-after-navigate-functions
+              (lambda (&optional name header)
+                (my-org-display-latex-fragments))))
+  ;; functions for hiding header and mode lines when in a presentation
+  (defvar-local my-orig-mode-line-format nil
+    "Temporary variable to store original `mode-line-format'.")
+  (defvar-local my-orig-header-line-format nil
+    "Temporary variable to store original `header-line-format'.")
+  (defun my-hide-header-and-mode-lines ()
+    "Hide header and mode lines, and store originals in temporary variables."
+    (interactive)
+    (when mode-line-format
+      (setq-local my-orig-mode-line-format mode-line-format)
+      (setq-local mode-line-format nil))
+    (when header-line-format
+      (setq-local my-orig-header-line-format header-line-format)
+      (setq-local header-line-format nil)))
+  (defun my-unhide-header-and-mode-lines ()
+    "Reset header and mode lines using originals in temporary variables."
+    (interactive)
+    (when (not mode-line-format)
+      (setq-local mode-line-format my-orig-mode-line-format)
+      (setq-local my-orig-mode-line-format nil))
+    (when (not header-line-format)
+      (setq-local header-line-format my-orig-header-line-format)
+      (setq-local my-orig-header-line-format nil)))
+  ;; easier nav keys for read-only presentations
+  (define-minor-mode my-org-present-extra-mode
+    "Overlay minor mode on top of org-present-mode with easier nav keys."
+    :keymap (let ((keymap (make-sparse-keymap)))
+              ;; <left>/<right> = previous/next slide
+              (define-key keymap (kbd "<up>") 'scroll-down-line)
+              (define-key keymap (kbd "<down>") 'scroll-up-line)
+              (define-key keymap (kbd "s-<up>") 'beginning-of-buffer)
+              (define-key keymap (kbd "s-<down>") 'end-of-buffer)
+              (define-key keymap (kbd "s-<left>") 'org-present-beginning)
+              (define-key keymap (kbd "s-<right>") 'org-present-end)
+              (define-key keymap (kbd "f") 'toggle-frame-fullscreen)
+              (define-key keymap (kbd "q") 'org-present-quit)
+              (define-key keymap (kbd "-") 'text-scale-decrease)
+              (define-key keymap (kbd "+") 'text-scale-increase)
+              keymap))
+  ;; toggle minor mode after the relevant org-present funcalls
+  (advice-add 'org-present-read-only
+              :after (lambda () (my-org-present-extra-mode 1)))
+  (advice-add 'org-present-read-write
+              :after (lambda () (my-org-present-extra-mode 0))))
+#+end_src
+
 * Programming
 
 ** Flymake syntax checker

@@ -196,6 +196,22 @@ Literate configs, package lists, and so on and so forth.
 - [[https://colinxy.github.io/software-installation/2016/09/24/emacs25-easypg-issue.html][Emacs 25 EasyPG Issue]]
 - [[https://emacsnotes.wordpress.com/][Emacs Notes – GNU Emacs, for Ordinary Folks]]
 
+** Changelog-style commits
+
+Most typically use magit to handle git operations. There is at least
+one use case for which the built-in vc.el is much better, which is
+changelog style commits. To do this:
+
+1. ~M-x vc-dir~ (this is similar to ~M-x magit~).
+2. ~D~ or ~M-x vc-root-diff~ to get the diff.
+3. ~C-x 4 A~ or ~M-x diff-add-change-log-entries-other-window~ to get
+   a changelog style buffer. Edit the changelog as appropriate.
+4. ~v~ or ~M-x vc-next-action~ in the =*vc-dir*= buffer to commit.
+   This inserts the changelog into the buffer.
+
+Additionally, ~C-x 4 a~ when in a file will add an entry to the
+changelog for that file.
+
 ** Useful Emacs Lisp references
 
 - [[https://www.gnu.org/software/emacs/manual/html_node/elisp/index.html][GNU Emacs Lisp Reference Manual]]
@@ -11068,6 +11084,16 @@ supporting ~oer-reveal~ package. It is also more frequently updated.
 For instance, at the time of writing ~org-re-reveal~ supports
 ~reveal.js~ 4 but ~org-reveal~ does not.
 
+*** [#B] gkroam                                                       :melpa:
+
+[[https://github.com/Kinneyzhang/gkroam][gkroam]] is a lightweight [[https://roamresearch.com/][Roam Research]] replica. It requires ~rg~ be
+installed on the system. An alternative tool is [[https://github.com/org-roam/org-roam][Org-roam]]. Compared to
+org-roam, it is less complex (also means less featureful) and hews
+closer to the design language of Roam Research.
+
+References:
+- [[https://emacs-china.org/t/gkroam-el-v2-0-released/14508/63][gkroam.el v2.0 released, 欢迎试用！ - Emacs-general - Emacs China]]
+
 ** Programming
 
 *** Emacs lisp
@@ -11354,6 +11380,28 @@ References:
 *** [#C] Client tools for competitive programming sites               :melpa:
 
 [[https://github.com/conao3/oj.el][GitHub - conao3/oj.el: Competitive programming tools client for AtCoder, Codeforces]]
+
+*** [#C] xr for converting Emacs regexps to rx notation                :elpa:
+
+[[https://elpa.gnu.org/packages/xr.html][xr]] provides functionality for converting Emacs regexps to [[https://www.gnu.org/software/emacs//manual/html_node/elisp/Rx-Notation.html][rx notation]]
+which is easier understand and debug.
+
+Note that these rx forms can be used in place of regular regexps in
+Emacs, for example ~"/\\*\\(?:[^*]\\|\\*[^/]\\)*\\*+/"~ is the same
+as ~(rx "/*" (* (| (not "*") (: "*" (not "/")))) (+ "*") "/")~.
+
+Specifically, functions are provided aroung this use case:
+- ~xr~ which converts regexp to rx.
+- ~xr-pp~ which converts regexp to rx and pretty prints it.
+- ~xr-lint~ which finds mistakes in regexp.
+- ~xr-skip-set~, ~xr-skip-set-pp~ and ~xr-skip-set-lint~ which are
+  [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Skipping-Characters.html][skip set]] versions of the above.
+- ~xr-pp-rx-to-str~ which pretty prints an rx expression to a string.
+
+#+begin_src emacs-lisp
+;; convert regexp to rx notation
+(use-package xr)
+#+end_src
 
 * Local Variables                                                  :noexport:
 

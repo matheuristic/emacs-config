@@ -1099,6 +1099,7 @@ like Org journal files, by default.
            ("Calendar" (or (name . "^\\*?[Cc]alendar.*$")
                            (name . "^diary$")))
            ("DocView" (mode . doc-view-mode))
+           ("Images" (mode . image-mode))
            ("Web" (or (mode . eww-mode)
                       (mode . eww-bookmark-mode)))
            ("Shell" (or (mode . eshell-mode)
@@ -4399,6 +4400,25 @@ specifically it sends notifications for upcoming ~TODO~ entries.
 ;; send notifications for Org agenda deadlines and scheduled tasks
 (use-package org-wild-notifier
   :hook (after-init . org-wild-notifier-mode))
+#+end_src
+
+** Org Babel support for evaluating pikchr diagramming code        :external:
+
+[[https://pikchr.org/][Pikchr]] is a [[https://en.wikipedia.org/wiki/Pic_language][PIC]]-like markup language for diagramming, and is designed
+to be embedded in fenced code blocks in other markup languages.
+
+Download the source code from the pikchr website, compile and put the
+~lemon~ and ~pikchr~ binaries (or symlink to them) in some ~$PATH~
+directory. Only base GCC is needed for compilation (install using
+~build-essential~ in Debian; Xcode in macOS comes with ~llvm-gcc~
+instead which should also work).
+
+#+name: ob-pikchr
+#+begin_src emacs-lisp
+(when (executable-find "pikchr")
+  (with-eval-after-load 'org
+    (setq org-babel-pikchr-cmd (executable-find "pikchr"))
+    (require 'ob-pikchr)))
 #+end_src
 
 * Programming
@@ -10576,6 +10596,8 @@ The main configuration file.
 <<org-capture-websnippet>>
 
 <<org-wild-notifier>>
+
+<<ob-pikchr>>
 
 ;; Programming / Buffer reformatter macro
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 24 11:56:07 2020
+;; Generated: Sat Oct 24 14:18:00 2020
 
 ;;; Commentary:
 
@@ -461,6 +461,7 @@ cache before processing."
            ("Calendar" (or (name . "^\\*?[Cc]alendar.*$")
                            (name . "^diary$")))
            ("DocView" (mode . doc-view-mode))
+           ("Images" (mode . image-mode))
            ("Web" (or (mode . eww-mode)
                       (mode . eww-bookmark-mode)))
            ("Shell" (or (mode . eshell-mode)
@@ -2118,6 +2119,11 @@ call `open-line' on the very first character."
 ;; send notifications for Org agenda deadlines and scheduled tasks
 (use-package org-wild-notifier
   :hook (after-init . org-wild-notifier-mode))
+
+(when (executable-find "pikchr")
+  (with-eval-after-load 'org
+    (setq org-babel-pikchr-cmd (executable-find "pikchr"))
+    (require 'ob-pikchr)))
 
 ;; Programming / Buffer reformatter macro
 

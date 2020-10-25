@@ -54,7 +54,7 @@
 ;; Variables defined here:
 ;;
 ;;   `org-readitlater-after-archive-functions',
-;;   `org-readitlater-archive-date-format',
+;;   `org-readitlater-archive-date-format-string',
 ;;   `org-readitlater-default-browser',
 ;;   `org-readitlater-domain-regexp-alist',
 ;;   `org-readitlater-log-backend-invocation',
@@ -428,21 +428,20 @@ You can use it as a shell script if you want to run it on another
 machine, for example."
   :type 'boolean)
 
-(defcustom org-readitlater-archive-date-format
+(defcustom org-readitlater-archive-date-format-string
   (if (or (eq system-type 'windows-nt)
           (eq system-type 'ms-dos)
           (eq system-type 'cygwin))
-      'hyphenate
-    'iso-8601)
-  "String format for the archive folder name.
+      "%Y-%m-%d-%a-%H-%M-%S" ; no ":" chars in MS Windows filenames
+    "%FT%T%z") ; ISO-8601
+  "Format string for the date part of the archive folder name.
 
-Can be either the symbol `hyphenate', or `iso-8601'.  `hyphenate'
-is used on systems not supporting colons in filenames, while
-`iso-8601' is used everywhere else."
-  :type '(choice (const :tag "hyphenate: like 2016-08-18-Thu-20-19-02"
-                   hyphenate)
-                 (const :tag "iso-8601: like 2017-02-06T17:37:11+0100"
-                   iso-8601)))
+This should be a format string supported by `format-time-string'.
+
+Defaults to a hyphenated time and date string like
+\"2016-08-18-Thu-20-50-02\" for Windows systems since they do not
+support colons in filenames, and ISO-8601 time strings like \"2016-08-18T20:50:02+0100\" in other systems."
+  :type 'string)
 
 (defcustom org-readitlater-default-browser (if (require 'eww nil t)
                                                'eww
@@ -680,12 +679,8 @@ present."
 (defun org-readitlater-make-timestamp ()
   "Return a timestamp suitable for the native operating system.
 
-See also `org-readitlater-archive-date-format'."
-  (cond ((eq org-readitlater-archive-date-format 'hyphenate)
-         (format-time-string "%Y-%m-%d-%a-%H-%M-%S"
-                             (current-time)))
-        ((or (eq org-readitlater-archive-date-format 'iso-8601) t)
-         (format-time-string "%FT%T%z"))))
+See also `org-readitlater-archive-date-format-string'."
+  (format-time-string org-readitlater-archive-date-format-string))
 
 ;;;###autoload
 (defun org-readitlater-delete-all ()

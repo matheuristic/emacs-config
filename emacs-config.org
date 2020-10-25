@@ -6339,7 +6339,10 @@ This custom package is forked from [[https://github.com/scallywag/org-board][org
 #+name: org-readitlater
 #+begin_src emacs-lisp
 ;; read-it-later functionality in Org mode
-;; custom package in the lisp subfolder of the user emacs directory
+;; use an archive date string format that is safe for Windows systems
+(setq org-readitlater-archive-date-format-string
+      "%Y-%m-%d-%a-%H-%M-%S-%Z") ; 2016-08-18-Thu-20-50-02-PDT
+;; load custom package in the lisp subfolder of the user emacs directory
 (require 'org-readitlater)
 ;; uncomment if not accessing org-readitlater commands via a transient
 ;; (define-key org-mode-map (kbd "C-c O") org-readitlater-keymap)

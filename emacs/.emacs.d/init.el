@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 25 14:05:18 2020
+;; Generated: Sun Oct 25 15:10:30 2020
 
 ;;; Commentary:
 
@@ -2891,7 +2891,10 @@ for more information."
 (url-setup-privacy-info) ;; apply `url-privacy-level'
 
 ;; read-it-later functionality in Org mode
-;; custom package in the lisp subfolder of the user emacs directory
+;; use an archive date string format that is safe for Windows systems
+(setq org-readitlater-archive-date-format-string
+      "%Y-%m-%d-%a-%H-%M-%S-%Z") ; 2016-08-18-Thu-20-50-02-PDT
+;; load custom package in the lisp subfolder of the user emacs directory
 (require 'org-readitlater)
 ;; uncomment if not accessing org-readitlater commands via a transient
 ;; (define-key org-mode-map (kbd "C-c O") org-readitlater-keymap)

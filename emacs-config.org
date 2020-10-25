@@ -7082,6 +7082,29 @@ Define a command for clearing registers.
 (global-set-key (kbd "C-x r DEL") #'my-clear-register)
 #+end_src
 
+** xr for converting Emacs regexps to rx notation                      :elpa:
+
+[[https://elpa.gnu.org/packages/xr.html][xr]] provides functionality for converting Emacs regexps to [[https://www.gnu.org/software/emacs//manual/html_node/elisp/Rx-Notation.html][rx notation]]
+which is easier understand and debug.
+
+Note that these rx forms can be used in place of regular regexps in
+Emacs, for example ~"/\\*\\(?:[^*]\\|\\*[^/]\\)*\\*+/"~ is the same
+as ~(rx "/*" (* (| (not "*") (: "*" (not "/")))) (+ "*") "/")~.
+
+Specifically, this package provides these non-interactive functions:
+- ~xr~ which converts regexp to rx.
+- ~xr-pp~ which converts regexp to rx and pretty prints it.
+- ~xr-lint~ which finds mistakes in regexp.
+- ~xr-skip-set~, ~xr-skip-set-pp~ and ~xr-skip-set-lint~ which are
+  [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Skipping-Characters.html][skip set]] versions of the above.
+- ~xr-pp-rx-to-str~ which pretty prints an rx expression to a string.
+
+#+name: xr
+#+begin_src emacs-lisp
+;; convert regexp to rx notation
+(use-package xr)
+#+end_src
+
 * OS-specific
 
 ** macOS
@@ -10843,6 +10866,8 @@ The main configuration file.
 
 <<my-clear-register>>
 
+<<xr>>
+
 ;; OS-specific / macOS
 
 <<mac>>
@@ -11375,28 +11400,6 @@ References:
 *** [#C] Client tools for competitive programming sites               :melpa:
 
 [[https://github.com/conao3/oj.el][GitHub - conao3/oj.el: Competitive programming tools client for AtCoder, Codeforces]]
-
-*** [#C] xr for converting Emacs regexps to rx notation                :elpa:
-
-[[https://elpa.gnu.org/packages/xr.html][xr]] provides functionality for converting Emacs regexps to [[https://www.gnu.org/software/emacs//manual/html_node/elisp/Rx-Notation.html][rx notation]]
-which is easier understand and debug.
-
-Note that these rx forms can be used in place of regular regexps in
-Emacs, for example ~"/\\*\\(?:[^*]\\|\\*[^/]\\)*\\*+/"~ is the same
-as ~(rx "/*" (* (| (not "*") (: "*" (not "/")))) (+ "*") "/")~.
-
-Specifically, functions are provided aroung this use case:
-- ~xr~ which converts regexp to rx.
-- ~xr-pp~ which converts regexp to rx and pretty prints it.
-- ~xr-lint~ which finds mistakes in regexp.
-- ~xr-skip-set~, ~xr-skip-set-pp~ and ~xr-skip-set-lint~ which are
-  [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Skipping-Characters.html][skip set]] versions of the above.
-- ~xr-pp-rx-to-str~ which pretty prints an rx expression to a string.
-
-#+begin_src emacs-lisp
-;; convert regexp to rx notation
-(use-package xr)
-#+end_src
 
 * Local Variables                                                  :noexport:
 

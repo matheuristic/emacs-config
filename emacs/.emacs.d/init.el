@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 24 20:37:58 2020
+;; Generated: Sun Oct 25 00:15:12 2020
 
 ;;; Commentary:
 
@@ -3141,6 +3141,9 @@ for more information."
 
 ;; global binding for clearing a register's contents
 (global-set-key (kbd "C-x r DEL") #'my-clear-register)
+
+;; convert regexp to rx notation
+(use-package xr)
 
 ;; OS-specific / macOS
 

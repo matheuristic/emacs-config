@@ -4102,6 +4102,26 @@ the Emacs frame contains only one window.
   :config (setq darkroom-text-increase-scale 2))
 #+end_src
 
+** Spell checking
+
+*** Flyspell for spell checking in Emacs
+
+**** Choose spelling corrections using completing-read                :melpa:
+
+The default ~flyspell-correct-word-before-point~ command creates a
+popup designed for mouse interaction. [[https://github.com/d12frosted/flyspell-correct][flyspell-correct]] provides a
+wrapper function that filters the corrections through a
+~completing-read~ interface.
+
+#+name: flyspell-correct
+#+begin_src emacs-lisp
+;; wrapper to filter Flyspell corrections through `completing-read'
+(use-package flyspell-correct
+  :after flyspell
+  :bind (:map flyspell-mode-map
+         ("C-c $" . flyspell-correct-wrapper)))
+#+end_src
+
 * Other
 
 ** Auth sources

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 25 00:15:12 2020
+;; Generated: Sun Oct 25 14:05:18 2020
 
 ;;; Commentary:
 
@@ -2912,11 +2912,15 @@ for more information."
 
 ;; Writing
 
-;; wrapper to filter Flyspell corrections through `completing-read'
-(use-package flyspell-correct
-  :after flyspell
-  :bind (:map flyspell-mode-map
-         ("C-c $" . flyspell-correct-wrapper)))
+;; advise flyspell jump functions to perform context actions after
+;; they are run
+(with-eval-after-load 'flyspell
+  (advice-add 'flyspell-goto-next-error :after #'my-after-jump-context-actions))
+
+;; unbind some Flyspell default bindings that conflict with other more
+;; useful bindings
+(with-eval-after-load 'flyspell
+  (define-key flyspell-mode-map (kbd "C-;") nil)) ; `iedit-mode' binding
 
 ;; provides word lookups from a dictionary server
 ;; `dictionary-server' can be set to "localhost" to use a local
@@ -4344,56 +4348,80 @@ Currently only works for Emacs Mac port."
 (global-set-key (kbd "C-c e W") #'transient/workspace)
 
 ;; add transient popup for writing commands
-(with-eval-after-load 'dictionary
-  (with-eval-after-load 'synosaurus
-    (with-eval-after-load 'langtool
-      (with-eval-after-load 'typo
-        (require 'flyspell-correct)
-        (transient-define-prefix transient/writing ()
-          "Writing commands."
-          ["Writing"
-           ["Spelling"
-            ("sm" (lambda ()
-                    (interactive)
-                    (transient--make-description "Flyspell mode"
-                                                 flyspell-mode))
-             flyspell-mode :transient t)
-            ("sb" "Check buffer" flyspell-buffer :transient t)
-            ("sn" "Next error" flyspell-goto-next-error :transient t)
-            ("sc" "Correct word" flyspell-correct-wrapper :transient t)
-            ]
-           ["Thesaurus"
-            ("tm" (lambda ()
-                    (interactive)
-                    (transient--make-description "Synosaurus mode"
-                                                 synosaurus-mode))
-             synosaurus-mode :transient t)
-            ("tl" "Lookup" synosaurus-lookup)
-            ("tr" "Replace" synosaurus-choose-and-replace)
-            ("ti" "Insert" synosaurus-choose-and-insert)
-            ]
-           ["LanguageTool"
-            ("gs" "Start check" langtool-check)
-            ("gc" "Correct buffer" langtool-correct-buffer)
-            ("ge" "End check" langtool-check-done)
-            ("gl" "Switch language" langtool-switch-default-language
-             :transient t)
-            ]
-           ]
-          [
-           ["Dictionary"
-            ("ds" "Search" dictionary-search)
-            ("dm" "Match words" dictionary-match-words)
-            ]
-           ["Typography"
-            ("y" (lambda ()
-                   (interactive)
-                   (transient--make-description "Typography mode"
-                                                typo-mode))
-             typo-mode :transient t)]
-           ]
-          )
-        (global-set-key (kbd "C-c l w") #'transient/writing)))))
+(require 'dictionary)
+(require 'synosaurus)
+(require 'langtool)
+(require 'typo)
+
+(defun transient/writing--ispell-dwim ()
+  "Dispatch to different Ispell spelling correction commands by major mode.
+
+If the major mode derives from `prog-mode', call interactively
+`ispell-comments-and-strings'.
+
+If the major mode derives from `message-mode', call interactively
+`ispell-message'.
+
+Otherwise call interactively `ispell'.
+
+Note that `ispell-comments-and-strings' and `ispell-message' do
+not support restricting to a region."
+  (interactive)
+  (let ((fun (cond
+              ((derived-mode-p 'prog-mode) #'ispell-comments-and-strings)
+              ((derived-mode-p 'message-mode) #'ispell-message)
+              (t #'ispell))))
+    (call-interactively fun)))
+
+(transient-define-prefix transient/writing ()
+  "Writing commands."
+  ["Writing"
+   ["Spelling"
+    ("F" (lambda ()
+           (interactive)
+           (transient--make-description "Flyspell mode"
+                                        flyspell-mode))
+     flyspell-mode :transient t)
+    ("P" "Flyspell prog mode" flyspell-prog-mode :transient t)
+    ("B" "Check buffer" flyspell-buffer :transient t)
+    ("n" "Next error" flyspell-goto-next-error :transient t)
+    ("c" "Correct word" ispell-word :transient t)
+    ("C" "Correct buffer/region" transient/writing--ispell-dwim :transient t)
+    ("D" "Change dictionary" ispell-change-dictionary :transient t)
+    ]
+   ["Thesaurus"
+    ("tm" (lambda ()
+            (interactive)
+            (transient--make-description "Synosaurus mode"
+                                         synosaurus-mode))
+     synosaurus-mode :transient t)
+    ("tl" "Lookup" synosaurus-lookup)
+    ("tr" "Replace" synosaurus-choose-and-replace)
+    ("ti" "Insert" synosaurus-choose-and-insert)
+    ]
+   ["LanguageTool"
+    ("gs" "Start check" langtool-check)
+    ("gc" "Correct buffer" langtool-correct-buffer)
+    ("ge" "End check" langtool-check-done)
+    ("gl" "Switch language" langtool-switch-default-language
+     :transient t)
+    ]
+   ]
+  [
+   ["Dictionary"
+    ("ds" "Search" dictionary-search)
+    ("dm" "Match words" dictionary-match-words)
+    ]
+   ["Typography"
+    ("y" (lambda ()
+           (interactive)
+           (transient--make-description "Typography mode"
+                                        typo-mode))
+     typo-mode :transient t)]
+   ]
+  )
+
+(global-set-key (kbd "C-c l w") #'transient/writing)
 
 ;; add transient popup for yasnippet commands
 (with-eval-after-load 'yasnippet

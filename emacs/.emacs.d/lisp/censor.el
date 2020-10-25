@@ -4,30 +4,10 @@
 ;; Original work copyright (c) 2020 Abhinav Tushar
 
 ;; Author: matheuristic
-;; Version: 0.0.1
+;; Version: 0.1
 ;; Package-Requires: (emacs "26")
+;; Keywords: buffers, censor, overlays
 ;; URL: https://github.com/matheuristic/emacs-config
-
-;;; Commentary:
-
-;; Minor mode for censoring buffer content.
-
-;; `censor-mode' toggles censoring of the current buffer.
-
-;; `global-censor-mode' toggles censoring of all buffers that match
-;; the regexps or satisfy the predicate functions in `censor-include'.
-
-;; Censoring is purely visual, so yanking text works normally. This
-;; mode is useful in screen sharing or pair coding sessions to ensure
-;; content in sensitive buffers is hidden should they get displayed.
-
-;; censor.el is forked from conceal https://github.com/lepisma/conceal
-;; and modified to support buffer-local censoring in addition to the
-;; global buffer censoring from the original package, and to support a
-;; `recentf-exclude' style definition of what buffers to censor when
-;; the global minor mode is enabled.
-
-;; This file is not a part of GNU Emacs.
 
 ;;; License:
 
@@ -35,14 +15,35 @@
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
 ;; (at your option) any later version.
-
+;;
 ;; This program is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ;; GNU General Public License for more details.
-
+;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Minor mode for censoring buffer content.
+;;
+;; `censor-mode' toggles censoring of the current buffer.
+;;
+;; `global-censor-mode' toggles censoring of all buffers that match
+;; the regexps or satisfy the predicate functions in `censor-include'.
+;;
+;; Censoring is purely visual, so yanking text works normally. This
+;; mode is useful in screen sharing or pair coding sessions to ensure
+;; content in sensitive buffers is hidden should they get displayed.
+;;
+;; censor.el is forked from conceal https://github.com/lepisma/conceal
+;; and modified to support buffer-local censoring in addition to the
+;; global buffer censoring from the original package, and to support a
+;; `recentf-exclude' style definition of what buffers to censor when
+;; the global minor mode is enabled.
+;;
+;; This file is not a part of GNU Emacs.
 
 ;;; Code:
 

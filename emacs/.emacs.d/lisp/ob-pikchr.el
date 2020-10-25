@@ -1,8 +1,11 @@
-;;; ob-ditaa.el --- Babel Functions for pikchr        -*- lexical-binding: t; -*-
+;;; ob-pikchr.el --- Babel Functions for pikchr -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2020 matheuristic
 
 ;; Author: matheuristic
+;; Version: 0.1
+;; Keywords: literate programming, reproducible research, pikchr
+;; Homepage: https://github.com/matheuristic/emacs-config
 
 ;;; License:
 
@@ -39,8 +42,9 @@
   "Default arguments for evaluating a pikchr source block.")
 
 (defcustom org-babel-pikchr-cmd "pikchr"
-  "Executable to use when evaluating pikchr blocks."
+  "Name of command used to evaluate pikchr blocks."
   :group 'org-babel
+  :version "24.1"
   :type 'string)
 
 (defun org-babel-execute:pikchr (body params)

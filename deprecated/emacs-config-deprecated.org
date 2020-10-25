@@ -4513,6 +4513,12 @@ Neuron major mode transient.
 #+end_src
 
 * Backlog
+** Org-mode
+*** [#B] Org-ref                                                      :melpa:
+
+[[https://github.com/jkitchin/org-ref][Org-ref]] is a collection of modules for managing citations, references
+and BibTeX bibliographies in Org-mode.
+
 ** Web
 
 *** [#C] org-static-blog                                              :melpa:

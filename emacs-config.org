@@ -6001,7 +6001,7 @@ Hide minor modes by default using the [[https://github.com/tarsius/minions][mini
       ;; modes in minions-direct are always shown
       ;; use UTF-8 mode line lighter
       (setq minions-direct '(overwrite-mode view-mode)
-            minions-mode-line-lighter "≡")
+            minions-mode-line-lighter "☰")
       (minions-mode 1)))
 #+end_src
 
@@ -6266,6 +6266,34 @@ stored in text files, in particular editing and sending them.
       (goto-char (point-min))
       (pulse-momentary-highlight-region (point-min) (point-max))))
   (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
+#+end_src
+
+** Hacky workaround for GnuTLS timing issues                     :workaround:
+
+The Emacs usage of GnuTLS has some timing-related issues, especially
+with ~url-retrieve-synchronously~ and on GUI Emacs. This appears to be
+a sort of race condition, and a bug reporter thinks that GnuTLS is not
+properly waiting for the server to write the initial greeting.
+
+See [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573][link]] for more information and a [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10][workaround]].
+
+#+name: open-gnutls-stream-workaround
+#+begin_src emacs-lisp
+(defun open-gnutls-stream--after-sleep-250ms (&rest args)
+  "Workaround for race condition bug in `open-gnutls-stream'.
+
+Adds 250ms to the opening of GnuTLS connections.
+
+ARGS is a list of the original arguments passed to
+`open-gnutls-stream' and is ignored.
+
+See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10
+for more information."
+  (sleep-for 0 250))
+
+;; add advice to `open-gnutls-stream' to have it sleep for 250ms
+;; as a workaround for GnuTLS race condition bug
+(advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
 #+end_src
 
 ** Network security
@@ -6860,34 +6888,6 @@ all keyboards it is a good idea to bind it to a function key, which is
 #+name: revert-buffer
 #+begin_src emacs-lisp
 (global-set-key (kbd "<f5>") #'revert-buffer)
-#+end_src
-
-** Hacky workaround for GnuTLS timing issues                     :workaround:
-
-The Emacs usage of GnuTLS has some timing-related issues, especially
-with ~url-retrieve-synchronously~ and on GUI Emacs. This appears to be
-a sort of race condition, and a bug reporter thinks that GnuTLS is not
-properly waiting for the server to write the initial greeting.
-
-See [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573][link]] for more information and a [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10][workaround]].
-
-#+name: open-gnutls-stream-workaround
-#+begin_src emacs-lisp
-(defun open-gnutls-stream--after-sleep-250ms (&rest args)
-  "Workaround for race condition bug in `open-gnutls-stream'.
-
-Adds 250ms to the opening of GnuTLS connections.
-
-ARGS is a list of the original arguments passed to
-`open-gnutls-stream' and is ignored.
-
-See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10
-for more information."
-  (sleep-for 0 250))
-
-;; add advice to `open-gnutls-stream' to have it sleep for 250ms
-;; as a workaround for GnuTLS race condition bug
-(advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
 #+end_src
 
 ** Password management and storage
@@ -10779,6 +10779,8 @@ The main configuration file.
 
 <<restclient>>
 
+<<open-gnutls-stream-workaround>>
+
 <<network-security>>
 
 <<http-requests-privacy>>
@@ -10828,8 +10830,6 @@ The main configuration file.
 <<enable-default-disabled-functions>>
 
 <<revert-buffer>>
-
-<<open-gnutls-stream-workaround>>
 
 <<auth-source-pass>>
 
@@ -11065,11 +11065,6 @@ export shortcut keys so they align with the default LaTeX export ones.
 
 Additionally, use the ~ETbb~ package from CTAN for the font instead
 of the look-alike in the old code.
-
-*** [#B] Org-ref                                                      :melpa:
-
-[[https://github.com/jkitchin/org-ref][Org-ref]] is a collection of modules for managing citations, references
-and BibTeX bibliographies in Org-mode.
 
 *** [#C] org-re-reveal                                                :melpa:
 

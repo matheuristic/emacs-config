@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 24 14:18:00 2020
+;; Generated: Sat Oct 24 20:37:58 2020
 
 ;;; Commentary:
 
@@ -350,7 +350,7 @@ cache before processing."
       ;; modes in minions-direct are always shown
       ;; use UTF-8 mode line lighter
       (setq minions-direct '(overwrite-mode view-mode)
-            minions-mode-line-lighter "≡")
+            minions-mode-line-lighter "☰")
       (minions-mode 1)))
 
 ;; Backups
@@ -2863,6 +2863,22 @@ This enables things like ElDoc and autocompletion."
       (pulse-momentary-highlight-region (point-min) (point-max))))
   (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
 
+(defun open-gnutls-stream--after-sleep-250ms (&rest args)
+  "Workaround for race condition bug in `open-gnutls-stream'.
+
+Adds 250ms to the opening of GnuTLS connections.
+
+ARGS is a list of the original arguments passed to
+`open-gnutls-stream' and is ignored.
+
+See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10
+for more information."
+  (sleep-for 0 250))
+
+;; add advice to `open-gnutls-stream' to have it sleep for 250ms
+;; as a workaround for GnuTLS race condition bug
+(advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
+
 ;; increase network security settings
 (setq gnutls-verify-error t)
 (setq gnutls-min-prime-bits 1024)
@@ -3004,22 +3020,6 @@ This enables things like ElDoc and autocompletion."
 (put 'upcase-region 'disabled nil)
 
 (global-set-key (kbd "<f5>") #'revert-buffer)
-
-(defun open-gnutls-stream--after-sleep-250ms (&rest args)
-  "Workaround for race condition bug in `open-gnutls-stream'.
-
-Adds 250ms to the opening of GnuTLS connections.
-
-ARGS is a list of the original arguments passed to
-`open-gnutls-stream' and is ignored.
-
-See https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=930573#10
-for more information."
-  (sleep-for 0 250))
-
-;; add advice to `open-gnutls-stream' to have it sleep for 250ms
-;; as a workaround for GnuTLS race condition bug
-(advice-add #'open-gnutls-stream :after #'open-gnutls-stream--after-sleep-250ms)
 
 ;; enable auth-source integration with pass
 (when (executable-find "pass")

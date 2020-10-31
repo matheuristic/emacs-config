@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 25 15:10:30 2020
+;; Generated: Fri Oct 30 20:59:58 2020
 
 ;;; Commentary:
 
@@ -246,37 +246,6 @@ cache before processing."
 
 ;; Backend and frontend frameworks for building user interfaces
 
-;; enable flex completion on Emacs 27+
-(when (not (version< emacs-version "27"))
-  (with-eval-after-load 'minibuffer
-    (add-to-list 'completion-styles 'flex t)))
-
-;; use Icomplete as the completion backend
-;; emulate ido behavior where possible
-(if (version< emacs-version "27")
-    ;; no `fido-mode' on older Emacs versions
-    (progn
-      (setq completion-category-defaults nil
-            icomplete-compute-delay 0
-            icomplete-hide-common-prefix nil
-            icomplete-prospects-height 2
-            icomplete-show-matches-on-no-input t
-            icomplete-tidy-shadowed-file-names t)
-      (icomplete-mode)
-      ;; C-s and C-r cycles through completion candidates like isearch
-      (define-key icomplete-minibuffer-map (kbd "C-s")
-        #'icomplete-forward-completions)
-      (define-key icomplete-minibuffer-map (kbd "C-r")
-        #'icomplete-backward-completions)
-      ;; RET selects current completion candidate like ido
-      ;; M-j uses input as is, e.g. to create new files or new dirs
-      (define-key icomplete-minibuffer-map (kbd "RET")
-        #'icomplete-force-complete-and-exit)
-      (define-key icomplete-minibuffer-map (kbd "M-j")
-        #'exit-minibuffer))
-  ;; enable `fido-mode'
-  (fido-mode))
-
 ;; text completion framework
 (use-package company
   :defer t
@@ -305,6 +274,21 @@ cache before processing."
                   'libnotify)
                  ;; otherwise print message to minibuffer
                  (t 'message))))
+
+(use-package selectrum
+  :config (selectrum-mode 1))
+
+(use-package prescient
+  :init (setq prescient-filter-method '(literal regexp initialism fuzzy))
+  :config (prescient-persist-mode 1))
+
+(use-package selectrum-prescient
+  :after (prescient selectrum)
+  :config (selectrum-prescient-mode 1))
+
+(use-package company-prescient
+  :after (prescient company)
+  :config (company-prescient-mode 1))
 
 ;; Visual (part 1)
 
@@ -367,11 +351,6 @@ cache before processing."
         backup-by-copying t)) ;; backup by copying instead of renaming
 
 ;; Bookmarks and history
-
-;; alternative interface for M-x
-(use-package amx
-  :bind ("M-X" . amx-major-mode-commands)
-  :init (amx-mode))
 
 ;; recently opened files
 (setq recentf-max-menu-items 10

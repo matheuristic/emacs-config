@@ -124,6 +124,59 @@ file-related Helm commands.
   :config (helm-icons-enable))
 #+end_src
 
+** Flexible minibuffer completion style
+
+Emacs 27+ added a [[https://github.com/emacs-mirror/emacs/commit/fabfb54d1f60cf90e72b1efaabfbefbe877e076a][flexible completion]] similar to [[https://github.com/lewang/flx][flx]] for ~ido~.
+
+*Note*: If icomplete ~fido-mode~ is enabled, it sets matching to use
+~flex~ only as part of the minibuffer setup hook.
+
+#+name: flex-minibuffer-completion-style
+#+begin_src emacs-lisp
+;; enable flex completion on Emacs 27+
+(when (not (version< emacs-version "27"))
+  (with-eval-after-load 'minibuffer
+    (add-to-list 'completion-styles 'flex t)))
+#+end_src
+
+** Minibuffer completion with Icomplete
+
+Use [[https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el][Icomplete]] as the completion backend, emulating [[https://www.gnu.org/software/emacs/manual/html_mono/ido.html][Ido]] where possible.
+In Emacs 27+, there is a ~fido-mode~ that very close emulates Ido.
+In prior versions, we configure Icomplete behavior directly (though
+not as thoroughly as ~fido-mode~).
+
+In most instances, use only this or Icomplete but not both.
+
+#+name: icomplete
+#+begin_src emacs-lisp
+;; use Icomplete as the completion backend
+;; emulate ido behavior where possible
+(if (version< emacs-version "27")
+    ;; no `fido-mode' on older Emacs versions
+    (progn
+      (setq completion-category-defaults nil
+            icomplete-compute-delay 0
+            icomplete-hide-common-prefix nil
+            icomplete-prospects-height 2
+            icomplete-show-matches-on-no-input t
+            icomplete-tidy-shadowed-file-names t)
+      (icomplete-mode)
+      ;; C-s and C-r cycles through completion candidates like isearch
+      (define-key icomplete-minibuffer-map (kbd "C-s")
+        #'icomplete-forward-completions)
+      (define-key icomplete-minibuffer-map (kbd "C-r")
+        #'icomplete-backward-completions)
+      ;; RET selects current completion candidate like ido
+      ;; M-j uses input as is, e.g. to create new files or new dirs
+      (define-key icomplete-minibuffer-map (kbd "RET")
+        #'icomplete-force-complete-and-exit)
+      (define-key icomplete-minibuffer-map (kbd "M-j")
+        #'exit-minibuffer))
+  ;; enable `fido-mode'
+  (fido-mode))
+#+end_src
+
 * Bookmarks and history
 
 ** Recent files
@@ -161,6 +214,24 @@ Bookmarks (_q_: quit)"
   ("L" bookmark-load "load")
   ("W" bookmark-write "write"))
 (global-set-key (kbd "C-c C-M-j") 'my-hydra/bookmarks/body)
+#+end_src
+
+** Minibuffer commands                                                :melpa:
+
+Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~. It also has an additional
+binding ~M-X~ which is limited to major mode commands.
+
+It is compatible with most completion systems and provides the
+following enhancements:
+- Prioritizing most-used commands.
+- Showing keyboard shortcuts.
+
+#+name: amx
+#+begin_src emacs-lisp
+;; alternative interface for M-x
+(use-package amx
+  :bind ("M-X" . amx-major-mode-commands)
+  :init (amx-mode))
 #+end_src
 
 * Buffers, windows, frames, workspaces

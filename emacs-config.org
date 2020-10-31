@@ -157,6 +157,17 @@ beginning of the line /text/, globally bound to ~M-m~ by default.
 This is a useful complement to the standard ~C-a~ binding that moves
 the point to the beginning of the line.
 
+*** Moving to top/middle/bottom of window (M-r)
+
+~move-to-window-line-top-bottom~ cycles the point between the top,
+middle and bottom of the window, and is bound to ~M-r~ by default.
+
+*** Cycle view so current line is top/middle/bottom of window (C-l)
+
+~recenter-top-bottom~ cycles the window view between three
+configurations where the current line is at the top, middle or bottom
+of the visible buffer area, and is bound to ~C-l~ by default.
+
 *** Jumping to function definitions (M-.)
 
 Jumping to the definition of a function under point can be done by

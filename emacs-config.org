@@ -616,6 +616,31 @@ Save current buffer and bury it.
   (bury-buffer))
 #+end_src
 
+*** Install ELPA-compatible repository version of a built-in package
+
+Generally, ~use-package~ does not install the ELPA-compatible
+repository version of a package when there is already a built-in
+version of it. This function works around that limitation by forcing
+installed of the ELPA-compatible repository version if it is not
+already present in the ELPA package cache.
+
+#+name: my-install-elpa-package
+#+begin_src emacs-lisp
+;; hacky workaround to install ELPA/MELPA version of a package
+;; adapated from https://github.com/jwiegley/use-package/issues/319
+(defun my-install-elpa-package (pkg-symb)
+  "Install the ELPA-compatible repository version of package PKG-SYMB.
+Useful for working around `use-package' behavior of not
+installing the repository version of a package when a built-in
+version is present (even if pinned to a specific repository)."
+  (let ((pkg-pattern (concat package-user-dir
+                             "/" (symbol-name pkg-symb) "-[0-9]*")))
+    (unless (file-expand-wildcards pkg-pattern)
+      (package-install (elt (cdr (assoc pkg-symb
+                                        package-archive-contents))
+                            0)))))
+#+end_src
+
 * Package management
 
 ** Prefer newer Elisp files                                           :early:
@@ -3463,10 +3488,8 @@ Use the [[https://elpa.gnu.org/packages/org.html][ELPA version]] of Org that mor
 
 #+name: org-elpa
 #+begin_src emacs-lisp
-;; hacky workaround to use ELPA version of Org
-;; from https://github.com/jwiegley/use-package/issues/319
-(unless (file-expand-wildcards (concat package-user-dir "/org-[0-9]*"))
-  (package-install (elt (cdr (assoc 'org package-archive-contents)) 0)))
+;; install ELPA version of Org
+(my-install-elpa-package 'org)
 #+end_src
 
 ** Base Org settings
@@ -4808,10 +4831,8 @@ of the package.
 
 #+name: python-elpa
 #+begin_src emacs-lisp
-;; hacky workaround to use ELPA version of Python
-;; adapted from from https://github.com/jwiegley/use-package/issues/319
-(unless (file-expand-wildcards (concat package-user-dir "/python-[0-9]*"))
-  (package-install (elt (cdr (assoc 'python package-archive-contents)) 0)))
+;; install ELPA version of python.el
+(my-install-elpa-package 'python)
 #+end_src
 
 *** Use jupyter or ipython as the Python interpreter when available :external:
@@ -10399,6 +10420,8 @@ The main configuration file.
 
 <<my-save-and-bury-buffer>>
 
+<<my-install-elpa-package>>
+
 ;; Package management
 
 <<elpa-repositories>>
@@ -11228,22 +11251,53 @@ Using the above, ~sqlcmdline~ can be run by calling the
 
 ** Project interaction
 
-*** [#C] Replace projectile with project.el
+*** [#C] Use ELPA version of project.el                                :elpa:
+
+Use the [[https://elpa.gnu.org/packages/project.html][ELPA version]] of project.el which tracks the Emacs master version
+of the package.
+
+#+name: project-elpa
+#+begin_src emacs-lisp
+;; install ELPA version of project.el
+(my-install-elpa-package 'project)
+#+end_src
+
+** [#C] project.el
 
 [[https://elpa.gnu.org/packages/project.html][project.el]] is a simple project interaction library. It is simpler than
 [[https://github.com/bbatsov/projectile][Projectile]] and is in Emacs core (but it's better to use the ELPA
 version as it's more ahead in functionality). Most of its
 commands can be accessed via its default ~C-x p~ prefix.
 
-Let project.el API reach stability before switching over.
-
+- TODO Let project.el API reach stability before switching over.
 - TODO also create a transient for accessing project.el functions.
 - TODO add REPL buffers to ~project-kill-buffer-conditions~.
-- TODO add ~magit-status~, ~project-shell~, ~vterm~ and ~rg~ to
-  ~project-switch-commands~.
+- TODO add ~project-shell~ and ~vterm~ to ~project-switch-commands~.
 
 References:
 - [[https://www.manueluberti.eu/emacs/2020/09/18/project/][It’s never too late – Manuel Uberti]]
+
+#+name: project
+#+begin_src emacs-lisp
+;; project interaction library, default command prefix is "C-x p"
+(use-package project
+  :ensure nil ; built-in or ELPA version version installed prior
+  :config
+  (setq project-switch-commands
+        `((?f "Find file" project-find-file)
+          (?F "Find regexp" project-find-regexp)
+          (?d "Dired" project-dired)
+          (?v "VC-Dir" project-vc-dir)
+          (?e "Eshell" project-eshell)))
+  (when (fboundp 'magit-status)
+    (add-to-list project-switch-commands
+                 '(?g "Magit" magit-status)))
+  (when (fboundp 'rg-project)
+    (add-to-list project-switch-commands
+                 '(?s "Grep" rg-project))))
+#+end_src
+
+
 
 *** [#B] Forge for working with Git forges from Magit                 :melpa:
 

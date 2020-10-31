@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Oct 30 22:38:50 2020
+;; Generated: Sat Oct 31 15:00:05 2020
 
 ;;; Commentary:
 
@@ -147,6 +147,20 @@ if the point is in the minibuffer."
   "Save and bury the current buffer."
   (save-buffer)
   (bury-buffer))
+
+;; hacky workaround to install ELPA/MELPA version of a package
+;; adapated from https://github.com/jwiegley/use-package/issues/319
+(defun my-install-elpa-package (pkg-symb)
+  "Install the ELPA-compatible repository version of package PKG-SYMB.
+Useful for working around `use-package' behavior of not
+installing the repository version of a package when a built-in
+version is present (even if pinned to a specific repository)."
+  (let ((pkg-pattern (concat package-user-dir
+                             "/" (symbol-name pkg-symb) "-[0-9]*")))
+    (unless (file-expand-wildcards pkg-pattern)
+      (package-install (elt (cdr (assoc pkg-symb
+                                        package-archive-contents))
+                            0)))))
 
 ;; Package management
 
@@ -1542,10 +1556,8 @@ Formatting a selected region only works on top-level objects."
 
 ;; Org-mode
 
-;; hacky workaround to use ELPA version of Org
-;; from https://github.com/jwiegley/use-package/issues/319
-(unless (file-expand-wildcards (concat package-user-dir "/org-[0-9]*"))
-  (package-install (elt (cdr (assoc 'org package-archive-contents)) 0)))
+;; install ELPA version of Org
+(my-install-elpa-package 'org)
 
 ;; set Org directory and inbox file
 (setq org-directory (file-name-as-directory (expand-file-name "~/org"))
@@ -2341,10 +2353,8 @@ Lisp function does not specify a special indentation."
 
 ;; Programming / Python
 
-;; hacky workaround to use ELPA version of Python
-;; adapted from from https://github.com/jwiegley/use-package/issues/319
-(unless (file-expand-wildcards (concat package-user-dir "/python-[0-9]*"))
-  (package-install (elt (cdr (assoc 'python package-archive-contents)) 0)))
+;; install ELPA version of python.el
+(my-install-elpa-package 'python)
 
 (setq python-shell-interpreter "py"
       python-shell-interpreter-args ""

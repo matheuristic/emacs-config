@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Oct 30 20:59:58 2020
+;; Generated: Fri Oct 30 22:38:50 2020
 
 ;;; Commentary:
 
@@ -275,17 +275,24 @@ cache before processing."
                  ;; otherwise print message to minibuffer
                  (t 'message))))
 
+;; incremental narrowing interface for `completing-read'
 (use-package selectrum
+  :init (setq selectrum-count-style 'current/matches
+              selectrum-extend-current-candidate-highlight t)
   :config (selectrum-mode 1))
 
+;; library for sorting and filtering
 (use-package prescient
-  :init (setq prescient-filter-method '(literal regexp initialism fuzzy))
-  :config (prescient-persist-mode 1))
+  :init (setq prescient-filter-method '(literal regexp initialism)
+              prescient-sort-length-enable t)
+  :config (prescient-persist-mode 1)) ; persist usage cache between sessions
 
+;; prescient.el integration with Selectrum
 (use-package selectrum-prescient
   :after (prescient selectrum)
   :config (selectrum-prescient-mode 1))
 
+;; prescient.el integration with Company
 (use-package company-prescient
   :after (prescient company)
   :config (company-prescient-mode 1))

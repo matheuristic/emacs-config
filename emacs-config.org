@@ -882,12 +882,16 @@ This is used by other packages, like ~markdown-mode~.
 
 ** Selectrum for minibuffer narrowing and selection                   :melpa:
 
-[[https://github.com/raxod502/selectrum][Selectrum]] provides a minibuffer interface for narrowing and selecting
-items from a list. Alternatives are [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Icomplete.html][Icomplete]], [[https://github.com/abo-abo/swiper#ivy][Ivy]], [[https://github.com/emacs-helm/helm][Helm]], [[https://www.emacswiki.org/emacs/Icicles][Icicles]], etc.
+[[https://github.com/raxod502/selectrum][Selectrum]] provides a `completing-read' interface with incremental
+narrowing. Other similar packages include [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Icomplete.html][Icomplete]], [[https://github.com/abo-abo/swiper#ivy][Ivy]], [[https://github.com/emacs-helm/helm][Helm]],
+[[https://www.emacswiki.org/emacs/Icicles][Icicles]], etc.
 
 #+name: selectrum
 #+begin_src emacs-lisp
+;; incremental narrowing interface for `completing-read'
 (use-package selectrum
+  :init (setq selectrum-count-style 'current/matches
+              selectrum-extend-current-candidate-highlight t)
   :config (selectrum-mode 1))
 #+end_src
 
@@ -903,9 +907,11 @@ Company as separate packages in MELPA.
 
 #+name: prescient
 #+begin_src emacs-lisp
+;; library for sorting and filtering
 (use-package prescient
-  :init (setq prescient-filter-method '(literal regexp initialism fuzzy))
-  :config (prescient-persist-mode 1))
+  :init (setq prescient-filter-method '(literal regexp initialism)
+              prescient-sort-length-enable t)
+  :config (prescient-persist-mode 1)) ; persist usage cache between sessions
 #+end_src
 
 *** prescient.el integration with Selectrum                           :melpa:
@@ -914,6 +920,7 @@ Integrate prescient.el with Selectrum.
 
 #+name: selectrum-prescient
 #+begin_src emacs-lisp
+;; prescient.el integration with Selectrum
 (use-package selectrum-prescient
   :after (prescient selectrum)
   :config (selectrum-prescient-mode 1))
@@ -925,6 +932,7 @@ Integrate prescient.el with Company.
 
 #+name: company-prescient
 #+begin_src emacs-lisp
+;; prescient.el integration with Company
 (use-package company-prescient
   :after (prescient company)
   :config (company-prescient-mode 1))

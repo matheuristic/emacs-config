@@ -2404,6 +2404,15 @@ See the [[https://github.com/karlotness/flymake-quickdef/blob/master/flymake-qui
   :demand t)
 #+end_src
 
+*** Flymake and TRAMP
+
+[[https://elpa.gnu.org/packages/flymake.html][Flymake]] sometimes has issues with remote files edited over [[https://www.gnu.org/software/tramp/][TRAMP]].
+For some problematic file, the easiest solution is to add an Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html][file variable]] to the first line of the file to turn off Flymake (see following code for a Python file example).
+
+#+begin_src python
+# -*- eval:(flymake-mode-off) -*-
+#+end_src
+
 ** Flycheck syntax checker
 
 *** Flycheck hydra                                                    :hydra:
@@ -2887,7 +2896,7 @@ When using ~lsp-mode~ in Python buffers, this is unnecessary as
 (add-hook 'python-mode-hook #'flycheck-mode t)
 #+end_src
 
-*** Enable Flymake mode when editing Python backends
+*** Enable Flymake mode when editing Python files
 
 Enable Flymake mode as the last function in the Python mode hook.
 
@@ -2895,6 +2904,12 @@ Enable Flymake mode as the last function in the Python mode hook.
 #+begin_src emacs-lisp
 (add-hook 'python-mode-hook #'flymake-mode t)
 #+end_src
+
+*** Configuring [[https://elpa.gnu.org/packages/flymake.html][Flymake]] to use [[https://www.pylint.org/][Pylint]]
+
+1. Use [[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]] to create a new Pylint backend for Flymake.
+2. Create a function that adds the new backend to the list of Flymake backends.
+3. Add that function to the ~python-mode-hook~.
 
 *** Enable Flymake DevSkim backend when editing Python buffers     :external:
 

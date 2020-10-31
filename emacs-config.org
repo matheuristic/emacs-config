@@ -5147,6 +5147,33 @@ debugged will be run.
 $ conda install -c conda-forge ptvsd
 #+end_example
 
+*** Project-specific pylint configuration
+
+To specify a project-specific pylintrc file, create (or modify) a
+~pylintrc~ file in the Python project root directory and add the
+following ~init-hook~ to the master section:
+
+#+begin_src
+[MASTER]
+
+init-hook="from pylint.config import find_pylintrc; import os, sys; sys.path.append(os.path.dirname(find_pylintrc()))"
+#+end_src
+
+A ~.dir-locals.el~ file may need to be created or modified.
+
+If using [[https://www.flycheck.org/en/latest/][Flycheck]] put the following contents in a ~.dir-locals.el~
+file in the project root directory to ensure FlyCheck uses the
+project-specific ~pylintrc~ file in Emacs:
+
+#+begin_src emacs-lisp
+;; project-specific Emacs settings
+((nil . ((flycheck-pylintrc . "pylintrc"))))
+#+end_src
+
+Flymake does not require explicit specification of a ~pylintrc~ file
+(it should search recursively upward in containing directories until
+it finds one).
+
 ** R
 
 *** Emacs Speaks Statistics                                           :melpa:
@@ -7163,6 +7190,34 @@ instead for ~auto-revert-mode~.
         mac-right-option-modifier 'left ;; right Option uses left's mapping
         mac-command-modifier 'super)) ;; keep Super key as is
 #+end_src
+
+*** Font smoothing in Emacs for Mac OS X
+
+To control font smoothing in [[https://emacsformacosx.com/][Emacs for Mac OS X]], run the following (replace ~VALUE~ with an integer):
+
+#+begin_src sh
+$ defaults write org.gnu.Emacs AppleFontSmoothing -int VALUE
+#+end_src
+
+The supported values range from ~0~ to ~3~:
+- ~0~: disabled (no sub-pixel rendering)
+- ~1~: light
+- ~2~: medium (default)
+- ~3~: heavy
+
+Generally it is better to reduce ~AppleFontSmoothing~ to ~1~ for light smoothing or ~0~ for no smoothing (especially for bitmap fonts), e.g. run
+
+#+begin_src sh
+$ defaults write org.gnu.Emacs AppleFontSmoothing -int 0
+#+end_src
+
+To restore the default font smoothing setting, run
+
+#+begin_src sh
+$ defaults delete org.gnu.Emacs AppleFontSmoothing
+#+end_src
+
+For more information, see this [[https://github.com/kevinSuttle/macOS-Defaults/issues/17#issuecomment-266622810][link]].
 
 *** Keyboard settings in Emacs for OS X
 

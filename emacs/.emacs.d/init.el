@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 31 15:00:05 2020
+;; Generated: Sat Oct 31 16:13:39 2020
 
 ;;; Commentary:
 
@@ -2738,6 +2738,9 @@ This enables things like ElDoc and autocompletion."
             (lambda () (pulse-momentary-highlight-one-line (point))))
   ;; close imenu list after going to entry
   (advice-add 'imenu-list-goto-entry :after 'imenu-list-quit-window))
+
+;; fold characters when searching with Isearch
+(setq search-default-mode #'char-fold-to-regexp)
 
 ;; Visual (part 2)
 

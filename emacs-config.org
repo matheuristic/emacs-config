@@ -5812,6 +5812,7 @@ quotation marks ~«~ and ~»~.
 References:
 - [[https://endlessparentheses.com/new-in-emacs-25-1-easily-search-non-ascii-characters.html][New in Emacs 25.1: Easily search for non-ASCII characters · Endless Parentheses]]
 
+#+name: search-default-mode
 #+begin_src emacs-lisp
 ;; fold characters when searching with Isearch
 (setq search-default-mode #'char-fold-to-regexp)
@@ -10820,6 +10821,8 @@ The main configuration file.
 
 <<imenu-list>>
 
+<<search-default-mode>>
+
 ;; Visual (part 2)
 
 <<olivetti>>
@@ -11262,7 +11265,7 @@ of the package.
 (my-install-elpa-package 'project)
 #+end_src
 
-** [#C] project.el
+*** [#C] project.el
 
 [[https://elpa.gnu.org/packages/project.html][project.el]] is a simple project interaction library. It is simpler than
 [[https://github.com/bbatsov/projectile][Projectile]] and is in Emacs core (but it's better to use the ELPA
@@ -11296,8 +11299,6 @@ References:
     (add-to-list project-switch-commands
                  '(?s "Grep" rg-project))))
 #+end_src
-
-
 
 *** [#B] Forge for working with Git forges from Magit                 :melpa:
 
@@ -11382,6 +11383,17 @@ References:
     (define-key org-mode-map (kbd "C-c \" \"")
       #'org-zotxt-insert-reference-link--current-selected-item)))
 #+end_src
+
+** Search
+
+*** [#B] CTRLF for better-behaved search
+
+[[https://github.com/raxod502/ctrlf][CTRLF]] is a replacement for Isearch (alternatives are [[https://github.com/abo-abo/swiper][Swiper]] and
+[[https://github.com/emacsorphanage/helm-swoop][helm-swoop]]) but has more consistent behavior (e.g. ~C-g~ always
+cancels search where in Isearch its behavior depends on the search
+state, ~C-s~ has to be pressed twice after the last search to wrap
+around, and so on) and some nicer bindings (~M-<~ and ~M->~ go to the
+first and last matches).
 
 ** Web
 

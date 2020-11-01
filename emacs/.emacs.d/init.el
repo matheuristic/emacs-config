@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Oct 31 16:51:16 2020
+;; Generated: Sun Nov  1 00:26:55 2020
 
 ;;; Commentary:
 
@@ -2820,6 +2820,9 @@ This enables things like ElDoc and autocompletion."
   :init (setq highlight-indent-guides-method 'character
               highlight-indent-guides-responsive 'top
               highlight-indent-guides-character ?\x2502))
+
+;; pulse line when point is cycled btw top/middle/bottom of window
+(advice-add 'move-to-window-line-top-bottom :after #'my-pulse-line)
 
 ;; pulse line after changing focused window using `ace-window'
 (with-eval-after-load 'ace-window

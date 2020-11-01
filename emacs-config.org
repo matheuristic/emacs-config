@@ -5766,6 +5766,7 @@ character-based decision tree.
 - Remap ~goto-line~ bindings to call ~avy-goto-line~ instead.
   ~goto-line~ can be invoked by entering numbers for ~avy-goto-line~
   input instead of characters in the decision tree.
+- Pulse line after jump via ~avy-goto-char-timer~.
 
 #+name: avy
 #+begin_src emacs-lisp
@@ -6209,6 +6210,17 @@ Use when editing Python files by default.
   :init (setq highlight-indent-guides-method 'character
               highlight-indent-guides-responsive 'top
               highlight-indent-guides-character ?\x2502))
+#+end_src
+
+** Pulse line on moving point to top/middle/bottom of window
+
+Advise ~move-to-window-line-top-bottom~ to pulse the line after it is
+called and the point moved to the top, middle or bottom of the window.
+
+#+name: pulse-line-after-move-to-window-line-top-bottom
+#+begin_src emacs-lisp
+;; pulse line when point is cycled btw top/middle/bottom of window
+(advice-add 'move-to-window-line-top-bottom :after #'my-pulse-line)
 #+end_src
 
 ** Pulse line on window focus changes or after popping the mark ring
@@ -10920,6 +10932,8 @@ The main configuration file.
 <<censor>>
 
 <<highlight-indent-guides>>
+
+<<pulse-line-after-move-to-window-line-top-bottom>>
 
 <<pulse-line-after-focus-change-or-pop-mark-ring>>
 

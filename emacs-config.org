@@ -1222,7 +1222,7 @@ automatically initializing grid buffer views with ace-window enabled).
 (use-package buffer-expose
   :init
   (setq buffer-expose-show-current-buffer t)
-  ;; set auto initialization with ace-window after it has been loaded
+  ;; set auto initialization with ace-window if it is loaded
   (with-eval-after-load 'ace-window
     (setq buffer-expose-auto-init-aw t)))
 #+end_src
@@ -1263,20 +1263,15 @@ the ~C-z~ prefix (use ~C-x C-z~ to call ~suspend-frame~ instead).
   (global-set-key (kbd "C-z") popwin:keymap))
 #+end_src
 
-*** ace-window
+*** More convenient binding for cycling between windows
 
-[[https://github.com/abo-abo/ace-window][ace-window]] provides window navigation and manipulation functions.
+Use ~M-o~ (easier than ~C-x o~) to cycle between visible windows in a
+frame.
 
-#+name: ace-window
+#+name: more-convenient-other-window-binding
 #+begin_src emacs-lisp
-;; window navigation and management
-(use-package ace-window
-  :config
-  (setq aw-background t
-        aw-char-position 'top-left
-        aw-ignore-current nil
-        aw-scope 'frame)
-  (global-set-key (kbd "M-o") #'ace-window))
+;; more convenient bindings for `other-window' and `other-frame'
+(global-set-key (kbd "M-o") #'other-window)
 #+end_src
 
 *** Rotate window buffers
@@ -1366,6 +1361,16 @@ See the package Elisp code for more details.
 (use-package transpose-frame
   :bind (("C-x 5 [" . rotate-frame-anticlockwise)
          ("C-x 5 ]" . rotate-frame-clockwise)))
+#+end_src
+
+*** More convenient binding for cycling between frames
+
+Use ~M-O~ (easier than ~C-x 5 o~) to cycle between frames.
+
+#+name: more-convenient-other-frame-binding
+#+begin_src emacs-lisp
+;; more convenient bindings for `other-frame'
+(global-set-key (kbd "M-O") #'other-frame)
 #+end_src
 
 ** Workspace management
@@ -5800,11 +5805,11 @@ in a number of major modes using [[https://github.com/abo-abo/avy][avy]] as the 
   ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
   ;; eww-mode, help-mode, Info-mode and woman-mode
   (ace-link-setup-default)
-  ;; bind "M-O" (Meta-CapitalOh) to jump to link in Org mode
+  ;; bind "C-c M-o" to jump to link in Org mode
   (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "M-O") #'ace-link-org))
+    (define-key org-mode-map (kbd "C-c M-o") #'ace-link-org))
   (with-eval-after-load 'org-agenda
-    (define-key org-agenda-mode-map (kbd "M-O") #'ace-link-org-agenda)))
+    (define-key org-agenda-mode-map (kbd "C-c M-o") #'ace-link-org-agenda)))
 #+end_src
 
 ** Imenu
@@ -6233,11 +6238,10 @@ Also pulse the line after popping ~mark-ring~ or ~global-mark-ring~.
 
 #+name: pulse-line-after-focus-change-or-pop-mark-ring
 #+begin_src emacs-lisp
-;; pulse line after changing focused window using `ace-window'
-(with-eval-after-load 'ace-window
-  (advice-add 'ace-window :after #'my-pulse-line))
+;; pulse line after changing focused window using `other-window'
+(advice-add 'other-window :after #'my-pulse-line)
 
-;; also pulse line when Emacs regains focus
+;; also pulse line when Emacs regains focus, covers focus on new frame
 (add-hook 'focus-in-hook #'my-pulse-line)
 
 ;; as well as pulsing the line when popping the mark ring
@@ -10583,15 +10587,17 @@ The main configuration file.
 
 <<popwin>>
 
-<<ace-window>>
-
 <<my-rotate-window-buffers>>
+
+<<more-convenient-other-window-binding>>
 
 ;; Buffers, windows, frames, workspaces / Frame management
 
 <<frame-resize-pixelwise>>
 
 <<transpose-frame>>
+
+<<more-convenient-other-frame-binding>>
 
 ;; Buffers, windows, frames, workspaces / Workspace management
 

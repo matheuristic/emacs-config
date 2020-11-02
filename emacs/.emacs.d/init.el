@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  1 00:26:55 2020
+;; Generated: Mon Nov  2 12:20:58 2020
 
 ;;; Commentary:
 
@@ -520,7 +520,7 @@ cache before processing."
 (use-package buffer-expose
   :init
   (setq buffer-expose-show-current-buffer t)
-  ;; set auto initialization with ace-window after it has been loaded
+  ;; set auto initialization with ace-window if it is loaded
   (with-eval-after-load 'ace-window
     (setq buffer-expose-auto-init-aw t)))
 
@@ -538,15 +538,6 @@ cache before processing."
   :config
   (popwin-mode 1)
   (global-set-key (kbd "C-z") popwin:keymap))
-
-;; window navigation and management
-(use-package ace-window
-  :config
-  (setq aw-background t
-        aw-char-position 'top-left
-        aw-ignore-current nil
-        aw-scope 'frame)
-  (global-set-key (kbd "M-o") #'ace-window))
 
 (defun my-rotate-window-buffers (rotations)
   "Rotate buffers in the windows of the current frame ROTATIONS times.
@@ -599,6 +590,9 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (global-set-key (kbd "C-x 4 [") #'my-rotate-buffers-backward)
 (global-set-key (kbd "C-x 4 ]") #'my-rotate-buffers-forward)
 
+;; more convenient bindings for `other-window' and `other-frame'
+(global-set-key (kbd "M-o") #'other-window)
+
 ;; Buffers, windows, frames, workspaces / Frame management
 
 ;; resize frames by pixel instead of by character
@@ -607,6 +601,9 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (use-package transpose-frame
   :bind (("C-x 5 [" . rotate-frame-anticlockwise)
          ("C-x 5 ]" . rotate-frame-clockwise)))
+
+;; more convenient bindings for `other-frame'
+(global-set-key (kbd "M-O") #'other-frame)
 
 ;; Buffers, windows, frames, workspaces / Workspace management
 
@@ -2726,11 +2723,11 @@ This enables things like ElDoc and autocompletion."
   ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
   ;; eww-mode, help-mode, Info-mode and woman-mode
   (ace-link-setup-default)
-  ;; bind "M-O" (Meta-CapitalOh) to jump to link in Org mode
+  ;; bind "C-c M-o" to jump to link in Org mode
   (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "M-O") #'ace-link-org))
+    (define-key org-mode-map (kbd "C-c M-o") #'ace-link-org))
   (with-eval-after-load 'org-agenda
-    (define-key org-agenda-mode-map (kbd "M-O") #'ace-link-org-agenda)))
+    (define-key org-agenda-mode-map (kbd "C-c M-o") #'ace-link-org-agenda)))
 
 (setq imenu-auto-rescan t)
 
@@ -2824,11 +2821,10 @@ This enables things like ElDoc and autocompletion."
 ;; pulse line when point is cycled btw top/middle/bottom of window
 (advice-add 'move-to-window-line-top-bottom :after #'my-pulse-line)
 
-;; pulse line after changing focused window using `ace-window'
-(with-eval-after-load 'ace-window
-  (advice-add 'ace-window :after #'my-pulse-line))
+;; pulse line after changing focused window using `other-window'
+(advice-add 'other-window :after #'my-pulse-line)
 
-;; also pulse line when Emacs regains focus
+;; also pulse line when Emacs regains focus, covers focus on new frame
 (add-hook 'focus-in-hook #'my-pulse-line)
 
 ;; as well as pulsing the line when popping the mark ring

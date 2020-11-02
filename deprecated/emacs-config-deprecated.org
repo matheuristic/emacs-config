@@ -616,6 +616,20 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 
 *** ace-window
 
+[[https://github.com/abo-abo/ace-window][ace-window]] provides window navigation and manipulation functions.
+
+#+name: ace-window
+#+begin_src emacs-lisp
+;; window navigation and management
+(use-package ace-window
+  :config
+  (setq aw-background t
+        aw-char-position 'top-left
+        aw-ignore-current nil
+        aw-scope 'frame)
+  (global-set-key (kbd "M-o") #'ace-window))
+#+end_src
+
 **** Add ace-window entry point to window hydra
 
 Add entry point for calling ~ace-window~ to the window hydra.

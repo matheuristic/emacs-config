@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Nov  3 22:09:50 2020
+;; Generated: Wed Nov  4 15:42:15 2020
 
 ;;; Commentary:
 
@@ -1670,7 +1670,7 @@ call `open-line' on the very first character."
 (setq org-capture-templates '(("n" "New" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
                               ("s" "Someday" entry (file my-org-someday-inbox)
-                               "* %i%? :someday:\n%U")
+                               "* TODO %i%? :someday:\n%U")
                               ("i" "Interrupt" entry (function my-org-goto-end-of-org-file)
                                "* NEXT %i%?\n%U"
                                :jump-to-captured t :clock-in t :clock-resume t)))
@@ -1809,7 +1809,9 @@ call `open-line' on the very first character."
       org-agenda-window-setup 'only-window
       org-agenda-files (seq-filter
                         (lambda (x)
-                          (not (string-suffix-p my-org-someday-inbox x)))
+                          (and
+                           (not (string-suffix-p my-org-agenda-inbox x))
+                           (not (string-suffix-p my-org-someday-inbox x))))
                         (file-expand-wildcards (concat org-directory "*.org"))))
 
 ;; add separator between each day in agenda view
@@ -1821,9 +1823,19 @@ call `open-line' on the very first character."
                                    1)))
           (concat "\n" datestr " " (make-string separator-width ?_)))))
 
+;; helper functions for custom agenda commands
+(defun my-org-agenda-to-deadline-prefix-str ()
+  "Descriptor string for days to deadline for Org entry at point."
+  (let ((deadline (org-get-deadline-time (point))))
+    (when deadline
+      (let ((days-left (org-time-stamp-to-now (format-time-string "%F" deadline))))
+        (cond ((< days-left 0) (format "%3dd. ago" (- days-left)))
+              ((> days-left 0) (format "In %3dd. " days-left))
+              ((= days-left 0) (format "Today    " days-left)))))))
+
 ;; custom agenda commands
 (setq org-agenda-custom-commands
-      '(("n" "Three-day agenda and undated TODO entries"
+      `(("n" "Three-day agenda and undated TODO entries"
          ((agenda "" ((org-agenda-span 3)))
           (todo "NEXT" ((org-agenda-todo-ignore-with-date t)
                         (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
@@ -1841,7 +1853,21 @@ call `open-line' on the very first character."
           (todo "TODO" ((org-agenda-todo-ignore-with-date t)
                         (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
           (todo "HOLD" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))))
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))
+        ("d" "Upcoming deadlines"
+         ((tags-todo "DEADLINE>=\"<today>\"&DEADLINE<=\"<+365d>\""
+                     ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
+                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))))
+        ("D" "Past deadlines"
+         ((tags-todo "DEADLINE<\"<today>\""
+                     ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
+                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))))
+        ("i" "Inbox entries"
+         ((alltodo "" ((org-agenda-files '(,my-org-agenda-inbox))
+                       (org-agenda-sorting-strategy '(priority-down deadline-up scheduled-up effort-up category-keep alpha-up))))))
+        ("o" "Someday entries"
+         ((alltodo "" ((org-agenda-files '(,my-org-someday-inbox))
+                       (org-agenda-sorting-strategy '(priority-down deadline-up scheduled-up effort-up category-keep alpha-up))))))))
 
 ;; allow refiling up to 9 levels deep in the current buffer
 ;; and 3 levels deep in Org agenda files

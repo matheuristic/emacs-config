@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Nov  4 15:42:15 2020
+;; Generated: Wed Nov  4 18:29:06 2020
 
 ;;; Commentary:
 
@@ -1829,9 +1829,11 @@ call `open-line' on the very first character."
   (let ((deadline (org-get-deadline-time (point))))
     (when deadline
       (let ((days-left (org-time-stamp-to-now (format-time-string "%F" deadline))))
-        (cond ((< days-left 0) (format "%3dd. ago" (- days-left)))
-              ((> days-left 0) (format "In %3dd. " days-left))
-              ((= days-left 0) (format "Today    " days-left)))))))
+        (cond ((< days-left (- 1)) (format "%3d d. ago" (- days-left)))
+              ((= days-left (- 1)) (format " Yesterday" days-left))
+              ((= days-left 0)     (format "     Today" days-left))
+              ((= days-left 1)     (format "  Tomorrow" days-left))
+              ((> days-left 1)     (format " In %3d d." days-left)))))))
 
 ;; custom agenda commands
 (setq org-agenda-custom-commands
@@ -1854,12 +1856,11 @@ call `open-line' on the very first character."
                         (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
           (todo "HOLD" ((org-agenda-todo-ignore-with-date t)
                         (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))
-        ("d" "Upcoming deadlines"
-         ((tags-todo "DEADLINE>=\"<today>\"&DEADLINE<=\"<+365d>\""
+        ("d" "Deadlines"
+         ((tags-todo "DEADLINE<\"<today>\"" ; tasks that are past deadline
                      ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
-                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))))
-        ("D" "Past deadlines"
-         ((tags-todo "DEADLINE<\"<today>\""
+                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))
+          (tags-todo "DEADLINE>=\"<today>\"" ; tasks with upcoming deadlines
                      ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
                       (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))))
         ("i" "Inbox entries"

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Nov  2 12:20:58 2020
+;; Generated: Tue Nov  3 22:09:50 2020
 
 ;;; Commentary:
 
@@ -1571,8 +1571,11 @@ Formatting a selected region only works on top-level objects."
 (my-install-elpa-package 'org)
 
 ;; set Org directory and inbox file
-(setq org-directory (file-name-as-directory (expand-file-name "~/org"))
-      my-org-agenda-inbox (concat org-directory "inbox.org"))
+(setq org-directory (file-truename (file-name-as-directory (expand-file-name "~/org"))))
+(defvar my-org-agenda-inbox (concat org-directory "inbox.org")
+  "Path to Org agenda inbox.")
+(defvar my-org-someday-inbox (concat org-directory "someday.org")
+  "Path to Org someday inbox.")
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
@@ -1641,36 +1644,36 @@ call `open-line' on the very first character."
 
 ;; Set possible Org task states
 ;; Diagram of possible task state transitions
-;;     -------------------------
-;;     |                       |
-;;     |                       v
-;; -> TODO....... -> NEXT -> DONE ----->
-;;    | ^  |  | ^    | ^      ^     |
-;;    v |  |  v |    v |      |     |
-;;   HOLD  |  WAIT...... ------     |
-;;     |   |  | (note records what  |
-;;     v   v  v  it is waiting for) |
-;;     CANX.... ---------------------
-;;     (note records why it was cancelled)
-(setq org-todo-keywords '((sequence "NEXT(n)" "TODO(t)" "|" "DONE(d!)")
-                          (sequence "WAIT(w@/!)" "HOLD(h@/!)" "|" "CANX(c@/!)")))
+;;      -------------------------
+;;      |             *         |
+;;      |             |         V
+;; --> TODO....... -> NEXT -> DONE ----->
+;;     | Λ  |  | Λ    | Λ      Λ     |
+;;     V |  |  V |    V |      |     |
+;;    HOLD  |  WAIT...... ------     |
+;;      |   |  | (note records what  |
+;;      V   V  V  it is waiting for) |
+;; * -> CANX.... ---------------------
+;;      (note records why it was cancelled)
+(setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+                          (sequence "HOLD(h@/!)" "WAIT(w@/!)" "|" "CANX(c@/!)")))
 
 ;; Org capture templates
-(setq org-capture-templates '(("t" "Todo" entry (file my-org-agenda-inbox)
+(defun my-org-goto-end-of-org-file ()
+  "Goto end of selected user file starting from `org-directory'."
+  (let ((path (read-file-name
+               "File: " org-directory nil nil nil
+               (lambda (x) (string-suffix-p ".org" x)))))
+    (find-file path)
+    (goto-char (point-max))))
+
+(setq org-capture-templates '(("n" "New" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
-                              ("r" "Respond" entry (file my-org-agenda-inbox)
-                               "* NEXT Respond to %i%?\n%U")
-                              ("i" "Interrupt Task" entry (file my-org-agenda-inbox)
-                               "* NEXT %i%?\n%U"
-                               :jump-to-captured t :clock-in t :clock-resume t)
-                              ("n" "Note" entry (file my-org-agenda-inbox)
-                               "* %i%? :note:\n%U")
-                              ("s" "Someday" entry (file my-org-agenda-inbox)
+                              ("s" "Someday" entry (file my-org-someday-inbox)
                                "* %i%? :someday:\n%U")
-                              ("l" "Link" entry (file my-org-agenda-inbox)
-                               "* %a%?\n%U")
-                              ("y" "Paste" entry (file my-org-agenda-inbox)
-                               "* %?\n%U\n%c")))
+                              ("i" "Interrupt" entry (function my-org-goto-end-of-org-file)
+                               "* NEXT %i%?\n%U"
+                               :jump-to-captured t :clock-in t :clock-resume t)))
 
 (with-eval-after-load 'org
   ;; maximize org-capture buffer
@@ -1804,7 +1807,10 @@ call `open-line' on the very first character."
       org-agenda-skip-scheduled-if-done t
       org-agenda-start-on-weekday nil
       org-agenda-window-setup 'only-window
-      org-agenda-files (file-expand-wildcards (concat org-directory "*.org")))
+      org-agenda-files (seq-filter
+                        (lambda (x)
+                          (not (string-suffix-p my-org-someday-inbox x)))
+                        (file-expand-wildcards (concat org-directory "*.org"))))
 
 ;; add separator between each day in agenda view
 (setq org-agenda-format-date
@@ -1815,17 +1821,27 @@ call `open-line' on the very first character."
                                    1)))
           (concat "\n" datestr " " (make-string separator-width ?_)))))
 
-(with-eval-after-load 'org-agenda
-  ;; add custom agenda commands that only show undated tasks in list view
-  (dolist (my-custom-cmd
-           '(("N" "Three-day agenda and undated TODO entries"
-              ((agenda "" ((org-agenda-span 3)))
-               (alltodo "" ((org-agenda-todo-ignore-with-date t)
-                            (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up category-keep alpha-up))))))
-             ("u" "Undated TODO entries"
-              (alltodo "" ((org-agenda-todo-ignore-with-date t)
-                           (org-agenda-sorting-strategy '(todo-state-up priority-down effort-up category-keep alpha-up)))))))
-    (add-to-list 'org-agenda-custom-commands my-custom-cmd)))
+;; custom agenda commands
+(setq org-agenda-custom-commands
+      '(("n" "Three-day agenda and undated TODO entries"
+         ((agenda "" ((org-agenda-span 3)))
+          (todo "NEXT" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "WAIT" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "TODO" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "HOLD" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))
+        ("u" "Undated TODO entries"
+         ((todo "NEXT" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "WAIT" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "TODO" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "HOLD" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))))
 
 ;; allow refiling up to 9 levels deep in the current buffer
 ;; and 3 levels deep in Org agenda files
@@ -1992,12 +2008,13 @@ call `open-line' on the very first character."
     (org-journal-new-entry t)
     (org-narrow-to-subtree)
     (goto-char (point-max)))
-  ;; add org-capture-template for new journal entries
+  ;; add org-capture template for new journal entries
   ;; capture template type should be plain instead of entry, see
   ;; https://www.reddit.com/r/orgmode/comments/goivjp/orgcapture_template_doesnt_insert_entry_as_a/
-  (push '("j" "Journal" plain (function my-org-journal-find-location)
-          "** %(format-time-string org-journal-time-format)%?\n%i")
-        org-capture-templates)
+  (add-to-list 'org-capture-templates
+               '("j" "Journal" plain (function my-org-journal-find-location)
+                 "** %(format-time-string org-journal-time-format)%?\n%i")
+               t)
   ;; add journal files to Org agenda
   ;; may cause the Org agenda parsing to slow down as the number as
   ;; the number of files grows, so make sure to prune or archive the
@@ -2076,54 +2093,17 @@ call `open-line' on the very first character."
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 
-(use-package org-super-agenda
-  :config
-  (setq org-super-agenda-groups '((:name "Up next"
-                                   :todo "NEXT"
-                                   :order 1)
-                                  (:name "Waiting"
-                                   :todo "WAIT"
-                                   :order 10)
-                                  (:name "On hold"
-                                   :todo "HOLD"
-                                   :order 11)
-                                  (:name "Overdue"
-                                   :deadline past
-                                   :order 2)
-                                  (:name "Due today"
-                                   :deadline today
-                                   :order 3)
-                                  (:name "Today"
-                                   :time-grid t
-                                   :scheduled today
-                                   :order 4)
-                                  (:name "Important"
-                                   :priority "A"
-                                   :order 5)
-                                  (:name "Due soon"
-                                   :deadline future
-                                   :order 6)
-                                  (:name "Backlog"
-                                   :scheduled past
-                                   :order 7)
-                                  (:name "Upcoming"
-                                   :scheduled future
-                                   :order 8)
-                                  (:name "Unprioritized"
-                                   :priority<= "B"
-                                   :order 9)))
-  (org-super-agenda-mode 1))
-
 ;; start server and load org-protocol
 (server-mode 1)
 (require 'org-protocol)
 
 ;; add capture template for web snippets
 (setq org-websnippet-capture-file "scratch/websnippets.org")
-(push `("W" "Capture web snippet using org-protocol" entry
-        (file+headline ,org-websnippet-capture-file "Unsorted")
-        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
-      org-capture-templates)
+(add-to-list 'org-capture-templates
+             `("W" "Websnippet" entry
+               (file+headline ,org-websnippet-capture-file "Unsorted")
+               "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
+             t)
 
 ;; send notifications for Org agenda deadlines and scheduled tasks
 (use-package org-wild-notifier
@@ -2565,7 +2545,7 @@ This enables things like ElDoc and autocompletion."
   :config
   (org-projectile-per-project)
   (setq org-projectile-per-project-filepath "TODO.org")
-  (push (org-projectile-project-todo-entry) org-capture-templates))
+  (add-to-list 'org-capture-templates (org-projectile-project-todo-entry) t))
 
 ;; binding for calling Magit
 (use-package magit
@@ -2913,10 +2893,11 @@ for more information."
 
 ;; add capture template for org-readitlater
 (setq org-readitlater-capture-file "readitlater/readitlater.org")
-(push `("a" "Archive page to read-it-later list" entry
-        (file+headline ,org-readitlater-capture-file "Unsorted")
-        "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:READITLATER_BACKEND_OPTIONS: --isolate --no-css --no-fonts --no-frames --no-images --no-js\n:ADDED: %U\n:END:\n%:initial\n")
-      org-capture-templates)
+(add-to-list 'org-capture-templates
+             `("a" "Archive Webpage" entry
+               (file+headline ,org-readitlater-capture-file "Unsorted")
+               "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:READITLATER_BACKEND_OPTIONS: --isolate --no-css --no-fonts --no-frames --no-images --no-js\n:ADDED: %U\n:END:\n%:initial\n")
+             t)
 ;; auto-download page after capturing with org-readitlater template
 (defun do-org-readitlater-dl-hook ()
   (when (equal (buffer-name)

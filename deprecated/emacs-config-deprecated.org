@@ -2329,6 +2329,73 @@ slides, and =C-c C-q= will quit the presentation.
               :after (lambda () (my-org-present-extra-mode 0))))
 #+end_src
 
+** org-super-agenda                                                   :melpa:
+
+[[https://github.com/alphapapa/org-super-agenda][org-super-agenda]] groups agenda items into sections.
+
+#+name: org-super-agenda
+#+begin_src emacs-lisp
+(use-package org-super-agenda
+  :config
+  (setq org-super-agenda-groups '((:name "Up next"
+                                   :todo "NEXT"
+                                   :order 1)
+                                  (:name "Waiting"
+                                   :todo "WAIT"
+                                   :order 10)
+                                  (:name "On hold"
+                                   :todo "HOLD"
+                                   :order 11)
+                                  (:name "Overdue"
+                                   :deadline past
+                                   :order 2)
+                                  (:name "Due today"
+                                   :deadline today
+                                   :order 3)
+                                  (:name "Today"
+                                   :time-grid t
+                                   :scheduled today
+                                   :order 4)
+                                  (:name "Important"
+                                   :priority "A"
+                                   :order 5)
+                                  (:name "Due soon"
+                                   :deadline future
+                                   :order 6)
+                                  (:name "Backlog"
+                                   :scheduled past
+                                   :order 7)
+                                  (:name "Upcoming"
+                                   :scheduled future
+                                   :order 8)
+                                  (:name "Unprioritized"
+                                   :priority<= "B"
+                                   :order 9)))
+  (org-super-agenda-mode 1))
+#+end_src
+
+** Org basic capture templates
+
+#+name: org-capture-templates
+#+begin_src emacs-lisp
+;; Org capture templates
+(setq org-capture-templates '(("t" "Todo" entry (file my-org-agenda-inbox)
+                               "* TODO %i%?\n%U")
+                              ("r" "Respond" entry (file my-org-agenda-inbox)
+                               "* NEXT Respond to %i%?\n%U")
+                              ("i" "Interrupt Task" entry (file my-org-agenda-inbox)
+                               "* NEXT %i%?\n%U"
+                               :jump-to-captured t :clock-in t :clock-resume t)
+                              ("n" "Note" entry (file my-org-agenda-inbox)
+                               "* %i%? :note:\n%U")
+                              ("s" "Someday" entry (file my-org-agenda-inbox)
+                               "* %i%? :someday:\n%U")
+                              ("l" "Link" entry (file my-org-agenda-inbox)
+                               "* %a%?\n%U")
+                              ("y" "Paste" entry (file my-org-agenda-inbox)
+                               "* %?\n%U\n%c")))
+#+end_src
+
 * Programming
 
 ** Flymake syntax checker

@@ -4687,11 +4687,48 @@ Neuron major mode transient.
 #+end_src
 
 * Backlog
+
+** Command-line interaction
+
+*** [#C] native-complete and company-native-complete
+
+[[https://github.com/CeleritasCelery/emacs-native-shell-complete][GitHub - CeleritasCelery/emacs-native-shell-complete: Completion in shell buffer]]
+
+** Editing text
+
+*** [#C] objed
+
+[[https://github.com/clemera/objed][GitHub - clemera/objed: Navigate and edit text objects with Emacs]]
+
+** Non-programming files
+
+*** Nix configuration files
+
+**** [#C] nix-mode for editing Nix configuration files                :melpa:
+
+[[https://github.com/NixOS/nix-mode][GitHub - NixOS/nix-mode: An Emacs major mode for editing Nix expressions.]]
+
+**** [#C] nix-update-el for updating the rev/sha of a fetchgit declaration :melpa:
+
+[[https://github.com/jwiegley/nix-update-el][GitHub - jwiegley/nix-update-el]] ([[https://melpa.org/#/nix-update][MELPA]])
+
 ** Org-mode
+
 *** [#B] Org-ref                                                      :melpa:
 
 [[https://github.com/jkitchin/org-ref][Org-ref]] is a collection of modules for managing citations, references
 and BibTeX bibliographies in Org-mode.
+
+** Search
+
+*** [#B] CTRLF for better-behaved search
+
+[[https://github.com/raxod502/ctrlf][CTRLF]] is a replacement for Isearch (alternatives are [[https://github.com/abo-abo/swiper][Swiper]] and
+[[https://github.com/emacsorphanage/helm-swoop][helm-swoop]]) but has more consistent behavior (e.g. ~C-g~ always
+cancels search where in Isearch its behavior depends on the search
+state, ~C-s~ has to be pressed twice after the last search to wrap
+around, and so on) and some nicer bindings (~M-<~ and ~M->~ go to the
+first and last matches).
 
 ** Web
 

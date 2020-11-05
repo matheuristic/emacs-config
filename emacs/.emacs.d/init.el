@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Nov  4 18:29:06 2020
+;; Generated: Wed Nov  4 21:09:46 2020
 
 ;;; Commentary:
 
@@ -2374,12 +2374,13 @@ Lisp function does not specify a special indentation."
 ;; install ELPA version of python.el
 (my-install-elpa-package 'python)
 
-(setq python-shell-interpreter "py"
-      python-shell-interpreter-args ""
-      python-shell-prompt-detect-failure-warning nil)
-
-(with-eval-after-load 'python
-  (add-to-list 'python-shell-completion-native-disabled-interpreters "py"))
+;; use the py script for initializing the Python REPL if available
+(when (executable-find "py")
+  (setq python-shell-interpreter "py"
+               python-shell-interpreter-args ""
+               python-shell-prompt-detect-failure-warning nil)
+  (with-eval-after-load 'python
+    (add-to-list 'python-shell-completion-native-disabled-interpreters "py")))
 
 ;; modify Python syntax table to keep underscores within a word
 ;; boundary when editing Python buffers

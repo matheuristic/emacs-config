@@ -189,6 +189,12 @@ utilized as follows.
 (advice-add #'name-of-some-function :before #'xref-push-marker-stack))
 #+end_example
 
+*** Repeat last command (C-x z)
+
+~C-x z~ invokes the ~repeat~ command which repeats the last command.
+Continue pressing ~z~ after that to keep repeating the last command.
+For example, ~C-x z z z z z~ repeats the last command five times.
+
 ** Random useful Emacs links
 
 Literate configs, package lists, and so on and so forth.
@@ -4925,12 +4931,13 @@ Set the Emacs Python interpreter command and options to the script.
 
 #+name: python-shell-interpreter
 #+begin_src emacs-lisp
-(setq python-shell-interpreter "py"
-      python-shell-interpreter-args ""
-      python-shell-prompt-detect-failure-warning nil)
-
-(with-eval-after-load 'python
-  (add-to-list 'python-shell-completion-native-disabled-interpreters "py"))
+;; use the py script for initializing the Python REPL if available
+(when (executable-find "py")
+  (setq python-shell-interpreter "py"
+               python-shell-interpreter-args ""
+               python-shell-prompt-detect-failure-warning nil)
+  (with-eval-after-load 'python
+    (add-to-list 'python-shell-completion-native-disabled-interpreters "py")))
 #+end_src
 
 *Limitations*:
@@ -11166,12 +11173,6 @@ The main configuration file.
 
 * TODO Backlog
 
-** Command-line interaction
-
-*** [#C] native-complete and company-native-complete
-
-[[https://github.com/CeleritasCelery/emacs-native-shell-complete][GitHub - CeleritasCelery/emacs-native-shell-complete: Completion in shell buffer]]
-
 ** DevOps
 
 *** [#C] Magit-style interface to Kubernetes                          :melpa:
@@ -11190,10 +11191,6 @@ The main configuration file.
   :ensure t
   :commands broadcast-mode)
 #+end_src
-
-*** [#C] objed
-
-[[https://github.com/clemera/objed][GitHub - clemera/objed: Navigate and edit text objects with Emacs]]
 
 ** Email
 
@@ -11216,16 +11213,6 @@ The main configuration file.
   ~completing-read~ instead of ~company~.
 
 ** Non-programming files
-
-*** Nix configuration files
-
-**** [#C] nix-mode for editing Nix configuration files                :melpa:
-
-[[https://github.com/NixOS/nix-mode][GitHub - NixOS/nix-mode: An Emacs major mode for editing Nix expressions.]]
-
-**** [#C] nix-update-el for updating the rev/sha of a fetchgit declaration :melpa:
-
-[[https://github.com/jwiegley/nix-update-el][GitHub - jwiegley/nix-update-el]] ([[https://melpa.org/#/nix-update][MELPA]])
 
 *** [#B] PlantUML                                                     :melpa:
 
@@ -11493,17 +11480,6 @@ References:
     (define-key org-mode-map (kbd "C-c \" \"")
       #'org-zotxt-insert-reference-link--current-selected-item)))
 #+end_src
-
-** Search
-
-*** [#B] CTRLF for better-behaved search
-
-[[https://github.com/raxod502/ctrlf][CTRLF]] is a replacement for Isearch (alternatives are [[https://github.com/abo-abo/swiper][Swiper]] and
-[[https://github.com/emacsorphanage/helm-swoop][helm-swoop]]) but has more consistent behavior (e.g. ~C-g~ always
-cancels search where in Isearch its behavior depends on the search
-state, ~C-s~ has to be pressed twice after the last search to wrap
-around, and so on) and some nicer bindings (~M-<~ and ~M->~ go to the
-first and last matches).
 
 ** Web
 

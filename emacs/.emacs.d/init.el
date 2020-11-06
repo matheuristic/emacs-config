@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Nov  4 21:09:46 2020
+;; Generated: Thu Nov  5 23:16:39 2020
 
 ;;; Commentary:
 
@@ -1644,16 +1644,16 @@ call `open-line' on the very first character."
 
 ;; Set possible Org task states
 ;; Diagram of possible task state transitions
-;;      -------------------------
-;;      |             *         |
-;;      |             |         V
-;; --> TODO....... -> NEXT -> DONE ----->
-;;     | Λ  |  | Λ    | Λ      Λ     |
-;;     V |  |  V |    V |      |     |
-;;    HOLD  |  WAIT...... ------     |
-;;      |   |  | (note records what  |
-;;      V   V  V  it is waiting for) |
-;; * -> CANX.... ---------------------
+;;      ---------------------
+;;      |                   |
+;;      |                   V
+;; --> TODO.. -> NEXT... -> DONE ----->
+;;     | Λ  |    |   | Λ    Λ      |
+;;     V |  |    |   V |    |      |
+;;     HOLD |    |   WAIT ---      |
+;;      |   |    |   |             |
+;;      V   V    V   V             |
+;;     CANX........... -------------
 ;;      (note records why it was cancelled)
 (setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
                           (sequence "HOLD(h@/!)" "WAIT(w@/!)" "|" "CANX(c@/!)")))

@@ -3622,28 +3622,27 @@ call `open-line' on the very first character."
 ** Org TODO keywords and task states
 
 Possible Org task states:
-- *TODO*: Pending inactive task.
-- *NEXT*: Active task. Only have a few of these at any time.
+- *TODO*: Inactive task.
+- *NEXT*: Active task. Keep to just a few (less open loops).
 - *DONE*: Completed task.
 - *HOLD*: Paused inactive task.
-- *WAIT*: Paused active task, waiting for external action before
-  continuation.
+- *WAIT*: Paused active task, waiting for external action.
 - *CANX*: Canceled task.
 
 #+name: org-todo-keywords
 #+begin_src emacs-lisp
 ;; Set possible Org task states
 ;; Diagram of possible task state transitions
-;;      -------------------------
-;;      |             *         |
-;;      |             |         V
-;; --> TODO....... -> NEXT -> DONE ----->
-;;     | Λ  |  | Λ    | Λ      Λ     |
-;;     V |  |  V |    V |      |     |
-;;    HOLD  |  WAIT...... ------     |
-;;      |   |  | (note records what  |
-;;      V   V  V  it is waiting for) |
-;; * -> CANX.... ---------------------
+;;      ---------------------
+;;      |                   |
+;;      |                   V
+;; --> TODO.. -> NEXT... -> DONE ----->
+;;     | Λ  |    |   | Λ    Λ      |
+;;     V |  |    |   V |    |      |
+;;     HOLD |    |   WAIT ---      |
+;;      |   |    |   |             |
+;;      V   V    V   V             |
+;;     CANX........... -------------
 ;;      (note records why it was cancelled)
 (setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
                           (sequence "HOLD(h@/!)" "WAIT(w@/!)" "|" "CANX(c@/!)")))

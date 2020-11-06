@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Nov  5 23:16:39 2020
+;; Generated: Thu Nov  5 23:24:55 2020
 
 ;;; Commentary:
 
@@ -1667,11 +1667,11 @@ call `open-line' on the very first character."
     (find-file path)
     (goto-char (point-max))))
 
-(setq org-capture-templates '(("n" "New" entry (file my-org-agenda-inbox)
+(setq org-capture-templates '(("n" "New Task" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
-                              ("s" "Someday" entry (file my-org-someday-inbox)
+                              ("s" "Someday Task" entry (file my-org-someday-inbox)
                                "* TODO %i%? :someday:\n%U")
-                              ("i" "Interrupt" entry (function my-org-goto-end-of-org-file)
+                              ("i" "Interrupt Task" entry (function my-org-goto-end-of-org-file)
                                "* NEXT %i%?\n%U"
                                :jump-to-captured t :clock-in t :clock-resume t)))
 

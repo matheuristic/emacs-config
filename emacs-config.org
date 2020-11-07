@@ -5909,6 +5909,17 @@ change this number.
 (setq-default cursor-type 'bar)
 #+end_src
 
+** Hide cursor in non-selected windows                                :early:
+
+Don't show the cursor in non-selected windows. This is useful as an
+additional visual indicator for the selected window.
+
+#+name: hide-cursor-in-non-selected-windows
+#+begin_src emacs-lisp
+;; hide cursor in non-selected windows
+(setq-default cursor-in-non-selected-windows nil)
+#+end_src
+
 ** Decorations                                                        :early:
 
 Remove toolbar and menu to maximize space usage.
@@ -10485,6 +10496,8 @@ Static UI customizations should go here to optimize startup time.
 
 <<cursor>>
 
+<<hide-cursor-in-non-selected-windows>>
+
 <<remove-decorations>>
 
 <<load-custom-theme>>
@@ -11478,6 +11491,22 @@ References:
       (org-zotxt-insert-reference-link '(4)))
     (define-key org-mode-map (kbd "C-c \" \"")
       #'org-zotxt-insert-reference-link--current-selected-item)))
+#+end_src
+
+** Visual
+
+*** Display mode line in minibuffer
+
+[[https://github.com/kiennq/emacs-mini-modeline][mini-modeline]] displays the mode line in the minibuffer, saving
+vertical screen space.
+
+TODO - Figure out how to avoid echo are flicker when moving mouse in buffers with lsp-mode enabled
+TODO - Figure out how to unpropertize mode line parts, add to mini-modeline hook
+TODO - Figure out how to update echo area only when needed ([[https://github.com/kiennq/emacs-mini-modeline/issues/45][link]]), currently updates every 0.1s which is pretty often
+
+#+begin_src emacs-lisp
+(use-package mini-modeline
+  :config (mini-modeline-mode 1))
 #+end_src
 
 ** Web

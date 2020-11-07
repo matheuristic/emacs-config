@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Nov  5 23:24:54 2020
+;; Generated: Sat Nov  7 00:31:08 2020
 
 ;;; Commentary:
 
@@ -68,6 +68,9 @@
 
 ;; set cursor after initialization
 (setq-default cursor-type 'bar)
+
+;; hide cursor in non-selected windows
+(setq-default cursor-in-non-selected-windows nil)
 
 ;; remove unused UI elements
 (if (fboundp 'scroll-bar-mode)

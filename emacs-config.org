@@ -6052,15 +6052,20 @@ TODO - Figure out how to update echo area only when needed ([[https://github.com
   :config
   ;; hide mode line lighter
   (add-to-list 'my-mode-lighter-abbrev-alist '(mini-modeline-mode . "") t)
-  ;; this seems to help with flickering when `lsp-mode' is enabled
-  (defun my-enable-mini-modeline-pre-redisplay-run (&rest _)
-    "Add `mini-modeline-display' to `pre-redisplay-functions'."
+  ;; custom setup/teardown when enabling/disabling `mini-modeline-mode'
+  (defun my-mini-modeline-setup (&rest _)
+    "Custom setup to run when enabling `mini-modeline-mode'.
+
+Add `mini-modeline-display' to `pre-redisplay-functions'. This
+helps with flickering when `lsp-mode' is enabled."
     (add-hook 'pre-redisplay-functions #'mini-modeline-display))
-  (defun my-disable-mini-modeline-pre-redisplay-run (&rest _)
-    "Remove `mini-modeline-display' from `pre-redisplay-functions'."
+  (defun my-mini-modeline-teardown (&rest _)
+    "Custom teardown to run when disabling `mini-modeline-mode'.
+
+Remove `mini-modeline-display' from `pre-redisplay-functions'."
     (remove-hook 'pre-redisplay-functions #'mini-modeline-display))
-  (advice-add 'mini-modeline--enable :after #'my-enable-mini-modeline-pre-redisplay-run)
-  (advice-add 'mini-modeline--disable :after #'my-disable-mini-modeline-pre-redisplay-run)
+  (advice-add 'mini-modeline--enable :after #'my-mini-modeline-setup)
+  (advice-add 'mini-modeline--disable :after #'my-mini-modeline-teardown)
   ;; make sure `mini-modeline-mode' is disabled before exiting Emacs,
   ;; else desktop.el doesn't persist the original mode line correctly
   (with-eval-after-load 'desktop

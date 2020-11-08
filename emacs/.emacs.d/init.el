@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  8 16:29:30 2020
+;; Generated: Sun Nov  8 17:00:15 2020
 
 ;;; Commentary:
 
@@ -590,16 +590,6 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; more convenient bindings for `other-window' and `other-frame'
 (global-set-key (kbd "M-o") #'other-window)
 
-;; multiple window configs in a frame, commands prefixed by "C-x t",
-;; C-TAB and S-C-TAB to switch to next and previous tabs respectively
-(setq tab-bar-show 1 ; hide tab bar when there is only one tab
-      tab-bar-select-tab-modifiers '(super) ; super-<num> goes to tab<num>
-      tab-bar-tab-hints t ; show tab numbers
-      tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
-      tab-bar-new-button-show nil ; don't show new button
-      tab-bar-close-button-show nil) ; don't show close button
-(tab-bar-mode 1)
-
 ;; Buffers, windows, frames, workspaces / Frame management
 
 ;; resize frames by pixel instead of by character
@@ -644,6 +634,16 @@ ROTATIONS can be negative, which rotates in the opposite direction."
             (desktop-save-mode 1)
             (desktop-read))
           50) ; load after all other `after-init-hook' functions
+
+;; multiple window configs in a frame, commands prefixed by "C-x t",
+;; C-TAB and S-C-TAB to switch to next and previous tabs respectively
+(setq tab-bar-show t ; always show tab bar, set to 1 to hide bar when there's only 1 tab
+      tab-bar-close-last-tab-choice 'tab-bar-mode-disable ; disable mode if delete last tab
+      tab-bar-select-tab-modifiers '(super) ; super-<num> goes to tab<num>
+      tab-bar-tab-hints t ; show tab numbers
+      tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
+      tab-bar-new-button-show nil ; don't show new button
+      tab-bar-close-button-show nil) ; don't show close button
 
 ;; Command-line interaction
 
@@ -4375,18 +4375,6 @@ Currently only works for Emacs Mac port."
     ("+" "Balance" balance-windows)
     ]
    ]
-  [
-   ["Tabs"
-    ("<backtab>" "Previous" tab-bar-switch-to-prev-tab)
-    ("<tab>" "Next" tab-bar-switch-to-next-tab)
-    ("t1" "Only" tab-bar-close-other-tabs)
-    ("t2" "New" tab-bar-new-tab)
-    ("t0" "Close" tab-bar-close-tab)
-    ("tu" "Undo close" tab-bar-undo-close-tab)
-    ("tr" "Rename" tab-bar-rename-tab)
-    ("tm" "Move" tab-bar-move-tab)
-    ]
-   ]
   )
 (global-set-key (kbd "C-c e w") #'transient/window)
 
@@ -4400,6 +4388,16 @@ Currently only works for Emacs Mac port."
     ("dr" "Read" desktop-read)
     ("dR" "Revert" desktop-revert)
     ("dd" "Change Dir" desktop-change-dir)
+    ]
+   ["Tabs"
+    ("<backtab>" "Previous" tab-bar-switch-to-prev-tab :transient t)
+    ("<tab>" "Next" tab-bar-switch-to-next-tab :transient t)
+    ("1" "Only" tab-bar-close-other-tabs :transient t)
+    ("2" "New" tab-bar-new-tab :transient t)
+    ("0" "Close" tab-bar-close-tab :transient t)
+    ("u" "Undo close" tab-bar-undo-close-tab :transient t)
+    ("r" "Rename" tab-bar-rename-tab :transient t)
+    ("m" "Move" tab-bar-move-tab :transient t)
     ]
    ]
   )

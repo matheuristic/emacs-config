@@ -1384,28 +1384,6 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (global-set-key (kbd "C-x 4 ]") #'my-rotate-buffers-forward)
 #+end_src
 
-*** tab-bar-mode for multiple window configurations in a frame
-
-Emacs 27+ has a built-in ~tab-bar-mode~ that displays [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Tab-Bars.html][tab bars]] at the
-top of each frame that allow for switching between window
-configurations in that frame. Tab bar manipulation commands are
-prefixed by ~C-x t~ (e.g. ~C-x t 2~ to create a tab, ~C-x t r~ to
-rename a tab and ~C-x t 0~ to delete a tab), and ~C-TAB~ and ~S-C-TAB~
-can be used to switch to the next and previous tabs respectively.
-
-#+name: tab-bar-mode
-#+begin_src emacs-lisp
-;; multiple window configs in a frame, commands prefixed by "C-x t",
-;; C-TAB and S-C-TAB to switch to next and previous tabs respectively
-(setq tab-bar-show 1 ; hide tab bar when there is only one tab
-      tab-bar-select-tab-modifiers '(super) ; super-<num> goes to tab<num>
-      tab-bar-tab-hints t ; show tab numbers
-      tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
-      tab-bar-new-button-show nil ; don't show new button
-      tab-bar-close-button-show nil) ; don't show close button
-(tab-bar-mode 1)
-#+end_src
-
 ** Frame management
 
 *** Resize frames pixelwise
@@ -1489,6 +1467,32 @@ manually and automatically.
             (desktop-save-mode 1)
             (desktop-read))
           50) ; load after all other `after-init-hook' functions
+#+end_src
+
+*** tab-bar-mode for multiple window configurations in a frame
+
+Emacs 27+ has a built-in ~tab-bar-mode~ that displays [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Tab-Bars.html][tab bars]] at the
+top of each frame that allow for switching between window
+configurations in that frame. Each tab can function as a workspace
+much like a virtual desktop, and can be useful for separating window
+configurations by purpose or project.
+
+Tab bar manipulation commands are mostly prefixed by ~C-x t~ (e.g.
+~C-x t 2~ to create a tab, ~C-x t r~ to rename a tab and ~C-x t 0~ to
+close a tab), and ~C-TAB~ and ~S-C-TAB~ can be used to switch to the
+next and previous tabs respectively.
+
+#+name: tab-bar-mode
+#+begin_src emacs-lisp
+;; multiple window configs in a frame, commands prefixed by "C-x t",
+;; C-TAB and S-C-TAB to switch to next and previous tabs respectively
+(setq tab-bar-show t ; always show tab bar, set to 1 to hide bar when there's only 1 tab
+      tab-bar-close-last-tab-choice 'tab-bar-mode-disable ; disable mode if delete last tab
+      tab-bar-select-tab-modifiers '(super) ; super-<num> goes to tab<num>
+      tab-bar-tab-hints t ; show tab numbers
+      tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
+      tab-bar-new-button-show nil ; don't show new button
+      tab-bar-close-button-show nil) ; don't show close button
 #+end_src
 
 * Command-line interaction
@@ -8718,18 +8722,6 @@ Transient for window management.
     ("+" "Balance" balance-windows)
     ]
    ]
-  [
-   ["Tabs"
-    ("<backtab>" "Previous" tab-bar-switch-to-prev-tab)
-    ("<tab>" "Next" tab-bar-switch-to-next-tab)
-    ("t1" "Only" tab-bar-close-other-tabs)
-    ("t2" "New" tab-bar-new-tab)
-    ("t0" "Close" tab-bar-close-tab)
-    ("tu" "Undo close" tab-bar-undo-close-tab)
-    ("tr" "Rename" tab-bar-rename-tab)
-    ("tm" "Move" tab-bar-move-tab)
-    ]
-   ]
   )
 (global-set-key (kbd "C-c e w") #'transient/window)
 #+end_src
@@ -8750,6 +8742,16 @@ Transient for workspace manipulation and usage.
     ("dr" "Read" desktop-read)
     ("dR" "Revert" desktop-revert)
     ("dd" "Change Dir" desktop-change-dir)
+    ]
+   ["Tabs"
+    ("<backtab>" "Previous" tab-bar-switch-to-prev-tab :transient t)
+    ("<tab>" "Next" tab-bar-switch-to-next-tab :transient t)
+    ("1" "Only" tab-bar-close-other-tabs :transient t)
+    ("2" "New" tab-bar-new-tab :transient t)
+    ("0" "Close" tab-bar-close-tab :transient t)
+    ("u" "Undo close" tab-bar-undo-close-tab :transient t)
+    ("r" "Rename" tab-bar-rename-tab :transient t)
+    ("m" "Move" tab-bar-move-tab :transient t)
     ]
    ]
   )
@@ -10608,8 +10610,6 @@ The main configuration file.
 
 <<more-convenient-other-window-binding>>
 
-<<tab-bar-mode>>
-
 ;; Buffers, windows, frames, workspaces / Frame management
 
 <<frame-resize-pixelwise>>
@@ -10621,6 +10621,8 @@ The main configuration file.
 ;; Buffers, windows, frames, workspaces / Workspace management
 
 <<desktop>>
+
+<<tab-bar-mode>>
 
 ;; Command-line interaction
 

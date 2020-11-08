@@ -1484,15 +1484,17 @@ next and previous tabs respectively.
 
 #+name: tab-bar-mode
 #+begin_src emacs-lisp
-;; multiple window configs in a frame, commands prefixed by "C-x t",
-;; C-TAB and S-C-TAB to switch to next and previous tabs respectively
+;; multiple window configs in a frame, most commands have a "C-x t"
+;; prefix, and C-TAB and S-C-TAB to switch to next and previous tabs
+;; respectively, requires Emacs 27+
 (setq tab-bar-show t ; always show tab bar, set to 1 to hide bar when there's only 1 tab
-      tab-bar-close-last-tab-choice 'tab-bar-mode-disable ; disable mode if delete last tab
+      tab-bar-close-last-tab-choice 'delete-frame ; deleting the last frame deletes the frame
       tab-bar-select-tab-modifiers '(super) ; super-<num> goes to tab<num>
       tab-bar-tab-hints t ; show tab numbers
       tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
       tab-bar-new-button-show nil ; don't show new button
       tab-bar-close-button-show nil) ; don't show close button
+(tab-bar-mode 1) ; enable mode
 #+end_src
 
 * Command-line interaction
@@ -8752,6 +8754,7 @@ Transient for workspace manipulation and usage.
     ("u" "Undo close" tab-bar-undo-close-tab :transient t)
     ("r" "Rename" tab-bar-rename-tab :transient t)
     ("m" "Move" tab-bar-move-tab :transient t)
+    ("M" "Move (frame)" tab-bar-move-tab-to-frame :transient t)
     ]
    ]
   )

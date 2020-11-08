@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Nov  7 00:31:08 2020
+;; Generated: Sat Nov  7 23:46:09 2020
 
 ;;; Commentary:
 
@@ -44,6 +44,52 @@
 Usually \"xdg-open\" on Linux and \"open\" on Mac."
   :type 'string
   :group 'convenience)
+
+(defcustom my-mode-lighter-abbrev-alist '(;; Minor modes
+                                          (abbrev-mode . "")
+                                          (auto-revert-mode . " ⟳")
+                                          (buffer-face-mode . "")
+                                          (eldoc-mode . "")
+                                          (paredit-mode . " π")
+                                          (too-long-lines-mode . " ⋯")
+                                          (visual-line-mode . " ⇌")
+                                          ;; Major modes
+                                          ;; (lisp-interaction-mode . "λ")
+                                          ;; (hi-lock-mode . "")
+                                          ;; (python-mode . "Py")
+                                          ;; (nxhtml-mode . "nx")
+                                          (emacs-lisp-mode . "ELisp"))
+  "Alist for `my-abbrev-mode-line' containing mode line lighter abbreviations.
+
+Each entry should be a cons cell (a . b) where a is the minor or
+major mode symbol and b is the string to be used as the
+abbreviated mode lighter in the mode line (can be an empty string).
+
+Abbreviations for minor modes should typically be prefixed by a
+space to make them easier to distinguish, but there is no need to
+do so for major mode abbreviations. Use an empty string as an
+abbreviation to not show a lighter for a mode.")
+
+(defun my-mode-line-lighter-abbrev ()
+  "Abbreviate mode line major and minor mode lighters.
+
+Configure `my-mode-lighter-abbrev-alist' to determine which mode
+lighters are abbreviated and what they are abbreviated to."
+  (interactive)
+  (dolist (abbr my-mode-lighter-abbrev-alist)
+    (let* ((mode (car abbr))
+           (mode-str (cdr abbr))
+           (mode-str-old (cdr (assq mode minor-mode-alist))))
+      ;; minor mode, only abbreviate non-empty lighters
+      (when mode-str-old
+        (setcar mode-str-old mode-str))
+      ;; major mode
+      (when (eq mode major-mode)
+        (setq mode-name mode-str)))))
+
+;; rerun on major mode changes
+(add-hook 'after-change-major-mode-hook #'my-mode-line-lighter-abbrev)
+
 
 ;; Custom variables and utility functions / Utility functions
 
@@ -140,7 +186,7 @@ if the point is in the minibuffer."
                        (line-beginning-position 0)
                      (line-beginning-position)))
             (end (line-beginning-position 2))
-            (pulse-delay .2))
+            (pulse-delay .25))
         (pulse-momentary-highlight-region start end nil))))
 
 (defun my-save-and-bury-buffer (&rest _)
@@ -294,15 +340,17 @@ cache before processing."
 ;; text completion framework
 (use-package company
   :defer t
-  :init (with-eval-after-load 'prog-mode
-          (add-hook 'prog-mode-hook 'company-mode))
-  :config
+  :init
+  (with-eval-after-load 'prog-mode
+    (add-hook 'prog-mode-hook 'company-mode))
   (setq company-dabbrev-downcase nil
         company-idle-delay 0.5
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-show-numbers t ;; use M-<num> to directly choose completion
-        company-tooltip-align-annotations t))
+        company-tooltip-align-annotations t)
+  :config
+  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " 📜")))
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
@@ -322,50 +370,31 @@ cache before processing."
 
 ;; Visual (part 1)
 
-;; font icons
-(when (display-graphic-p)
-  (use-package all-the-icons
-    :config (setq all-the-icons-color-icons nil
-                  ;; workaround for doom-modeline getting truncated in certain conditions
-                  ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
-                  all-the-icons-scale-factor 1.1)))
-
-;; set custom mode line in graphical Emacs
-(when (display-graphic-p)
-  ;; fast and fancy minimalist mode line, requires all-the-icons be installed
-  (use-package doom-modeline
-    :after all-the-icons
-    :config
-    (setq doom-modeline-buffer-file-name-style 'buffer-name
-          doom-modeline-env-version nil
-          doom-modeline-height 23 ;; change this based on mode-line face height
-          doom-modeline-icon (display-graphic-p)
-          doom-modeline-irc nil
-          doom-modeline-minor-modes t
-          doom-modeline-persp-name nil
-          doom-modeline-unicode-fallback t)
-    ;; workaround for modeline getting truncated in certain conditions
-    ;; https://github.com/hlissner/doom-emacs/issues/2967#issuecomment-619319082
-    (doom-modeline-def-modeline 'main
-      '(bar workspace-name window-number modals matches buffer-info remote-host buffer-position word-count parrot selection-info)
-      '(objed-state misc-info grip debug repl lsp minor-modes input-method indent-info buffer-encoding major-mode process vcs checker "  "))
-    ;; hide left margin indicator bar
-    ;; (set-face-background 'doom-modeline-bar
-    ;;                      (face-background 'mode-line))
-    ;; (set-face-background 'doom-modeline-bar-inactive
-    ;;                      (face-background 'mode-line-inactive))
-    ;; enable mode line
-    (doom-modeline-mode 1)))
-
-(if (display-graphic-p)
-    ;; hide minor modes in a menu, access with mouse or `minions-minor-mode-menu'
-    (use-package minions
-      :init
-      ;; modes in minions-direct are always shown
-      ;; use UTF-8 mode line lighter
-      (setq minions-direct '(overwrite-mode view-mode)
-            minions-mode-line-lighter "☰")
-      (minions-mode 1)))
+;; show mode line in minibuffer
+(use-package mini-modeline
+  :after desktop
+  :init
+  (setq mini-modeline-truncate-p t ; set to nil to always show full mode line
+        mini-modeline-echo-duration 10
+        mini-modeline-update-interval 0.1)
+  :config
+  ;; hide mode line lighter
+  (add-to-list 'my-mode-lighter-abbrev-alist '(mini-modeline-mode . "") t)
+  ;; this seems to help with flickering when `lsp-mode' is enabled
+  (defun my-enable-mini-modeline-pre-redisplay-run (&rest _)
+    "Add `mini-modeline-display' to `pre-redisplay-functions'."
+    (add-hook 'pre-redisplay-functions #'mini-modeline-display))
+  (defun my-disable-mini-modeline-pre-redisplay-run (&rest _)
+    "Remove `mini-modeline-display' from `pre-redisplay-functions'."
+    (remove-hook 'pre-redisplay-functions #'mini-modeline-display))
+  (advice-add 'mini-modeline--enable :after #'my-enable-mini-modeline-pre-redisplay-run)
+  (advice-add 'mini-modeline--disable :after #'my-disable-mini-modeline-pre-redisplay-run)
+  ;; make sure `mini-modeline-mode' is disabled before exiting Emacs,
+  ;; else desktop.el doesn't persist the original mode line correctly
+  (with-eval-after-load 'desktop
+    (add-hook 'desktop-save-hook (lambda () (mini-modeline-mode -1))))
+  ;; enable mode
+  (mini-modeline-mode 1))
 
 ;; Backups
 
@@ -509,12 +538,6 @@ cache before processing."
   :after ibuffer
   :bind (:map ibuffer-mode-map
          ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
-
-;; use font icons in Ibuffer
-(when (display-graphic-p)
-  (use-package all-the-icons-ibuffer
-    :after (all-the-icons ibuffer)
-    :config (all-the-icons-ibuffer-mode 1)))
 
 ;; visual buffer switching using a grid of windows
 (use-package buffer-expose
@@ -844,19 +867,6 @@ This opens the file using the preferred application by filetype."
   :hook (dired-mode . dired-filter-mode)
   :init (setq-default dired-filter-stack nil))
 
-;; use font icons in Dired
-(use-package all-the-icons-dired
-  :after (all-the-icons dired)
-  :hook (dired-mode . all-the-icons-dired-mode)
-  :config
-  (set-face-attribute 'all-the-icons-dired-dir-face nil
-                      :weight 'normal)
-  ;; extra workaround to avoid misalignment in filenames due to with
-  ;; varying icon widths
-  ;; https://github.com/jtbm37/all-the-icons-dired/issues/10
-  (advice-add 'all-the-icons-dired--setup :after
-              (lambda () (setq-local tab-width 2))))
-
 ;; Editing text
 
 ;; indent with soft tabs; use C-q <TAB> for real tabs
@@ -898,7 +908,10 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
         which-key-idle-delay 10000
         which-key-idle-secondary-delay 0.05
         which-key-show-early-on-C-h t)
-  (which-key-mode 1))
+  (which-key-mode 1)
+  :config
+  ;; hide mode line lighter
+  (add-to-list 'my-mode-lighter-abbrev-alist '(which-key-mode . "")))
 
 ;; expand selected region by semantic units
 (use-package expand-region
@@ -954,6 +967,8 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (use-package yasnippet
   :defer 1 ;; load asynchronously after startup
   :config
+  ;; abbreviate mode line lighter
+  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ↦"))
   ;; (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
   ;; remove default bindings to avoid conflicts with other packages
@@ -971,8 +986,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
          ;; *scratch* default mode
          (lisp-interaction-mode . paredit-mode))
   :config
-  (with-eval-after-load 'minions
-    (add-to-list 'minions-direct 'paredit-mode))
   ;; make delete-selection-mode work within paredit-mode
   (with-eval-after-load 'delsel
     (put 'paredit-forward-delete 'delete-selection 'supersede)
@@ -985,7 +998,11 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 ;; traverse undo history as a tree, default binding is "C-x u"
 (use-package undo-tree
   :init (setq undo-tree-visualizer-relative-timestamps nil)
-  :config (global-undo-tree-mode))
+  :config
+  ;; hide mode line lighter
+  (add-to-list 'my-mode-lighter-abbrev-alist '(undo-tree-mode . ""))
+  ;; enable globally
+  (global-undo-tree-mode))
 
 ;; bind over `zap-to-char' (defaults to "M-x") with `zap-up-to-char'
 (global-set-key [remap zap-to-char] #'zap-up-to-char)
@@ -2106,9 +2123,7 @@ call `open-line' on the very first character."
   (define-key org-mode-map (kbd "<f8>") #'org-tree-slide-mode)
   (define-key org-mode-map (kbd "S-<f8>") #'org-tree-slide-skip-done-toggle)
   (define-key org-tree-slide-mode-map (kbd "<f9>") 'org-tree-slide-move-previous-tree)
-  (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree)
-  (with-eval-after-load 'minions
-    (add-to-list 'minions-direct 'org-tree-slide-mode)))
+  (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree))
 
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
@@ -2221,8 +2236,23 @@ when buffer is clean, and more frequently when it has errors."
               lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
               lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
+              lsp-modeline-code-actions-enable nil ; don't show code actions by default
               lsp-diagnostic-package :flycheck ; use Flycheck for syntax checking
-              lsp-signature-auto-activate nil)) ; don't automatically show signature
+              lsp-signature-auto-activate nil) ; don't automatically show signature
+  :config
+  ;; tighter mode line lighter
+  (add-to-list 'my-mode-lighter-abbrev-alist
+               '(lsp-mode . (:eval (concat " 🚀["
+                                           (let (workspaces (lsp-workspaces))
+                                             (if workspaces
+                                                 (mapconcat #'lsp--workspace-print
+                                                            workspaces
+                                                            "][")
+                                               "-"))
+                                           "]"))))
+  ;; enable which-key integration
+  (with-eval-after-load 'which-key
+    (add-hook 'lsp-mode #'lsp-enable-which-key-integration)))
 
 ;; company backend for LSP-driven completion
 (use-package company-lsp
@@ -2553,7 +2583,7 @@ This enables things like ElDoc and autocompletion."
   :demand t
   :init (setq projectile-completion-system 'default
               projectile-create-missing-test-files t ; create test file if none is found when toggling
-              projectile-mode-line-prefix " Prj"
+              projectile-mode-line-prefix " 📂"
               projectile-switch-project-action 'projectile-commander
               projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
   :config
@@ -2630,15 +2660,6 @@ This enables things like ElDoc and autocompletion."
 (use-package treemacs-magit
   :after (treemacs magit))
 
-;; use icons from all-the-icons in Treemacs
-(use-package treemacs-all-the-icons
-  :after (treemacs all-the-icons)
-  :config
-  (treemacs-load-theme "all-the-icons")
-  ;; reduce tab-width to fix spacing between icons and text
-  (add-hook 'treemacs-mode-hook
-            (lambda () (setq-local tab-width 2))))
-
 ;; Reference management
 
 ;; manager for BibTeX bibliographic databases
@@ -2694,14 +2715,6 @@ This enables things like ElDoc and autocompletion."
 (when (executable-find "rg")
   (use-package rg
     :bind ("<f6>" . rg-menu)))
-
-;; show current and total search matches, and preview query replace results
-(use-package anzu
-  :bind (([remap query-replace] . anzu-query-replace)
-         ([remap query-replace-regexp] . anzu-query-replace-regexp))
-  :init (setq anzu-mode-lighter "" ; don't show in mode line since always activated
-              anzu-deactivate-region t) ; deactivate region after replacing text
-  :config (global-anzu-mode))
 
 ;; jump to definition using ag or rg and applying heuristics
 (use-package dumb-jump
@@ -2800,7 +2813,10 @@ This enables things like ElDoc and autocompletion."
 (show-paren-mode 1)
 
 (use-package volatile-highlights
-  :hook (after-init . volatile-highlights-mode))
+  :hook (after-init . volatile-highlights-mode)
+  :config
+  ;; hide mode line lighter for the mode
+  (add-to-list 'my-mode-lighter-abbrev-alist '(volatile-highlights-mode . "")))
 
 ;; add internal frame border
 (add-to-list 'default-frame-alist
@@ -3387,6 +3403,27 @@ whitespace, indenting and untabifying."
                                 my-system-open-command my-dir-path)))
     (apply 'start-process my-process-args)))
 
+(defun transient/buffer--print-minor-modes ()
+  "Print enabled minor modes for the current buffer."
+  (interactive)
+  (let* ((maybe-active-minor-modes (mapcar #'car minor-mode-alist))
+         (active-minor-modes (seq-filter (lambda (mode)
+                                           (and (boundp mode)
+                                                (symbol-value mode)))
+                                         maybe-active-minor-modes))
+         ;; sort alphabetically
+         (active-minor-modes-sorted (sort (mapcar #'symbol-name
+                                                  active-minor-modes)
+                                          'string<))
+         ;; five minor modes to a line
+         (active-minor-mode-tuples (seq-partition active-minor-modes-sorted 5))
+         (active-minor-mode-tuples-strs (mapcar
+                                         (lambda (tup)
+                                           (mapconcat #'identity tup " "))
+                                         active-minor-mode-tuples))
+         (msg-str (mapconcat 'identity active-minor-mode-tuples-strs "\n")))
+    (message msg-str)))
+
 ;; add transient for buffer management commands
 (transient-define-prefix transient/buffer ()
   "Buffer management commands."
@@ -3430,6 +3467,7 @@ whitespace, indenting and untabifying."
    ]
   [
    ["Other"
+    ("M" "Minor modes" transient/buffer--print-minor-modes)
     ("R" (lambda ()
            (transient--make-description
             "Autorevert"
@@ -4025,6 +4063,7 @@ whitespace, indenting and untabifying."
 (require 'prism)
 (require 'symbol-overlay)
 (require 'too-long-lines-mode)
+(require 'mini-modeline)
 
 (defvar-local transient/visual--face-remap-cookies '()
   "Alist storing cookies for `face-remap-add-relative' calls.")
@@ -4251,6 +4290,11 @@ Currently only works for Emacs Mac port."
             "Olivetti"
             olivetti-mode))
      olivetti-mode)
+    ("M" (lambda ()
+           (transient--make-description
+            "Mini-modeline"
+            mini-modeline-mode))
+     mini-modeline-mode)
     ]
    ["Other"
     ("v" (lambda ()

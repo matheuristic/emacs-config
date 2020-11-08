@@ -4153,6 +4153,47 @@ Hide minor modes by default using the [[https://github.com/tarsius/minions][mini
       (minions-mode 1)))
 #+end_src
 
+** Display mode line in minibuffer                          :semiearly:melpa:
+
+[[https://github.com/kiennq/emacs-mini-modeline][mini-modeline]] displays the mode line in the minibuffer, saving
+vertical screen space.
+
+TODO - Figure out how to update echo area only when needed ([[https://github.com/kiennq/emacs-mini-modeline/issues/45][link]]), currently updates every 0.1s which is pretty often
+
+#+name: mini-modeline
+#+begin_src emacs-lisp
+;; show mode line in minibuffer
+(use-package mini-modeline
+  :after desktop
+  :init
+  (setq mini-modeline-truncate-p t ; set to nil to always show full mode line
+        mini-modeline-echo-duration 3
+        mini-modeline-update-interval 0.1)
+  :config
+  ;; hide mode line lighter
+  (add-to-list 'my-mode-lighter-abbrev-alist '(mini-modeline-mode . "") t)
+  ;; custom setup/teardown when enabling/disabling `mini-modeline-mode'
+  (defun my-mini-modeline-setup (&rest _)
+    "Custom setup to run when enabling `mini-modeline-mode'.
+
+Add `mini-modeline-display' to `pre-redisplay-functions'. This
+helps with flickering when `lsp-mode' is enabled."
+    (add-hook 'pre-redisplay-functions #'mini-modeline-display))
+  (defun my-mini-modeline-teardown (&rest _)
+    "Custom teardown to run when disabling `mini-modeline-mode'.
+
+Remove `mini-modeline-display' from `pre-redisplay-functions'."
+    (remove-hook 'pre-redisplay-functions #'mini-modeline-display))
+  (advice-add 'mini-modeline--enable :after #'my-mini-modeline-setup)
+  (advice-add 'mini-modeline--disable :after #'my-mini-modeline-teardown)
+  ;; make sure `mini-modeline-mode' is disabled before exiting Emacs,
+  ;; else desktop.el doesn't persist the original mode line correctly
+  (with-eval-after-load 'desktop
+    (add-hook 'desktop-save-hook (lambda () (mini-modeline-mode -1))))
+  ;; enable mode
+  (mini-modeline-mode 1))
+#+end_src
+
 * Web
 
 ** Browsing

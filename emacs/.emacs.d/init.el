@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  8 09:29:10 2020
+;; Generated: Sun Nov  8 11:36:11 2020
 
 ;;; Commentary:
 
@@ -369,37 +369,6 @@ cache before processing."
                  (t 'message))))
 
 ;; Visual (part 1)
-
-;; show mode line in minibuffer
-(use-package mini-modeline
-  :after desktop
-  :init
-  (setq mini-modeline-truncate-p t ; set to nil to always show full mode line
-        mini-modeline-echo-duration 3
-        mini-modeline-update-interval 0.1)
-  :config
-  ;; hide mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(mini-modeline-mode . "") t)
-  ;; custom setup/teardown when enabling/disabling `mini-modeline-mode'
-  (defun my-mini-modeline-setup (&rest _)
-    "Custom setup to run when enabling `mini-modeline-mode'.
-
-Add `mini-modeline-display' to `pre-redisplay-functions'. This
-helps with flickering when `lsp-mode' is enabled."
-    (add-hook 'pre-redisplay-functions #'mini-modeline-display))
-  (defun my-mini-modeline-teardown (&rest _)
-    "Custom teardown to run when disabling `mini-modeline-mode'.
-
-Remove `mini-modeline-display' from `pre-redisplay-functions'."
-    (remove-hook 'pre-redisplay-functions #'mini-modeline-display))
-  (advice-add 'mini-modeline--enable :after #'my-mini-modeline-setup)
-  (advice-add 'mini-modeline--disable :after #'my-mini-modeline-teardown)
-  ;; make sure `mini-modeline-mode' is disabled before exiting Emacs,
-  ;; else desktop.el doesn't persist the original mode line correctly
-  (with-eval-after-load 'desktop
-    (add-hook 'desktop-save-hook (lambda () (mini-modeline-mode -1))))
-  ;; enable mode
-  (mini-modeline-mode 1))
 
 ;; Backups
 
@@ -4068,7 +4037,6 @@ whitespace, indenting and untabifying."
 (require 'prism)
 (require 'symbol-overlay)
 (require 'too-long-lines-mode)
-(require 'mini-modeline)
 
 (defvar-local transient/visual--face-remap-cookies '()
   "Alist storing cookies for `face-remap-add-relative' calls.")
@@ -4295,11 +4263,6 @@ Currently only works for Emacs Mac port."
             "Olivetti"
             olivetti-mode))
      olivetti-mode)
-    ("M" (lambda ()
-           (transient--make-description
-            "Mini-modeline"
-            mini-modeline-mode))
-     mini-modeline-mode)
     ]
    ["Other"
     ("v" (lambda ()

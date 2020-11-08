@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  8 17:36:00 2020
+;; Generated: Sun Nov  8 17:58:28 2020
 
 ;;; Commentary:
 
@@ -4401,6 +4401,7 @@ Currently only works for Emacs Mac port."
     ("r" "Rename" tab-bar-rename-tab :transient t)
     ("m" "Move" tab-bar-move-tab :transient t)
     ("M" "Move (frame)" tab-bar-move-tab-to-frame :transient t)
+    ("RET" "Select" tab-bar-select-tab-by-name :transient t)
     ]
    ]
   )

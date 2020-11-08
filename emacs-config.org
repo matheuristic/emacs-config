@@ -1478,9 +1478,12 @@ much like a virtual desktop, and can be useful for separating window
 configurations by purpose or project.
 
 Tab bar manipulation commands are mostly prefixed by ~C-x t~ (e.g.
-~C-x t 2~ to create a tab, ~C-x t r~ to rename a tab and ~C-x t 0~ to
-close a tab), and ~C-TAB~ and ~S-C-TAB~ can be used to switch to the
-next and previous tabs respectively.
+~C-x t 2~ to create a tab, ~C-x t RET~ to select some tab by name,
+~C-x t r~ to rename a tab and ~C-x t 0~ to close a tab), and ~C-TAB~
+and ~S-C-TAB~ can be used to switch to the next and previous tabs.
+
+Note that for Emacs 27.1, ~tab-bar-mode~ does not show a visual tab in
+macOS although all other functionality works.
 
 #+name: tab-bar-mode
 #+begin_src emacs-lisp
@@ -8755,6 +8758,7 @@ Transient for workspace manipulation and usage.
     ("r" "Rename" tab-bar-rename-tab :transient t)
     ("m" "Move" tab-bar-move-tab :transient t)
     ("M" "Move (frame)" tab-bar-move-tab-to-frame :transient t)
+    ("RET" "Select" tab-bar-select-tab-by-name :transient t)
     ]
    ]
   )

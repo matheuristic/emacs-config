@@ -96,6 +96,9 @@
    `(query-replace ((t (:background ,bg-search :strike-through t))))
    `(region ((t (:background ,bg-region :foreground ,fg))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
+   `(tab-bar ((t (:background ,bg-light :foreground ,fg))))
+   `(tab-bar-tab ((t (:background ,bg-light :foreground "midnight blue" :underline t :weight extra-bold))))
+   `(tab-bar-tab-inactive ((t (:background ,bg-light :foreground ,fg))))
    `(vertical-border ((t (:foreground ,bg-light))))
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))
 
@@ -303,7 +306,8 @@
 
 (custom-theme-set-variables
  'ereader
- '(highlight-indent-guides-auto-enabled nil))
+ '(highlight-indent-guides-auto-enabled nil)
+ '(tab-bar-separator " ⋮ "))
 
 ;;;###autoload
 (when (and (boundp 'custom-theme-load-path) load-file-name)

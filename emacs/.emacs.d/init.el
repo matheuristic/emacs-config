@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  8 12:06:30 2020
+;; Generated: Sun Nov  8 16:29:30 2020
 
 ;;; Commentary:
 
@@ -589,6 +589,16 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 
 ;; more convenient bindings for `other-window' and `other-frame'
 (global-set-key (kbd "M-o") #'other-window)
+
+;; multiple window configs in a frame, commands prefixed by "C-x t",
+;; C-TAB and S-C-TAB to switch to next and previous tabs respectively
+(setq tab-bar-show 1 ; hide tab bar when there is only one tab
+      tab-bar-select-tab-modifiers '(super) ; super-<num> goes to tab<num>
+      tab-bar-tab-hints t ; show tab numbers
+      tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
+      tab-bar-new-button-show nil ; don't show new button
+      tab-bar-close-button-show nil) ; don't show close button
+(tab-bar-mode 1)
 
 ;; Buffers, windows, frames, workspaces / Frame management
 
@@ -4363,6 +4373,18 @@ Currently only works for Emacs Mac port."
     ("M" "Maximize" maximize-window)
     ("m" "Minimize" minimize-window)
     ("+" "Balance" balance-windows)
+    ]
+   ]
+  [
+   ["Tabs"
+    ("<backtab>" "Previous" tab-bar-switch-to-prev-tab)
+    ("<tab>" "Next" tab-bar-switch-to-next-tab)
+    ("t1" "Only" tab-bar-close-other-tabs)
+    ("t2" "New" tab-bar-new-tab)
+    ("t0" "Close" tab-bar-close-tab)
+    ("tu" "Undo close" tab-bar-undo-close-tab)
+    ("tr" "Rename" tab-bar-rename-tab)
+    ("tm" "Move" tab-bar-move-tab)
     ]
    ]
   )

@@ -1448,7 +1448,7 @@ manually and automatically.
 ;;   might be specific to emacs-mac port
 ;; - set `desktop-autosave-timeout' to nil to disable timer auto-saves
 ;; - restore frames to their original displays
-;; - don't re-use frames
+;; - re-use existing frames
 (setq desktop-auto-save-timeout nil
       desktop-restore-in-current-display nil
       desktop-restore-reuses-frames t

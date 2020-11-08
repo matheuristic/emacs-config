@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  8 11:36:11 2020
+;; Generated: Sun Nov  8 12:06:30 2020
 
 ;;; Commentary:
 
@@ -615,7 +615,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;;   might be specific to emacs-mac port
 ;; - set `desktop-autosave-timeout' to nil to disable timer auto-saves
 ;; - restore frames to their original displays
-;; - don't re-use frames
+;; - re-use existing frames
 (setq desktop-auto-save-timeout nil
       desktop-restore-in-current-display nil
       desktop-restore-reuses-frames t

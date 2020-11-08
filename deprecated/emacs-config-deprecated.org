@@ -4870,6 +4870,15 @@ Neuron major mode transient.
 [[https://github.com/jkitchin/org-ref][Org-ref]] is a collection of modules for managing citations, references
 and BibTeX bibliographies in Org-mode.
 
+** Project interaction
+
+*** [#C] nix-buffer for directory/file-specific specific environments :external:melpa:
+
+[[https://github.com/shlevy/nix-buffer][nix-buffer]] allows for directory-specific or file-specific (see below)
+environments using Nix.
+
+- Using nix-buffer for file-local environments ([[https://blog.jethro.dev/posts/nix_buffer_emacs/][link]])
+
 ** Search
 
 *** [#B] CTRLF for better-behaved search

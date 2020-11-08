@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Nov  7 23:46:09 2020
+;; Generated: Sun Nov  8 08:32:31 2020
 
 ;;; Commentary:
 
@@ -375,7 +375,7 @@ cache before processing."
   :after desktop
   :init
   (setq mini-modeline-truncate-p t ; set to nil to always show full mode line
-        mini-modeline-echo-duration 10
+        mini-modeline-echo-duration 3
         mini-modeline-update-interval 0.1)
   :config
   ;; hide mode line lighter

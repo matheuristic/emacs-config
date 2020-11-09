@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Nov  9 13:55:18 2020
+;; Generated: Mon Nov  9 15:01:35 2020
 
 ;;; Commentary:
 
@@ -2220,14 +2220,21 @@ when buffer is clean, and more frequently when it has errors."
     (conda-env-initialize-interactive-shells)
     (conda-env-initialize-eshell)
     ;; display current conda env in the mode line
-    (add-to-list 'mode-line-misc-info
-                 '(:eval (if conda-env-current-name
-                             (format " «%s»"
-                                     (truncate-string-to-width
-                                      conda-env-current-name
-                                      15 nil nil "…"))
-                           ""))
-                 t)))
+    (define-minor-mode conda-mode-line-mode
+      "Global minor mode for displaying current conda env in the mode line."
+      :init-value nil
+      :keymap nil
+      :global t
+      :lighter (:eval (concat " 🏠["
+                              (if conda-env-current-name
+                                  (format "%s"
+                                          (truncate-string-to-width
+                                           conda-env-current-name
+                                           15 nil nil "…"))
+                                "-")
+                              "]"))
+      :group 'conda)
+    (conda-mode-line-mode 1)))
 
 ;; Programming / lsp-mode Language Server Protocol client
 

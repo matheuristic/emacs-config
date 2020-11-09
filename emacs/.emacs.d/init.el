@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  8 17:58:28 2020
+;; Generated: Mon Nov  9 13:55:18 2020
 
 ;;; Commentary:
 
@@ -79,17 +79,22 @@ lighters are abbreviated and what they are abbreviated to."
   (dolist (abbr my-mode-lighter-abbrev-alist)
     (let* ((mode (car abbr))
            (mode-str (cdr abbr))
+           (is-minor-mode (member mode minor-mode-list))
            (mode-str-old (cdr (assq mode minor-mode-alist))))
-      ;; minor mode, only abbreviate non-empty lighters
-      (when mode-str-old
-        (setcar mode-str-old mode-str))
-      ;; major mode
-      (when (eq mode major-mode)
-        (setq mode-name mode-str)))))
+      (if is-minor-mode
+          (let ((minor-mode-alist-entry (assq mode minor-mode-alist)))
+            ;; if entry for minor mode exists in `minor-mode-alist'
+            ;; modify its value, otherwise append a new entry
+            (if minor-mode-alist-entry
+                (setcdr minor-mode-alist-entry (list mode-str))
+              (add-to-list 'minor-mode-alist
+                           (cons mode (list mode-str))
+                           t)))
+        (when (eq mode major-mode)
+          (setq mode-name mode-str))))))
 
 ;; rerun on major mode changes
 (add-hook 'after-change-major-mode-hook #'my-mode-line-lighter-abbrev)
-
 
 ;; Custom variables and utility functions / Utility functions
 
@@ -470,6 +475,20 @@ cache before processing."
 
 ;; configure Ibuffer filter groups
 (with-eval-after-load 'ibuffer
+  (defun my-ibuffer-org-agenda-files-filter ()
+    "Ibuffer filter for checking if current buffer is an Org agenda file.
+
+Specifically, the current buffer is checked to see if it is in
+`org-agenda-files', is the agenda inbox file
+`my-org-agenda-inbox', or is the someday inbox file
+`my-org-someday-inbox'."
+    (let* ((bufname (buffer-file-name))
+           (fname (and bufname (file-truename bufname))) ; filename if a file buffer, nil otherwise
+           (agenda-fnames (mapcar #'file-truename (append (org-agenda-files) ; agenda and inbox filenames
+                                                          (list my-org-agenda-inbox
+                                                                my-org-someday-inbox)))))
+      (and fname
+           (member fname agenda-fnames))))
   (setq ibuffer-saved-filter-groups
         ;; files are grouped by the first matching filter group in the list
         '(("default"
@@ -491,7 +510,8 @@ cache before processing."
            ("Analytics" (or (mode . ess-r-mode)
                             (mode . inferior-ess-r-mode)))
            ("Programming" (derived-mode . prog-mode))
-           ("Agenda" (mode . org-agenda-mode))
+           ("Agenda" (or (mode . org-agenda-mode)
+                         (predicate . (my-ibuffer-org-agenda-files-filter))))
            ("Journal" (mode . org-journal-mode))
            ("Org" (derived-mode . org-mode))
            ("Text" (derived-mode . text-mode))
@@ -1673,7 +1693,7 @@ call `open-line' on the very first character."
 (setq org-capture-templates '(("n" "New Task" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
                               ("s" "Someday Task" entry (file my-org-someday-inbox)
-                               "* TODO %i%? :someday:\n%U")
+                               "* TODO %i%?\n%U")
                               ("i" "Interrupt Task" entry (function my-org-goto-end-of-org-file)
                                "* NEXT %i%?\n%U"
                                :jump-to-captured t :clock-in t :clock-resume t)))
@@ -3258,6 +3278,21 @@ for more information."
   (use-package launchctl
     :mode ("\\.plist\\'" . nxml-mode)
     :bind ("C-c x l" . launchctl)))
+
+;; as of Emacs 27.1, `tab-bar-mode' does not show visual tabs in macOS
+;; so in macOS show tab number and name (if renamed) in the mode line
+(when (eq system-type 'darwin)
+  (add-to-list 'my-mode-lighter-abbrev-alist
+               '(tab-bar-mode . (:eval
+                                 (concat
+                                  " ⭾["
+                                  ;; tab num, and tab name if explicitly renamed
+                                  (let* ((current-tab (tab-bar--current-tab))
+                                         (is-explicit-name (alist-get 'explicit-name current-tab)))
+                                    (concat (number-to-string (1+ (tab-bar--current-tab-index)))
+                                            (when is-explicit-name
+                                              (concat ":" (alist-get 'name current-tab)))))
+                                  "]")))))
 
 ;; Transient commands
 

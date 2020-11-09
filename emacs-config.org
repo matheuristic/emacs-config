@@ -519,17 +519,22 @@ lighters are abbreviated and what they are abbreviated to."
   (dolist (abbr my-mode-lighter-abbrev-alist)
     (let* ((mode (car abbr))
            (mode-str (cdr abbr))
+           (is-minor-mode (member mode minor-mode-list))
            (mode-str-old (cdr (assq mode minor-mode-alist))))
-      ;; minor mode, only abbreviate non-empty lighters
-      (when mode-str-old
-        (setcar mode-str-old mode-str))
-      ;; major mode
-      (when (eq mode major-mode)
-        (setq mode-name mode-str)))))
+      (if is-minor-mode
+          (let ((minor-mode-alist-entry (assq mode minor-mode-alist)))
+            ;; if entry for minor mode exists in `minor-mode-alist'
+            ;; modify its value, otherwise append a new entry
+            (if minor-mode-alist-entry
+                (setcdr minor-mode-alist-entry (list mode-str))
+              (add-to-list 'minor-mode-alist
+                           (cons mode (list mode-str))
+                           t)))
+        (when (eq mode major-mode)
+          (setq mode-name mode-str))))))
 
 ;; rerun on major mode changes
 (add-hook 'after-change-major-mode-hook #'my-mode-line-lighter-abbrev)
-
 #+end_src
 
 ** Utility functions
@@ -1208,6 +1213,20 @@ like Org journal files, by default.
 #+begin_src emacs-lisp
 ;; configure Ibuffer filter groups
 (with-eval-after-load 'ibuffer
+  (defun my-ibuffer-org-agenda-files-filter ()
+    "Ibuffer filter for checking if current buffer is an Org agenda file.
+
+Specifically, the current buffer is checked to see if it is in
+`org-agenda-files', is the agenda inbox file
+`my-org-agenda-inbox', or is the someday inbox file
+`my-org-someday-inbox'."
+    (let* ((bufname (buffer-file-name))
+           (fname (and bufname (file-truename bufname))) ; filename if a file buffer, nil otherwise
+           (agenda-fnames (mapcar #'file-truename (append (org-agenda-files) ; agenda and inbox filenames
+                                                          (list my-org-agenda-inbox
+                                                                my-org-someday-inbox)))))
+      (and fname
+           (member fname agenda-fnames))))
   (setq ibuffer-saved-filter-groups
         ;; files are grouped by the first matching filter group in the list
         '(("default"
@@ -1229,7 +1248,8 @@ like Org journal files, by default.
            ("Analytics" (or (mode . ess-r-mode)
                             (mode . inferior-ess-r-mode)))
            ("Programming" (derived-mode . prog-mode))
-           ("Agenda" (mode . org-agenda-mode))
+           ("Agenda" (or (mode . org-agenda-mode)
+                         (predicate . (my-ibuffer-org-agenda-files-filter))))
            ("Journal" (mode . org-journal-mode))
            ("Org" (derived-mode . org-mode))
            ("Text" (derived-mode . text-mode))
@@ -3725,7 +3745,7 @@ Possible Org task states:
 (setq org-capture-templates '(("n" "New Task" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
                               ("s" "Someday Task" entry (file my-org-someday-inbox)
-                               "* TODO %i%? :someday:\n%U")
+                               "* TODO %i%?\n%U")
                               ("i" "Interrupt Task" entry (function my-org-goto-end-of-org-file)
                                "* NEXT %i%?\n%U"
                                :jump-to-captured t :clock-in t :clock-resume t)))
@@ -7402,6 +7422,30 @@ systems. It uses the system ~launchctl~ executable under the hood. The
     :bind ("C-c x l" . launchctl)))
 #+end_src
 
+*** Mode line indicator for tab-bar-mode
+
+As of Emacs 27.1, ~tab-bar-mode~ does not show visual tabs in macOS
+although all other functionality works. Work around that by showing
+the current tab number (and tab name if renamed) in the mode line.
+
+#+name: mac-tab-bar-mode-lighter
+#+begin_src emacs-lisp
+;; as of Emacs 27.1, `tab-bar-mode' does not show visual tabs in macOS
+;; so in macOS show tab number and name (if renamed) in the mode line
+(when (eq system-type 'darwin)
+  (add-to-list 'my-mode-lighter-abbrev-alist
+               '(tab-bar-mode . (:eval
+                                 (concat
+                                  " ⭾["
+                                  ;; tab num, and tab name if explicitly renamed
+                                  (let* ((current-tab (tab-bar--current-tab))
+                                         (is-explicit-name (alist-get 'explicit-name current-tab)))
+                                    (concat (number-to-string (1+ (tab-bar--current-tab-index)))
+                                            (when is-explicit-name
+                                              (concat ":" (alist-get 'name current-tab)))))
+                                  "]")))))
+#+end_src
+
 * Transient commands                                              :transient:
 
 Temporary bindings that are shown in a popup window.
@@ -11060,6 +11104,8 @@ The main configuration file.
 <<mac-emacs-mac-doc-view-resolution>>
 
 <<mac-launchctl>>
+
+<<mac-tab-bar-mode-lighter>>
 
 ;; Transient commands
 

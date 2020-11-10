@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Nov  9 15:01:35 2020
+;; Generated: Mon Nov  9 23:53:18 2020
 
 ;;; Commentary:
 
@@ -47,10 +47,10 @@ Usually \"xdg-open\" on Linux and \"open\" on Mac."
 
 (defcustom my-mode-lighter-abbrev-alist '(;; Minor modes
                                           (abbrev-mode . "")
-                                          (auto-revert-mode . " ⟳")
+                                          (auto-revert-mode . " ⤒")
                                           (buffer-face-mode . "")
                                           (eldoc-mode . "")
-                                          (paredit-mode . " π")
+                                          (paredit-mode . " ⁽⁾")
                                           (too-long-lines-mode . " ⋯")
                                           (visual-line-mode . " ⇌")
                                           ;; Major modes
@@ -355,7 +355,7 @@ cache before processing."
         company-show-numbers t ;; use M-<num> to directly choose completion
         company-tooltip-align-annotations t)
   :config
-  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " 📜")))
+  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " Ⓒ")))
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
@@ -974,7 +974,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   :defer 1 ;; load asynchronously after startup
   :config
   ;; abbreviate mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ↦"))
+  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " Ⓨ"))
   ;; (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
   ;; remove default bindings to avoid conflicts with other packages
@@ -2225,7 +2225,7 @@ when buffer is clean, and more frequently when it has errors."
       :init-value nil
       :keymap nil
       :global t
-      :lighter (:eval (concat " 🏠["
+      :lighter (:eval (concat " ⌂["
                               (if conda-env-current-name
                                   (format "%s"
                                           (truncate-string-to-width
@@ -2255,7 +2255,7 @@ when buffer is clean, and more frequently when it has errors."
   :config
   ;; tighter mode line lighter
   (add-to-list 'my-mode-lighter-abbrev-alist
-               '(lsp-mode . (:eval (concat " 🚀["
+               '(lsp-mode . (:eval (concat " ʪ["
                                            (let (workspaces (lsp-workspaces))
                                              (if workspaces
                                                  (mapconcat #'lsp--workspace-print
@@ -2596,7 +2596,7 @@ This enables things like ElDoc and autocompletion."
   :demand t
   :init (setq projectile-completion-system 'default
               projectile-create-missing-test-files t ; create test file if none is found when toggling
-              projectile-mode-line-prefix " 📂"
+              projectile-mode-line-prefix " Ⓟ"
               projectile-switch-project-action 'projectile-commander
               projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
   :config
@@ -3292,7 +3292,7 @@ for more information."
   (add-to-list 'my-mode-lighter-abbrev-alist
                '(tab-bar-mode . (:eval
                                  (concat
-                                  " ⭾["
+                                  " ╍["
                                   ;; tab num, and tab name if explicitly renamed
                                   (let* ((current-tab (tab-bar--current-tab))
                                          (is-explicit-name (alist-get 'explicit-name current-tab)))

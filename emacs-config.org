@@ -487,10 +487,10 @@ Adapted from [[https://www.masteringemacs.org/article/hiding-replacing-modeline-
 #+begin_src emacs-lisp
 (defcustom my-mode-lighter-abbrev-alist '(;; Minor modes
                                           (abbrev-mode . "")
-                                          (auto-revert-mode . " ⟳")
+                                          (auto-revert-mode . " ⤒")
                                           (buffer-face-mode . "")
                                           (eldoc-mode . "")
-                                          (paredit-mode . " π")
+                                          (paredit-mode . " ⁽⁾")
                                           (too-long-lines-mode . " ⋯")
                                           (visual-line-mode . " ⇌")
                                           ;; Major modes
@@ -1004,7 +1004,7 @@ enabled by default only in programming modes.
         company-show-numbers t ;; use M-<num> to directly choose completion
         company-tooltip-align-annotations t)
   :config
-  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " 📜")))
+  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " Ⓒ")))
 #+end_src
 
 ** Edit-indirect                                                      :melpa:
@@ -2249,7 +2249,7 @@ Two additional supporting packages can also be loaded:
   :defer 1 ;; load asynchronously after startup
   :config
   ;; abbreviate mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ↦"))
+  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " Ⓨ"))
   ;; (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
   ;; remove default bindings to avoid conflicts with other packages
@@ -4698,7 +4698,7 @@ packages.
       :init-value nil
       :keymap nil
       :global t
-      :lighter (:eval (concat " 🏠["
+      :lighter (:eval (concat " ⌂["
                               (if conda-env-current-name
                                   (format "%s"
                                           (truncate-string-to-width
@@ -4734,7 +4734,7 @@ It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglo
   :config
   ;; tighter mode line lighter
   (add-to-list 'my-mode-lighter-abbrev-alist
-               '(lsp-mode . (:eval (concat " 🚀["
+               '(lsp-mode . (:eval (concat " ʪ["
                                            (let (workspaces (lsp-workspaces))
                                              (if workspaces
                                                  (mapconcat #'lsp--workspace-print
@@ -5559,7 +5559,7 @@ convenience functions to navigate, search and build projects.
   :demand t
   :init (setq projectile-completion-system 'default
               projectile-create-missing-test-files t ; create test file if none is found when toggling
-              projectile-mode-line-prefix " 📂"
+              projectile-mode-line-prefix " Ⓟ"
               projectile-switch-project-action 'projectile-commander
               projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
   :config
@@ -7443,7 +7443,7 @@ the current tab number (and tab name if renamed) in the mode line.
   (add-to-list 'my-mode-lighter-abbrev-alist
                '(tab-bar-mode . (:eval
                                  (concat
-                                  " ⭾["
+                                  " ╍["
                                   ;; tab num, and tab name if explicitly renamed
                                   (let* ((current-tab (tab-bar--current-tab))
                                          (is-explicit-name (alist-get 'explicit-name current-tab)))

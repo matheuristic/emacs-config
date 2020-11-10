@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Nov 10 10:06:25 2020
+;; Generated: Tue Nov 10 11:13:56 2020
 
 ;;; Commentary:
 
@@ -2603,14 +2603,12 @@ This enables things like ElDoc and autocompletion."
   (projectile-mode))
 
 ;; Org TODOs for projectile projects
-;; use `org-capture' to capture and store TODOs for the current project
 ;; in `org-projectile-per-project-filepath' at the project's root directory
 (use-package org-projectile
   :after (org projectile)
   :config
   (org-projectile-per-project)
-  (setq org-projectile-per-project-filepath "TODO.org")
-  (add-to-list 'org-capture-templates (org-projectile-project-todo-entry) t))
+  (setq org-projectile-per-project-filepath "TODO.org"))
 
 ;; binding for calling Magit
 (use-package magit
@@ -3844,6 +3842,7 @@ whitespace, indenting and untabifying."
 
 ;; add transient popup for projectile
 (with-eval-after-load 'projectile
+  (require 'org-projectile)
   (transient-define-prefix transient/projectile ()
     "Projectile commands"
     [:description (lambda ()
@@ -3895,6 +3894,8 @@ whitespace, indenting and untabifying."
      ["Other"
       ("m" "Commander" projectile-commander)
       ("p" "Switch project" projectile-switch-project)
+      ("K" "Add project TODO" org-projectile-project-todo-completing-read)
+      ("T" "Goto project TODOs" org-projectile-goto-location-for-project)
       ]
      ]
     )

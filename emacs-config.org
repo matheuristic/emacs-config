@@ -5579,14 +5579,12 @@ Also add a corresponding entry type to ~org-capture-templates~.
 #+name: org-projectile
 #+begin_src emacs-lisp
 ;; Org TODOs for projectile projects
-;; use `org-capture' to capture and store TODOs for the current project
 ;; in `org-projectile-per-project-filepath' at the project's root directory
 (use-package org-projectile
   :after (org projectile)
   :config
   (org-projectile-per-project)
-  (setq org-projectile-per-project-filepath "TODO.org")
-  (add-to-list 'org-capture-templates (org-projectile-project-todo-entry) t))
+  (setq org-projectile-per-project-filepath "TODO.org"))
 #+end_src
 
 ** Magit                                                     :external:melpa:
@@ -8146,6 +8144,7 @@ Transient for interfacing with Projectile commands
 #+begin_src emacs-lisp
 ;; add transient popup for projectile
 (with-eval-after-load 'projectile
+  (require 'org-projectile)
   (transient-define-prefix transient/projectile ()
     "Projectile commands"
     [:description (lambda ()
@@ -8197,6 +8196,8 @@ Transient for interfacing with Projectile commands
      ["Other"
       ("m" "Commander" projectile-commander)
       ("p" "Switch project" projectile-switch-project)
+      ("K" "Add project TODO" org-projectile-project-todo-completing-read)
+      ("T" "Goto project TODOs" org-projectile-goto-location-for-project)
       ]
      ]
     )

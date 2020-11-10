@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Nov  9 23:53:18 2020
+;; Generated: Tue Nov 10 10:06:25 2020
 
 ;;; Commentary:
 
@@ -107,35 +107,6 @@ One useful context action example is to run `org-show-context'
 after jumping to an Org buffer location to ensure the region
 around the new point location is visible."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
-
-(defun my-always-revert-buffer ()
-  "Toggles always reverting the current buffer visiting a file.
-
-The value of `auto-revert-mode' is used to determine if automatic
-file reversion is already on.
-
-If `auto-revert-mode' is nil, then enable `auto-revert-mode' and
-add the path of the file the buffer is visiting to
-`revert-without-query'.
-
-If `auto-revert-mode' is non-nil, then disable `auto-revert-mode'
-and remove the path of the file the buffer is visiting from
-`revert-without-query'.
-
-No effect if the current buffer is not visiting a file."
-  (interactive)
-  (let ((fname (abbreviate-file-name ; match filename from `find-file-noselect'
-	        (expand-file-name (buffer-file-name)))))
-    (if buffer-file-name
-        (if (and (boundp 'auto-revert-mode) auto-revert-mode)
-            (progn
-              (auto-revert-mode -1)
-              (setq revert-without-query (remove fname revert-without-query))
-              (message "Always reverting buffer OFF."))
-          (auto-revert-mode 1)
-          (setq revert-without-query (add-to-list 'revert-without-query fname))
-          (message "Always revert buffer ON."))
-      (message "Current buffer is not visiting a file."))))
 
 (defun my-persist-variables-to-file (varlist filename)
   "Persist variables in VARLIST to a file FILENAME."
@@ -355,7 +326,7 @@ cache before processing."
         company-show-numbers t ;; use M-<num> to directly choose completion
         company-tooltip-align-annotations t)
   :config
-  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " Ⓒ")))
+  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
@@ -540,6 +511,29 @@ Specifically, the current buffer is checked to see if it is in
   ;; set auto initialization with ace-window if it is loaded
   (with-eval-after-load 'ace-window
     (setq buffer-expose-auto-init-aw t)))
+
+(define-minor-mode revert-without-query-mode
+  "Minor mode for adding/removing current file to/from `revert-without-query'.
+
+Enabling the minor mode adds the file to `revert-without-query'.
+
+Disabling the minor mode removes the file from `revert-without-query'.
+
+This minor mode has no effect when the buffer is not visiting a file."
+  :init-value nil
+  :lighter " 🅠"
+  :keymap nil
+  ;; match filename from `find-file-noselect'
+  (let ((fname (abbreviate-file-name (expand-file-name
+                                      (buffer-file-name)))))
+    (if buffer-file-name
+        (if (symbol-value revert-without-query-mode)
+            (progn
+              (setq revert-without-query (add-to-list 'revert-without-query fname))
+              (message "Buffer revert without query ON."))
+          (setq revert-without-query (remove fname revert-without-query))
+          (message "Buffer revert without query OFF."))
+      (message "Current buffer is NOT visiting a file."))))
 
 ;; Buffers, windows, frames, workspaces / Window management
 
@@ -974,7 +968,7 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   :defer 1 ;; load asynchronously after startup
   :config
   ;; abbreviate mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " Ⓨ"))
+  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ¥"))
   ;; (use-package yasnippet-snippets) ;; official snippets
   (use-package auto-yasnippet) ;; enable creation of temporary snippets
   ;; remove default bindings to avoid conflicts with other packages
@@ -2225,7 +2219,7 @@ when buffer is clean, and more frequently when it has errors."
       :init-value nil
       :keymap nil
       :global t
-      :lighter (:eval (concat " ⌂["
+      :lighter (:eval (concat " ℅["
                               (if conda-env-current-name
                                   (format "%s"
                                           (truncate-string-to-width
@@ -2596,7 +2590,7 @@ This enables things like ElDoc and autocompletion."
   :demand t
   :init (setq projectile-completion-system 'default
               projectile-create-missing-test-files t ; create test file if none is found when toggling
-              projectile-mode-line-prefix " Ⓟ"
+              projectile-mode-line-prefix " ℙ"
               projectile-switch-project-action 'projectile-commander
               projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
   :config
@@ -3292,7 +3286,7 @@ for more information."
   (add-to-list 'my-mode-lighter-abbrev-alist
                '(tab-bar-mode . (:eval
                                  (concat
-                                  " ╍["
+                                  " ↹["
                                   ;; tab num, and tab name if explicitly renamed
                                   (let* ((current-tab (tab-bar--current-tab))
                                          (is-explicit-name (alist-get 'explicit-name current-tab)))
@@ -3500,7 +3494,12 @@ whitespace, indenting and untabifying."
            (transient--make-description
             "Autorevert"
             (and (boundp 'auto-revert-mode) auto-revert-mode)))
-     my-always-revert-buffer :transient t)
+     auto-revert-mode :transient t)
+    ("M-r" (lambda ()
+             (transient--make-description
+              "Revert without query"
+              revert-without-query-mode))
+     revert-without-query-mode :transient t)
     ]
    ]
   )

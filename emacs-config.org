@@ -2508,15 +2508,31 @@ Gmail --> pull mail/tags with lieer (gmi pull) --> notmuch (index) <--> Emacs
 
 ** Setting up lieer and notmuch                                    :external:
 
-~pip install -e .~ or ~setup.py install -e~ installs lieer in editable
-mode (setuptools "develop mode").
+Create a build directory (say =~/build=, change as needed).
+
+#+begin_example
+$ mkdir -p ~/build
+#+end_example
+
+If using MacPorts on macOS:
 
 #+begin_example
 $ sudo port install notmuch
-$ notmuch
 #+end_example
 
-Create the mail directory at =/Users/myusername/Mail=.
+If using Linux, it is installable via the package manager or on Debian-based distributions (replace =~/build= as needed):
+
+#+begin_example
+$ sudo apt install libxapian-dev libgmime-3.0-dev libtalloc-dev zlib1g-dev python3-sphinx texinfo install-info
+$ cd ~/build
+$ git clone git://git.notmuchmail.org/git/notmuch
+$ cd notmuch
+$ make
+$ cd ~/.local/bin
+$ ln -s /path/to/notmuch/notmuch
+#+end_example
+
+Create the mail directory at =~/.mail=.
 
 Edit =~/.notmuch-config= and modify the ~[new]~ section as follows:
 
@@ -2529,20 +2545,17 @@ ignore=/.*[.](json|lock|bak)$/
 Next create a virtual environment for ~lieer~ and activate it.
 
 #+begin_example
-$ conda create -n lieer python=3.7
-$ conda activate lieer
+$ conda create -n email python=3.7
+$ conda activate email
 #+end_example
 
-Create a build directory (say =~/build=, change as needed).
+Install the Python bindings for ~notmuch~. If possible, ~git checkout~
+the commit or tag corresponding to the version of ~notmuch~ installed
+for maximum compatibility before installing the binding via ~pip~ (the
+notmuch repo may already be cloned if it was installed from source).
 
-#+begin_example
-$ mkdir -p ~/build
-#+end_example
-
-Install the Python bindings for ~notmuch~.
-If possible, ~git checkout~ the commit or tag corresponding to the
-version of ~notmuch~ installed for maximum compatibility before
-installing the binding via ~pip~.
+*Notes*: ~pip install -e .~ or ~setup.py install -e~ installs packages
+in editable mode (setuptools "develop mode").
 
 #+begin_example
 $ cd ~/build
@@ -2560,15 +2573,15 @@ $ cd lieer
 $ pip install .
 #+end_example
 
-*Note*: After doing the above, lieer can run using a command ~gmi~.
-Because ~notmuch~ was installed with MacPorts and lieer within its own
-environment, ~gmi~ needs to be called from within the virtual
-environment container and with ~DYLD_FALLBACK_LIBRARY_PATH~ set to
-MacPort's library directory at =/opt/local/lib= so it can find the
-~notmuch~ libraries, for example:
+*macOS note*: After doing the above, lieer can run using a command ~gmi~.
+For macOS, because ~notmuch~ was installed with MacPorts and lieer
+within its own environment, ~gmi~ needs to be called from within the
+virtual environment container and with ~DYLD_FALLBACK_LIBRARY_PATH~
+set to MacPort's library directory at =/opt/local/lib= so it can find
+the ~notmuch~ libraries, for example:
 
 #+begin_example
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/lieer/bin/gmi
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi
 #+end_example
 
 To avoid having to specify this every time ~gmi~ needs to be called,
@@ -2579,7 +2592,7 @@ a wrapper script can be used (change the paths as appropriate).
 
 # Wrapper script for running gmi
 
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/lieer/bin/gmi "$@"
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi "$@"
 #+end_example
 
 Run the following to create such a file in a directory on the system
@@ -2592,16 +2605,36 @@ $ cat > ~/.local/bin/gmi <<EOF
 
 # Wrapper script for running gmi
 
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/lieer/bin/gmi "$@"
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi "\$@"
 EOF
 $ chmod +x ~/.local/bin/gmi
 #+end_example
 
+*End macOS note*.
+
+*Linux note*: If notmuch was compiled from source but not installed
+onto the system, create a wrapper script that calls ~gmi~ with
+~LD_LIBRARY_PATH=/path/to/notmuch/lib/~ instead. (Change the path
+=$HOME/build/notmuch= as needed.)
+
+#+begin_example
+$ cat > ~/.local/bin/gmi <<EOF
+#!/bin/sh
+
+# Wrapper script for running gmi
+
+LD_LIBRARY_PATH=$HOME/build/notmuch/lib ~/miniconda3/envs/email/bin/gmi "\$@"
+EOF
+$ chmod +x ~/.local/bin/gmi
+#+end_example
+
+*End Linux note*.
+
 Deactivate the virtual environment and build the ~notmuch~ database.
 
 #+begin_example
-$ conda deactivate lieer
-$ cd ~/Mail
+$ conda deactivate email
+$ cd ~/.mail
 $ notmuch new
 #+end_example
 
@@ -2609,7 +2642,7 @@ Initialize the ~notmuch~ database.
 
 #+begin_example
 $ cd ~
-$ mkdir Mail
+$ mkdir .mail
 $ notmuch new
 #+end_example
 
@@ -2617,7 +2650,7 @@ Create a local mail directory for the account (replace
 =username@emailserver.com= with the actual email address).
 
 #+begin_example
-$ cd Mail
+$ cd ~/.mail
 $ mkdir username@emailserver.com
 $ cd username@emailserver.com
 #+end_example
@@ -2708,22 +2741,23 @@ Next, configure a hook that runs ~gmi pull~ when ~notmuch new~ is called.
 First, make a ~hooks~ directory in the notmuch database.
 
 #+begin_example
-$ mkdir -p ~/Mail/.notmuch/hooks
+$ mkdir -p ~/.mail/.notmuch/hooks
 #+end_example
 
-Next create the file =~/Mail/.notmuch/hooks/pre-new= with the following contents
-(change the local mailbox directory name and ~gmi~ path as relevant).
+Next create the file =~/.mail/.notmuch/hooks/pre-new= with the
+following contents (change the local mailbox directory name and ~gmi~
+path as relevant).
 
 #+begin_example
 #/bin/sh
-cd ~/Mail/username@emailserver.com
+cd ~/.mail/username@emailserver.com
 ~/.local/bin/gmi sync
 #+end_example
 
 Modify its permissions so it is executable.
 
 #+begin_example
-$ chmod +x ~/Mail/.notmuch/hook/pre-new
+$ chmod +x ~/.mail/.notmuch/hook/pre-new
 #+end_example
 
 After setting this up, running ~notmuch new~ will sync new mail to the database.
@@ -2841,10 +2875,16 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
   (it automatically assumes duplicated text should be quoted).
 
 *Notes*:
-- It is best to copy over the contents of the =emacs= folder from the
-  Notmuch codebase into the =site-lisp/notmuch= folder in
-  ~user-emacs-directory~ (or some directory in ~load-path~) than using
-  the MELPA version, so that the Elisp code matches the system binary.
+- It is best to symlink or copy over the contents of the =emacs=
+  folder from the Notmuch codebase into the =site-lisp/notmuch= folder
+  in ~user-emacs-directory~ (or some dir in ~load-path~) than using
+  the MELPA version, so the Elisp code matches the system binary. (If
+  symlinking, change the path =~/build/notmuch/emacs= as needed.)
+
+#+begin_example
+$ cd ~/.emacs.d/site-lisp
+$ ln -s ~/build/notmuch/emacs notmuch
+#+end_example
 
 #+name: notmuch
 #+begin_src emacs-lisp
@@ -2855,6 +2895,7 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
     :bind (("C-c N" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
+           ("SPC" . notmuch-show-advance) ; don't archive by default when advancing
            :map notmuch-search-mode-map
            ("d" . notmuch-search--toggle-trash-tag)
            :map notmuch-tree-mode-map
@@ -2884,6 +2925,9 @@ Notmuch has an Emacs [[https://notmuchmail.org/notmuch-emacs/][client]].
                                         . " %-54s ")
                                        ("tags" . "%s")))
     :config
+    ;; unbind "<C-tab>" as it conflicts with the `tab-next' binding
+    (define-key notmuch-hello-mode-map (kbd "<C-tab>") nil)
+    (define-key notmuch-show-mode-map (kbd "<C-tab>") nil)
     ;; toggle deletion of message from the Show view
     ;; note that in Gmail, deleted messages are marked with the "trash" label
     (defun notmuch-show--toggle-trash-tag ()
@@ -3151,9 +3195,9 @@ Assumes "
   (notmuch--toggle-search-tag-visibility)
 
   ;; bindings to toggle visibility of search tags in the results
-  (dolist (keymap '(notmuch-hello-mode-map
-                    notmuch-search-mode-map
-                    notmuch-tree-mode-map))
+  (dolist (keymap (list notmuch-hello-mode-map ; see https://stackoverflow.com/q/27084989
+                        notmuch-search-mode-map
+                        notmuch-tree-mode-map))
     (define-key keymap (kbd "C-t")
       #'notmuch--toggle-search-tag-visibility)))
 #+end_src
@@ -3163,13 +3207,44 @@ Assumes "
 Lieer can be used to send outgoing mail through the Gmail account
 ([[https://github.com/gauteh/lieer/wiki/GNU-Emacs-and-Lieer][instructions]]).
 
-This can be configured by creating a =notmuch-config.el= file in the
-~user-emacs-directory~ with the following contents, but changing the
-paths to the mailbox =~/Mail/username@emailserver.com= and the ~gmi~
-executable path =~/.local/bin/gmi= as appropriate.
+First, create an executable wrapper script around ~gmi send~ that uses
+the appropriate email account for sending email. Replace the paths
+=$HOME/build/notmuch/lib= (path to where the notmuch compiled .so
+library files are located) and =$HOME/.mail/username@emailserver.com=
+(path to the account directory) as needed. The =gmi-send= wrapper
+script can also be located somewhere else on ~$PATH~ other than
+=~/.local/bin= as desired.
 
-In most instances the filepath for the notmuch init file is the
-=~/.emacs.d/notmuch-config.el=.
+*Linux*:
+
+#+begin_example
+$ cat > ~/.local/bin/gmi-send <<EOF
+#!/bin/sh
+
+# Wrapper script for running gmi
+
+LD_LIBRARY_PATH=$HOME/build/notmuch/lib ~/miniconda3/envs/email/bin/gmi send --quiet -t -C $HOME/.mail/username@emailserver.com "\$@"
+EOF
+$ chmod +x ~/.local/bin/gmi-send
+#+end_example
+
+*macOS*:
+
+#+begin_example
+$ cat > ~/.local/bin/gmi-send <<EOF
+#!/bin/sh
+
+# Wrapper script for running gmi
+
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi send --quiet -t -C $HOME/.mail/username@emailserver.com "\$@"
+EOF
+$ chmod +x ~/.local/bin/gmi-send
+#+end_example
+
+Next, create a notmuch local configuration file =notmuch-config.el=
+file in the ~user-emacs-directory~ with the following contents.
+Usually this is =~/.emacs.d/notmuch-config.el= filepath. Change the
+~gmi-send~ executable path =~/.local/bin/gmi-send= as appropriate.
 
 #+begin_example
 ;;; notmuch-config.el --- Notmuch config file -*- lexical-binding: t -*-
@@ -3183,10 +3258,10 @@ In most instances the filepath for the notmuch init file is the
 ;;; Code:
 
 ;; configure sendmail to use lieer to send email
-(setq sendmail-program (expand-file-name "~/.local/bin/gmi"))
-(setq message-sendmail-extra-arguments
-      `("send" "--quiet" "-t"
-        "-C" ,(expand-file-name "~/Mail/username@emailserver.com")))
+(setq sendmail-program (expand-file-name "~/.local/bin/gmi-send")
+      ;; need the following, otherwise `sendmail-send-it' tries to
+      ;; call "gmi send" with unsupported "-oep" and "-odi" options
+      sendmail-error-reporting-interactive nil)
 
 ;; don't save outgoing mail locally, as sent mails are saved in Gmail
 ;; automatically
@@ -3216,22 +3291,22 @@ not loaded).
 ;; for autogreeting, set `org-msg-greeting-fmt' to "\nHi *%s*,\n\n"
 (use-package org-msg
   :after notmuch ; only load if notmuch package is also loaded
-  :config
+  :init
   (setq org-msg-options (concat "html-postamble:nil H:5 num:nil ^:{} "
                                 "toc:nil author:nil email:nil \\n:t")
         org-msg-startup "hidestars indent inlineimages"
         org-msg-greeting-fmt nil
         org-msg-greeting-name-limit 3
         org-msg-text-plain-alternative t)
-  (with-eval-after-load 'notmuch
-    ;; enable HTML email message composition
-    (org-msg-mode 1)
-    ;; bindings to toggle HTML email message composition
-    (dolist (keymap '(notmuch-hello-mode-map
-                      notmuch-search-mode-map
-                      notmuch-show-mode-map
-                      notmuch-tree-mode-map))
-      (define-key keymap (kbd "M") #'org-msg-mode))))
+  :config
+  ;; enable HTML email message composition
+  (org-msg-mode 1)
+  ;; bindings to toggle HTML email message composition
+  (dolist (keymap (list notmuch-hello-mode-map
+                        notmuch-search-mode-map
+                        notmuch-show-mode-map
+                        notmuch-tree-mode-map))
+    (define-key keymap (kbd "M") #'org-msg-mode)))
 #+end_src
 
 ** Link to notmuch messages in Org-mode documents                  :external:

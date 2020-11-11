@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Nov 10 11:13:56 2020
+;; Generated: Wed Nov 11 16:13:16 2020
 
 ;;; Commentary:
 
@@ -1099,6 +1099,7 @@ With arg N, insert N newlines."
     :bind (("C-c N" . notmuch)
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
+           ("SPC" . notmuch-show-advance) ; don't archive by default when advancing
            :map notmuch-search-mode-map
            ("d" . notmuch-search--toggle-trash-tag)
            :map notmuch-tree-mode-map
@@ -1128,6 +1129,9 @@ With arg N, insert N newlines."
                                         . " %-54s ")
                                        ("tags" . "%s")))
     :config
+    ;; unbind "<C-tab>" as it conflicts with the `tab-next' binding
+    (define-key notmuch-hello-mode-map (kbd "<C-tab>") nil)
+    (define-key notmuch-show-mode-map (kbd "<C-tab>") nil)
     ;; toggle deletion of message from the Show view
     ;; note that in Gmail, deleted messages are marked with the "trash" label
     (defun notmuch-show--toggle-trash-tag ()
@@ -1360,9 +1364,9 @@ Assumes "
   (notmuch--toggle-search-tag-visibility)
 
   ;; bindings to toggle visibility of search tags in the results
-  (dolist (keymap '(notmuch-hello-mode-map
-                    notmuch-search-mode-map
-                    notmuch-tree-mode-map))
+  (dolist (keymap (list notmuch-hello-mode-map ; see https://stackoverflow.com/q/27084989
+                        notmuch-search-mode-map
+                        notmuch-tree-mode-map))
     (define-key keymap (kbd "C-t")
       #'notmuch--toggle-search-tag-visibility)))
 
@@ -1370,22 +1374,22 @@ Assumes "
 ;; for autogreeting, set `org-msg-greeting-fmt' to "\nHi *%s*,\n\n"
 (use-package org-msg
   :after notmuch ; only load if notmuch package is also loaded
-  :config
+  :init
   (setq org-msg-options (concat "html-postamble:nil H:5 num:nil ^:{} "
                                 "toc:nil author:nil email:nil \\n:t")
         org-msg-startup "hidestars indent inlineimages"
         org-msg-greeting-fmt nil
         org-msg-greeting-name-limit 3
         org-msg-text-plain-alternative t)
-  (with-eval-after-load 'notmuch
-    ;; enable HTML email message composition
-    (org-msg-mode 1)
-    ;; bindings to toggle HTML email message composition
-    (dolist (keymap '(notmuch-hello-mode-map
-                      notmuch-search-mode-map
-                      notmuch-show-mode-map
-                      notmuch-tree-mode-map))
-      (define-key keymap (kbd "M") #'org-msg-mode))))
+  :config
+  ;; enable HTML email message composition
+  (org-msg-mode 1)
+  ;; bindings to toggle HTML email message composition
+  (dolist (keymap (list notmuch-hello-mode-map
+                        notmuch-search-mode-map
+                        notmuch-show-mode-map
+                        notmuch-tree-mode-map))
+    (define-key keymap (kbd "M") #'org-msg-mode)))
 
 (condition-case nil
     (require 'ol-notmuch)

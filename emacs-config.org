@@ -2554,7 +2554,7 @@ the commit or tag corresponding to the version of ~notmuch~ installed
 for maximum compatibility before installing the binding via ~pip~ (the
 notmuch repo may already be cloned if it was installed from source).
 
-*Notes*: ~pip install -e .~ or ~setup.py install -e~ installs packages
+*Note*: ~pip install -e .~ or ~setup.py install -e~ installs packages
 in editable mode (setuptools "develop mode").
 
 #+begin_example
@@ -2581,7 +2581,7 @@ set to MacPort's library directory at =/opt/local/lib= so it can find
 the ~notmuch~ libraries, for example:
 
 #+begin_example
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniforge3/envs/email/bin/gmi
 #+end_example
 
 To avoid having to specify this every time ~gmi~ needs to be called,
@@ -2592,7 +2592,7 @@ a wrapper script can be used (change the paths as appropriate).
 
 # Wrapper script for running gmi
 
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi "$@"
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniforge3/envs/email/bin/gmi "$@"
 #+end_example
 
 Run the following to create such a file in a directory on the system
@@ -2605,7 +2605,7 @@ $ cat > ~/.local/bin/gmi <<EOF
 
 # Wrapper script for running gmi
 
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi "\$@"
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniforge3/envs/email/bin/gmi "\$@"
 EOF
 $ chmod +x ~/.local/bin/gmi
 #+end_example
@@ -2623,7 +2623,7 @@ $ cat > ~/.local/bin/gmi <<EOF
 
 # Wrapper script for running gmi
 
-LD_LIBRARY_PATH=$HOME/build/notmuch/lib ~/miniconda3/envs/email/bin/gmi "\$@"
+LD_LIBRARY_PATH=$HOME/build/notmuch/lib ~/miniforge3/envs/email/bin/gmi "\$@"
 EOF
 $ chmod +x ~/.local/bin/gmi
 #+end_example
@@ -3208,12 +3208,12 @@ Lieer can be used to send outgoing mail through the Gmail account
 ([[https://github.com/gauteh/lieer/wiki/GNU-Emacs-and-Lieer][instructions]]).
 
 First, create an executable wrapper script around ~gmi send~ that uses
-the appropriate email account for sending email. Replace the paths
-=$HOME/build/notmuch/lib= (path to where the notmuch compiled .so
-library files are located) and =$HOME/.mail/username@emailserver.com=
-(path to the account directory) as needed. The =gmi-send= wrapper
-script can also be located somewhere else on ~$PATH~ other than
-=~/.local/bin= as desired.
+the appropriate email account for sending email. Replace the paths to
+the ~gmi~ binary (including setting environment variables to the path
+to where the notmuch compiled .so library files are located) and
+=$HOME/.mail/username@emailserver.com= (path to the account directory)
+as needed. The =gmi-send= wrapper script can also be located somewhere
+else on ~$PATH~ other than =~/.local/bin= as desired.
 
 *Linux*:
 
@@ -3223,7 +3223,7 @@ $ cat > ~/.local/bin/gmi-send <<EOF
 
 # Wrapper script for running gmi
 
-LD_LIBRARY_PATH=$HOME/build/notmuch/lib ~/miniconda3/envs/email/bin/gmi send --quiet -t -C $HOME/.mail/username@emailserver.com "\$@"
+LD_LIBRARY_PATH=$HOME/build/notmuch/lib ~/miniforge3/envs/email/bin/gmi send --quiet -t -C $HOME/.mail/username@emailserver.com "\$@"
 EOF
 $ chmod +x ~/.local/bin/gmi-send
 #+end_example
@@ -3236,7 +3236,7 @@ $ cat > ~/.local/bin/gmi-send <<EOF
 
 # Wrapper script for running gmi
 
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniconda3/envs/email/bin/gmi send --quiet -t -C $HOME/.mail/username@emailserver.com "\$@"
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniforge3/envs/email/bin/gmi send --quiet -t -C $HOME/.mail/username@emailserver.com "\$@"
 EOF
 $ chmod +x ~/.local/bin/gmi-send
 #+end_example
@@ -4743,14 +4743,18 @@ used as the main checker for the mode.
 ** Conda package and environment manager                              :melpa:
 
 [[https://docs.conda.io/][Conda]] is a cross-platform package and environment manager, enabling
-easy creation, saving, loading and switching of environments.
+easy creation, saving, loading and switching of environments. For most
+purposes it is usually recommended to install [[https://github.com/conda-forge/miniforge][miniforge]] which defaults
+to the the [[https://conda-forge.org/][conda-forge]] channel.
 
-It was initially created to target Python development, but has
+Conda was initially created to target Python development, but has
 expanded beyond just that and now includes R and other software
 packages.
 
 *Customizations*:
-- Set the conda home directory to =~/miniconda3/=.
+- Set the conda home directory to =~/miniforge3/=, =~/miniconda3/= or
+  =~/anaconda3/= (these are the three default install paths for the
+  different conda distributions).
 - Support Eshell and term-mode buffers.
 - Show current conda environment in the mode line.
 
@@ -4758,7 +4762,12 @@ packages.
 #+begin_src emacs-lisp
 (when (executable-find "conda")
   (use-package conda
-    :init (setq conda-anaconda-home (expand-file-name "~/miniconda3/"))
+    :init (setq conda-anaconda-home (seq-some (lambda (fname)
+                                                (and (file-directory-p fname) fname))
+                                              (list
+                                               (expand-file-name "~/miniforge3/")
+                                               (expand-file-name "~/miniconda3/")
+                                               (expand-file-name "~/anaconda3/"))))
     :config
     (conda-env-initialize-interactive-shells)
     (conda-env-initialize-eshell)
@@ -11333,10 +11342,10 @@ The main configuration file.
   - Advise ~sendmail-send-it~ to change its ~message-sendmail-extra-arguments~ based on the ~From~ header in the email message using the ~:before~ combinator (see [[https://www.emacswiki.org/emacs/MultipleSMTPAccounts][here]]).
 - notmuch indexing does seem not handle multiple Gmail mailboxes very well (see [[https://github.com/gauteh/lieer/issues/56][Github issue]]).
 
-*** [#B] Auto-completion of email address
+*** [#A] Auto-completion of email address
 
 *Planning notes*:
-- [[https://github.com/redguardtoo/gmail2bbdb][gmail2bbdb]] for converting Google contacts to BBDB.
+- [[https://github.com/tohojo/bbdb-vcard][bbdb-vcard]] or [[https://github.com/redguardtoo/gmail2bbdb][gmail2bbdb]] for converting Google contacts to BBDB.
 - [[https://elpa.gnu.org/packages/bbdb.html][bbdb]] for managing addresses in Emacs.
 - See [[https://github.com/alhassy/emacs.d/blob/master/init.org#auto-completing-mail-addresses][here]] for an example configuration.
 - See [[https://emacs.stackexchange.com/questions/22724/bbdb-searching-for-a-name-by-regex-with-tab-auto-completion/23842][here]] for an alternative method of completion using

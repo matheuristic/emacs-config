@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Nov 11 16:13:16 2020
+;; Generated: Wed Nov 11 22:29:29 2020
 
 ;;; Commentary:
 
@@ -2213,7 +2213,12 @@ when buffer is clean, and more frequently when it has errors."
 
 (when (executable-find "conda")
   (use-package conda
-    :init (setq conda-anaconda-home (expand-file-name "~/miniconda3/"))
+    :init (setq conda-anaconda-home (seq-some (lambda (fname)
+                                                (and (file-directory-p fname) fname))
+                                              (list
+                                               (expand-file-name "~/miniforge3/")
+                                               (expand-file-name "~/miniconda3/")
+                                               (expand-file-name "~/anaconda3/"))))
     :config
     (conda-env-initialize-interactive-shells)
     (conda-env-initialize-eshell)

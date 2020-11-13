@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Nov 11 22:29:29 2020
+;; Generated: Thu Nov 12 21:15:03 2020
 
 ;;; Commentary:
 
@@ -3034,8 +3034,9 @@ for more information."
 ;; scroll a line at a time at window edge
 (setq scroll-conservatively 101)
 
-;; preserve cursor vertical window location when scrolling
-(setq scroll-preserve-screen-position 'always)
+;; bindings for scrolling line-at-a-time like "C-e" and "C-y" in Vim
+(global-set-key (kbd "C-S-e") #'scroll-up-line)
+(global-set-key (kbd "C-S-y") #'scroll-down-line)
 
 ;; turn off audio and visual bells
 (setq ring-bell-function 'ignore)

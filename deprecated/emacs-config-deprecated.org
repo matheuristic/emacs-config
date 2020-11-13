@@ -4714,6 +4714,19 @@ Extend buffer hydra with toggles for ~so-long-mode~ and
   ("L" so-long-minor-mode "so-long-mm"))
 #+end_src
 
+** Preserve cursor location
+
+By default, scrolling commands pull the cursor along at the edge.
+Setting ~scroll-preserve-screen-position~ to a non-nil symbol that is
+not ~t~ configures scrolling to always preserve the cursor location
+relative to the top and bottom window boundaries.
+
+#+name: scroll-preserve-screen-position
+#+begin_src emacs-lisp
+;; preserve cursor vertical window location when scrolling
+(setq scroll-preserve-screen-position 'always)
+#+end_src
+
 * OS-specific
 
 ** macOS

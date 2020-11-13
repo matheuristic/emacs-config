@@ -6914,17 +6914,16 @@ or line at a time instead of recentering.
 (setq scroll-conservatively 101)
 #+end_src
 
-** Preserve cursor location
+** Scrolling one line up or down without moving cursor
 
-By default, scrolling commands pull the cursor along at the edge.
-Setting ~scroll-preserve-screen-position~ to a non-nil symbol that is
-not ~t~ configures scrolling to always preserve the cursor location
-relative to the top and bottom window boundaries.
+Convenience bindings for ~scroll-up-line~ and ~scroll-down-line~ that
+scrolls the viewport a line at a time like ~C-e~ and ~C-y~ in Vim.
 
-#+name: scroll-preserve-screen-position
+#+name: scroll-line-at-a-time
 #+begin_src emacs-lisp
-;; preserve cursor vertical window location when scrolling
-(setq scroll-preserve-screen-position 'always)
+;; bindings for scrolling line-at-a-time like "C-e" and "C-y" in Vim
+(global-set-key (kbd "C-S-e") #'scroll-up-line)
+(global-set-key (kbd "C-S-y") #'scroll-down-line)
 #+end_src
 
 ** Silence audio and visual bells
@@ -11143,7 +11142,7 @@ The main configuration file.
 
 <<scroll-conservatively>>
 
-<<scroll-preserve-screen-position>>
+<<scroll-line-at-a-time>>
 
 <<silence-audio-and-visual-bells>>
 

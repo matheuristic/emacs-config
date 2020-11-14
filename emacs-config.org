@@ -4997,7 +4997,10 @@ Add company-mode support for lsp-mode.
   ;; define function for enabling the Flymake backend
   (defun flymake-shellcheck-setup ()
     "Enable shellcheck backend for Flymake."
-    (add-hook 'flymake-diagnostic-functions #'flymake-shellcheck-backend nil t)))
+    (add-hook 'flymake-diagnostic-functions #'flymake-shellcheck-backend nil t))
+  (with-eval-after-load 'sh-script
+    (add-hook 'sh-mode-hook #'flymake-shellcheck-setup)
+    (add-hook 'sh-mode-hook #'flymake-mode)))
 #+end_src
 
 ** Clojure

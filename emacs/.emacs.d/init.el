@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Nov 13 23:54:08 2020
+;; Generated: Sat Nov 14 00:03:37 2020
 
 ;;; Commentary:
 
@@ -2376,7 +2376,10 @@ call `open-line' on the very first character."
   ;; define function for enabling the Flymake backend
   (defun flymake-shellcheck-setup ()
     "Enable shellcheck backend for Flymake."
-    (add-hook 'flymake-diagnostic-functions #'flymake-shellcheck-backend nil t)))
+    (add-hook 'flymake-diagnostic-functions #'flymake-shellcheck-backend nil t))
+  (with-eval-after-load 'sh-script
+    (add-hook 'sh-mode-hook #'flymake-shellcheck-setup)
+    (add-hook 'sh-mode-hook #'flymake-mode)))
 
 ;; Programming / Clojure
 

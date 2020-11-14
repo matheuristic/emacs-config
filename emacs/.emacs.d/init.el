@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Nov 14 00:03:37 2020
+;; Generated: Sat Nov 14 16:45:54 2020
 
 ;;; Commentary:
 
@@ -15,15 +15,6 @@
 ;; 3. init.el
 
 ;;; Code:
-
-;; Backward compatibility
-
-;; backwards-compatibility code for Emacs versions <27
-(when (version< emacs-version "27")
-  ;; load early-initialization file ~/.emacs.d/early-init.el
-  ;; Emacs 27+ automatically loads this file before rendering UI elements
-  (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
-    (when (file-exists-p local-f) (load-file local-f))))
 
 ;; Customize file and local configuration
 
@@ -282,36 +273,13 @@ cache before processing."
 
 ;; Backend and frontend frameworks for building user interfaces
 
-;; enable flex completion on Emacs 27+
-(when (not (version< emacs-version "27"))
-  (with-eval-after-load 'minibuffer
-    (add-to-list 'completion-styles 'flex t)))
+;; enable flex completion, requires Emacs 27+
+(with-eval-after-load 'minibuffer
+  (add-to-list 'completion-styles 'flex t))
 
 ;; use Icomplete as the completion backend
-;; emulate ido behavior where possible
-(if (version< emacs-version "27")
-    ;; no `fido-mode' on older Emacs versions
-    (progn
-      (setq completion-category-defaults nil
-            icomplete-compute-delay 0
-            icomplete-hide-common-prefix nil
-            icomplete-prospects-height 2
-            icomplete-show-matches-on-no-input t
-            icomplete-tidy-shadowed-file-names t)
-      (icomplete-mode)
-      ;; C-s and C-r cycles through completion candidates like isearch
-      (define-key icomplete-minibuffer-map (kbd "C-s")
-        #'icomplete-forward-completions)
-      (define-key icomplete-minibuffer-map (kbd "C-r")
-        #'icomplete-backward-completions)
-      ;; RET selects current completion candidate like ido
-      ;; M-j uses input as is, e.g. to create new files or new dirs
-      (define-key icomplete-minibuffer-map (kbd "RET")
-        #'icomplete-force-complete-and-exit)
-      (define-key icomplete-minibuffer-map (kbd "M-j")
-        #'exit-minibuffer))
-  ;; enable `fido-mode'
-  (fido-mode))
+;; enable `fido-mode' to emulate ido behavior where possible
+(fido-mode)
 
 ;; text completion framework
 (use-package company

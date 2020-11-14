@@ -1,6 +1,20 @@
 #+title: Archive for deprecated Emacs configuration components
 #+author: matheuristic
 
+* Backward compatibility
+
+In Emacs versions before 27, we should load the ~early-init.el~ file explicitly in ~init.el~.
+
+#+name: early-init-pre-27
+#+begin_src emacs-lisp
+;; backwards-compatibility code for Emacs versions <27
+(when (version< emacs-version "27")
+  ;; load early-initialization file ~/.emacs.d/early-init.el
+  ;; Emacs 27+ automatically loads this file before rendering UI elements
+  (let ((local-f (expand-file-name "early-init.el" user-emacs-directory)))
+    (when (file-exists-p local-f) (load-file local-f))))
+#+end_src
+
 * Backend and frontend frameworks for building user interfaces
 
 ** Company front-end with icons                                       :melpa:

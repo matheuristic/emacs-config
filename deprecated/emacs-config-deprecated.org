@@ -2435,60 +2435,7 @@ slides, and =C-c C-q= will quit the presentation.
 
 * Programming
 
-** Flymake syntax checker
-
-[[https://elpa.gnu.org/packages/flymake.html][Flymake]] is a built-in on-the-fly syntax checker, with updated versions
-available from the GNU ELPA repository.
-
-To display the error message at point in the minibuffer, do ~C-h .~
-while the point is over an error.
-
-To define new Flymake backend, refer to the docstring of
-~flymake-diagnostic-functions~, the [[https://www.gnu.org/software/emacs/manual/html_node/flymake/index.html][Flymake manual]] or the code of
-existing backends.
-
-If using this, it is typical not enable Flycheck.
-
-#+name: flymake
-#+begin_src emacs-lisp
-;; basic Flymake customizations
-(setq flymake-no-changes-timeout 0.5 ;; auto check buffer change wait time
-      flymake-start-on-save-buffer nil) ;; don't run checks when saving
-
-;; deferred Flymake customizations
-(with-eval-after-load 'flymake
-  ;; don't use legacy Flymake checker
-  (remove-hook 'flymake-diagnostic-functions #'flymake-proc-legacy-flymake)
-  ;; function for toggling Flymake diagnostics window
-  (defun my-toggle-flymake-diagnostics ()
-    "Toggles flymake diagnostics window for current buffer."
-    (interactive)
-    (if flymake-mode
-        (let* ((buf-name (buffer-name (current-buffer)))
-               (flymake-winds (condition-case nil
-                                  (get-buffer-window-list
-                                   (concat "*Flymake diagnostics for " buf-name "*"))
-                                (error nil))))
-          (if flymake-winds
-              (dolist (wind flymake-winds) (quit-window nil wind))
-            (flymake-show-diagnostics-buffer)))))
-  ;; shorten mode line symbol in when running Emacs in the TTY
-  (when (not (display-graphic-p))
-    ;; Truncate Flymake mode-line symbol
-    (defun my-flymake-modeline-filter (ret)
-      "Filter function for `flymake--mode-line-format`."
-      (setf (seq-elt (car ret) 1) " FlyM")
-      ret)
-    (advice-add #'flymake--mode-line-format
-                :filter-return #'my-flymake-modeline-filter))
-  ;; convenience bindings
-  (define-key flymake-mode-map (kbd "C-c ! n") #'flymake-goto-next-error)
-  (define-key flymake-mode-map (kbd "C-c ! p") #'flymake-goto-prev-error)
-  (define-key flymake-mode-map (kbd "C-c ! l") #'my-toggle-flymake-diagnostics))
-
-;; enable Flymake when editing Emacs Lisp buffers
-(add-hook 'emacs-lisp-mode-hook #'flymake-mode)
-#+end_src
+** Flymake syntax checker (old)
 
 *** Flymake hydra                                                     :hydra:
 
@@ -2511,27 +2458,7 @@ Flymake (_q_: quit)"
   (define-key flymake-mode-map (kbd "C-c C-M-!") #'my-hydra/flymake/body))
 #+end_src
 
-*** flymake-quickdef for defining Flymake backends                    :melpa:
-
-[[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]] provides a macro for quickly defining Flymake backends.
-See the [[https://github.com/karlotness/flymake-quickdef/blob/master/flymake-quickdef.el#L56-L158][documentation]] for how to use this macro.
-
-#+name: flymake-quickdef
-#+begin_src emacs-lisp
-(use-package flymake-quickdef
-  :demand t)
-#+end_src
-
-*** Flymake and TRAMP
-
-[[https://elpa.gnu.org/packages/flymake.html][Flymake]] sometimes has issues with remote files edited over [[https://www.gnu.org/software/tramp/][TRAMP]].
-For some problematic file, the easiest solution is to add an Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/File-Variables.html][file variable]] to the first line of the file to turn off Flymake (see following code for a Python file example).
-
-#+begin_src python
-# -*- eval:(flymake-mode-off) -*-
-#+end_src
-
-** Flycheck syntax checker
+** Flycheck syntax checker (old)
 
 *** Flycheck hydra                                                    :hydra:
 
@@ -2565,63 +2492,69 @@ Flycheck [checker=%s(if flycheck-checker (symbol-name flycheck-checker) \"defaul
   (define-key flycheck-mode-map (kbd "C-c C-M-!") #'my-hydra/flycheck/body))
 #+end_src
 
-** Security linting using DevSkim and Flymake                      :external:
+** Flycheck syntax checker                                            :melpa:
 
-[[https://github.com/Microsoft/DevSkim/][DevSkim]] is a collection of static analyzers that does code security analysis.
+[[https://www.flycheck.org/en/latest/][Flycheck]] ([[https://github.com/flycheck/flycheck][Github]]) is an on-the-fly syntax checker for Emacs that is a
+popular alternative to the built-in [[https://elpa.gnu.org/packages/flymake.html][Flymake]] package.
 
-If it is installed on the system, Flymake backend can be defined to
-use it to provide security linting.
+If using this, it is typical to not enable Flymake.
 
-Flymake-Quickdef (see above) can be used for defining this backend.
-
-To use this backend in for specific programming language, call the
-custom setup function ~flymake-devskim-setup~ before ~flymake-mode~
-is enabled.
-
-One way to ensure the order is to add ~flymake-mode~ to a programming
-mode's hook by appending instead of pushing, for example by doing
-~(add-hook 'python-mode-hook #'flymake-mode t)~.
-
-#+name: devskim-flymake
+#+name: flycheck
 #+begin_src emacs-lisp
-;; Code security analysis using devskim, https://github.com/microsoft/DevSkim
-;; A Flymake backend for it is defined here, and can be used by calling
-;; `flymake-devskim-setup' before `flymake-mode' in a given mode's hook, e.g.
-;;   (add-hook 'python-mode-hook 'flymake-devskim-setup)
-;;   (add-hook 'python-mode-hook 'flymake-mode t)
-;; For more info on the different severity types, see
-;; https://github.com/microsoft/DevSkim/wiki/Rule-Object-Schema
-(with-eval-after-load 'flymake-quickdef
-  (flymake-quickdef-backend flymake-devskim-backend
-    :pre-let ((devskim-exec (executable-find "devskim")))
-    :pre-check (unless devskim-exec (error "Cannot find devskim executable"))
-    :write-type 'file
-    :proc-form (list devskim-exec
-                     "analyze"
-                     "-f" "text"
-                     "-o" "%L:%C: %S : [%R] %N"
-                     fmqd-temp-file)
-    :search-regexp
-    "\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\) : \\(.+\\)$"
-    :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
-                            (lcol (string-to-number (match-string 2)))
-                            (severity (downcase (match-string 3)))
-                            (msg (match-string 4))
-                            (pos (flymake-diag-region fmqd-source lnum lcol))
-                            (beg (car pos))
-                            (end (cdr pos))
-                            (type (cond
-                                    ((string= severity "critical") :error)
-                                    ((string= severity "important") :error)
-                                    ((string= severity "moderate") :warning)
-                                    ((string= severity "best-practice") :note)
-                                    ((string= severity "manual-review") :note)
-                                    (t :note))))
-                       (list fmqd-source beg end type msg)))
-  ;; define function for enabling the Flymake backend
-  (defun flymake-devskim-setup ()
-    "Enable devskim backend for Flymake."
-    (add-hook 'flymake-diagnostic-functions #'flymake-devskim-backend nil t)))
+;; linting support, used in place of FlyMake
+(use-package flycheck
+  :init
+  ;; customizations:
+  ;; - remove newlines from events triggering linting checks
+  ;; - don't mark error lines in fringe or margin
+  (setq flycheck-check-syntax-automatically '(save
+                                              idle-change
+                                              mode-line)
+        flycheck-indication-mode nil)
+  :config
+  ;; automatically adjust idle delay before automatically checking the
+  ;; buffer depending on whether there are outstanding syntax errors;
+  ;; check less frequently if there were no errors, and check more
+  ;; frequently if there were errors; have this behavior be per-buffer
+  (make-variable-buffer-local 'flycheck-idle-change-delay)
+  (defun flycheck--adjust-flycheck-idle-change-delay ()
+    "Adjust `flycheck-idle-change-delay' to check less frequently
+when buffer is clean, and more frequently when it has errors."
+    (setq flycheck-idle-change-delay (if flycheck-current-errors
+                                         0.5
+                                       3.0)))
+  (add-hook 'flycheck-after-syntax-check-hook
+            #'flycheck--adjust-flycheck-idle-change-delay)
+  ;; default modes within which to use Flycheck
+  (add-hook 'emacs-lisp-mode-hook #'flycheck-mode))
+#+end_src
+
+** Devskim and Flycheck                                            :external:
+
+[[https://github.com/Microsoft/DevSkim/][DevSkim]] is a collection of static analyzers that does code security
+analysis.
+
+If it is installed on the system, there is a Flycheck [[https://github.com/microsoft/DevSkim/tree/main/flycheck][backend]]
+distributed with the official codebase (add to a directory in
+~load-path~ and load it when initializing Emacs). It does not run by
+default for the supported modes (C, C++ and Python), and has to be
+chained to the checker that is run for those modes. For example,
+~(flycheck-add-next-checker 'lsp 'devskim)~ if using ~lsp-mode~ is
+used as the main checker for the mode.
+
+#+name: flycheck-devskim
+#+begin_src emacs-lisp
+(when (executable-find "devskim")
+  (use-package flycheck-devskim
+    :ensure nil ;; in site-lisp subfolder within user emacs directory
+    :config
+    (setq flycheck-devskim-executable "devskim")
+    (with-eval-after-load 'lsp-diagnostics
+      (defun lsp-diagnostics--flycheck-enable--after-add-devskim (&rest _)
+       "Chain devskim checker on the lsp checker after it is enabled."
+       (flycheck-add-next-checker 'lsp 'devskim))
+     (advice-add 'lsp-diagnostics--flycheck-enable :after
+                 #'lsp-diagnostics--flycheck-enable--after-add-devskim))))
 #+end_src
 
 ** Conda package and environment manager
@@ -2773,6 +2706,21 @@ Add ~dap-debug~ and ~dap-debug-edit-template~ to main lsp hydra.
     ("D" dap-debug-edit-template "dap-template" :exit t)))
 #+end_src
 
+** Bash and sh shell scripts
+
+*** ShellCheck shell script static analyzer and Flycheck
+
+[[https://github.com/koalaman/shellcheck][ShellCheck]] is a static analyzer for Bash and sh scripts. Flycheck has
+built-in support for it. It can be installed using MacPorts or Conda (with the binary symlinked in one of the ~$PATH~ directories).
+
+#+name: shellcheck
+#+begin_src emacs-lisp
+;; automatically enable Flycheck mode when shellcheck is installed
+(when (executable-find "shellcheck")
+  (with-eval-after-load 'flycheck
+    (add-hook 'sh-mode-hook #'flycheck-mode)))
+#+end_src
+
 ** Emacs Lisp
 
 *** Emacs Lisp profiler hydra                                         :hydra:
@@ -2858,47 +2806,7 @@ Emacs debugger (_q_: quit)"
 
 ** Clojure (old)
 
-*** Clojure linting using clj-kondo with Flymake                   :external:
-
-Add a Flymake backend for [[https://github.com/borkdude/clj-kondo][clj-kondo]], a linter for Clojure code.
-Enable this backend automatically when editing Clojure buffers.
-
-#+name: flymake-clj-kondo
-#+begin_src emacs-lisp
-;; linting, requires clj-kondo be installed on the system
-;; see https://github.com/borkdude/clj-kondo for install instructions
-(when (executable-find "clj-kondo")
-  ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
-  (with-eval-after-load 'flymake-quickdef
-    (flymake-quickdef-backend flymake-clj-kondo-backend
-      :pre-let ((clj-kondo-exec (executable-find "clj-kondo")))
-      :pre-check (unless clj-kondo-exec (error "Cannot find clj-kondo executable"))
-      :write-type 'pipe
-      :proc-form (list clj-kondo-exec "--lint" "-")
-      :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
-      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
-                              (lcol (string-to-number (match-string 2)))
-                              (severity (match-string 3))
-                              (msg (match-string 4))
-                              (pos (flymake-diag-region fmqd-source lnum lcol))
-                              (beg (car pos))
-                              (end (cdr pos))
-                              (type (cond
-                                     ((string= severity "error") :error)
-                                     ((string= severity "warning") :warning)
-                                     ((string= severity "info") :note)
-                                     (t :note))))
-                         (list fmqd-source beg end type msg)))
-    (defun flymake-clj-kondo-setup ()
-      "Enable clj-kondo backend for Flymake."
-      (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
-    ;; enable Flymake with clj-kondo backend when editing Clojure
-    (with-eval-after-load 'clojure-mode
-      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
-      (add-hook 'clojure-mode-hook 'flymake-mode))))
-#+end_src
-
-*** CIDER for a more complete Clojure development environment
+*** CIDER for a more complete Clojure development environment (old)
 
 **** CIDER hydra                                                      :hydra:
 
@@ -2999,6 +2907,23 @@ CIDER → REPL (_q_: ←)"
 ;; binding for main CIDER hydra
 (with-eval-after-load 'clojure-mode
   (define-key clojure-mode-map (kbd "C-c C-M-m") #'my-hydra/cider/body))
+#+end_src
+
+*** flycheck-clj-kondo for Clojure linting using clj-kondo   :melpa:external:
+
+[[https://github.com/borkdude/flycheck-clj-kondo][flycheck-clj-kondo]] provides [[https://github.com/borkdude/clj-kondo][clj-kondo]] (a linter for Clojure code)
+integration with Flycheck.
+
+#+name: flycheck-clj-kondo
+#+begin_src emacs-lisp
+;; clojure linting, requires clj-kondo be installed on the system
+(when (executable-find "clj-kondo")
+  (use-package flycheck-clj-kondo
+    :after (flycheck clojure-mode)
+    :config
+    (require 'flycheck-clj-kondo)
+    ;; start flycheck-mode
+    (add-hook 'clojure-mode-hook (lambda () (flycheck-mode 1)) t)))
 #+end_src
 
 ** Python
@@ -4889,6 +4814,54 @@ Neuron major mode transient.
      ]
     )
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
+#+end_src
+
+** Minor mode transients
+
+*** flycheck-mode transient
+
+Flycheck minor mode transient.
+
+#+name: flycheck-mode-transient
+#+begin_src emacs-lisp
+;; add transient for Flycheck
+(with-eval-after-load 'flycheck
+  (defun transient/flycheck-mode--close-error-list ()
+    "Close the Flycheck error list window if it is shown."
+    (interactive)
+    (quit-windows-on "*Flycheck errors*" t))
+  (transient-define-prefix transient/flycheck-mode ()
+    "`flycheck-mode' commands."
+    :transient-suffix 'transient--do-stay
+    [:description (lambda ()
+                    (transient--make-description
+                     "Flycheck"
+                     flycheck-mode))
+     ["Error"
+      ("n" "Next" flycheck-next-error)
+      ("p" "Previous" flycheck-previous-error)
+      ("l" "List open" flycheck-list-errors)
+      ("L" "List close" transient/flycheck-mode--close-error-list)
+      ("H" "Local help at point" display-local-help)
+      ("h" "Display at point" flycheck-display-error-at-point)
+      ("e" "Explain at point" flycheck-explain-error-at-point)
+      ("C-w" "Copy all" flycheck-copy-errors-as-kill)
+      ("C" "Clear all" flycheck-clear)
+      ]
+     ["Checker"
+      ("s" "Select" flycheck-select-checker)
+      ("?" "Describe" flycheck-describe-checker :transient nil)
+      ("c" "Run" flycheck-buffer)
+      ("C-c" "Run via `compile'" flycheck-compile)
+      ]
+     ["Other"
+      ("v" "Verify setup" flycheck-verify-setup :transient nil)
+      ("i" "Online manual" flycheck-manual :transient nil)
+      ("m" "Toggle mode" flycheck-mode)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c F") #'transient/flycheck-mode))
 #+end_src
 
 * Backlog

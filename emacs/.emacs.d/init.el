@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov 15 17:28:08 2020
+;; Generated: Sun Nov 15 17:44:18 2020
 
 ;;; Commentary:
 
@@ -1992,38 +1992,37 @@ call `open-line' on the very first character."
            ("C-c C-S-l" . org-cliplink))))
 
 ;; drag and drop images into Org buffers
-(when (display-graphic-p)
-  (use-package org-download
-    :after org
-    :config
-    ;; Mac screenshot command
-    (if (memq window-system '(mac ns))
-        (setq org-download-screenshot-method "screencapture -i %s"))
-    ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
-    ;; save drag-and-drop images into folder of the same name as Org file
-    ;; with filename prefixed by a timestamp of format `org-download-timestamp'
-    ;; e.g. dragging test.png to abc.org saves it to abc/20180522183050-test.png
-    (require 'subr-x) ; for `string-remove-prefix'
-    (defun my-org-download-method (link)
-      """Returns download save path for LINK, for use with `org-download'"""
-      (let* ((filename (format "%s%s"
-                               (format-time-string org-download-timestamp)
-                               (file-name-nondirectory
-                                (car (url-path-and-query
-                                      (url-generic-parse-url link))))))
-             (bufname-sans-ext (file-name-sans-extension (buffer-name)))
-             (dirname (if (and (boundp 'org-capture-mode)
-                               org-capture-mode)
-                          (string-remove-prefix "CAPTURE-"
-                                                bufname-sans-ext)
-                        bufname-sans-ext)))
-        ;; create dir if it does not exist
-        (unless (file-exists-p dirname)
-          (make-directory dirname))
-        ;; save path
-        (expand-file-name filename dirname)))
-    (setq org-download-method 'my-org-download-method
-          org-download-timestamp "%Y%m%d%H%M%S-")))
+(use-package org-download
+  :after org
+  :config
+  ;; Mac screenshot command
+  (if (memq window-system '(mac ns))
+      (setq org-download-screenshot-method "screencapture -i %s"))
+  ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
+  ;; save drag-and-drop images into folder of the same name as Org file
+  ;; with filename prefixed by a timestamp of format `org-download-timestamp'
+  ;; e.g. dragging test.png to abc.org saves it to abc/20180522183050-test.png
+  (require 'subr-x) ; for `string-remove-prefix'
+  (defun my-org-download-method (link)
+    """Returns download save path for LINK, for use with `org-download'"""
+    (let* ((filename (format "%s%s"
+                             (format-time-string org-download-timestamp)
+                             (file-name-nondirectory
+                              (car (url-path-and-query
+                                    (url-generic-parse-url link))))))
+           (bufname-sans-ext (file-name-sans-extension (buffer-name)))
+           (dirname (if (and (boundp 'org-capture-mode)
+                             org-capture-mode)
+                        (string-remove-prefix "CAPTURE-"
+                                              bufname-sans-ext)
+                      bufname-sans-ext)))
+      ;; create dir if it does not exist
+      (unless (file-exists-p dirname)
+        (make-directory dirname))
+      ;; save path
+      (expand-file-name filename dirname)))
+  (setq org-download-method 'my-org-download-method
+        org-download-timestamp "%Y%m%d%H%M%S-"))
 
 ;; journaling using Org documents
 (use-package org-journal

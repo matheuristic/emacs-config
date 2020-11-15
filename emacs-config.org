@@ -1677,16 +1677,16 @@ $ sudo port install cmake libtool
 
 #+name: vterm
 #+begin_src emacs-lisp
-(use-package vterm
-  :if (and module-file-suffix
+(when (and module-file-suffix
            (executable-find "cmake")
            (executable-find "libtool"))
-  :init
-  (setq vterm-buffer-name-string "vterm %s"
-        vterm-clear-scrollback-when-clearing t
-        vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
-        vterm-kill-buffer-on-exit t
-        vterm-shell (or (executable-find "fish") shell-file-name)))
+  (use-package vterm
+    :init
+    (setq vterm-buffer-name-string "vterm %s"
+          vterm-clear-scrollback-when-clearing t
+          vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
+          vterm-kill-buffer-on-exit t
+          vterm-shell (or (executable-find "fish") shell-file-name))))
 #+end_src
 
 *Updating compiled modules*: ~M-x vterm-module-compile~ recompiles

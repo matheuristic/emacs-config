@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov 15 15:15:50 2020
+;; Generated: Sun Nov 15 16:52:32 2020
 
 ;;; Commentary:
 
@@ -702,16 +702,16 @@ provided, the default interactive `eshell' command is run."
                      keymap))))
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 
-(use-package vterm
-  :if (and module-file-suffix
+(when (and module-file-suffix
            (executable-find "cmake")
            (executable-find "libtool"))
-  :init
-  (setq vterm-buffer-name-string "vterm %s"
-        vterm-clear-scrollback-when-clearing t
-        vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
-        vterm-kill-buffer-on-exit t
-        vterm-shell (or (executable-find "fish") shell-file-name)))
+  (use-package vterm
+    :init
+    (setq vterm-buffer-name-string "vterm %s"
+          vterm-clear-scrollback-when-clearing t
+          vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
+          vterm-kill-buffer-on-exit t
+          vterm-shell (or (executable-find "fish") shell-file-name))))
 
 (defun vterm-switchb ()
   "Call `switch-to-buffer' but only for vterm buffers."

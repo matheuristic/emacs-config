@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Nov 14 16:45:54 2020
+;; Generated: Sun Nov 15 15:15:50 2020
 
 ;;; Commentary:
 
@@ -1478,7 +1478,10 @@ Assumes "
 
 ;; provides a major mode for editing JSON files
 (use-package json-mode
-  :defer t)
+  :defer t
+  :init (setq js-indent-level 2
+              json-reformat:indent-width 2
+              json-reformat:pretty-string? nil))
 
 (when (executable-find "jq")
   (with-eval-after-load 'flymake-quickdef
@@ -2775,7 +2778,7 @@ This enables things like ElDoc and autocompletion."
     "Custom user interface setup for `ebib-multiline-mode' buffers."
     ;; show mode bindings in header
     (setq-local header-line-format
-	        "Edit, then exit with ‘C-c C-c’, save with ‘C-c C-s’ or abort with ‘C-c C-q’"))
+                "Edit, then exit with ‘C-c C-c’, save with ‘C-c C-s’ or abort with ‘C-c C-q’"))
   (add-hook 'ebib-multiline-mode-hook #'my-ebib-multiline-mode--setup)
   ;; wrapper function for inserting citations differently by major-mode
   (require 'org-ebib)
@@ -5220,6 +5223,23 @@ not support restricting to a region."
    ]
   )
 (define-key ibuffer-mode-map (kbd "C-c m") #'transient/ibuffer-mode)
+
+;; major-mode specific transient for json-mode
+(with-eval-after-load 'json-mode
+  (transient-define-prefix transient/json-mode ()
+    "`json-mode' commands."
+    :transient-suffix 'transient--do-stay
+    ["JSON mode"
+     ("p" "Copy path" json-mode-show-path)
+     ("b" "Toggle bool value" json-toggle-boolean)
+     ("i" "Increment num" json-increment-number-at-point)
+     ("d" "Decrement num" json-decrement-number-at-point)
+     ("k" "Nullify sexp" json-nullify-sexp)
+     ("B" "Beautify" json-mode-beautify)
+     ("R" "Reformat (jq)" json-jq-format-buffer-or-region)
+     ]
+    )
+  (define-key json-mode-map (kbd "C-c m") #'transient/json-mode))
 
 ;; major-mode specific transient for launchctl-mode
 (when (eq system-type 'darwin)

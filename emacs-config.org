@@ -8511,13 +8511,9 @@ Transient providing entry points into Eshell and vterm.
 (transient-define-prefix transient/shell ()
   "Various shell tools."
   ["Shell tools"
-   ["Eshell"
-    ("e" "New/Switch" my-eshell-with-name)
-    ]
-   ["Vterm"
-    ("vv" "New" vterm)
-    ("vo" "Other" vterm-other-window)
-    ("vc" "Switch" vterm-switchb)
+   ["Shell"
+    ("e" "Eshell" my-eshell-with-name)
+    ("a" "ANSI Term" ansi-term)
     ]
    ["Tmux"
     ("ts" "Send" tmux-send)
@@ -8525,6 +8521,12 @@ Transient providing entry points into Eshell and vterm.
     ]
    ]
   )
+;; add vterm suffixes if the package is loaded
+(when (featurep 'vterm)
+  (dolist (suffix '(("vv" "Vterm" vterm)
+                    ("vo" "Vterm other" vterm-other-window)
+                    ("vc" "Vterm switch" vterm-switchb)))
+    (transient-append-suffix 'transient/shell '(0 0 -1) suffix)))
 (global-set-key (kbd "C-c T") #'transient/shell)
 #+end_src
 

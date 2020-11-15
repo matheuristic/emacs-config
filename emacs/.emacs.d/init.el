@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov 15 16:52:32 2020
+;; Generated: Sun Nov 15 17:28:08 2020
 
 ;;; Commentary:
 
@@ -4074,13 +4074,9 @@ whitespace, indenting and untabifying."
 (transient-define-prefix transient/shell ()
   "Various shell tools."
   ["Shell tools"
-   ["Eshell"
-    ("e" "New/Switch" my-eshell-with-name)
-    ]
-   ["Vterm"
-    ("vv" "New" vterm)
-    ("vo" "Other" vterm-other-window)
-    ("vc" "Switch" vterm-switchb)
+   ["Shell"
+    ("e" "Eshell" my-eshell-with-name)
+    ("a" "ANSI Term" ansi-term)
     ]
    ["Tmux"
     ("ts" "Send" tmux-send)
@@ -4088,6 +4084,12 @@ whitespace, indenting and untabifying."
     ]
    ]
   )
+;; add vterm suffixes if the package is loaded
+(when (featurep 'vterm)
+  (dolist (suffix '(("vv" "Vterm" vterm)
+                    ("vo" "Vterm other" vterm-other-window)
+                    ("vc" "Vterm switch" vterm-switchb)))
+    (transient-append-suffix 'transient/shell '(0 0 -1) suffix)))
 (global-set-key (kbd "C-c T") #'transient/shell)
 
 ;; add symbol-overlay transient popup and bind to "C-:"

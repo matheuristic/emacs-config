@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov 15 17:44:18 2020
+;; Generated: Wed Nov 18 14:51:37 2020
 
 ;;; Commentary:
 
@@ -1044,6 +1044,11 @@ With arg N, insert N newlines."
      (current-global-map)
      '("menu-bar" "Tools")
      menu-item)))
+
+;; use built-in DWIM versions of default editing commands
+;; note that comment insertion command ("M-;") is already DWIM-ified
+(global-set-key (kbd "M-u") #'upcase-dwim)
+(global-set-key (kbd "M-l") #'downcase-dwim)
 
 ;; Emacs as an edit server
 
@@ -3538,6 +3543,16 @@ whitespace, indenting and untabifying."
          (msg-str (mapconcat 'identity active-minor-mode-tuples-strs "\n")))
     (message msg-str)))
 
+(defun transient/buffer--clone-indirect-buffer-other-window ()
+  "Create an indirect buffer of the current one in another window.
+This wraps `clone-indirect-buffer-other-window' but provides a
+name for the cloned indirect buffer ending with \"-INDIRECT\"."
+  (interactive)
+  (let ((bufname (generate-new-buffer-name
+                  (concat (buffer-name)
+                          "-INDIRECT"))))
+    (clone-indirect-buffer-other-window bufname t)))
+
 ;; add transient for buffer management commands
 (transient-define-prefix transient/buffer ()
   "Buffer management commands."
@@ -3569,6 +3584,7 @@ whitespace, indenting and untabifying."
     ("K" "Kill matching" kill-matching-buffers)
     ("o" "Kill others" transient/buffer--kill-other-buffers)
     ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
+    ("I" "Make indirect" transient/buffer--clone-indirect-buffer-other-window)
     ]
    ["Expose"
     ("ee" "All" buffer-expose)
@@ -4302,6 +4318,13 @@ Currently only works for Emacs Mac port."
             "Hide long lines"
             too-long-lines-mode))
      too-long-lines-mode)
+    ("$" (lambda ()
+           (concat "Selective display ["
+                   (if selective-display
+                       (number-to-string selective-display)
+                     " ")
+                   "]"))
+     set-selective-display)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"
@@ -4415,6 +4438,12 @@ Currently only works for Emacs Mac port."
      olivetti-mode)
     ]
    ["Other"
+    ("C" (lambda ()
+           (transient--make-description
+            "Scroll lock"
+            (and (boundp 'scroll-lock-mode)
+                 scroll-lock-mode)))
+     scroll-lock-mode)
     ("v" (lambda ()
            (transient--make-description
             "Visual line"

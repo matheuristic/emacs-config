@@ -2393,6 +2393,16 @@ See [[https://emacsnotes.wordpress.com/2018/11/15/elmacro-write-emacs-lisp-snipp
      menu-item)))
 #+end_src
 
+** Use DWIM versions of default editing commands
+
+#+name: bind-dwim-editing-commands
+#+begin_src emacs-lisp
+;; use built-in DWIM versions of default editing commands
+;; note that comment insertion command ("M-;") is already DWIM-ified
+(global-set-key (kbd "M-u") #'upcase-dwim)
+(global-set-key (kbd "M-l") #'downcase-dwim)
+#+end_src
+
 * Emacs as an edit server
 
 ** Server mode
@@ -7862,6 +7872,16 @@ whitespace, indenting and untabifying."
          (msg-str (mapconcat 'identity active-minor-mode-tuples-strs "\n")))
     (message msg-str)))
 
+(defun transient/buffer--clone-indirect-buffer-other-window ()
+  "Create an indirect buffer of the current one in another window.
+This wraps `clone-indirect-buffer-other-window' but provides a
+name for the cloned indirect buffer ending with \"-INDIRECT\"."
+  (interactive)
+  (let ((bufname (generate-new-buffer-name
+                  (concat (buffer-name)
+                          "-INDIRECT"))))
+    (clone-indirect-buffer-other-window bufname t)))
+
 ;; add transient for buffer management commands
 (transient-define-prefix transient/buffer ()
   "Buffer management commands."
@@ -7893,6 +7913,7 @@ whitespace, indenting and untabifying."
     ("K" "Kill matching" kill-matching-buffers)
     ("o" "Kill others" transient/buffer--kill-other-buffers)
     ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
+    ("I" "Make indirect" transient/buffer--clone-indirect-buffer-other-window)
     ]
    ["Expose"
     ("ee" "All" buffer-expose)
@@ -8762,6 +8783,13 @@ Currently only works for Emacs Mac port."
             "Hide long lines"
             too-long-lines-mode))
      too-long-lines-mode)
+    ("$" (lambda ()
+           (concat "Selective display ["
+                   (if selective-display
+                       (number-to-string selective-display)
+                     " ")
+                   "]"))
+     set-selective-display)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"
@@ -8875,6 +8903,12 @@ Currently only works for Emacs Mac port."
      olivetti-mode)
     ]
    ["Other"
+    ("C" (lambda ()
+           (transient--make-description
+            "Scroll lock"
+            (and (boundp 'scroll-lock-mode)
+                 scroll-lock-mode)))
+     scroll-lock-mode)
     ("v" (lambda ()
            (transient--make-description
             "Visual line"
@@ -10986,6 +11020,8 @@ The main configuration file.
 <<my-open-line-below-and-above>>
 
 <<elmacro>>
+
+<<bind-dwim-editing-commands>>
 
 ;; Emacs as an edit server
 

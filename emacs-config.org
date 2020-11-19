@@ -9047,7 +9047,7 @@ Transient for workspace manipulation and usage.
     ("r" "Rename" tab-bar-rename-tab :transient t)
     ("m" "Move" tab-bar-move-tab :transient t)
     ("M" "Move (frame)" tab-bar-move-tab-to-frame :transient t)
-    ("RET" "Select" tab-bar-select-tab-by-name :transient t)
+    ("<return>" "Switch" tab-bar-switch-to-tab)
     ]
    ]
   )

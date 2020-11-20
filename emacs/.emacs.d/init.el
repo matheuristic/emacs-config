@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Nov 19 14:41:39 2020
+;; Generated: Fri Nov 20 10:05:43 2020
 
 ;;; Commentary:
 
@@ -1689,7 +1689,7 @@ call `open-line' on the very first character."
     (find-file path)
     (goto-char (point-max))))
 
-(setq org-capture-templates '(("n" "New Task" entry (file my-org-agenda-inbox)
+(setq org-capture-templates '(("t" "New Task" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
                               ("s" "Someday Task" entry (file my-org-someday-inbox)
                                "* TODO %i%?\n%U")

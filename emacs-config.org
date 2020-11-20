@@ -3822,7 +3822,7 @@ Possible Org task states:
     (find-file path)
     (goto-char (point-max))))
 
-(setq org-capture-templates '(("n" "New Task" entry (file my-org-agenda-inbox)
+(setq org-capture-templates '(("t" "New Task" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
                               ("s" "Someday Task" entry (file my-org-someday-inbox)
                                "* TODO %i%?\n%U")

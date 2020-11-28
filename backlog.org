@@ -1,0 +1,451 @@
+#+title: Backlog for Emacs config components to try out
+#+author: matheuristic
+#+options: h:4 num:t toc:t
+#+property: header-args:emacs-lisp :exports code
+
+* Notes
+
+This file contains a backlog of Emacs config components to try out,
+usually new packages or code.
+
+* DevOps
+
+** [#C] Magit-style interface to Kubernetes                           :melpa:
+
+[[https://github.com/chrisbarrett/kubernetes-el][GitHub - chrisbarrett/kubernetes-el: Emacs porcelain for Kubernetes.]]
+
+* Editing text
+
+** [#B] broadcast.el                                                  :melpa:
+
+[[https://github.com/killdash9/broadcast.el][GitHub - killdash9/broadcast.el: A minor mode for linking buffers together for simultaneous navigation and editing]]
+
+#+begin_src emacs-lisp
+;; simultaneous navigation and editing across selected visible buffers
+(use-package broadcast
+  :ensure t
+  :commands broadcast-mode)
+#+end_src
+
+* Email
+
+** [#B] Multiple mailboxes
+
+*Planning notes*:
+- Not sure how to configure sending using multiple accounts, although it could probably go something like this:
+  - Configuring multiple gmail mailboxes using Lieer linked to separate notmuch subdirectories (see [[https://github.com/gauteh/lieer/issues/56#issuecomment-546015279][here]]).
+  - ~(setq send-mail-function #'sendmail-send-it)~
+  - Advise ~sendmail-send-it~ to change its ~message-sendmail-extra-arguments~ based on the ~From~ header in the email message using the ~:before~ combinator (see [[https://www.emacswiki.org/emacs/MultipleSMTPAccounts][here]]).
+- notmuch indexing does seem not handle multiple Gmail mailboxes very well (see [[https://github.com/gauteh/lieer/issues/56][Github issue]]).
+
+** [#A] Auto-completion of email address
+
+*Planning notes*:
+- [[https://github.com/tohojo/bbdb-vcard][bbdb-vcard]] or [[https://github.com/redguardtoo/gmail2bbdb][gmail2bbdb]] for converting Google contacts to BBDB.
+- [[https://elpa.gnu.org/packages/bbdb.html][bbdb]] for managing addresses in Emacs.
+- See [[https://github.com/alhassy/emacs.d/blob/master/init.org#auto-completing-mail-addresses][here]] for an example configuration.
+- See [[https://emacs.stackexchange.com/questions/22724/bbdb-searching-for-a-name-by-regex-with-tab-auto-completion/23842][here]] for an alternative method of completion using
+  ~completing-read~ instead of ~company~.
+
+* Non-programming files
+
+** [#B] PlantUML                                                      :melpa:
+
+** [#C] Ledger                                                        :melpa:
+
+Ledger is a plain text double-entry accounting system for the
+command-line.
+
+[[https://github.com/ledger/ledger-mode][ledger-mode]] provides a major mode for editing [[https://github.com/ledger/ledger][ledger]] files.
+
+** [#C] flatbuffers-mode                                              :melpa:
+
+[[https://github.com/Asalle/flatbuffers-mode][GitHub - Asalle/flatbuffers-mode: Emacs mode for flatbuffers]]
+
+** [#B] jinja2-mode                                                   :melpa:
+
+[[https://github.com/paradoxxxzero/jinja2-mode][GitHub - paradoxxxzero/jinja2-mode: Jinja2 mode for emacs]]
+
+** [#C] AUCTeX for editing LaTeX files                                 :elpa:
+
+[[http://www.gnu.org/software/auctex/][AUCTeX]] provides support for editing LaTeX files.
+
+* Org-mode
+
+** [#C] Org export backend to Tufte book and handout style PDFs    :external:
+
+*TODO*: fork ~ox-tufte-latex.el~ and incorporate modifications from
+~org-tufte-latex.el~ into it, especially making sure variable
+modifications are buffer-local and reversible, and changing the
+export shortcut keys so they align with the default LaTeX export ones.
+
+Additionally, use the ~ETbb~ package from CTAN for the font instead
+of the look-alike in the old code.
+
+** [#C] org-re-reveal                                                 :melpa:
+
+[[https://gitlab.com/oer/org-re-reveal][org-re-reveal]] and [[https://github.com/yjwen/org-reveal][org-reveal]] are comparable packages support
+exporting Org documents to [[https://revealjs.com/#/][reveal.js]] presentations.
+
+One rationale for going with ~org-re-reveal~ is for its support for
+audio and video, improved support for [[https://github.com/viebel/klipse][klipse]], bilbliography support
+via the supporting ~org-re-reveal-ref~ and a number of quality of life
+improvements for authoring [[https://en.wikipedia.org/wiki/Open_educational_resources][Open Educational Resources]] via the
+supporting ~oer-reveal~ package. It is also more frequently updated.
+For instance, at the time of writing ~org-re-reveal~ supports
+~reveal.js~ 4 but ~org-reveal~ does not.
+
+** [#B] gkroam                                                        :melpa:
+
+[[https://github.com/Kinneyzhang/gkroam][gkroam]] is a lightweight [[https://roamresearch.com/][Roam Research]] replica. It requires ~rg~ be
+installed on the system. An alternative tool is [[https://github.com/org-roam/org-roam][Org-roam]]. Compared to
+org-roam, it is less complex (also means less featureful) and hews
+closer to the design language of Roam Research.
+
+References:
+- [[https://emacs-china.org/t/gkroam-el-v2-0-released/14508/63][gkroam.el v2.0 released, 欢迎试用！ - Emacs-general - Emacs China]]
+
+** [#C] ox-leanpub
+
+[[https://gitlab.com/zzamboni/ox-leanpub][ox-leanpub]] provides an Org exporter for Leanpub books.
+
+* Programming
+
+** Emacs lisp
+
+*** [#C] Behavior-driven Emacs lisp testing with buttercup            :melpa:
+
+[[https://github.com/jorgenschaefer/emacs-buttercup][GitHub - jorgenschaefer/emacs-buttercup: Behavior-Driven Emacs Lisp Testing]]
+
+** Go
+
+*** [#C] go-mode                                                      :melpa:
+
+[[https://github.com/dominikh/go-mode.el][GitHub - dominikh/go-mode.el: Emacs mode for the Go programming language]]
+
+*** [#C] go-playground                                                :melpa:
+
+[[https://github.com/grafov/go-playground][GitHub - grafov/go-playground: GNU/Emacs mode that setup local Go playground]]
+
+** Python
+
+*** [#C] Tab completion in PDB                                        :melpa:
+
+[[https://github.com/muffinmad/emacs-pdb-capf][GitHub - muffinmad/emacs-pdb-capf: Completion-at-point function for pdb]]
+
+Might not be needed if mostly debugging using ~dap-mode~ with the
+~ptvsd~ debugger.
+
+** Racket
+
+*** [#C] Racket support for Org-Mode Babel code blocks             :external:
+
+[[https://github.com/hasu/emacs-ob-racket][GitHub - hasu/emacs-ob-racket: Emacs Org-Mode Babel code block Racket support]]
+
+** Stan
+
+[[https://github.com/stan-dev/stan-mode][GitHub - stan-dev/stan-mode: Emacs mode for Stan.]]
+
+See [[https://github.com/stan-dev/stan-mode#configuration][link]] for an example configuration.
+
+*** [#C] Stan mode                                                    :melpa:
+
+[[https://melpa.org/#/stan-mode][stan-mode]]
+
+*** [#C] Stan support for company-mode                                :melpa:
+
+[[https://melpa.org/#/company-stan][company-stan]]
+
+*** [#C] Stan support for Eldoc minor mode                            :melpa:
+
+[[https://melpa.org/#/eldoc-stan][eldoc-stan]]
+
+*** [#C] Flycheck checker for Stan                                    :melpa:
+
+[[https://melpa.org/#/flycheck-stan][flycheck-stan]]
+
+*** [#C] Stan snippets for YASnippet                                  :melpa:
+
+[[https://melpa.org/#/stan-snippets][stan-snippets]]
+
+** SQL
+
+*** [#C] Better ODBC support in sqli-mode                          :external:
+
+[[https://github.com/sebasmonia/sqlcmdline][sqlcmdline]] provides a replacement for [[https://docs.microsoft.com/en-us/sql/tools/sqlcmd-utility][sqlcmd]] that works better with
+~sql-mode~ in Emacs. Useful for querying databases via ODBC.
+
+sqlcmdline requires Python 3.6+ along with the ~docopt~ and ~pyodbc~
+Python packages. It is easiest to create a bundle using PyInstaller.
+
+#+begin_example
+conda create -n sqlcmdline
+conda activate sqlcmdline
+conda install docopt pyodbc pyinstaller
+cd ~/packages
+git clone https://github.com/sebasmonia/sqlcmdline.git
+cd sqlcmdline
+pyinstaller sqlcmdline.py
+conda deactivate
+#+end_example
+
+Using the above, ~sqlcmdline~ can be run by calling the
+~$HOME/packages/sqlcmdline/dist/sqlcmdline/sqlcmdline~ binary.
+
+* Project interaction
+
+** [#C] Use ELPA version of project.el                                 :elpa:
+
+Use the [[https://elpa.gnu.org/packages/project.html][ELPA version]] of project.el which tracks the Emacs master version
+of the package.
+
+#+name: project-elpa
+#+begin_src emacs-lisp
+;; install ELPA version of project.el
+(my-install-elpa-package 'project)
+#+end_src
+
+** [#C] project.el
+
+[[https://elpa.gnu.org/packages/project.html][project.el]] is a simple project interaction library. It is simpler than
+[[https://github.com/bbatsov/projectile][Projectile]] and is in Emacs core (but it's better to use the ELPA
+version as it's more ahead in functionality). Most of its
+commands can be accessed via its default ~C-x p~ prefix.
+
+- TODO Let project.el API reach stability before switching over.
+- TODO also create a transient for accessing project.el functions.
+- TODO add REPL buffers to ~project-kill-buffer-conditions~.
+- TODO add ~project-shell~ and ~vterm~ to ~project-switch-commands~.
+
+References:
+- [[https://www.manueluberti.eu/emacs/2020/09/18/project/][It’s never too late – Manuel Uberti]]
+
+#+name: project
+#+begin_src emacs-lisp
+;; project interaction library, default command prefix is "C-x p"
+(use-package project
+  :ensure nil ; built-in or ELPA version version installed prior
+  :config
+  (setq project-switch-commands
+        `((?f "Find file" project-find-file)
+          (?F "Find regexp" project-find-regexp)
+          (?d "Dired" project-dired)
+          (?v "VC-Dir" project-vc-dir)
+          (?e "Eshell" project-eshell)))
+  (when (fboundp 'magit-status)
+    (add-to-list project-switch-commands
+                 '(?g "Magit" magit-status)))
+  (when (fboundp 'rg-project)
+    (add-to-list project-switch-commands
+                 '(?s "Grep" rg-project))))
+#+end_src
+
+** [#B] Forge for working with Git forges from Magit                  :melpa:
+
+[[https://github.com/magit/forge][Forge]] extends Magit to integrate more tightly with Git forges like
+Github and Gitlab, exposing functionality to work on issues and pull
+requests as well as to perform other forge-related tasks like forking.
+
+Quick overview of using Forge in a typical open-source contribution workflow.
+
+1. ~M-x magit-status~ on Git clone of project to contribute to.
+2. Add GitHub user id to Forge custom option ~forge-owned-accounts~.
+3. ~magit-status~ buffer \to ~' c f~ to create a fork (defaults ok).
+4. Create feature branch, add contribution and push to feature branch.
+5. ~magit-status~ buffer \to ~' c p~ to create the pull-request.
+
+** [#B] Generic session manager                                       :melpa:
+
+[[https://github.com/vspinu/sesman][GitHub - vspinu/sesman: Session manager for Emacs based IDEs.]]
+
+** [#C] EditorConfig                                                  :melpa:
+
+[[https://editorconfig.org/][EditorConfig]] [[https://github.com/editorconfig/editorconfig-emacs][plugin]] for Emacs.
+
+EditorConfig helps to maintain consistent coding styles when multiple
+developers work on a project. A code style file can be defined for a
+project and the editor is automatically configured (built-in for some
+editors, using a plugin for others) to adhere to that code style when
+working on that project.
+
+** [#B] envrc for buffer-local direnv support                         :melpa:
+
+[[https://github.com/purcell/envrc][GitHub - purcell/envrc: Emacs support for direnv which operates buffer-locally]]
+
+References:
+- [[https://www.digitalocean.com/community/tutorials/how-to-manage-python-with-pyenv-and-direnv][How To Manage Python with Pyenv and Direnv | DigitalOcean]]
+
+** [#C] Create LICENSE using the GitHub API                           :melpa:
+
+[[https://github.com/jcs-elpa/license-templates][GitHub - jcs-elpa/license-templates: Create LICENSE using GitHub API]]
+
+** [#C] Emacs-IDE                                                     :melpa:
+
+[[https://eide.hjuvi.fr.eu.org/][Emacs-IDE]] provides IDE features for languages supported by Ctags.
+
+* Reference management
+
+** [#B] Biblio-Ebib integration                                       :melpa:
+
+References:
+- [[http://juanjose.garciaripoll.com/blog/managing-bibliographies-from-emacs/index.html][Managing bibliographies from Emacs (v2)]]
+- [[https://juanjose.garciaripoll.com/blog/ebib-biblio-interface/index.html][eBib-Biblio interface, aka. Mendeley for Emacs]]
+
+** [#C] calibredb.el
+
+[[https://github.com/chenyanming/calibredb.el][calibredb.el]] is a Calibre client. Requires [[https://calibre-ebook.com/][Calibre]] and [[https://www.sqlite.org/index.html][sqlite3]] be
+installed.
+
+** [#C] zotxt                                                         :melpa:
+
+[[https://github.com/egh/zotxt-emacs][zotxt-emacs]] is an Emacs package that works with the Zotero extension
+[[https://github.com/egh/zotxt][zotxt]] that allows working with plain text files in Zotero.
+
+References:
+- [[http://www.mkbehr.com/posts/a-research-workflow-with-zotero-and-org-mode/][A research workflow with Zotero and Org mode | mkbehr.com]]
+
+#+begin_src emacs-lisp
+(use-package zotxt
+  :hook (org-mode . org-zotxt-mode)
+  :config
+  (with-eval-after-load 'org
+    (defun org-zotxt-insert-reference-link--current-selected-item ()
+      "Insert currently selected item with `org-zotxt-insert-reference-link'."
+      (interactive)
+      (org-zotxt-insert-reference-link '(4)))
+    (define-key org-mode-map (kbd "C-c \" \"")
+      #'org-zotxt-insert-reference-link--current-selected-item)))
+#+end_src
+
+* Web
+
+** [#A] Additions to restclient config
+
+References:
+- [[https://erick.navarro.io/blog/testing-an-api-with-emacs-and-restclient/][Testing an API with emacs and restclient · (ノ°Д°）ノ︵ ┻━┻]]
+
+Steps:
+- [ ] Add transient for accessing restclient functionality
+- [X] Add jq-mode and configure reformatting using ~jq-format~
+- [ ] Add restclient-jq
+- [ ] Add ob-restclient
+
+** [#C] restclient-jq                                              :external:
+
+Not yet in MELPA. Depends on ~jq-mode~.
+
+** [#C] ob-restclient
+
+** [#C] Elfeed                                                        :melpa:
+
+[[https://github.com/skeeto/elfeed][Elfeed]] is an Atom and RSS feed reader. Also look at supporting
+packages [[https://github.com/remyhonig/elfeed-org][elfeed-org]] and [[https://github.com/sp1ff/elfeed-score][elfeed-score]].
+
+** [#C] use-proxy                                                     :melpa:
+
+[[https://github.com/rayw000/use-proxy][GitHub - rayw000/use-proxy: Easy way to enable/disable proxies in Emacs]]
+
+** [#B] emacs-easy-hugo                                               :melpa:
+
+[[https://github.com/masasam/emacs-easy-hugo][GitHub - masasam/emacs-easy-hugo: Emacs major mode for managing hugo]]
+
+[[https://gohugo.io/hosting-and-deployment/hosting-on-github/][Host on GitHub | Hugo]]
+
+[[https://medium.com/zendesk-engineering/a-github-actions-workflow-to-generate-publish-your-hugo-website-f36375e56cf7][A Github Actions Workflow to Generate & Publish your Hugo Website | by Pete Smith]]
+
+[[https://sebastiandedeyne.com/how-to-schedule-posts-with-hugo-netlify-and-github-actions/][How to schedule posts on a static Hugo site with Netlify and GitHub Actions]]
+
+[[https://www.ying-ish.com/essay/easy-hugo/][Writing Hugo pages in org-mode with Easy-Hugo · she will never swims alone]]
+
+** [#C] ox-hugo                                                       :melpa:
+
+[[https://ox-hugo.scripter.co/][ox-hugo - Org to Hugo exporter]]
+
+** [#C] s3ed                                                          :melpa:
+
+[[https://github.com/mattusifer/s3ed][s3ed]] provides an interface for managing files in AWS S3. It requires
+the AWS CLI tools be installed on the system.
+
+* Writing
+
+** [#C] Binder for managing a writing project with multiple files     :melpa:
+
+[[https://github.com/rnkn/binder][Binder]] is a global minor mode that facilitates working on a writing
+project structured as multiple files, inspired by the binder feature
+in [[https://www.literatureandlatte.com/scrivener/][Scrivener]].
+
+#+name: binder
+#+begin_src emacs-lisp
+;; facilitate work on writing projects structured as multiple files
+(use-package binder)
+#+end_src
+
+TODO:
+- Switch active projects by modifying ~binder-project-directory~
+- Use ~.dir-locals.el~ to automatically set up binder when editing a
+  project file
+- May want to wait to see if the project implements ability to work on
+  concurrent active projects (like projectile)
+
+** [#C] fountain-mode for screenwriting in Fountain markup            :melpa:
+
+[[https://github.com/rnkn/fountain-mode][Fountain Mode]] provides a major mode for editing [[https://fountain.io/][Fountain]] plain-text
+markup.
+
+* Other
+
+** [#C] literate-calc-mode
+
+[[https://github.com/sulami/literate-calc-mode.el][GitHub - sulami/literate-calc-mode.el]]
+
+This package supports literate programming for calculations,
+automatically picking up calculations and inserting the results as
+overlays.
+
+** [#C] org-trello for syncing between Org buffers and Trello boards
+
+[[https://github.com/org-trello/org-trello][GitHub - org-trello/org-trello: Org minor mode - 2-way sync org & trello]]
+
+** [#B] Hyperbole                                                      :elpa:
+
+[[https://elpa.gnu.org/packages/hyperbole.html][Hyperbole]] is a hypertext management system that has 5 major components:
+- Buttons and smart keys.
+- Hyrolo, a contact and text finder.
+- Hycontrol, a window and frame controller.
+- Koutliner, an outliner with multi-level automatic numbering.
+- A programming library for integration with other parts of Emacs.
+
+References:
+- [[https://www.gnu.org/software/hyperbole/][GNU Hyperbole - The Everyday Hypertextual Information Manager]]
+- [[https://www.reddit.com/r/emacs/comments/izx5yb/gnu_hyperbole_713_the_antiviral_release_is_now/][GNU Hyperbole 7.1.3, the Antiviral Release, is now available on GNU ELPA : emacs]]
+
+** [#C] Client tools for competitive programming sites                :melpa:
+
+[[https://github.com/conao3/oj.el][GitHub - conao3/oj.el: Competitive programming tools client for AtCoder, Codeforces]]
+
+** [#C] Create images of source code buffers using Silicon
+
+[[https://github.com/iensu/silicon-el][silicon.el]] is a wrapper for creating a PNG image of the current buffer
+using [[https://github.com/Aloxaf/silicon][Silicon]].
+
+An alternative is using a built-in Emacs facility for capturing the
+current frame as an SVG file. Requires that Emacs be built with Cairo.
+Some example code for this from a [[https://www.reddit.com/r/emacs/comments/idz35e/emacs_27_can_take_svg_screenshots_of_itself/g2c2c6y/][Reddit comment]]:
+#+begin_src emacs-lisp
+(defun screenshot-svg ()
+  "Save a screenshot of the current frame as an SVG image.
+Saves to a temp file and puts the filename in the kill ring."
+  (interactive)
+  (let* ((filename (make-temp-file "Emacs" nil ".svg"))
+         (data (x-export-frames nil 'svg)))
+    (with-temp-file filename
+      (insert data))
+    (kill-new filename)
+    (message filename)))
+#+end_src
+
+Another alternative is using [[https://carbon.now.sh/][Carbon]] ([[https://github.com/carbon-app/carbon][GitHub]]) via [[https://github.com/veelenga/carbon-now-sh.el][carbon-now-sh]]
+(requires a web browser).
+
+References:
+- [[https://www.reddit.com/r/emacs/comments/jq902m/siliconel_generate_images_of_source_code_files/][silicon.el: generate images of source code files using silicon : emacs]]

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Nov 20 10:05:43 2020
+;; Generated: Fri Nov 27 23:26:39 2020
 
 ;;; Commentary:
 
@@ -451,7 +451,6 @@ Specifically, the current buffer is checked to see if it is in
            ("Programming" (derived-mode . prog-mode))
            ("Agenda" (or (mode . org-agenda-mode)
                          (predicate . (my-ibuffer-org-agenda-files-filter))))
-           ("Journal" (mode . org-journal-mode))
            ("Org" (derived-mode . org-mode))
            ("Text" (derived-mode . text-mode))
            ("Fundamental" (mode . fundamental-mode))
@@ -1598,6 +1597,8 @@ Formatting a selected region only works on top-level objects."
   "Path to Org agenda inbox.")
 (defvar my-org-someday-inbox (concat org-directory "someday.org")
   "Path to Org someday inbox.")
+(defvar my-org-journal-file (concat org-directory "journal.org")
+  "Path to Org journal file.")
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
@@ -1614,6 +1615,7 @@ Formatting a selected region only works on top-level objects."
       org-fontify-done-headline t
       org-fontify-quote-and-verse-blocks t
       org-fontify-whole-heading-line t
+      org-goto-interface 'outline-path-completion
       org-hide-emphasis-markers nil
       org-hide-leading-stars nil
       org-highlight-latex-and-related '(latex script entities) ; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
@@ -1691,11 +1693,21 @@ call `open-line' on the very first character."
 
 (setq org-capture-templates '(("t" "New Task" entry (file my-org-agenda-inbox)
                                "* TODO %i%?\n%U")
+                              ("l" "Linked Task" entry (file my-org-agenda-inbox)
+                               "* TODO %a%?\n%U")
                               ("s" "Someday Task" entry (file my-org-someday-inbox)
                                "* TODO %i%?\n%U")
                               ("i" "Interrupt Task" entry (function my-org-goto-end-of-org-file)
                                "* NEXT %i%?\n%U"
-                               :jump-to-captured t :clock-in t :clock-resume t)))
+                               :jump-to-captured t :clock-in t :clock-resume t)
+                              ("j" "Journal Entry" entry
+                               (file+olp+datetree my-org-journal-file)
+                               "**** %<%R >%?\n%T"
+                               :tree-type week :clock-in t :clock-resume t)
+                              ("J" "Schedule Journal Entry" entry
+                               (file+olp+datetree my-org-journal-file)
+                               "**** %<%R >%?\n%T"
+                               :tree-type week :time-prompt t)))
 
 (with-eval-after-load 'org
   ;; maximize org-capture buffer
@@ -1717,39 +1729,25 @@ call `open-line' on the very first character."
   (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown))
 
 ;; tags (note that tags within the same group are mutually exclusive)
-(setq org-tag-alist '((:startgroup) ;; importance
+(setq org-tag-alist '((:startgroup) ;; export
+                      ("export" . ?9)
+                      ("noexport" . ?0)
+                      (:endgroup)
+                      ;; prioritization (e.g. Eisenhower matrix)
                       ("important" . ?1)
-                      ("unimportant" . ?2)
-                      (:endgroup)
-                      (:startgroup) ;; time-sensitivity
-                      ("urgent" . ?3)
-                      ("nonurgent" . ?4)
-                      (:endgroup)
-                      (:startgroup) ;; location
-                      ("@home" . ?7)
-                      ("@office" . ?8)
-                      ("@travel" . ?9)
-                      ("@errands" . ?0)
-                      (:endgroup)
-                      (:startgroup) ;; export
-                      ("export" . ?e)
-                      ("noexport" . ?E)
-                      (:endgroup)
-                      ;; ungrouped
-                      ("meeting" . ?m)
-                      ("note" . ?n)
-                      ;; work-related relationship category
-                      ("hiring" . ?H)
-                      ("managing" . ?M)
-                      ("vendor" . ?V)
-                      ("partner" . ?P)
-                      ("client" . ?C)
-                      ;; work-related meeting type
-                      ("internal" . ?I)
-                      ("external" . ?X)
-                      ;; work-related project category
-                      ("healthcare" . ?\^h) ;; C-h
-                      ("retail" . ?\^r))) ;; C-r
+                      ("urgent" . ?2)
+                      (:newline)
+                      ;; entry context, in addition to category
+                      ("@work" . ?w)
+                      ("@life" . ?l)
+                      ("@learn" . ?e)
+                      (:startgroup) ;; special meeting types
+                      ("hiring" . ?h)
+                      ("managing" . ?m)
+                      ("vendor" . ?v)
+                      ("sales" . ?s)
+                      ("strategy" . ?t)
+                      (:endgroup)))
 
 ;; `org-export' macros
 (with-eval-after-load 'ox
@@ -2029,67 +2027,6 @@ call `open-line' on the very first character."
   (setq org-download-method 'my-org-download-method
         org-download-timestamp "%Y%m%d%H%M%S-"))
 
-;; journaling using Org documents
-(use-package org-journal
-  :after org
-  :init
-  (setq org-journal-file-format "%Y%m%d.org"
-        org-journal-file-header (mapconcat 'identity
-                                           '("#+TITLE: Daily Journal"
-                                             "#+DATE: %d %B %Y"
-                                             "#+FILETAGS: journal"
-                                             "")
-                                           "\n")
-        org-journal-file-type 'daily
-        ;; don't carry over TODO items from a previous days
-        org-journal-carryover-items nil
-        ;; use ORG-DIRECTORY/journal/ as the default journal directory
-        org-journal-dir (concat org-directory "journal/")
-        ;; cache entries to speed up calendar operations, reset cache
-        ;; with `org-journal-invalidate-cache'
-        org-journal-enable-cache t)
-  ;; org-capture helper function from https://github.com/bastibe/org-journal
-  (defun my-org-journal-find-location ()
-    "Find location of today's Org journal, for use with `org-capture'."
-    ;; open today's journal but specify a non-nil prefix argument in order to
-    ;; inhibit inserting the heading; org-capture will insert the heading.
-    (org-journal-new-entry t)
-    (org-narrow-to-subtree)
-    (goto-char (point-max)))
-  ;; add org-capture template for new journal entries
-  ;; capture template type should be plain instead of entry, see
-  ;; https://www.reddit.com/r/orgmode/comments/goivjp/orgcapture_template_doesnt_insert_entry_as_a/
-  (add-to-list 'org-capture-templates
-               '("j" "Journal" plain (function my-org-journal-find-location)
-                 "** %(format-time-string org-journal-time-format)%?\n%i")
-               t)
-  ;; add journal files to Org agenda
-  ;; may cause the Org agenda parsing to slow down as the number as
-  ;; the number of files grows, so make sure to prune or archive the
-  ;; files elsewhere every so often if this is enabled
-  ;; to limit to just current and future (i.e. scheduled) journal
-  ;; entries, set `org-journal-enable-agenda-integration' to t instead
-  ;; (push org-journal-dir org-agenda-files)
-  :config
-  ;; workaround on `org-journal-is-journal' `string-match' error when
-  ;; exporting to HTML due to `buffer-file-name' func returning nil
-  ;; this also fixes an issue matching file paths when the journal
-  ;; file path contains a symlink since the pattern generated by
-  ;; `org-journal--dir-and-file-format->pattern' resolves symlinks in
-  ;; `org-journal-dir', so the org-journal file path contains symlinks
-  ;; while the pattern has those symlinks resolved and
-  ;; `org-journal-is-journal' returns nil when it should return t
-  (defun org-journal-is-journal--around-workaround (orig-fun &rest args)
-    "Drop-in replacement advice function for `org-journal-is-journal'."
-    (let* ((buf-file-name-raw (buffer-file-name))
-           (buf-file-name (if buf-file-name-raw
-                              (file-truename buf-file-name-raw)
-                            ""))) ; default to empty string if not a file buffer
-      (string-match (org-journal--dir-and-file-format->pattern)
-                    buf-file-name)))
-  (advice-add 'org-journal-is-journal :around
-              #'org-journal-is-journal--around-workaround))
-
 ;; presentations from Org documents
 (use-package org-tree-slide
   :init (setq org-tree-slide-activate-message "Start slideshow mode"
@@ -2144,7 +2081,7 @@ call `open-line' on the very first character."
 (require 'org-protocol)
 
 ;; add capture template for web snippets
-(setq org-websnippet-capture-file "scratch/websnippets.org")
+(setq org-websnippet-capture-file (concat org-directory "scratch/websnippets.org"))
 (add-to-list 'org-capture-templates
              `("W" "Websnippet" entry
                (file+headline ,org-websnippet-capture-file "Unsorted")
@@ -3039,19 +2976,21 @@ for more information."
 ;; (define-key org-mode-map (kbd "C-c O") org-readitlater-keymap)
 
 ;; add capture template for org-readitlater
-(setq org-readitlater-capture-file "readitlater/readitlater.org")
-(add-to-list 'org-capture-templates
-             `("a" "Archive Webpage" entry
-               (file+headline ,org-readitlater-capture-file "Unsorted")
-               "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:READITLATER_BACKEND_OPTIONS: --isolate --no-css --no-fonts --no-frames --no-images --no-js\n:ADDED: %U\n:END:\n%:initial\n")
-             t)
-;; auto-download page after capturing with org-readitlater template
-(defun do-org-readitlater-dl-hook ()
-  (when (equal (buffer-name)
-               (concat "CAPTURE-"
-                       (file-name-nondirectory org-readitlater-capture-file)))
-    (org-readitlater-archive)))
-(add-hook 'org-capture-before-finalize-hook #'do-org-readitlater-dl-hook)
+(with-eval-after-load 'org
+  (defvar org-readitlater-capture-file (concat org-directory "readitlater/readitlater.org")
+    "Path to Org file containing org-readitlater entries.")
+  (add-to-list 'org-capture-templates
+               `("a" "Archive Webpage" entry
+                 (file+headline ,org-readitlater-capture-file "Unsorted")
+                 "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:READITLATER_BACKEND_OPTIONS: --isolate --no-css --no-fonts --no-frames --no-images --no-js\n:ADDED: %U\n:END:\n%:initial\n")
+               t)
+  ;; auto-download page after capturing with org-readitlater template
+  (defun do-org-readitlater-dl-hook ()
+    (when (equal (buffer-name)
+                 (concat "CAPTURE-"
+                         (file-name-nondirectory org-readitlater-capture-file)))
+      (org-readitlater-archive)))
+  (add-hook 'org-capture-before-finalize-hook #'do-org-readitlater-dl-hook))
 
 ;; Writing
 
@@ -3854,6 +3793,28 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 
 ;; add transient for accessing Org entry points
 (with-eval-after-load 'org
+  ;; file launchers
+  (defun transient/org-launcher--find-my-org-agenda-inbox ()
+    "Open a file buffer for `my-org-agenda-inbox'."
+    (interactive)
+    (find-file my-org-agenda-inbox))
+  (defun transient/org-launcher--find-my-org-someday-inbox ()
+    "Open a file buffer for `my-org-someday-inbox'."
+    (interactive)
+    (find-file my-org-someday-inbox))
+  (defun transient/org-launcher--find-my-org-journal-file ()
+    "Open a file buffer for `my-org-journal-file'."
+    (interactive)
+    (find-file my-org-journal-file))
+  (defun transient/org-launcher--find-org-readitlater-capture-file ()
+    "Open a file buffer for `org-readitlater-capture-file'."
+    (interactive)
+    (find-file org-readitlater-capture-file))
+  (defun transient/org-launcher--find-org-websnippet-capture-file ()
+    "Open a file buffer for `org-websnippet-capture-file'."
+    (interactive)
+    (find-file org-websnippet-capture-file))
+
   (transient-define-prefix transient/org-launcher ()
     "Launcher for Org entry points."
     ["Org launcher"
@@ -3863,13 +3824,12 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
       ("b" "Switchb" org-switchb)
       ("l" "Store link" org-store-link)
       ]
-     ["Journal"
-      ;; all autoloaded functions, no need to load org-journal first
-      ("jg" "Current file" org-journal-open-current-journal-file)
-      ("jj" "New entry" org-journal-new-entry)
-      ("jJ" "Schedule entry" org-journal-new-scheduled-entry)
-      ("js" "Search" org-journal-search)
-      ("jI" "Invalidate cache" org-journal-invalidate-cache)
+     ["Find-file"
+      ("fi" "Inbox" transient/org-launcher--find-my-org-agenda-inbox)
+      ("fs" "Someday" transient/org-launcher--find-my-org-someday-inbox)
+      ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
+      ("fr" "Read-it-later" transient/org-launcher--find-org-readitlater-capture-file)
+      ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
       ]
      ]
     )
@@ -4254,16 +4214,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
   (message "show-trailing-whitespace: %s"
            (if show-trailing-whitespace "yes" "no")))
 
-(defun transient/visual--doom-modeline-focus-and-redraw-display ()
-  "Refocus doom-modeline and redraw display."
-  (interactive)
-  ;; refocus doom-modeline just in case
-  (when (and (boundp 'doom-modeline-mode)
-             doom-modeline-mode)
-    (doom-modeline-focus))
-  ;; redraw display
-  (redraw-display))
-
 (defun transient/visual--toggle-ligatures ()
   "Toggle ligatures.
 Currently only works for Emacs Mac port."
@@ -4276,6 +4226,11 @@ Currently only works for Emacs Mac port."
   "Resets buffer `text-scale-mode-amount' to zero."
   (interactive)
   (text-scale-set 0))
+
+(defun transient/visual--my-pulse-line ()
+  "Pulse the point's current line using `my-pulse-line'."
+  (interactive)
+  (my-pulse-line))
 
 ;; add transient popup for visual commands
 (transient-define-prefix transient/visual ()
@@ -4464,9 +4419,7 @@ Currently only works for Emacs Mac port."
             "Censor (global)"
             global-censor-mode))
      global-censor-mode)
-    ("r" "Redraw display"
-     transient/visual--doom-modeline-focus-and-redraw-display
-     :transient nil)
+    ("SPC" "Pulse line" transient/visual--my-pulse-line)
     ]
    ]
   )

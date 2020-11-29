@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Nov 27 23:26:39 2020
+;; Generated: Sat Nov 28 23:13:55 2020
 
 ;;; Commentary:
 
@@ -3522,7 +3522,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("k" "Kill" kill-this-buffer)
     ("K" "Kill matching" kill-matching-buffers)
     ("o" "Kill others" transient/buffer--kill-other-buffers)
-    ("t" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
+    ("T" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
     ("I" "Make indirect" transient/buffer--clone-indirect-buffer-other-window)
     ]
    ["Expose"

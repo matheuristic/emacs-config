@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Nov 28 23:13:55 2020
+;; Generated: Sun Nov 29 14:45:09 2020
 
 ;;; Commentary:
 
@@ -2845,6 +2845,11 @@ This enables things like ElDoc and autocompletion."
           (lambda ()
             (display-line-numbers-mode 1)))
 
+;; show trailing whitespace when editing code
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (setq show-trailing-whitespace t)))
+
 ;; show point location column number in mode line
 (setq column-number-mode t)
 
@@ -4209,8 +4214,8 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (defun transient/visual--display-toggle-trailing-whitespace ()
   "Toggle the display of trailing whitespace."
   (interactive)
-  (setq-local show-trailing-whitespace
-              (not show-trailing-whitespace))
+  ;; `show-trailing-whitespace' is buffer-local by default
+  (setq show-trailing-whitespace (not show-trailing-whitespace))
   (message "show-trailing-whitespace: %s"
            (if show-trailing-whitespace "yes" "no")))
 

@@ -4157,7 +4157,7 @@ to the build chain.
           org-latex-pdf-process)))
 #+end_src
 
-** Use LuaTeX to generate LaTeX fragments previews in Org-mode     :external:
+** Use LuaTeX to generate LaTeX fragment previews in Org-mode      :external:
 
 Use [[http://www.luatex.org/][LuaTeX]] to generate previews of [[https://orgmode.org/manual/LaTeX-fragments.html][LaTeX fragments]] as images in
 ~org-mode~.
@@ -4576,6 +4576,16 @@ instead which should also work).
     (setq org-babel-pikchr-cmd (executable-find "pikchr"))
     (require 'ob-pikchr)))
 #+end_src
+
+** Generating an Org agenda clock table by tag
+
+Copy and evaluate (using ~C-c C-c~) the following block to an Org mode
+buffer, modify the ~:match~ option parameters to include/exclude tags
+of interest and add/remove/change the other options as appropriate.
+See the Org docs for [[https://orgmode.org/manual/The-clock-table.html][using the clock table]] and the [[https://orgmode.org/manual/Matching-tags-and-properties.html][tag match syntax]].
+
+#+begin: clocktable :maxlevel 2 :scope agenda-with-archives :tstart "<-2w>" :tend "<now>" :match "+@work+important-sales"
+#+end
 
 * Programming
 
@@ -6272,6 +6282,18 @@ Display line numbers by default when editing code.
 (add-hook 'prog-mode-hook
           (lambda ()
             (display-line-numbers-mode 1)))
+#+end_src
+
+** Show trailing whitespace when editing code
+
+Show trailing whitespace by default when editing code.
+
+#+name: show-trailing-whitespace
+#+begin_src emacs-lisp
+;; show trailing whitespace when editing code
+(add-hook 'prog-mode-hook
+          (lambda ()
+            (setq show-trailing-whitespace t)))
 #+end_src
 
 ** Show point location column number in the mode line
@@ -8661,8 +8683,8 @@ Transient for visual commands and toggles.
 (defun transient/visual--display-toggle-trailing-whitespace ()
   "Toggle the display of trailing whitespace."
   (interactive)
-  (setq-local show-trailing-whitespace
-              (not show-trailing-whitespace))
+  ;; `show-trailing-whitespace' is buffer-local by default
+  (setq show-trailing-whitespace (not show-trailing-whitespace))
   (message "show-trailing-whitespace: %s"
            (if show-trailing-whitespace "yes" "no")))
 
@@ -11196,6 +11218,8 @@ The main configuration file.
 <<prism>>
 
 <<display-line-numbers-when-editing-code>>
+
+<<show-trailing-whitespace>>
 
 <<show-column-number>>
 

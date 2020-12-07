@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov 29 14:45:09 2020
+;; Generated: Sun Dec  6 22:10:55 2020
 
 ;;; Commentary:
 
@@ -2857,11 +2857,12 @@ This enables things like ElDoc and autocompletion."
 (setq show-paren-delay 0)
 (show-paren-mode 1)
 
-(use-package volatile-highlights
-  :hook (after-init . volatile-highlights-mode)
+;; pulse modified region
+(use-package goggles
+  :init (setq goggles-pulse-delay 0.07)
   :config
-  ;; hide mode line lighter for the mode
-  (add-to-list 'my-mode-lighter-abbrev-alist '(volatile-highlights-mode . "")))
+  (goggles-mode) ; enable mode
+  (add-to-list 'my-mode-lighter-abbrev-alist '(goggles-mode . ""))) ; hide mode line lighter
 
 ;; add internal frame border
 (add-to-list 'default-frame-alist

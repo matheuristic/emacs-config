@@ -4213,6 +4213,20 @@ Remove `mini-modeline-display' from `pre-redisplay-functions'."
   (mini-modeline-mode 1))
 #+end_src
 
+** Temporarily highlight yanked text                                  :melpa:
+
+[[https://github.com/k-talo/volatile-highlights.el][volatile-highlights.el]] provides a minor mode that temporarily
+highlights yanked text.
+
+#+name: volatile-highlights
+#+begin_src emacs-lisp
+(use-package volatile-highlights
+  :hook (after-init . volatile-highlights-mode)
+  :config
+  ;; hide mode line lighter for the mode
+  (add-to-list 'my-mode-lighter-abbrev-alist '(volatile-highlights-mode . "")))
+#+end_src
+
 * Web
 
 ** Browsing

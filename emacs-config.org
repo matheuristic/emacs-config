@@ -6317,18 +6317,18 @@ Show matching parentheses while editing without delay.
 (show-paren-mode 1)
 #+end_src
 
-** Temporarily highlight yanked text                                  :melpa:
+** Pulse modified region                                              :melpa:
 
-[[https://github.com/k-talo/volatile-highlights.el][volatile-highlights.el]] provides a minor mode that temporarily
-highlights yanked text.
+[[https://github.com/minad/goggles][goggles.el]] provides a minor mode that pulses modified buffer regions.
 
-#+name: volatile-highlights
+#+name: goggles
 #+begin_src emacs-lisp
-(use-package volatile-highlights
-  :hook (after-init . volatile-highlights-mode)
+;; pulse modified region
+(use-package goggles
+  :init (setq goggles-pulse-delay 0.07)
   :config
-  ;; hide mode line lighter for the mode
-  (add-to-list 'my-mode-lighter-abbrev-alist '(volatile-highlights-mode . "")))
+  (goggles-mode) ; enable mode
+  (add-to-list 'my-mode-lighter-abbrev-alist '(goggles-mode . ""))) ; hide mode line lighter
 #+end_src
 
 ** Add frame internal border
@@ -11225,7 +11225,7 @@ The main configuration file.
 
 <<show-matching-parentheses>>
 
-<<volatile-highlights>>
+<<goggles>>
 
 <<add-frame-internal-border>>
 

@@ -3183,7 +3183,20 @@ Add entry point to ~python-black-format-buffer~ and toggle for
   ("Y" python-black-format-on-save-mode "format-on-save"))
 #+end_src
 
-*** Live Coding in Python
+*** Live Coding in Python                                             :melpa:
+
+[[https://donkirkby.github.io/live-py-plugin/][Live Coding in Python]] ([[https://github.com/donkirkby/live-py-plugin][Github]]) provides a minor mode ~live-py-mode~
+that supports live coding, similar to the coding environment described
+in [[http://worrydream.com/][Bret Victor]]'s [[http://worrydream.com/#!/InventingOnPrinciple][Inventing on Principle]] talk ([[https://github.com/ezyang/cusec2012-victor/blob/master/transcript.md][transcript]]).
+
+When enabled, Python code will be run as it is being typed and a side
+window with a live coding buffer opened that visualizes the results.
+
+#+name: live-py-mode
+#+begin_src emacs-lisp
+;; live coding in python
+(use-package live-py-mode)
+#+end_src
 
 **** Add toggle for live-py-mode to python-mode hydra                 :hydra:
 

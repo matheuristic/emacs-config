@@ -5271,21 +5271,6 @@ Formatting a selected region only works on top-level objects."
         (t (python-black-format-buffer)))))
 #+end_src
 
-*** Live Coding in Python                                             :melpa:
-
-[[https://donkirkby.github.io/live-py-plugin/][Live Coding in Python]] ([[https://github.com/donkirkby/live-py-plugin][Github]]) provides a minor mode ~live-py-mode~
-that supports live coding, similar to the coding environment described
-in [[http://worrydream.com/][Bret Victor]]'s [[http://worrydream.com/#!/InventingOnPrinciple][Inventing on Principle]] talk ([[https://github.com/ezyang/cusec2012-victor/blob/master/transcript.md][transcript]]).
-
-When enabled, Python code will be run as it is being typed and a side
-window with a live coding buffer opened that visualizes the results.
-
-#+name: live-py-mode
-#+begin_src emacs-lisp
-;; live coding in python
-(use-package live-py-mode)
-#+end_src
-
 *** Microsoft Pyright Language Server support with lsp-pyright        :melpa:
 
 [[https://github.com/emacs-lsp/lsp-pyright][lsp-pyright]] enables the use of ~lsp-mode~ as a client for the
@@ -10154,45 +10139,43 @@ Python major mode transient.
 #+begin_src emacs-lisp
 ;; major-mode specific transient for python-mode
 (with-eval-after-load 'python
-  (with-eval-after-load 'live-py-mode
-    ;; technically also depends on reformatter but more correctly
-    ;; using it to define `python-black-format-buffer-or-region' and
-    ;; `python-black-format-on-save-mode'
-    (transient-define-prefix transient/python-mode ()
-      "`python-mode' commands."
-      ["Python"
-       ["REPL"
-        ("p" "Start" run-python)
-        ("s" "Send string" python-shell-send-string)
-        ("x" "Send defun" python-shell-send-defun)
-        ("r" "Send region" python-shell-send-region)
-        ("c" "Send buffer" python-shell-send-buffer)
-        ("l" "Send file" python-shell-send-file)
-        ("z" "Switch to" python-shell-switch-to-shell)
-        ]
-       ["Format"
-        ("TAB" "Fill paragraph" python-fill-paragraph :transient t)
-        ("<" "Indent left" python-indent-shift-left :transient t)
-        (">" "Indent right" python-indent-shift-right :transient t)
-        ("y" "Region or buffer" python-black-format-buffer-or-region)
-        ("Y" (lambda ()
-               (interactive)
-               (transient--make-description
-                "Buffer on save"
-                python-black-format-on-save-mode))
-         python-black-format-on-save-mode :transient t)
-        ]
-       ["Other"
-        ("j" "Imenu" imenu)
-        ("v" "Check error" python-check)
-        ("f" "Symbol quick help" python-eldoc-at-point)
-        ("d" "Symbol describe" python-describe-at-point)
-        ("D" "Python debugger" pdb)
-        ("L" "Live coding mode" live-py-mode)
-        ]
-       ]
-      )
-    (define-key python-mode-map (kbd "C-c m") #'transient/python-mode)))
+  ;; technically also depends on reformatter but more correctly
+  ;; using it to define `python-black-format-buffer-or-region' and
+  ;; `python-black-format-on-save-mode'
+  (transient-define-prefix transient/python-mode ()
+    "`python-mode' commands."
+    ["Python"
+     ["REPL"
+      ("p" "Start" run-python)
+      ("s" "Send string" python-shell-send-string)
+      ("x" "Send defun" python-shell-send-defun)
+      ("r" "Send region" python-shell-send-region)
+      ("c" "Send buffer" python-shell-send-buffer)
+      ("l" "Send file" python-shell-send-file)
+      ("z" "Switch to" python-shell-switch-to-shell)
+      ]
+     ["Format"
+      ("TAB" "Fill paragraph" python-fill-paragraph :transient t)
+      ("<" "Indent left" python-indent-shift-left :transient t)
+      (">" "Indent right" python-indent-shift-right :transient t)
+      ("y" "Region or buffer" python-black-format-buffer-or-region)
+      ("Y" (lambda ()
+             (interactive)
+             (transient--make-description
+              "Buffer on save"
+              python-black-format-on-save-mode))
+       python-black-format-on-save-mode :transient t)
+      ]
+     ["Other"
+      ("j" "Imenu" imenu)
+      ("v" "Check error" python-check)
+      ("f" "Symbol quick help" python-eldoc-at-point)
+      ("d" "Symbol describe" python-describe-at-point)
+      ("D" "Python debugger" pdb)
+      ]
+     ]
+    )
+  (define-key python-mode-map (kbd "C-c m") #'transient/python-mode))
 #+end_src
 
 *** racket-mode transient
@@ -11138,8 +11121,6 @@ The main configuration file.
 <<python-mode-syntax-table>>
 
 <<python-black-format>>
-
-<<live-py-mode>>
 
 <<lsp-pyright>>
 

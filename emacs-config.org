@@ -1986,29 +1986,6 @@ buffer simultaneously.
     (advice-add jump-fun :after #'my-after-jump-context-actions)))
 #+end_src
 
-** Symbol overlays and operations                                     :melpa:
-
-[[https://github.com/wolray/symbol-overlay][symbol-overlay]] provides the ability to highlight symbols with overlays
-and a keymap for different operations on the highlighted symbols.
-
-#+name: symbol-overlay
-#+begin_src emacs-lisp
-(use-package symbol-overlay
-  :demand t
-  :init
-  ;; don't use `symbol-overlay-map' as it conflicts with `iedit-mode',
-  ;; a transient is be defined later to access symbol-overlay commands
-  (setq symbol-overlay-inhibit-map t)
-  :config
-  ;; advise symbol-overlay jump functions to perform context actions
-  ;; after they are run
-  (dolist (jump-fun '(symbol-overlay-jump-next
-                      symbol-overlay-jump-prev
-                      symbol-overlay-switch-forward
-                      symbol-overlay-switch-backward))
-    (advice-add jump-fun :after #'my-after-jump-context-actions)))
-#+end_src
-
 ** Multiple cursors                                                   :melpa:
 
 [[https://github.com/magnars/multiple-cursors.el][multiple-cursors.el]] is package that enables the creation of multiple cursors in Emacs that all do the same thing simultaneously.
@@ -8306,46 +8283,6 @@ Transient providing entry points into Eshell and Ansi-Term.
 (global-set-key (kbd "C-c T") #'transient/shell)
 #+end_src
 
-*** Symbol overlay transient
-
-Add transient popup for symbol-overlay functionality.
-
-#+name: symbol-overlay-transient
-#+begin_src emacs-lisp
-;; add symbol-overlay transient popup and bind to "C-:"
-(with-eval-after-load 'symbol-overlay
-  (transient-define-prefix transient/symbol-overlay ()
-    "Symbol overlay commands"
-    ;; suffix actions don't exit the transient popup by default
-    :transient-suffix 'transient--do-stay
-    ["Symbol overlays"
-     ["Navigation"
-      ("n" "Jump next" symbol-overlay-jump-next)
-      ("p" "Jump prev" symbol-overlay-jump-prev)
-      ("f" "Switch fwd" symbol-overlay-switch-forward)
-      ("b" "Switch bwd" symbol-overlay-switch-backward)
-      ]
-     ["Operations"
-      ("i" "Put/Remove" symbol-overlay-put)
-      ("t" "Toggle scope" symbol-overlay-toggle-in-scope)
-      ("k" "Remove all" symbol-overlay-remove-all :transient nil)
-      ("r" "Rename" symbol-overlay-rename :transient nil)
-      ("q" "Query/Replace" symbol-overlay-query-replace :transient nil)
-      ]
-     ["Other"
-      ("m" (lambda () (transient--make-description
-                       "symbol-overlay-mode"
-                       symbol-overlay-mode))
-       symbol-overlay-mode)
-      ("w" "Copy" symbol-overlay-save-symbol)
-      ("s" "Search" symbol-overlay-isearch-literally :transient nil)
-      ("d" "Defn" symbol-overlay-jump-to-definition :transient nil)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-:") 'transient/symbol-overlay))
-#+end_src
-
 *** System information, process and Emacs runtime/server transient
 
 Transient for accessing system, process and Emacs runtime commands.
@@ -8422,7 +8359,6 @@ Transient for visual commands and toggles.
 (require 'highlight-indent-guides)
 (require 'hl-todo)
 (require 'prism)
-(require 'symbol-overlay)
 (require 'too-long-lines-mode)
 
 (defvar-local transient/visual--face-remap-cookies '()
@@ -8564,11 +8500,6 @@ Currently only works for Emacs Mac port."
             "Transient mark"
             transient-mark-mode))
      transient-mark-mode)
-    ("O" (lambda ()
-           (transient--make-description
-            "Symbol overlay"
-            symbol-overlay-mode))
-     symbol-overlay-mode)
     ]
    ["Color"
     ("cf" (lambda ()
@@ -10672,8 +10603,6 @@ The main configuration file.
 
 <<iedit>>
 
-<<symbol-overlay>>
-
 <<multiple-cursors>>
 
 <<yasnippet>>
@@ -11085,8 +11014,6 @@ The main configuration file.
 <<server-transient>>
 
 <<shell-transient>>
-
-<<symbol-overlay-transient>>
 
 <<system-transient>>
 

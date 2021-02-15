@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Dec  6 22:10:55 2020
+;; Generated: Sun Feb 14 21:13:06 2021
 
 ;;; Commentary:
 
@@ -441,8 +441,7 @@ Specifically, the current buffer is checked to see if it is in
                       (mode . eww-bookmark-mode)))
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
-                        (mode . term-mode)
-                        (name . "^vterm .*")))
+                        (mode . term-mode)))
            ("Data" (or (mode . csv-mode)
                        (mode . json-mode)
                        (mode . nxml-mode)))
@@ -701,26 +700,6 @@ provided, the default interactive `eshell' command is run."
                      keymap))))
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 
-(when (and module-file-suffix
-           (executable-find "cmake")
-           (executable-find "libtool"))
-  (use-package vterm
-    :init
-    (setq vterm-buffer-name-string "vterm %s"
-          vterm-clear-scrollback-when-clearing t
-          vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
-          vterm-kill-buffer-on-exit t
-          vterm-shell (or (executable-find "fish") shell-file-name))))
-
-(defun vterm-switchb ()
-  "Call `switch-to-buffer' but only for vterm buffers."
-  (interactive)
-  (let ((completion-regexp-list '("\\`vterm .*")))
-    (call-interactively #'switch-to-buffer)))
-
-(with-eval-after-load 'vterm
-  (define-key vterm-mode-map (kbd "C-c C-b") #'vterm-switchb))
-
 ;; convenience functions for sent commands to an active tmux session
 ;; adapted from https://explog.in/notes/tmux.html
 
@@ -895,21 +874,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
                       iedit-goto-first-occurrence
                       iedit-goto-last-occurrence
                       iedit-expand-to-occurrence))
-    (advice-add jump-fun :after #'my-after-jump-context-actions)))
-
-(use-package symbol-overlay
-  :demand t
-  :init
-  ;; don't use `symbol-overlay-map' as it conflicts with `iedit-mode',
-  ;; a transient is be defined later to access symbol-overlay commands
-  (setq symbol-overlay-inhibit-map t)
-  :config
-  ;; advise symbol-overlay jump functions to perform context actions
-  ;; after they are run
-  (dolist (jump-fun '(symbol-overlay-jump-next
-                      symbol-overlay-jump-prev
-                      symbol-overlay-switch-forward
-                      symbol-overlay-switch-backward))
     (advice-add jump-fun :after #'my-after-jump-context-actions)))
 
 ;; multiple cursors
@@ -1588,8 +1552,15 @@ Formatting a selected region only works on top-level objects."
 
 ;; Org-mode
 
-;; install ELPA version of Org
-(my-install-elpa-package 'org)
+;; ;; install ELPA version of Org
+;; (my-install-elpa-package 'org)
+
+;; rebind `org-force-cycle-archived' in older Org versions to not
+;; conflict with the `tab-next' default binding
+(with-eval-after-load 'org
+  (when (version< (org-version) "9.4")
+    (define-key org-mode-map (kbd "<C-tab>") nil)
+    (org-defkey org-mode-map (kbd "C-c C-<tab>") #'org-force-cycle-archived)))
 
 ;; set Org directory and inbox file
 (setq org-directory (file-truename (file-name-as-directory (expand-file-name "~/org"))))
@@ -2480,9 +2451,6 @@ Formatting a selected region only works on top-level objects."
                                                     (region-end)))
         (t (python-black-format-buffer)))))
 
-;; live coding in python
-(use-package live-py-mode)
-
 (use-package lsp-pyright
   :defer t
   :init
@@ -2597,26 +2565,6 @@ environment has Racket installed."
     (when (executable-find "racket")
       (racket-xp-mode 1)))
   (add-hook 'racket-mode-hook #'racket-mode--maybe-enable-racket-xp-mode))
-
-;; database SQL client using Clojure JDBC
-(use-package ejc-sql
-  :commands (ejc-connect ejc-connect-existing-repl ejc-sql-mode)
-  :bind (:map ejc-sql-mode-keymap
-         ("C-g" . nil) ; unbind C-g in mode-map shadowing regular C-g
-         ("C-c C-k" . ejc-cancel-query)) ; rebind to C-c C-k instead
-  :init
-  ;; use `completing-read' for minibuffer completion
-  ;; change ejc-sql keymap prefix to "C-c s" (from the default "C-c e")
-  (setq ejc-completion-system 'standard
-        ejc-keymap-prefix (kbd "C-c s"))
-  :config
-  ;; ejc-sql setup code
-  (defun my-ejc-sql-minor-mode-setup ()
-    "Setup code to run when `ejc-sql-minor-mode' is enabled.
-This enables things like ElDoc and autocompletion."
-    (company-mode 1) ; use company-mode for autocompletion
-    (ejc-eldoc-setup)) ; set up Eldoc support
-  (add-hook 'ejc-sql-minor-mode-hook #'my-ejc-sql-minor-mode-setup))
 
 ;; Project interaction
 
@@ -4065,46 +4013,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-;; add vterm suffixes if the package is loaded
-(when (featurep 'vterm)
-  (dolist (suffix '(("vv" "Vterm" vterm)
-                    ("vo" "Vterm other" vterm-other-window)
-                    ("vc" "Vterm switch" vterm-switchb)))
-    (transient-append-suffix 'transient/shell '(0 0 -1) suffix)))
 (global-set-key (kbd "C-c T") #'transient/shell)
-
-;; add symbol-overlay transient popup and bind to "C-:"
-(with-eval-after-load 'symbol-overlay
-  (transient-define-prefix transient/symbol-overlay ()
-    "Symbol overlay commands"
-    ;; suffix actions don't exit the transient popup by default
-    :transient-suffix 'transient--do-stay
-    ["Symbol overlays"
-     ["Navigation"
-      ("n" "Jump next" symbol-overlay-jump-next)
-      ("p" "Jump prev" symbol-overlay-jump-prev)
-      ("f" "Switch fwd" symbol-overlay-switch-forward)
-      ("b" "Switch bwd" symbol-overlay-switch-backward)
-      ]
-     ["Operations"
-      ("i" "Put/Remove" symbol-overlay-put)
-      ("t" "Toggle scope" symbol-overlay-toggle-in-scope)
-      ("k" "Remove all" symbol-overlay-remove-all :transient nil)
-      ("r" "Rename" symbol-overlay-rename :transient nil)
-      ("q" "Query/Replace" symbol-overlay-query-replace :transient nil)
-      ]
-     ["Other"
-      ("m" (lambda () (transient--make-description
-                       "symbol-overlay-mode"
-                       symbol-overlay-mode))
-       symbol-overlay-mode)
-      ("w" "Copy" symbol-overlay-save-symbol)
-      ("s" "Search" symbol-overlay-isearch-literally :transient nil)
-      ("d" "Defn" symbol-overlay-jump-to-definition :transient nil)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-:") 'transient/symbol-overlay))
 
 (defun transient/system--display-current-datetime ()
   "Display the current time in the minibuffer."
@@ -4167,7 +4076,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (require 'highlight-indent-guides)
 (require 'hl-todo)
 (require 'prism)
-(require 'symbol-overlay)
 (require 'too-long-lines-mode)
 
 (defvar-local transient/visual--face-remap-cookies '()
@@ -4309,11 +4217,6 @@ Currently only works for Emacs Mac port."
             "Transient mark"
             transient-mark-mode))
      transient-mark-mode)
-    ("O" (lambda ()
-           (transient--make-description
-            "Symbol overlay"
-            symbol-overlay-mode))
-     symbol-overlay-mode)
     ]
    ["Color"
     ("cf" (lambda ()
@@ -5548,45 +5451,43 @@ not support restricting to a region."
 
 ;; major-mode specific transient for python-mode
 (with-eval-after-load 'python
-  (with-eval-after-load 'live-py-mode
-    ;; technically also depends on reformatter but more correctly
-    ;; using it to define `python-black-format-buffer-or-region' and
-    ;; `python-black-format-on-save-mode'
-    (transient-define-prefix transient/python-mode ()
-      "`python-mode' commands."
-      ["Python"
-       ["REPL"
-        ("p" "Start" run-python)
-        ("s" "Send string" python-shell-send-string)
-        ("x" "Send defun" python-shell-send-defun)
-        ("r" "Send region" python-shell-send-region)
-        ("c" "Send buffer" python-shell-send-buffer)
-        ("l" "Send file" python-shell-send-file)
-        ("z" "Switch to" python-shell-switch-to-shell)
-        ]
-       ["Format"
-        ("TAB" "Fill paragraph" python-fill-paragraph :transient t)
-        ("<" "Indent left" python-indent-shift-left :transient t)
-        (">" "Indent right" python-indent-shift-right :transient t)
-        ("y" "Region or buffer" python-black-format-buffer-or-region)
-        ("Y" (lambda ()
-               (interactive)
-               (transient--make-description
-                "Buffer on save"
-                python-black-format-on-save-mode))
-         python-black-format-on-save-mode :transient t)
-        ]
-       ["Other"
-        ("j" "Imenu" imenu)
-        ("v" "Check error" python-check)
-        ("f" "Symbol quick help" python-eldoc-at-point)
-        ("d" "Symbol describe" python-describe-at-point)
-        ("D" "Python debugger" pdb)
-        ("L" "Live coding mode" live-py-mode)
-        ]
-       ]
-      )
-    (define-key python-mode-map (kbd "C-c m") #'transient/python-mode)))
+  ;; technically also depends on reformatter but more correctly
+  ;; using it to define `python-black-format-buffer-or-region' and
+  ;; `python-black-format-on-save-mode'
+  (transient-define-prefix transient/python-mode ()
+    "`python-mode' commands."
+    ["Python"
+     ["REPL"
+      ("p" "Start" run-python)
+      ("s" "Send string" python-shell-send-string)
+      ("x" "Send defun" python-shell-send-defun)
+      ("r" "Send region" python-shell-send-region)
+      ("c" "Send buffer" python-shell-send-buffer)
+      ("l" "Send file" python-shell-send-file)
+      ("z" "Switch to" python-shell-switch-to-shell)
+      ]
+     ["Format"
+      ("TAB" "Fill paragraph" python-fill-paragraph :transient t)
+      ("<" "Indent left" python-indent-shift-left :transient t)
+      (">" "Indent right" python-indent-shift-right :transient t)
+      ("y" "Region or buffer" python-black-format-buffer-or-region)
+      ("Y" (lambda ()
+             (interactive)
+             (transient--make-description
+              "Buffer on save"
+              python-black-format-on-save-mode))
+       python-black-format-on-save-mode :transient t)
+      ]
+     ["Other"
+      ("j" "Imenu" imenu)
+      ("v" "Check error" python-check)
+      ("f" "Symbol quick help" python-eldoc-at-point)
+      ("d" "Symbol describe" python-describe-at-point)
+      ("D" "Python debugger" pdb)
+      ]
+     ]
+    )
+  (define-key python-mode-map (kbd "C-c m") #'transient/python-mode))
 
 ;; major-mode specific transient for racket-mode
 (with-eval-after-load 'racket-mode
@@ -5827,71 +5728,6 @@ and `racket-repl-documentation' otherwise."
   (define-key ztreediff-mode-map (kbd "C-c m") #'transient/ztreediff-mode))
 
 ;; Transient commands / Minor mode transients
-
-;; add transient for ejc-sql
-(with-eval-after-load 'ejc-sql
-  ;; interactive versions of ejc-sql output customization functions
-  (defun transient/ejc-sql-mode--set-fetch-size (n)
-    "Interactive version of `ejc-set-fetch-size'."
-    (interactive "NEnter fetch size (num records to output): ")
-    (ejc-set-fetch-size n))
-  (defun transient/ejc-sql-mode--set-max-rows (n)
-    "Interactive version of `ejc-set-max-rows'."
-    (interactive "NEnter max rows (RecordSet num row limit): ")
-    (ejc-set-max-rows n))
-  (defun transient/ejc-sql-mode--set-column-width-limit (n)
-    "Interactive version of `ejc-set-column-width-limit'."
-    (interactive "NEnter column width limit: ")
-    (ejc-set-column-width-limit n))
-
-  (transient-define-prefix transient/ejc-sql-mode ()
-    "`ejc-sql-mode' commands."
-    ["ejc-sql"
-     ["Session"
-      ("c" "Connect" ejc-connect)
-      ("i" "Connect-i" ejc-connect-interactive)
-      ("C-l" "Log" ejc-open-log)
-      ("q" "Quit" ejc-quit-connection)
-      ]
-     ["Show"
-      ("M-," "Prev result" ejc-show-prev-result :transient t)
-      ("<up>" "Result buffer" ejc-show-last-result)
-      ("t" "Tables list" ejc-show-tables-list)
-      ("v" "Views list" ejc-show-views-list)
-      ("p" "Procedures list" ejc-show-procedures-list)
-      ("T" "User types list" ejc-show-user-types-list)
-      ("C" "Constraints list" ejc-show-constraints-list)
-      ]
-     ["Format"
-      ("f" "Pprint" ejc-format-sql-at-point)
-      ("F" "Pprint region" ejc-format-sql-region)
-      ("s" "Strip SQL" ejc-strinp-sql-at-point)
-      ("S" "Dress SQL" ejc-dress-sql-at-point)
-      ]
-     ["Other"
-      ("b" "Temp buffer" ejc-get-temp-editor-buffer)
-      ("of" "Fetch size" transient/ejc-sql-mode--set-fetch-size)
-      ("or" "Max rows" transient/ejc-sql-mode--set-max-rows)
-      ("oc" "Col width" transient/ejc-sql-mode--set-column-width-limit)
-      ]
-     ]
-    [
-     ["Navigate"
-      ("M-b" "Previous" ejc-previous-sql :transient t)
-      ("M-f" "Next" ejc-next-sql :transient t)
-      ]
-     ["Run"
-      ("C-c" "Statement" ejc-eval-user-sql-at-point)
-      ("C-r" "Region" ejc-eval-user-sql-region)
-      ]
-     ["Describe"
-      ("ht" "Describe table" ejc-describe-table)
-      ("hd" "Describe entity" ejc-describe-entity)
-      ("hs" "Database structure" ejc-direx:pop-to-buffer)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c q") #'transient/ejc-sql-mode))
 
 ;; add transient for Flymake
 (with-eval-after-load 'flymake

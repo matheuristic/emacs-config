@@ -3513,6 +3513,24 @@ Use the [[https://elpa.gnu.org/packages/org.html][ELPA version]] of Org that mor
 (my-install-elpa-package 'org)
 #+end_src
 
+** Rebind org-force-cycle-archived in older Org versions
+
+~org-force-cycle-archived~ in Org versions <9.4 is bound to ~C-TAB~ which shadows the default ~tab-bar-mode~ bindings for ~tab-next~.
+
+For these older versions, unbind ~C-TAB~ in ~org-mode-map~ and bind
+~org-force-cycle-archived~ to ~C-c C-TAB~ which matches the bindings
+in newer Org versions.
+
+#+name: rebind-org-force-cycle-archived-when-using-older-org-versions
+#+begin_src elisp
+;; rebind `org-force-cycle-archived' in older Org versions to not
+;; conflict with the `tab-next' default binding
+(with-eval-after-load 'org
+  (when (version< (org-version) "9.4")
+    (define-key org-mode-map (kbd "<C-tab>") nil)
+    (org-defkey org-mode-map (kbd "C-c C-<tab>") #'org-force-cycle-archived)))
+#+end_src
+
 ** Base Org settings
 
 *Customizations*:
@@ -10667,7 +10685,9 @@ The main configuration file.
 
 ;; Org-mode
 
-<<org-elpa>>
+;; <<org-elpa>>
+
+<<rebind-org-force-cycle-archived-when-using-older-org-versions>>
 
 <<org-base-settings>>
 

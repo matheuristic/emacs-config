@@ -2695,10 +2695,13 @@ $ ln -s ~/build/notmuch/emacs notmuch
            :map notmuch-show-mode-map
            ("d" . notmuch-show--toggle-trash-tag)
            ("SPC" . notmuch-show-advance) ; don't archive by default when advancing
+           ("S-SPC" . notmuch-show-rewind)
            :map notmuch-search-mode-map
            ("d" . notmuch-search--toggle-trash-tag)
+           ("S-SPC" . notmuch-search-scroll-down)
            :map notmuch-tree-mode-map
-           ("d" . notmuch-tree--toggle-trash-tag))
+           ("d" . notmuch-tree--toggle-trash-tag)
+           ("S-SPC" . notmuch-tree-scroll-message-window-back))
     :init
     (setq notmuch-always-prompt-for-sender t
           notmuch-archive-tags '("-inbox")
@@ -3096,7 +3099,9 @@ not loaded).
         org-msg-startup "hidestars indent inlineimages"
         org-msg-greeting-fmt nil
         org-msg-greeting-name-limit 3
-        org-msg-text-plain-alternative t)
+        org-msg-default-alternatives '(text html)
+        org-msg-text-plain-alternative t
+        org-msg-convert-citation t)
   :config
   ;; enable HTML email message composition
   (org-msg-mode 1)
@@ -3912,16 +3917,16 @@ Org agenda parsing and operations speedy ([[https://www.gnu.org/software/emacs/m
 
 ;; custom agenda commands
 (setq org-agenda-custom-commands
-      `(("n" "Three-day agenda and undated TODO entries"
-         ((agenda "" ((org-agenda-span 3)))
-          (todo "NEXT" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
-          (todo "WAIT" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
-          (todo "TODO" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
-          (todo "HOLD" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))
+      `(("." "Today's agenda and all TODO entries"
+         ((agenda "" ((org-agenda-span 1)))
+          (todo "NEXT" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
+          (todo "WAIT" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
+          (todo "TODO" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
+          (todo "HOLD" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))))
         ("u" "Undated TODO entries"
          ((todo "NEXT" ((org-agenda-todo-ignore-with-date t)
                         (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))

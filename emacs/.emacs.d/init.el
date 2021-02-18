@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Feb 17 12:37:07 2021
+;; Generated: Wed Feb 17 20:47:58 2021
 
 ;;; Commentary:
 
@@ -508,13 +508,6 @@ This minor mode has no effect when the buffer is not visiting a file."
 ;; (setq winner-dont-bind-my-keys t)
 ;; enable winner-mode at end of initialization
 (add-hook 'after-init-hook #'winner-mode)
-
-;; popup window manager, also auto-closes special buffers like
-;; *compilation* and *Completions*
-(use-package popwin
-  :config
-  (popwin-mode 1)
-  (global-set-key (kbd "C-z") popwin:keymap))
 
 (defun my-rotate-window-buffers (rotations)
   "Rotate buffers in the windows of the current frame ROTATIONS times.

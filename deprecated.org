@@ -677,6 +677,26 @@ Add entry point for calling ~ace-window~ to the window hydra.
   ("a" ace-window "ace-window"))
 #+end_src
 
+*** popwin for automatic management of special buffers                :melpa:
+
+[[https://github.com/emacsorphanage/popwin][popwin]] configures Emacs to show special buffers like ~*Help*~,
+~*Completions*~ and so on in a window that automatically gets closed
+on ~C-g~ or selection of another window.
+
+It can also be used to popup temporary buffers, and that functionality
+can be accessed through ~popwin:keymap~ which is configured to
+the ~C-z~ prefix (use ~C-x C-z~ to call ~suspend-frame~ instead).
+
+#+name: popwin
+#+begin_src emacs-lisp
+;; popup window manager, also auto-closes special buffers like
+;; *compilation* and *Completions*
+(use-package popwin
+  :config
+  (popwin-mode 1)
+  (global-set-key (kbd "C-z") popwin:keymap))
+#+end_src
+
 ** Frame management
 
 *** Frame management hydra                                            :hydra:

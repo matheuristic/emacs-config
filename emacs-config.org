@@ -1271,26 +1271,6 @@ This minor mode has no effect when the buffer is not visiting a file."
 (add-hook 'after-init-hook #'winner-mode)
 #+end_src
 
-*** popwin for automatic management of special buffers                :melpa:
-
-[[https://github.com/emacsorphanage/popwin][popwin]] configures Emacs to show special buffers like ~*Help*~,
-~*Completions*~ and so on in a window that automatically gets closed
-on ~C-g~ or selection of another window.
-
-It can also be used to popup temporary buffers, and that functionality
-can be accessed through ~popwin:keymap~ which is configured to
-the ~C-z~ prefix (use ~C-x C-z~ to call ~suspend-frame~ instead).
-
-#+name: popwin
-#+begin_src emacs-lisp
-;; popup window manager, also auto-closes special buffers like
-;; *compilation* and *Completions*
-(use-package popwin
-  :config
-  (popwin-mode 1)
-  (global-set-key (kbd "C-z") popwin:keymap))
-#+end_src
-
 *** More convenient binding for cycling between windows
 
 Use ~M-o~ (easier than ~C-x o~) to cycle between visible windows in a
@@ -10545,8 +10525,6 @@ The main configuration file.
 ;; Buffers, windows, frames, workspaces / Window management
 
 <<winner-mode>>
-
-<<popwin>>
 
 <<my-rotate-window-buffers>>
 

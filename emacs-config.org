@@ -1342,6 +1342,17 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (global-set-key (kbd "C-x 4 ]") #'my-rotate-buffers-forward)
 #+end_src
 
+*** Select help windows automatically
+
+Automatically focus on newly opened help buffers in existing or new
+windows.
+
+#+name: help-window-select
+#+begin_src emacs-lisp
+;; automatically focus on help windows when they are opened
+(setq help-window-select t)
+#+end_src
+
 ** Frame management
 
 *** Resize frames pixelwise
@@ -2035,12 +2046,19 @@ Also configure it so its commands integrate appropriately with
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
   :commands paredit-mode
+  :bind (:map paredit-mode-map
+         ("{" . paredit-open-curly)
+         ("}" . paredit-close-curly))
   :hook ((emacs-lisp-mode . paredit-mode)
          ;; when in minibuffer via `eval-expression`
          (eval-expression-minibuffer-setup . paredit-mode)
          ;; *scratch* default mode
          (lisp-interaction-mode . paredit-mode))
   :config
+  ;; non-terminal bindings, see https://www.racket-mode.com/#paredit
+  (unless terminal-frame
+    (define-key paredit-mode-map (kbd "M-[") #'paredit-wrap-square)
+    (define-key paredit-mode-map (kbd "M-{") #'paredit-wrap-curly))
   ;; make delete-selection-mode work within paredit-mode
   (with-eval-after-load 'delsel
     (put 'paredit-forward-delete 'delete-selection 'supersede)
@@ -10526,9 +10544,11 @@ The main configuration file.
 
 <<winner-mode>>
 
+<<more-convenient-other-window-binding>>
+
 <<my-rotate-window-buffers>>
 
-<<more-convenient-other-window-binding>>
+<<help-window-select>>
 
 ;; Buffers, windows, frames, workspaces / Frame management
 

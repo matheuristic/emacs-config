@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Feb 17 20:47:58 2021
+;; Generated: Wed Feb 17 23:11:46 2021
 
 ;;; Commentary:
 
@@ -509,6 +509,9 @@ This minor mode has no effect when the buffer is not visiting a file."
 ;; enable winner-mode at end of initialization
 (add-hook 'after-init-hook #'winner-mode)
 
+;; more convenient bindings for `other-window' and `other-frame'
+(global-set-key (kbd "M-o") #'other-window)
+
 (defun my-rotate-window-buffers (rotations)
   "Rotate buffers in the windows of the current frame ROTATIONS times.
 ROTATIONS can be negative, which rotates in the opposite direction."
@@ -560,8 +563,8 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 (global-set-key (kbd "C-x 4 [") #'my-rotate-buffers-backward)
 (global-set-key (kbd "C-x 4 ]") #'my-rotate-buffers-forward)
 
-;; more convenient bindings for `other-window' and `other-frame'
-(global-set-key (kbd "M-o") #'other-window)
+;; automatically focus on help windows when they are opened
+(setq help-window-select t)
 
 ;; Buffers, windows, frames, workspaces / Frame management
 
@@ -904,12 +907,19 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
   :commands paredit-mode
+  :bind (:map paredit-mode-map
+         ("{" . paredit-open-curly)
+         ("}" . paredit-close-curly))
   :hook ((emacs-lisp-mode . paredit-mode)
          ;; when in minibuffer via `eval-expression`
          (eval-expression-minibuffer-setup . paredit-mode)
          ;; *scratch* default mode
          (lisp-interaction-mode . paredit-mode))
   :config
+  ;; non-terminal bindings, see https://www.racket-mode.com/#paredit
+  (unless terminal-frame
+    (define-key paredit-mode-map (kbd "M-[") #'paredit-wrap-square)
+    (define-key paredit-mode-map (kbd "M-{") #'paredit-wrap-curly))
   ;; make delete-selection-mode work within paredit-mode
   (with-eval-after-load 'delsel
     (put 'paredit-forward-delete 'delete-selection 'supersede)

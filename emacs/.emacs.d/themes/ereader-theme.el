@@ -35,17 +35,17 @@
 (deftheme ereader
   "Theme emulating an eReader device, with some splashes of color.")
 
-(let ((fg "#121212")
-      (fg-table "#262626")
-      (bg "#ffffff")
-      (bg-light "#d0d0d0")
-      (fg-light "#b2b2b2")
-      (bg-highlight "#ffffaf")
-      (bg-highlight-2 "#d7ffff")
-      (bg-highlight-3 "#87ff87")
-      (fg-dim "#949494")
-      (bg-region "#eeeeee")
-      (bg-search "#ffaf5f"))
+(let ((fg "#111111")
+      (fg-table "#222291")
+      (bg "#fbfbf8")
+      (bg-light "#dbdbdb")
+      (fg-light "#b7b7b7")
+      (bg-highlight "#fff1aa")
+      (bg-highlight-2 "light cyan")
+      (bg-highlight-3 "light green")
+      (fg-dim "#909090")
+      (bg-region "#eeeee8")
+      (bg-search "#ffb347"))
 
   (custom-theme-set-faces
    'ereader
@@ -60,7 +60,7 @@
    `(font-latex-italic-face ((t (:foreground ,fg :slant italic))))
    `(font-latex-match-reference-keywords ((t (:foreground ,fg))))
    `(font-latex-match-variable-keywords ((t (:foreground ,fg))))
-   `(font-latex-string-face ((t (:foreground "#a8a8a8"))))
+   `(font-latex-string-face ((t (:foreground "dark gray"))))
    `(font-lock-builtin-face ((t (:foreground ,fg))))
    `(font-lock-comment-delimiter-face ((t (:foreground ,fg :weight bold))))
    `(font-lock-comment-face ((t (:foreground ,fg :weight bold))))
@@ -70,7 +70,7 @@
    `(font-lock-keyword-face ((t (:foreground ,fg))))
    `(font-lock-preprocessor-face ((t (:foreground ,fg))))
    `(font-lock-reference-face ((t (:foreground ,fg))))
-   `(font-lock-string-face ((t (:foreground "#626262"))))
+   `(font-lock-string-face ((t (:foreground "#606060"))))
    `(font-lock-type-face ((t (:foreground ,fg))))
    `(font-lock-variable-name-face ((t (:foreground ,fg :underline nil))))
    `(font-lock-warning-face ((t (:foreground ,fg :weight bold))))
@@ -80,13 +80,13 @@
    `(gnus-header-name ((t (:foreground ,fg))))
    `(gnus-header-subject ((t (:foreground ,fg))))
    `(header-line ((t (:background ,bg-light))))
-   `(highlight ((t (:background "#ffff87"))))
-   `(hl-line ((t (:background "#ffd7af"))))
+   `(highlight ((t (:background "#fdf17a"))))
+   `(hl-line ((t (:background "#fedcba"))))
    `(ido-first-match ((t (:foreground ,fg))))
    `(ido-only-match ((t (:foreground ,fg))))
    `(ido-subdir ((t (:foreground ,fg))))
    `(isearch ((t (:background ,bg-search :foreground ,fg))))
-   `(line-number ((t (:foreground "#c6c6c6" :weight light))))
+   `(line-number ((t (:foreground "#cacaca" :weight light))))
    `(link ((t (:foreground ,fg :underline t))))
    `(minibuffer-prompt ((t (:foreground ,fg :weight bold))))
    `(mode-line ((t (:background ,bg :foreground ,fg :overline ,fg))))
@@ -97,7 +97,7 @@
    `(region ((t (:background ,bg-region :foreground ,fg))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
    `(tab-bar ((t (:background ,bg-light :foreground ,fg))))
-   `(tab-bar-tab ((t (:background ,bg-light :foreground "#00005f" :underline t :weight extra-bold))))
+   `(tab-bar-tab ((t (:background ,bg-light :foreground "midnight blue" :underline t :weight extra-bold))))
    `(tab-bar-tab-inactive ((t (:background ,bg-light :foreground ,fg))))
    `(vertical-border ((t (:foreground ,bg-light))))
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))
@@ -107,12 +107,12 @@
    `(org-agenda-date-today ((t (:foreground ,fg :weight bold))))
    `(org-agenda-date-weekend ((t (:foreground ,fg :weight light))))
    `(org-agenda-structure ((t (:foreground ,fg :weight bold))))
-   `(org-block ((t (:foreground ,fg :background "#ffffd7" :extend t))))
-   `(org-block-begin-line ((t (:foreground "#585858" :background ,bg-light :extend t))))
-   `(org-block-end-line ((t (:foreground "#585858" :background ,bg-light :extend t))))
+   `(org-block ((t (:foreground ,fg :background "#ffffe0" :extend t))))
+   `(org-block-begin-line ((t (:foreground "#555555" :background "#e2e1d5" :extend t))))
+   `(org-block-end-line ((t (:foreground "#555555" :background "#e2e1d5" :extend t))))
    `(org-date ((t (:foreground ,fg :underline t))))
-   `(org-document-info ((t (:foreground "#00005f" :slant italic))))
-   `(org-document-title ((t (:foreground "#00005f" :weight bold))))
+   `(org-document-info ((t (:foreground "midnight blue" :slant italic))))
+   `(org-document-title ((t (:foreground "midnight blue" :weight bold))))
    `(org-done ((t (:foreground ,fg-light))))
    `(org-hide ((t (:foreground ,bg))))
    `(org-indent ((t (:inherit org-hide))))
@@ -123,7 +123,7 @@
    `(org-level-4 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
    `(org-level-5 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
    `(org-level-6 ((t (:foreground ,fg :weight semi-bold :overline ,bg))))
-   `(org-link ((t (:foreground "#5f5fd7" :underline t))))
+   `(org-link ((t (:foreground "royal blue" :underline t))))
    `(org-meta-line ((t (:inherit org-document-info-keyword))))
    `(org-quote ((t (:foreground ,fg :slant italic :inherit org-block))))
    `(org-scheduled ((t (:foreground ,fg))))
@@ -139,8 +139,8 @@
    `(org-super-agenda-header ((t (:foreground ,fg :weight semi-bold))))
 
    ;; powerline
-   `(powerline-active1 ((t (:background "#3a3a3a" :foreground ,bg :inherit mode-line))))
-   `(powerline-active2 ((t (:background "#626262" :foreground ,bg :inherit mode-line))))
+   `(powerline-active1 ((t (:background "gray22" :foreground ,bg :inherit mode-line))))
+   `(powerline-active2 ((t (:background "gray40" :foreground ,bg :inherit mode-line))))
 
    ;; doom-modeline
    `(doom-modeline-bar ((t (:background ,fg))))
@@ -157,14 +157,14 @@
    `(magit-branch-remote ((t (:weight bold))))
 
    ;; diff
-   `(diff-added ((t (:background "#d7ffd7"))))
-   `(diff-removed ((t (:background "#ffafaf"))))
-   `(diff-refine-added ((t (:background "#afffaf"))))
-   `(diff-refine-removed ((t (:background "#ffd7d7"))))
-   `(magit-diff-added-highlight ((t (:weight demibold :background "#d7ffd7"))))
-   `(magit-diff-added ((t (:background "#d7ffd7"))))
-   `(magit-diff-removed-highlight ((t (:weight demibold :background "#ffafaf"))))
-   `(magit-diff-removed ((t (:background "#ffafaf"))))
+   `(diff-added ((t (:background "#e9ffe9"))))
+   `(diff-removed ((t (:background "#ffecec"))))
+   `(diff-refine-added ((t (:background "#a4f4a3"))))
+   `(diff-refine-removed ((t (:background "#f9cbca"))))
+   `(magit-diff-added-highlight ((t (:weight demibold :background "#e9ffe9"))))
+   `(magit-diff-added ((t (:background "#e9ffe9"))))
+   `(magit-diff-removed-highlight ((t (:weight demibold :background "#ffecec"))))
+   `(magit-diff-removed ((t (:background "#ffecec"))))
 
    ;; git-timemachine
    `(git-timemachine-minibuffer-author-face ((t (:inherit default))))
@@ -185,7 +185,7 @@
    `(dired-subtree-depth-4-face ((t (:inherit default))))
 
    ;; helm
-   `(helm-source-header ((t (:foreground ,fg :background "#e4e4e4" :weight bold))))
+   `(helm-source-header ((t (:foreground ,fg :background "gray90" :weight bold))))
    `(helm-header ((t (:foreground ,fg))))
    `(helm-selection-line ((t (:inherit region :weight bold))))
    `(helm-selection ((t (:background ,bg-highlight))))
@@ -202,18 +202,18 @@
    `(company-tooltip-selection ((t (:background ,bg-highlight))))
 
    ;; parens - parenface
-   '(parenface-paren-face ((t (:foreground ,fg-light))))
-   '(parenface-curly-face ((t (:foreground ,fg-light))))
-   '(parenface-bracket-face ((t (:foreground ,fg-light))))
+   '(parenface-paren-face ((t (:foreground "gray70"))))
+   '(parenface-curly-face ((t (:foreground "gray70"))))
+   '(parenface-bracket-face ((t (:foreground "gray70"))))
 
    ;; parens - paren-face
-   '(parenthesis ((t (:foreground ,fg-light))))
+   '(parenthesis ((t (:foreground "gray70"))))
 
    ;; parens - other
-   `(sp-show-pair-match-face ((t (:foreground ,fg :weight bold))))
-   `(sp-show-pair-mismatch-face ((t (:background "#ff5f5f" :foreground ,fg :weight bold))))
-   `(show-paren-match ((t (:foreground ,fg :weight bold))))
-   `(show-paren-mismatch ((t (:background "#ff5f5f" :foreground ,fg :weight bold))))
+   `(sp-show-pair-match-face ((t (:foreground "black" :weight bold))))
+   `(sp-show-pair-mismatch-face ((t (:background "red" :foreground "black" :weight bold))))
+   `(show-paren-match ((t (:foreground "black" :weight bold))))
+   `(show-paren-mismatch ((t (:background "red" :foreground "black" :weight bold))))
 
    ;; js2
    `(js2-function-param ((t (:foreground ,fg))))
@@ -241,7 +241,7 @@
    `(web-mode-current-element-highlight-face ((t (:inherit normal :weight bold :foreground ,fg))))
 
    ;; mmm-mode
-   ;; `(mmm-default-submode-face ((t (:inherit normal :background "#ffffef"))))
+   `(mmm-default-submode-face ((t (:inherit normal :background "#ffffef"))))
 
    ;; misc
    `(idle-highlight ((t (:background ,bg-highlight))))
@@ -250,12 +250,12 @@
    `(cider-result-overlay-face ((t (:weight bold))))
 
    ;; markdown-mode
-   `(markdown-code-face ((t (:inherit fixed-pitch :foreground ,fg :background "#ffffd7" :extend t))))
+   `(markdown-code-face ((t (:inherit fixed-pitch :foreground ,fg :background "#ffffe0" :extend t))))
 
    ;; ace-window
    `(aw-background-face ((t (:foreground ,fg-dim))))
-   `(aw-leading-char-face ((t (:foreground "#ff5f5f" :weight bold :height 4.0))))
-   `(aw-minibuffer-leading-char-face ((t (:foreground "#ff5f5f" :weight bold))))
+   `(aw-leading-char-face ((t (:foreground "red" :weight bold :height 4.0))))
+   `(aw-minibuffer-leading-char-face ((t (:foreground "red" :weight bold))))
 
    ;; vterm
    `(vterm-color-default ((t (:inherit default :foreground ,fg :background ,bg :extend t))))
@@ -269,20 +269,20 @@
    `(vterm-color-white ((t (:inherit term-color-white))))
 
    ;; nswbuff
-   `(nswbuff-default-face ((t (:foreground "#ff5f5f"))))
-   `(nswbuff-current-buffer-face ((t (:foreground "#ff5f5f" :weight bold :underline t))))
+   `(nswbuff-default-face ((t (:foreground "red"))))
+   `(nswbuff-current-buffer-face ((t (:foreground "red" :weight bold :underline t))))
    `(nswbuff-separator-face ((t (:inherit shadow))))
 
    ;; highlight-indent-guides
-   `(highlight-indent-guides-odd-face ((t (:background "#e4e4e4"))))
-   `(highlight-indent-guides-even-face ((t (:background "#c6c6c6"))))
-   `(highlight-indent-guides-character-face ((t (:foreground "#c6c6c6" :weight ultra-light))))
-   `(highlight-indent-guides-top-odd-face ((t (:background "#808080"))))
-   `(highlight-indent-guides-top-even-face ((t (:background "#626262"))))
-   `(highlight-indent-guides-top-character-face ((t (:foreground "#626262" :weight ultra-light))))
-   `(highlight-indent-guides-stack-odd-face ((t (:background ,fg-light))))
-   `(highlight-indent-guides-stack-even-face ((t (:background ,fg-dim))))
-   `(highlight-indent-guides-stack-character-face ((t (:foreground ,fg-dim :weight ultra-light))))
+   `(highlight-indent-guides-odd-face ((t (:background "#e1e1df"))))
+   `(highlight-indent-guides-even-face ((t (:background "#c8c8c6"))))
+   `(highlight-indent-guides-character-face ((t (:foreground "#c8c8c6" :weight ultra-light))))
+   `(highlight-indent-guides-top-odd-face ((t (:background "#7d7d7c"))))
+   `(highlight-indent-guides-top-even-face ((t (:background "#646463"))))
+   `(highlight-indent-guides-top-character-face ((t (:foreground "#646463" :weight ultra-light))))
+   `(highlight-indent-guides-stack-odd-face ((t (:background "#afafad"))))
+   `(highlight-indent-guides-stack-even-face ((t (:background "#969694"))))
+   `(highlight-indent-guides-stack-character-face ((t (:foreground "#969694" :weight ultra-light))))
 
    ;; volatile-highlights
    `(vhl/default-face ((t (:background ,bg-highlight-3))))

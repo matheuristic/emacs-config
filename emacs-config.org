@@ -2756,6 +2756,41 @@ tag based on the entry at the beginning of the region."
         (notmuch-tree-tag (list "+trash" "-inbox"))))))
 #+end_src
 
+** Asynchronous mail polling in Notmuch
+
+Create async version of ~notmuch-poll~ and overwrite default bindings.
+
+Adapted from this [[https://notmuchmail.org/pipermail/notmuch/2020/029248.html][patch]] posted to the Notmuch email group.
+
+#+name: notmuch-poll-async
+#+begin_src emacs-lisp
+;; async version of `notmuch-poll' that sends a message when complete
+;; buffer should be manually refreshed with "g" after polling is done
+(with-eval-after-load 'notmuch
+  (defun notmuch-poll-async ()
+    "Like `notmuch-poll' but asynchronous."
+    (interactive)
+    (notmuch-start-notmuch
+     "notmuch-new"
+     nil
+     (lambda (_proc change)
+       (with-current-buffer
+           (cl-find-if (lambda (b)
+                         (with-current-buffer b
+                           (eq major-mode 'notmuch-search-mode)))
+                       (buffer-list))
+         ;; uncomment the following to automatically refresh buffer
+         ;; (notmuch-refresh-this-buffer)
+         )
+       (message (concat "notmuch-new: %s"
+                        "\n"
+                        "Please refresh buffer as needed.")
+                change))
+     "new"))
+  ;; overwrite default "G" bindings in notmuch modes
+  (define-key notmuch-common-keymap (kbd "G") #'notmuch-poll-async))
+#+end_src
+
 ** Shortening names in Search view for threads with multiple authors
 
 Advise ~:around~ ~notmuch-search-insert-authors~ to show the first and
@@ -10651,6 +10686,8 @@ The main configuration file.
 ;; Email
 
 <<notmuch>>
+
+<<notmuch-poll-async>>
 
 <<notmuch-shorten-multiple-author-names>>
 

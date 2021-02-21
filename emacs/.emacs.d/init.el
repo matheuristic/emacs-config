@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Feb 17 23:11:46 2021
+;; Generated: Sun Feb 21 13:38:58 2021
 
 ;;; Commentary:
 
@@ -1100,6 +1100,32 @@ tag based on the entry at the beginning of the region."
       (if (member "trash" (notmuch-tree-get-tags))
           (notmuch-tree-tag (list "-trash"))
         (notmuch-tree-tag (list "+trash" "-inbox"))))))
+
+;; async version of `notmuch-poll' that sends a message when complete
+;; buffer should be manually refreshed with "g" after polling is done
+(with-eval-after-load 'notmuch
+  (defun notmuch-poll-async ()
+    "Like `notmuch-poll' but asynchronous."
+    (interactive)
+    (notmuch-start-notmuch
+     "notmuch-new"
+     nil
+     (lambda (_proc change)
+       (with-current-buffer
+           (cl-find-if (lambda (b)
+                         (with-current-buffer b
+                           (eq major-mode 'notmuch-search-mode)))
+                       (buffer-list))
+         ;; uncomment the following to automatically refresh buffer
+         ;; (notmuch-refresh-this-buffer)
+         )
+       (message (concat "notmuch-new: %s"
+                        "\n"
+                        "Please refresh buffer as needed.")
+                change))
+     "new"))
+  ;; overwrite default "G" bindings in notmuch modes
+  (define-key notmuch-common-keymap (kbd "G") #'notmuch-poll-async))
 
 ;; advise `notmuch-search-insert-authors' so that when a thread has
 ;; multiple authors, only the first and last message authors are

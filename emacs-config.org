@@ -151,7 +151,7 @@ References:
 
 ** Useful Emacs default bindings
 
-*** Moving to beginning of line text (M-m)
+*** Moving to beginning of line text ("M-m")
 
 There is a function ~back-to-indentation~ which moves the point to the
 beginning of the line /text/, globally bound to ~M-m~ by default.
@@ -159,24 +159,24 @@ beginning of the line /text/, globally bound to ~M-m~ by default.
 This is a useful complement to the standard ~C-a~ binding that moves
 the point to the beginning of the line.
 
-*** Moving to top/middle/bottom of window (M-r)
+*** Moving to top/middle/bottom of window ("M-r")
 
 ~move-to-window-line-top-bottom~ cycles the point between the top,
 middle and bottom of the window, and is bound to ~M-r~ by default.
 
-*** Cycle view so current line is top/middle/bottom of window (C-l)
+*** Cycle view so current line is top/middle/bottom of window ("C-l")
 
 ~recenter-top-bottom~ cycles the window view between three
 configurations where the current line is at the top, middle or bottom
 of the visible buffer area, and is bound to ~C-l~ by default.
 
-*** Jumping to function definitions (M-.)
+*** Jumping to function definitions ("M-.")
 
 Jumping to the definition of a function under point can be done by
 calling ~xref-find-definitions~ interactively, which is bound to ~M-.~
 by default.
 
-*** Backtracking through a chain of jumps (M-,)
+*** Backtracking through a chain of jumps ("M-,")
 
 Backtracking through a chain of jumps can be done by calling
 ~xref-pop-marker-stack~ which is bound to ~M-,~ by default (this only
@@ -191,11 +191,24 @@ utilized as follows.
 (advice-add #'name-of-some-function :before #'xref-push-marker-stack))
 #+end_example
 
-*** Repeat last command (C-x z)
+*** Repeat last command ("C-x z")
 
 ~C-x z~ invokes the ~repeat~ command which repeats the last command.
 Continue pressing ~z~ after that to keep repeating the last command.
 For example, ~C-x z z z z z~ repeats the last command five times.
+
+*** Kill the minibuffer from another buffer ("C-]")
+
+Switching away from an active minibuffer (e.g. with the mouse or with
+"C-x o") can leave it active. Trying to run another command will raise
+an error ~Command attempted to use minibuffer while in minibuffer~.
+
+~C-]~ can be used to kill the active minibuffer (if one is active)
+when in another buffer before running a new command.
+
+References:
+- [[https://emacs.stackexchange.com/questions/7571/how-to-cancel-the-minibuffer-from-the-main-buffer][How to cancel the minibuffer from the main buffer - Emacs Stack Exchange]]
+- [[http://trey-jackson.blogspot.com/2010/04/emacs-tip-36-abort-minibuffer-when.html][Emacs Tip #36: Abort the minibuffer when using the mouse]]
 
 ** Random useful Emacs links
 

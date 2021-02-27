@@ -2787,14 +2787,6 @@ Adapted from this [[https://notmuchmail.org/pipermail/notmuch/2020/029248.html][
      "notmuch-new"
      nil
      (lambda (_proc change)
-       (with-current-buffer
-           (cl-find-if (lambda (b)
-                         (with-current-buffer b
-                           (eq major-mode 'notmuch-search-mode)))
-                       (buffer-list))
-         ;; uncomment the following to automatically refresh buffer
-         ;; (notmuch-refresh-this-buffer)
-         )
        (message (concat "notmuch-new: %s"
                         "\n"
                         "Please refresh buffer as needed.")

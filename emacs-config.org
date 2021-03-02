@@ -3721,11 +3721,11 @@ Possible Org task states:
                                :jump-to-captured t :clock-in t :clock-resume t)
                               ("j" "Journal Entry" entry
                                (file+olp+datetree my-org-journal-file)
-                               "**** %<%R >%?\n%T"
+                               "**** %?\n%T"
                                :tree-type week :clock-in t :clock-resume t)
                               ("J" "Schedule Journal Entry" entry
                                (file+olp+datetree my-org-journal-file)
-                               "**** %<%R >%?\n%T"
+                               "**** %?\n%T"
                                :tree-type week :time-prompt t)))
 #+end_src
 

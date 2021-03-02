@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Feb 26 19:56:22 2021
+;; Generated: Tue Mar  2 15:32:53 2021
 
 ;;; Commentary:
 
@@ -1699,11 +1699,11 @@ call `open-line' on the very first character."
                                :jump-to-captured t :clock-in t :clock-resume t)
                               ("j" "Journal Entry" entry
                                (file+olp+datetree my-org-journal-file)
-                               "**** %<%R >%?\n%T"
+                               "**** %?\n%T"
                                :tree-type week :clock-in t :clock-resume t)
                               ("J" "Schedule Journal Entry" entry
                                (file+olp+datetree my-org-journal-file)
-                               "**** %<%R >%?\n%T"
+                               "**** %?\n%T"
                                :tree-type week :time-prompt t)))
 
 (with-eval-after-load 'org

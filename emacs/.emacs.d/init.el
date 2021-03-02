@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Mar  2 15:32:53 2021
+;; Generated: Tue Mar  2 17:02:32 2021
 
 ;;; Commentary:
 
@@ -4220,6 +4220,11 @@ Currently only works for Emacs Mac port."
                      " ")
                    "]"))
      set-selective-display)
+    ("P" (lambda ()
+           (transient--make-description
+            "Prettify symbols"
+            prettify-symbols-mode))
+     prettify-symbols-mode)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"

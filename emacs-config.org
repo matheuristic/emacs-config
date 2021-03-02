@@ -8538,6 +8538,11 @@ Currently only works for Emacs Mac port."
                      " ")
                    "]"))
      set-selective-display)
+    ("P" (lambda ()
+           (transient--make-description
+            "Prettify symbols"
+            prettify-symbols-mode))
+     prettify-symbols-mode)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"

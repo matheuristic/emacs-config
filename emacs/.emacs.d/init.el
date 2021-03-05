@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Mar  2 17:02:32 2021
+;; Generated: Thu Mar  4 23:42:53 2021
 
 ;;; Commentary:
 
@@ -2441,6 +2441,34 @@ Lisp function does not specify a special indentation."
               fish-indent-offset 4))
 
 ;; Programming / Python
+
+(require 'j-mode)
+(add-to-list 'auto-mode-alist '("\\.ij[rstp]$" . j-mode))
+(with-eval-after-load 'flymake-quickdef
+  (flymake-quickdef-backend flymake-j-console-debug-lint-backend
+    :pre-let ((j-console-exec (executable-find j-console-cmd)))
+    :pre-check (unless j-console-exec (error "Cannot find J executable"))
+    :write-type 'file
+    :proc-form (list j-console-exec
+                     "-js"
+                     "require 'debug/lint'"
+                     (concat "echo lint '" fmqd-temp-file "'")
+                     "exit''")
+    :search-regexp
+    "│\\([[:digit:]]+\\)│\\(.+\\) *│$"
+    :prep-diagnostic (let* ((lnum (1+ (string-to-number (match-string 1)))) ; lint output linenums are 0-indexed, but Emacs linenums are 1-indexed
+                            (msg (match-string 2))
+                            (pos (flymake-diag-region fmqd-source lnum))
+                            (beg (car pos))
+                            (end (cdr pos))
+                            (type :error))
+                       (list fmqd-source beg end type msg)))
+  (defun flymake-j-console-debug-lint-setup ()
+    "Enable jconsole debug/lint backend for Flymake."
+    (add-hook 'flymake-diagnostic-functions #'flymake-j-console-debug-lint-backend nil t))
+  ;; enable Flymake with j-console backend when editing J files
+  (add-hook 'j-mode-hook #'flymake-j-console-debug-lint-setup)
+  (add-hook 'j-mode-hook #'flymake-mode t))
 
 ;; install ELPA version of python.el
 (my-install-elpa-package 'python)

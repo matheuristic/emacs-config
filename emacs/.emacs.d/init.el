@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Mar  4 23:42:53 2021
+;; Generated: Fri Mar  5 23:30:03 2021
 
 ;;; Commentary:
 
@@ -2338,6 +2338,29 @@ call `open-line' on the very first character."
       (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
       (add-hook 'clojure-mode-hook 'flymake-mode t))))
 
+;; Programming / Dyalog APL
+
+;; support for editing Dyalog files and integration with Dyalog RIDE
+(use-package dyalog-mode
+  :config
+  ;; support for entering APL glyphs using Dyalog RIDE bindings
+  (use-package dyalog-apl-input
+    :ensure nil) ; in site-lisp directory
+  ;; setup Dyalog APL buffer-specific editing environment
+  (defun dyalog-mode--setup ()
+    "Setup code to run when entering a `dyalog-mode' buffer."
+    ;; set font
+    (let ((apl-font-name "APL385 Unicode"))
+      (when (find-font (font-spec :name apl-font-name))
+        (setq-local buffer-face-mode-face `(:family ,apl-font-name))
+        (buffer-face-mode)))
+    ;; set input method
+    (set-input-method "dyalog-apl-prefix"))
+  ;; run setup code when entering Dyalog APL buffers
+  (add-hook 'dyalog-mode-hook #'dyalog-mode--setup)
+  (add-hook 'dyalog-session-mode-hook #'dyalog-mode--setup)
+  (add-hook 'dyalog-debugger-mode-hook #'dyalog-mode--setup))
+
 ;; Programming / Emacs Lisp
 
 (use-package el-patch
@@ -2440,35 +2463,41 @@ Lisp function does not specify a special indentation."
   :init (setq fish-enable-auto-indent t
               fish-indent-offset 4))
 
-;; Programming / Python
+;; Programming / J
 
-(require 'j-mode)
-(add-to-list 'auto-mode-alist '("\\.ij[rstp]$" . j-mode))
-(with-eval-after-load 'flymake-quickdef
-  (flymake-quickdef-backend flymake-j-console-debug-lint-backend
-    :pre-let ((j-console-exec (executable-find j-console-cmd)))
-    :pre-check (unless j-console-exec (error "Cannot find J executable"))
-    :write-type 'file
-    :proc-form (list j-console-exec
-                     "-js"
-                     "require 'debug/lint'"
-                     (concat "echo lint '" fmqd-temp-file "'")
-                     "exit''")
-    :search-regexp
-    "│\\([[:digit:]]+\\)│\\(.+\\) *│$"
-    :prep-diagnostic (let* ((lnum (1+ (string-to-number (match-string 1)))) ; lint output linenums are 0-indexed, but Emacs linenums are 1-indexed
-                            (msg (match-string 2))
-                            (pos (flymake-diag-region fmqd-source lnum))
-                            (beg (car pos))
-                            (end (cdr pos))
-                            (type :error))
-                       (list fmqd-source beg end type msg)))
-  (defun flymake-j-console-debug-lint-setup ()
-    "Enable jconsole debug/lint backend for Flymake."
-    (add-hook 'flymake-diagnostic-functions #'flymake-j-console-debug-lint-backend nil t))
-  ;; enable Flymake with j-console backend when editing J files
-  (add-hook 'j-mode-hook #'flymake-j-console-debug-lint-setup)
-  (add-hook 'j-mode-hook #'flymake-mode t))
+;; load support for editing J scripts
+(use-package j-mode
+  :ensure nil ; in site-lisp directory
+  :config
+  (with-eval-after-load 'flymake-quickdef
+    (flymake-quickdef-backend flymake-j-console-debug-lint-backend
+      :pre-let ((j-console-exec (executable-find j-console-cmd)))
+      :pre-check (unless j-console-exec
+                   (error "Cannot find J executable"))
+      :write-type 'file
+      :proc-form (list j-console-exec
+                       "-js"
+                       "require 'debug/lint'"
+                       (concat "echo lint '" fmqd-temp-file "'")
+                       "exit''")
+      :search-regexp
+      "│\\([[:digit:]]+\\)│\\(.+\\) *│$"
+      :prep-diagnostic
+      (let* ((lnum (1+ (string-to-number (match-string 1)))) ; lint output linenums are 0-indexed, but Emacs linenums are 1-indexed
+             (msg (match-string 2))
+             (pos (flymake-diag-region fmqd-source lnum))
+             (beg (car pos))
+             (end (cdr pos))
+             (type :error))
+        (list fmqd-source beg end type msg)))
+    (defun flymake-j-console-debug-lint-setup ()
+      "Enable jconsole debug/lint backend for Flymake."
+      (add-hook 'flymake-diagnostic-functions #'flymake-j-console-debug-lint-backend nil t))
+    ;; enable Flymake with j-console backend when editing J files
+    (add-hook 'j-mode-hook #'flymake-j-console-debug-lint-setup)
+    (add-hook 'j-mode-hook #'flymake-mode t)))
+
+;; Programming / Python
 
 ;; install ELPA version of python.el
 (my-install-elpa-package 'python)
@@ -4253,6 +4282,11 @@ Currently only works for Emacs Mac port."
             "Prettify symbols"
             prettify-symbols-mode))
      prettify-symbols-mode)
+    ("B" (lambda ()
+           (transient--make-description
+            "Buffer-specific face"
+            buffer-face-mode))
+     buffer-face-mode)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"

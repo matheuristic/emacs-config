@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Mar  6 12:09:56 2021
+;; Generated: Sun Mar  7 12:19:26 2021
 
 ;;; Commentary:
 
@@ -5267,7 +5267,7 @@ not support restricting to a region."
     (transient-define-prefix transient/markdown-mode ()
       "`markdown-mode' commands."
       :transient-suffix 'transient--do-stay
-      ["Markdown mode"
+      ["Markdown mode (other bindings: 'C-c C-c', 'C-c C-s', 'C-c C-x')"
        ["Navigate"
         ("n" "Next" markdown-outline-next)
         ("p" "Previous" markdown-outline-previous)
@@ -5300,6 +5300,7 @@ not support restricting to a region."
        ["Other"
         ("d" "Do" markdown-do :transient nil)
         ("o" "Follow" markdown-follow-thing-at-point :transient nil)
+        ("N" "Cleanup list nums" markdown-cleanup-list-numbers :transient nil)
         ("'" "Edit code block" markdown-edit-code-block :transient nil)
         ]
        ]

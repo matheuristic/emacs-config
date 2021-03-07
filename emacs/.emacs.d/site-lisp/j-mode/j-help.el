@@ -92,6 +92,13 @@ It groups the objects in LIST according to the predicate FN"
   :type 'integer
   :group 'j-help)
 
+(defcustom j-help-browser-function 'browse-url-default-browser
+  "Browser function used to open j-dictionary URLs.
+
+Typical candidates are: `browse-url-default-browser', `eww-browse-url'."
+  :type 'function
+  :group 'j-help)
+
 (defconst j-help-voc-alist
   '(("~" . "d220v") ("}" . "d530n") ("|" . "d230") ("#" . "d400")
     ("{" . "d520") ("`" . "d610") ("_" . "d030") ("^" . "d200")
@@ -206,7 +213,9 @@ int -> (string * string) list"
 (defun j-help-lookup-symbol (symbol)
   "Lookup SYMBOL in dictionary."
   (interactive "sJ Symbol: ")
-  (let ((url (j-help-symbol-to-doc-url symbol)))
+  (let ((url (j-help-symbol-to-doc-url symbol))
+        (browse-url-browser-function (or j-help-browser-function
+                                         browse-url-browser-function)))
     (message "Loading %s ..." url)
     (browse-url url)))
 

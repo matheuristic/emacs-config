@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Mar  5 23:30:03 2021
+;; Generated: Sat Mar  6 12:09:56 2021
 
 ;;; Commentary:
 
@@ -2468,6 +2468,7 @@ Lisp function does not specify a special indentation."
 ;; load support for editing J scripts
 (use-package j-mode
   :ensure nil ; in site-lisp directory
+  :init (setq j-help-browser-function #'eww-browse-url)
   :config
   (with-eval-after-load 'flymake-quickdef
     (flymake-quickdef-backend flymake-j-console-debug-lint-backend

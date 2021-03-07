@@ -5049,6 +5049,7 @@ lint the current buffer.
 ;; load support for editing J scripts
 (use-package j-mode
   :ensure nil ; in site-lisp directory
+  :init (setq j-help-browser-function #'eww-browse-url)
   :config
   (with-eval-after-load 'flymake-quickdef
     (flymake-quickdef-backend flymake-j-console-debug-lint-backend

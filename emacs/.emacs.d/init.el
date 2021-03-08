@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar  7 12:19:26 2021
+;; Generated: Mon Mar  8 09:48:00 2021
 
 ;;; Commentary:
 
@@ -1596,6 +1596,8 @@ Formatting a selected region only works on top-level objects."
   "Path to Org someday inbox.")
 (defvar my-org-journal-file (concat org-directory "journal.org")
   "Path to Org journal file.")
+(defvar my-org-scratch-file (concat org-directory "scratch/scratch.org")
+  "Path to Org scratch file.")
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
@@ -3852,6 +3854,10 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     "Open a file buffer for `org-websnippet-capture-file'."
     (interactive)
     (find-file org-websnippet-capture-file))
+  (defun transient/org-launcher--find-my-org-scratch-file ()
+    "Open a file buffer for `my-org-scratch-file'."
+    (interactive)
+    (find-file my-org-scratch-file))
 
   (transient-define-prefix transient/org-launcher ()
     "Launcher for Org entry points."
@@ -3868,6 +3874,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
       ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
       ("fr" "Read-it-later" transient/org-launcher--find-org-readitlater-capture-file)
       ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
+      ("fx" "Scratch" transient/org-launcher--find-my-org-scratch-file)
       ]
      ]
     )

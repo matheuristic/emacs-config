@@ -3592,6 +3592,8 @@ in newer Org versions.
   "Path to Org someday inbox.")
 (defvar my-org-journal-file (concat org-directory "journal.org")
   "Path to Org journal file.")
+(defvar my-org-scratch-file (concat org-directory "scratch/scratch.org")
+  "Path to Org scratch file.")
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
@@ -8120,6 +8122,10 @@ Transient for accessing Org entry points.
     "Open a file buffer for `org-websnippet-capture-file'."
     (interactive)
     (find-file org-websnippet-capture-file))
+  (defun transient/org-launcher--find-my-org-scratch-file ()
+    "Open a file buffer for `my-org-scratch-file'."
+    (interactive)
+    (find-file my-org-scratch-file))
 
   (transient-define-prefix transient/org-launcher ()
     "Launcher for Org entry points."
@@ -8136,6 +8142,7 @@ Transient for accessing Org entry points.
       ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
       ("fr" "Read-it-later" transient/org-launcher--find-org-readitlater-capture-file)
       ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
+      ("fx" "Scratch" transient/org-launcher--find-my-org-scratch-file)
       ]
      ]
     )

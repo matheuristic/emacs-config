@@ -119,13 +119,14 @@ Should be NIL if there is no file not the empty string."
 (defun j-console-execute-region (start end)
   "Send region defined by START and END, or the selected region, to the j-console-cmd session and execute it."
   (interactive "r")
-  (let ((region (buffer-substring-no-properties start end))
-        (session (j-console-ensure-session)))
-    (pop-to-buffer (process-buffer session))
-    (goto-char (point-max))
-    (insert region)
-    (comint-send-input)
-    (other-window 1)))
+  (let* ((region (buffer-substring-no-properties start end))
+         (session (j-console-ensure-session))
+         (session-buffer (process-buffer session)))
+    (save-excursion
+      (with-current-buffer session-buffer
+        (goto-char (point-max))
+        (insert region)
+        (comint-send-input)))))
 
 (defun j-console-execute-line ()
   "Send current line to the j-console-cmd session and execute it."

@@ -42,25 +42,7 @@
 ;;; Code:
 
 (require 'cl-lib)
-
-;; for `if-let' definition
-;; (eval-when-compile (require 'subr-x))
-
-(defun group-by* (list fn prev coll agr)
-  "Helper method for `group-by'. Should not be called directly."
-  (if list
-      (let* ((head (car list))
-             (tail (cdr list)))
-        (if (eq (funcall fn head) (funcall fn prev))
-            (group-by* tail fn head (cons head coll) agr)
-          (group-by* tail fn head '() (cons coll agr))))
-    (cons coll agr)))
-
-(defun group-by (list fn)
-  "Group-by is a FN across LIST, returning a sequence.
-It groups the objects in LIST according to the predicate FN"
-  (let ((sl (sort list (lambda (x y) (< (funcall fn x) (funcall fn y))))))
-    (group-by* sl fn '() '() '())))
+(require 'seq)
 
 (unless (fboundp 'some)
   (defun some ( fn list )
@@ -82,13 +64,13 @@ It groups the objects in LIST according to the predicate FN"
   :type 'string
   :group 'j-help)
 
-(defcustom j-help-remote-dictionary-url "http://www.jsoftware.com/help/dictionary"
+(defcustom j-help-remote-dictionary-url "https://code.jsoftware.com/wiki/Vocabulary"
   "Path to the remote instance of the j-dictionary."
   :type 'string
   :group 'j-help)
 
 (defcustom j-help-symbol-search-branch-limit 5
-  "Distance from initial point they system can search for a valid symbol."
+  "Distance from initial point the system can search for a valid symbol."
   :type 'integer
   :group 'j-help)
 
@@ -100,43 +82,75 @@ Typical candidates are: `browse-url-default-browser', `eww-browse-url'."
   :group 'j-help)
 
 (defconst j-help-voc-alist
-  '(("~" . "d220v") ("}" . "d530n") ("|" . "d230") ("#" . "d400")
-    ("{" . "d520") ("`" . "d610") ("_" . "d030") ("^" . "d200")
-    ("]" . "d500") ("\\" . "d430") ("\\:" . "d432") ("\\." . "d431")
-    ("\"" . "d600n") ("[" . "d500") ("@" . "d620") ("?" . "d640")
-    ("=" . "d000") (";" . "d330") (":" . "d310n") ("/" . "d420")
-    ("." . "d300") ("-" . "d120") ("," . "d320") ("+" . "d100")
-    ("*" . "d110") ("<" . "d010") (">" . "d020") ("&" . "d630n")
-    ("%" . "d130") ("$" . "d210") ("~:" . "d222") ("~." . "d221")
-    ("}:" . "d532") ("}." . "d531") ("|:" . "d232") ("|." . "d231")
-    ("{:" . "d522") ("{." . "d521") ("x:" . "dxco") ("u:" . "duco")
-    ("t:" . "dtco") ("t." . "dtdotu") ("s:" . "dsco") ("r." . "drdot")
-    ("q:" . "dqco") ("p:" . "dpco") ("p." . "dpdot") ("o." . "dodot")
-    ("j." . "djdot") ("i:" . "dico") ("i." . "didot") ("f." . "dfdot")
-    ("e." . "dedot") ("d." . "dddot") ("b." . "dbdotn") ("a:" . "dadot")
-    ("a." . "dadot") ("`:" . "d612") ("_:" . "d032") ("_." . "d031")
-    ("^:" . "d202n") ("^." . "d201") ("\":" . "d602") ("\"." . "d601")
-    ("[:" . "d502") ("T." . "dtcapdot") ("@." . "d621") ("?." . "d641")
-    ("=:" . "d001") ("=." . "d001") (";:" . "d332") (";." . "d331")
-    ("::" . "d312") (":." . "d311") ("/:" . "d422") ("/." . "d421")
-    (".:" . "d301") (".." . "d301") ("-:" . "d122") ("-." . "d121")
-    (",:" . "d322") (",." . "d321") ("+:" . "d102") ("+." . "d101")
-    ("*:" . "d112") ("*." . "d111") ("<:" . "d012") ("<." . "d011")
-    (">:" . "d022") (">." . "d021") ("&:" . "d632") ("&." . "d631") ("&.:" . "d631c")
-    ("%:" . "d132") ("%." . "d131") ("$:" . "d212") ("$." . "d211")
-    ("#:" . "d402") ("#." . "d401") ("S:" . "dscapco") ("M." . "dmcapdot")
-    ("L:" . "dlcapco") ("L." . "dlcapdot") ("I." . "dicapdot") ("H." . "dhcapdot")
-    ("E." . "decapdot") ("D:" . "ddcapco") ("D." . "ddcapdot") ("C." . "dccapdot")
-    ("A." . "dacapdot") ("@:" . "d622") ("!" . "d410") ("!." . "d411") ("!:" . "d412") ("{::" . "d523")
-    ("p.." . "dpdotdot") ("_9:" . "dconsf") ("&.:" . "d631") ("NB." . "dnb"))
-  "(string * string) alist.")
+  '(("=" . "eq")       ("=." . "eqdot")       ("=:" . "eqco")       ; 0
+    ("<" . "lt")       ("<." . "ltdot")       ("<:" . "ltco")
+    (">" . "gt")       (">." . "gtdot")       (">:" . "gtco")
+    ("_" . "under")    ("_." . "underdot")    ("_:" . "underco")
+    ("+" . "plus")     ("+." . "plusdot")     ("+:" . "plusco")     ; 4
+    ("*" . "star")     ("*." . "stardot")     ("*:" . "starco")
+    ("-" . "minus")    ("-." . "minusdot")    ("-:" . "minusco")
+    ("%" . "percent")  ("%." . "percentdot")  ("%:" . "percentco")
+    ("^" . "hat")      ("^." . "hatdot")      ("^:" . "hatco")      ; 8
+    ("$" . "dollar")   ("$." . "dollardot")   ("$:" . "dollarco")
+    ("~" . "tilde")    ("~." . "tildedot")    ("~:" . "tildeco")
+    ("|" . "bar")      ("|." . "bardot")      ("|:" . "barco")
+    ("." . "dot")                                                   ; 12
+    (":" . "cor")      (":." . "codot")       ("::" . "coco")
+    ("," . "comma")    (",." . "commadot")    (",:" . "commaco")
+    (";" . "semi")     (";." . "semidot")     (";:" . "semico")
+    ("#" . "number")   ("#." . "numberdot")   ("#:" . "numberco")   ; 16
+    ("!" . "bang")     ("!." . "bangdot")     ("!:" . "bangco")
+    ("/" . "slash")    ("/." . "slashdot")    ("/:" . "slashco")
+    ("\\" . "bslash")  ("\\." . "bslashdot")  ("\\:" . "slashco")
+    ("[" . "squarelf")                        ("[:" . "squarelfco") ; 20
+    ("]" . "squarert")
+    ("{" . "curlylf")  ("{." . "curlylfdot")  ("{:" . "curlylfco")  ("{::" . "curlylfcoco")
+    ("}" . "curlyrt")  ("}." . "curlyrtdot")  ("}:" . "curlyrtco")
+    ("\"" . "quote")   ("\"." . "quotedot")   ("\":" . "quoteco")   ; 24
+    ("`" . "grave")                           ("`:" . "graveco")
+    ("@" . "at")       ("@." . "atdot")       ("@:" . "atco")
+    ("&" . "ampm")     ("&." . "ampdot")      ("&:" . "ampco")      ("&.:" . "ampdotco")
+    ("?" . "query")    ("?." . "querydot")
+    ("a." . "adot")    ("a:" . "aco")         ("A." . "acapdot")    ; 29
+    ("b." . "bdot")    ("C." . "ccapdot")     ("d." . "ddot")
+    ("D." . "dcapdot") ("D:" . "dcapco")      ("e." . "edot")
+    ("E." . "ecapdot") ("f." . "fdot")        ("F." . "fcap")       ("F:" . "fcap")
+    ("F.." . "fcap")   ("F:." . "fcap")       ("F.:" . "fcap")      ("F::" . "fcap")
+    ("H." . "hcapdot") ("i." . "idot")        ("i:" . "ico")        ; 33
+    ("I." . "icapdot") ("j." . "jdot")        ("L." . "lcapdot")
+    ("L:" . "lcapco")  ("M." . "mcapdot")     ("NB." . "ncapbcapdot")
+    ("o." . "odot")    ("p." . "pdot")        ("p.." . "pdotdot")
+    ("p:" . "pco")     ("q:" . "qco")         ("r." . "rdot")       ; 37
+    ("s:" . "sco")     ("S:" . "scapco")      ("u:" . "uco")
+    ("x:" . "xco")     ("Z:" . "zcapco")      ("_9:" . "zeroco")
+    ("_8:" . "zeroco") ("_7:" . "zeroco")     ("_6:" . "zeroco")
+    ("_5:" . "zeroco") ("_4:" . "zeroco")     ("_3:" . "zeroco")
+    ("_2:" . "zeroco") ("_1:" . "zeroco")     ("0:" . "zeroco")
+    ("1:" . "zeroco")  ("2:" . "zeroco")      ("3:" . "zeroco")
+    ("4:" . "zeroco")  ("5:" . "zeroco")      ("6:" . "zeroco")
+    ("7:" . "zeroco")  ("8:" . "zeroco")      ("9:" . "zeroco")
+    ("assert." . "assertdot") ("break." . "breakdot") ("continue." . "continuedot") ; 41
+    ("else." . "elsedot") ("elseif." . "elsedot")
+    ("for." . "fordot") ("for_ijk." . "fordot")
+    ;; skipped goto_lbl. and label_lbl. since lbl can vary
+    ("if." . "ifdot") ("return." . "returndot")
+    ("select." . "selectdot") ("case." . "selectdot") ("fcase." . "selectdot")
+    ("throw." . "throwdot")
+    ("try." . "trydot") ("catch." . "trydot") ("catchd." . "trydot") ("catcht." . "trydot")
+    ("while." . "whiledot") ("whilst." . "whiledot"))
+  "NuVoc. See https://code.jsoftware.com/wiki/NuVoc for more info.
+
+(string * string) alist.")
 
 (defconst j-help-dictionary-data-block
   (mapcar
    (lambda (l) (list (length (caar l))
                      (regexp-opt (mapcar 'car l))
                      l))
-   (delq nil (group-by j-help-voc-alist (lambda (x) (length (car x))))))
+   (mapcar #'cdr
+           (sort (seq-group-by (lambda (x) (length (car x)))
+                               j-help-voc-alist)
+                 (lambda (x y) (> (car x) (car y))))))
   "(int * string * (string * string) alist) list.")
 
 (defun j-help-valid-dictionary ()
@@ -149,13 +163,14 @@ Typical candidates are: `browse-url-default-browser', `eww-browse-url'."
           j-help-remote-dictionary-url))))
 
 (defun j-help-symbol-pair-to-doc-url (alist-data)
-  "Convert alist ALIST-DATA containing a symbol pair to the help url."
+  "Convert alist ALIST-DATA containing a symbol pair to the help url.
+
+If alist-data is nil, then return the J Dictionary index page."
   (let ((dic (j-help-valid-dictionary)))
-    (if (or (not alist-data) (string= dic ""))
-        (error "%s" "No dictionary found. Please specify a dictionary.")
-      (let (;; (name (car alist-data))
-            (doc-name (cdr alist-data)))
-        (format "%s/%s.%s" dic doc-name "htm")))))
+    (cond ((string= dic "") (error "%s" "No dictionary found. Please specify a dictionary."))
+          ((not alist-data) dic)
+          (t (let ((doc-name (cdr alist-data)))
+               (format "%s/%s" dic doc-name))))))
 
 (defun j-help-symbol-to-doc-url (j-symbol)
   "Convert J-SYMBOL into location url."
@@ -211,7 +226,9 @@ int -> (string * string) list"
 
 ;;;###autoload
 (defun j-help-lookup-symbol (symbol)
-  "Lookup SYMBOL in dictionary."
+  "Look up SYMBOL in dictionary.
+
+If symbol is nil, look up the dictionary index page."
   (interactive "sJ Symbol: ")
   (let ((url (j-help-symbol-to-doc-url symbol))
         (browse-url-browser-function (or j-help-browser-function

@@ -99,7 +99,8 @@
 	prettify-symbols-alist j->apl)
   ;; (pretty-add-keywords nil j->apl)
   ;; (use-local-map j-mode-keymap)
-  )
+  (set (make-local-variable 'comment-start) "NB. ")
+  (set (make-local-variable 'comment-start-skip) "NB.+\\s-*"))
 
 (add-to-list 'auto-mode-alist '("\\.ij[rstp]$" . j-mode))
 

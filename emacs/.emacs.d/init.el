@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Mar 13 13:02:20 2021
+;; Generated: Sat Mar 13 14:08:59 2021
 
 ;;; Commentary:
 
@@ -2802,8 +2802,10 @@ environment has Racket installed."
         dumb-jump-default-project "./"
         dumb-jump-prefer-searcher 'rg)
   :config
-  ;; add dumb-jump to the list of xref backends
-  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
+  ;; add dumb-jump to the end of the list of backends for
+  ;; `xref-find-definitions' so it is used as a fallback option
+  ;; when no better finders are available
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
 
 ;; jump to visible text using char-based decision tree
 (use-package avy

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar  8 09:48:00 2021
+;; Generated: Sat Mar 13 13:02:20 2021
 
 ;;; Commentary:
 
@@ -680,6 +680,11 @@ provided, the default interactive `eshell' command is run."
 
 (use-package eshell-z
   :after eshell)
+
+(use-package eshell-bookmark
+  :after eshell
+  :config
+  (add-hook 'eshell-mode-hook #'eshell-bookmark-setup))
 
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
@@ -2797,10 +2802,8 @@ environment has Racket installed."
         dumb-jump-default-project "./"
         dumb-jump-prefer-searcher 'rg)
   :config
-  ;; add dumb-jump to the end of the list of backends for
-  ;; `xref-find-definitions' so it is used as a fallback option
-  ;; when no better finders are available
-  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
+  ;; add dumb-jump to the list of xref backends
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
 
 ;; jump to visible text using char-based decision tree
 (use-package avy

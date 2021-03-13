@@ -1620,6 +1620,20 @@ jumping to frecent directories.
   :after eshell)
 #+end_src
 
+*** Integrate Eshell with bookmark.el                                 :melpa:
+
+Extend bookmark.el to support bookmarking Eshell buffers opened to a
+specific directory. Usual bookmarking commands apply, like ~C-x r m~
+to capture a bookmark and ~C-x r l~ to restore a bookmark.
+
+#+name: eshell-bookmark
+#+begin_src emacs-lisp
+(use-package eshell-bookmark
+  :after eshell
+  :config
+  (add-hook 'eshell-mode-hook #'eshell-bookmark-setup))
+#+end_src
+
 ** Command interpreters for other shells
 
 *** Make command interpreter prompts read-only
@@ -2087,6 +2101,7 @@ Also configure it so its commands integrate appropriately with
 The [[http://www.dr-qubit.org/undo-tree.html][undo-tree]] package allows the traversal of the undo history as a
 tree, which makes utilizing Emacs rather flexible undo/redo
 capabilities much easier.
+
 Default bindings are ~C-/~ to undo, ~C-S-/~ to redo, and ~C-x u~ to
 open a new window whose buffer where the undo history is presented as
 a tree and can be navigated using the regular movement keys.
@@ -5892,10 +5907,8 @@ It is configured here as a fallback backend for
         dumb-jump-default-project "./"
         dumb-jump-prefer-searcher 'rg)
   :config
-  ;; add dumb-jump to the end of the list of backends for
-  ;; `xref-find-definitions' so it is used as a fallback option
-  ;; when no better finders are available
-  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
+  ;; add dumb-jump to the list of xref backends
+  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
 #+end_src
 
 ** avy                                                                :melpa:
@@ -10717,6 +10730,8 @@ The main configuration file.
 <<fish-completion>>
 
 <<eshell-z>>
+
+<<eshell-bookmark>>
 
 <<comint-prompt-read-only>>
 

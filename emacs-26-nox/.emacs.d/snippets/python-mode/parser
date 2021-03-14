@@ -1,0 +1,11 @@
+# -*- mode: snippet -*-
+# name: parser
+# key: parser
+# group: script
+# --
+import argparser
+
+parser = argparser.ArgumentParser(description="$1")
+${2:setup_parser(parser)}
+args = parser.parse_args()
+${3:args.func(vars(args))}$0

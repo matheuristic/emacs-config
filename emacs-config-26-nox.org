@@ -2536,6 +2536,19 @@ See the Org docs for [[https://orgmode.org/manual/The-clock-table.html][using th
 #+begin: clocktable :maxlevel 2 :scope agenda-with-archives :tstart "<-2w>" :tend "<now>" :match "+@work+important-sales"
 #+end
 
+** Old-style structure expansions using Org Tempo
+
+Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB.
+See [[https://orgmode.org/manual/Structure-Templates.html][Org documentation]] for more info.
+
+#+name: org-tempo
+#+begin_src emacs-lisp
+;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
+(with-eval-after-load 'org
+  (unless (version< (org-version) "9.2")
+    (require 'org-tempo)))
+#+end_src
+
 * Programming
 
 ** Buffer reformatter macro                                           :melpa:
@@ -3069,16 +3082,6 @@ Remove toolbar and menu to maximize space usage.
 (if (and (not (display-graphic-p))
          (fboundp 'menu-bar-mode))
     (menu-bar-mode -1))
-#+end_src
-
-** Color theme
-
-Use ~whiteboard~ built-in color theme.
-
-#+name: load-color-theme
-#+begin_src emacs-lisp
-;; use built-in color theme
-(load-theme 'whiteboard t)
 #+end_src
 
 ** Display line numbers when editing code
@@ -4381,10 +4384,6 @@ Transient for accessing Org entry points.
     "Open a file buffer for `my-org-journal-file'."
     (interactive)
     (find-file my-org-journal-file))
-  (defun transient/org-launcher--find-org-websnippet-capture-file ()
-    "Open a file buffer for `org-websnippet-capture-file'."
-    (interactive)
-    (find-file org-websnippet-capture-file))
   (defun transient/org-launcher--find-my-org-scratch-file ()
     "Open a file buffer for `my-org-scratch-file'."
     (interactive)
@@ -4403,7 +4402,6 @@ Transient for accessing Org entry points.
       ("fi" "Inbox" transient/org-launcher--find-my-org-agenda-inbox)
       ("fs" "Someday" transient/org-launcher--find-my-org-someday-inbox)
       ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
-      ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
       ("fx" "Scratch" transient/org-launcher--find-my-org-scratch-file)
       ]
      ]
@@ -5835,6 +5833,15 @@ Org major mode transient.
         (previous-error n)
       (org-previous-visible-heading n)))
 
+  (defun transient/org-mode--org-insert-structure-template ()
+    "Wrapper for `org-insert-structure-template' so `transient/org-mode' can work with Org 9.3."
+    (interactive)
+    (if (fboundp 'org-insert-structure-template)
+        (call-interactively #'org-insert-structure-template)
+      (message (concat "Current version of Org does not define `org-insert-structure-template'."
+                       "\n"
+                       "Use the '<{char}' (e.g. '<s') structure expansions instead."))))
+
   (transient-define-prefix transient/org-mode ()
     "`org-mode' commands."
     ["Org"
@@ -5890,7 +5897,7 @@ Org major mode transient.
       ]
      ["Text ops"
       ("F" "Add footnote" org-footnote-action)
-      ("<" "Insert structure" org-insert-structure-template)
+      ("<" "Insert structure" transient/org-mode--org-insert-structure-template)
       ("'" "Edit special" org-edit-special)
       ("e" "Emphasize" org-emphasize)
       ]
@@ -6153,8 +6160,6 @@ The main configuration file.
 
 <<remove-decorations>>
 
-<<load-color-theme>>
-
 ;; Customize file and local configuration
 
 <<custom-file-and-init-local>>
@@ -6371,7 +6376,7 @@ The main configuration file.
 
 <<org-superstar>>
 
-<<org-capture-websnippet>>
+<<org-tempo>>
 
 ;; Programming / Buffer reformatter macro
 

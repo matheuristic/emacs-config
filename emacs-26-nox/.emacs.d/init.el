@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 15:18:53 2021
+;; Generated: Sun Mar 14 17:04:37 2021
 
 ;;; Commentary:
 
@@ -74,9 +74,6 @@
 (if (and (not (display-graphic-p))
          (fboundp 'menu-bar-mode))
     (menu-bar-mode -1))
-
-;; use built-in color theme
-(load-theme 'whiteboard t)
 
 ;; Customize file and local configuration
 
@@ -1424,7 +1421,10 @@ call `open-line' on the very first character."
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 
-
+;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
+(with-eval-after-load 'org
+  (unless (version< (org-version) "9.2")
+    (require 'org-tempo)))
 
 ;; Programming / Buffer reformatter macro
 
@@ -2402,10 +2402,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     "Open a file buffer for `my-org-journal-file'."
     (interactive)
     (find-file my-org-journal-file))
-  (defun transient/org-launcher--find-org-websnippet-capture-file ()
-    "Open a file buffer for `org-websnippet-capture-file'."
-    (interactive)
-    (find-file org-websnippet-capture-file))
   (defun transient/org-launcher--find-my-org-scratch-file ()
     "Open a file buffer for `my-org-scratch-file'."
     (interactive)
@@ -2424,7 +2420,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
       ("fi" "Inbox" transient/org-launcher--find-my-org-agenda-inbox)
       ("fs" "Someday" transient/org-launcher--find-my-org-someday-inbox)
       ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
-      ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
       ("fx" "Scratch" transient/org-launcher--find-my-org-scratch-file)
       ]
      ]
@@ -3690,6 +3685,15 @@ not support restricting to a region."
         (previous-error n)
       (org-previous-visible-heading n)))
 
+  (defun transient/org-mode--org-insert-structure-template ()
+    "Wrapper for `org-insert-structure-template' so `transient/org-mode' can work with Org 9.3."
+    (interactive)
+    (if (fboundp 'org-insert-structure-template)
+        (call-interactively #'org-insert-structure-template)
+      (message (concat "Current version of Org does not define `org-insert-structure-template'."
+                       "\n"
+                       "Use the '<{char}' (e.g. '<s') structure expansions instead."))))
+
   (transient-define-prefix transient/org-mode ()
     "`org-mode' commands."
     ["Org"
@@ -3745,7 +3749,7 @@ not support restricting to a region."
       ]
      ["Text ops"
       ("F" "Add footnote" org-footnote-action)
-      ("<" "Insert structure" org-insert-structure-template)
+      ("<" "Insert structure" transient/org-mode--org-insert-structure-template)
       ("'" "Edit special" org-edit-special)
       ("e" "Emphasize" org-emphasize)
       ]

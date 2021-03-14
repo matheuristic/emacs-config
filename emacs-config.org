@@ -6070,7 +6070,7 @@ Remove toolbar and menu to maximize space usage.
     (menu-bar-mode -1))
 #+end_src
 
-** Custom color theme                                        :external:early:
+** Custom color theme                                                 :early:
 
 Use custom ~ereader~ theme in ~lisp/ereader-theme.el~.
 
@@ -6352,7 +6352,7 @@ Also pulse the line after popping ~mark-ring~ or ~global-mark-ring~.
 (advice-add 'pop-global-mark :after #'my-pulse-line)
 #+end_src
 
-** Hide lines that are too long                                    :external:
+** Hide lines that are too long
 
 [[https://github.com/rakete/too-long-lines-mode][too-long-lines-mode]] provides a global minor mode that uses overlays to
 truncate very long lines, which can otherwise [[https://lists.gnu.org/archive/html/emacs-devel/2018-10/msg00470.html][slow]] [[https://debbugs.gnu.org/cgi/bugreport.cgi?bug=13675][down]] Emacs. This
@@ -6537,7 +6537,8 @@ file with embedded images, CSS and JS.
 
 ***** Pre-built binaries
 
-[[https://github.com/Y2Z/monolith/releases][Pre-built binaries]] are available for Linux (~x86_64~) and Windows.
+[[https://github.com/Y2Z/monolith/releases][Pre-built binaries]] are available for Linux (~x86_64~), Raspberry Pi
+(~armhf~) and Windows.
 
 ***** Building from source
 
@@ -6704,29 +6705,6 @@ It is available as a source on [[http://www.dict.org/][dict.org]] which can be a
 Downloads are available for use with a local dictionary server.
 One local dictionary server that has good GCIDE support is [[https://www.gnu.org.ua/software/dico/][GNU Dico]],
 which has a bundled [[http://puszcza.gnu.org.ua/software/dico/manual/html_section/gcide.html][interface module]] for the dictionary.
-
-** Synosaurus in-editor thesaurus                                     :melpa:
-
-[[https://github.com/hpdeifel/synosaurus][Synosaurus]] provides a thesaurus frontend with pluggable backends.
-Supported backends are limited to:
-- [[https://www.openthesaurus.de/][OpenThesaurus]] (German), which the package can access via HTTP
-  requests.
-- [[https://wordnet.princeton.edu/][WordNet]] (English), which requires the command-line tool ~wn~ be
-  installed locally.
-
-To install WordNet on macOS using MacPorts, do the following.
-
-#+begin_example
-$ sudo port install wordnet
-#+end_example
-
-#+name: synosaurus
-#+begin_src emacs-lisp
-;; thesaurus functions using Synosaurus
-(use-package synosaurus
-  :init (setq synosaurus-choose-method 'default
-              synosaurus-backend 'synosaurus-backend-wordnet))
-#+end_src
 
 ** LanguageTool for grammar, style and spell checking
 
@@ -8917,7 +8895,6 @@ Transient for accessing writing-related commands.
 #+begin_src emacs-lisp
 ;; add transient popup for writing commands
 (require 'dictionary)
-(require 'synosaurus)
 (require 'langtool)
 (require 'typo)
 
@@ -8957,16 +8934,6 @@ not support restricting to a region."
     ("C" "Correct buffer/region" transient/writing--ispell-dwim :transient t)
     ("D" "Change dictionary" ispell-change-dictionary :transient t)
     ]
-   ["Thesaurus"
-    ("tm" (lambda ()
-            (interactive)
-            (transient--make-description "Synosaurus mode"
-                                         synosaurus-mode))
-     synosaurus-mode :transient t)
-    ("tl" "Lookup" synosaurus-lookup)
-    ("tr" "Replace" synosaurus-choose-and-replace)
-    ("ti" "Insert" synosaurus-choose-and-insert)
-    ]
    ["LanguageTool"
     ("gs" "Start check" langtool-check)
     ("gc" "Correct buffer" langtool-correct-buffer)
@@ -8974,12 +8941,12 @@ not support restricting to a region."
     ("gl" "Switch language" langtool-switch-default-language
      :transient t)
     ]
-   ]
-  [
    ["Dictionary"
     ("ds" "Search" dictionary-search)
     ("dm" "Match words" dictionary-match-words)
     ]
+   ]
+  [
    ["Typography"
     ("y" (lambda ()
            (interactive)
@@ -11088,8 +11055,6 @@ The main configuration file.
 <<flyspell-unbind-conflicting-bindings>>
 
 <<dictionary>>
-
-<<synosaurus>>
 
 <<langtool>>
 

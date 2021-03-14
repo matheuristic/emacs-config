@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 18:09:55 2021
+;; Generated: Sun Mar 14 19:12:57 2021
 
 ;;; Commentary:
 
@@ -800,8 +800,8 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 ;; using `set-rectangular-region-anchor' is probably the easiest
 ;; see https://emacs.stackexchange.com/a/773
 (use-package multiple-cursors
-  :bind (("C-S-c C-S-c" . mc/edit-lines)
-         ("C-M-S-SPC" . set-rectangular-region-anchor)
+  :bind (("M-C" . mc/edit-lines)
+         ("M-V" . set-rectangular-region-anchor)
          ("C->" . mc/mark-next-like-this)
          ("C-<" . mc/mark-previous-like-this)
          ("C-S-<mouse-1>" . mc/toggle-cursor-on-click))

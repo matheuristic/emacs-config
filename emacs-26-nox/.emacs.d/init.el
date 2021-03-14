@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 14:10:16 2021
+;; Generated: Sun Mar 14 14:52:55 2021
 
 ;;; Commentary:
 
@@ -1192,7 +1192,9 @@ Formatting a selected region only works on top-level objects."
 ;; rebind `org-force-cycle-archived' in older Org versions to not
 ;; conflict with the `tab-next' default binding
 (with-eval-after-load 'org
-  (when (version< (org-version) "9.4")
+  (when (and org-version
+             (not (string-empty-p org-version)) ; guardrail for empty `org-version' in Org 9.4
+             (version< (org-version) "9.4"))
     (define-key org-mode-map (kbd "<C-tab>") nil)
     (org-defkey org-mode-map (kbd "C-c C-<tab>") #'org-force-cycle-archived)))
 

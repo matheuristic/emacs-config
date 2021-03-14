@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 17:26:55 2021
+;; Generated: Sun Mar 14 18:09:55 2021
 
 ;;; Commentary:
 
@@ -71,9 +71,9 @@
     (scroll-bar-mode -1))
 (if (fboundp 'tool-bar-mode)
     (tool-bar-mode -1))
-(if (and (not (display-graphic-p))
-         (fboundp 'menu-bar-mode))
-    (menu-bar-mode -1))
+;; (if (and (not (display-graphic-p))
+;;          (fboundp 'menu-bar-mode))
+;;     (menu-bar-mode -1))
 
 ;; Customize file and local configuration
 
@@ -1423,8 +1423,7 @@ call `open-line' on the very first character."
 
 ;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
 (with-eval-after-load 'org
-  (unless (version< (org-version) "9.2")
-    (require 'org-tempo)))
+  (require 'org-tempo nil :noerror))
 
 ;; Programming / Buffer reformatter macro
 
@@ -1833,22 +1832,6 @@ for more information."
   :defer t
   :config (setq real-auto-save-interval 10)) ;; save interval, in seconds
 
-;; mouse settings
-(when (display-graphic-p)
-  (add-hook
-   'after-init-hook
-   (lambda ()
-     ;; use super-left-click as middle-click (trackpad workaround)
-     ;; (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
-     ;; smooth scrolling, hold SHIFT/CONTROL for 5 line/full window increments
-     (setq mouse-wheel-scroll-amount '(1
-                                       ((shift) . 5)
-                                       ((control) . nil)))
-     ;; enable horizontal scrolling
-     (setq mouse-wheel-flip-direction t ;; t/nil for trackpad/mouse
-           mouse-wheel-tilt-scroll t))
-   t))
-
 ;; set *scratch* buffer major-mode to fundamental-mode
 (setq initial-major-mode 'fundamental-mode)
 
@@ -1960,6 +1943,9 @@ for more information."
 
 ;; convert regexp to rx notation
 (use-package xr)
+
+;; alternative binding for opening the menu bar
+(global-set-key (kbd "C-c e m") #'menu-bar-open)
 
 ;; Transient commands
 
@@ -2896,24 +2882,12 @@ Currently only works for Emacs Mac port."
     ("-" "Decrease" text-scale-decrease)
     ("0" "Reset" transient/visual--text-scale-reset)
     ]
-   ["Layout"
+   ["Other"
     ("m" (lambda ()
            (transient--make-description
             "Menu bar"
             menu-bar-mode))
      menu-bar-mode)
-    ("s" (lambda ()
-           (transient--make-description
-            "Vscroll bar"
-            (frame-parameter nil 'vertical-scroll-bars)))
-     toggle-scroll-bar)
-    ("S" (lambda ()
-           (transient--make-description
-            "Hscroll bar"
-            (frame-parameter nil 'horizontal-scroll-bars)))
-     toggle-horizontal-scroll-bar)
-    ]
-   ["Other"
     ("C" (lambda ()
            (transient--make-description
             "Scroll lock"

@@ -4494,7 +4494,7 @@ See [[https://orgmode.org/manual/Structure-Templates.html][Org documentation]] f
 #+begin_src emacs-lisp
 ;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
 (with-eval-after-load 'org
-  (require 'org-tempo))
+  (require 'org-tempo nil :noerror))
 #+end_src
 
 * Programming
@@ -6072,9 +6072,9 @@ Remove toolbar and menu to maximize space usage.
     (scroll-bar-mode -1))
 (if (fboundp 'tool-bar-mode)
     (tool-bar-mode -1))
-(if (and (not (display-graphic-p))
-         (fboundp 'menu-bar-mode))
-    (menu-bar-mode -1))
+;; (if (and (not (display-graphic-p))
+;;          (fboundp 'menu-bar-mode))
+;;     (menu-bar-mode -1))
 #+end_src
 
 ** Custom color theme                                                 :early:
@@ -7284,6 +7284,17 @@ Specifically, this package provides these non-interactive functions:
 #+begin_src emacs-lisp
 ;; convert regexp to rx notation
 (use-package xr)
+#+end_src
+
+** Binding for opening menu bar
+
+Alternate binding for opening the menu bar using the keyboard when the
+keyboard does not have an ~F10~ key.
+
+#+name: menu-bar-open-alternate-binding
+#+begin_src emacs-lisp
+;; alternative binding for opening the menu bar
+(global-set-key (kbd "C-c e m") #'menu-bar-open)
 #+end_src
 
 * OS-specific
@@ -11112,6 +11123,8 @@ The main configuration file.
 <<my-clear-register>>
 
 <<xr>>
+
+<<menu-bar-open-alternate-binding>>
 
 ;; OS-specific / macOS
 

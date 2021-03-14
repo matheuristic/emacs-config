@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 16:59:40 2021
+;; Generated: Sun Mar 14 18:09:29 2021
 
 ;;; Commentary:
 
@@ -77,9 +77,9 @@
     (scroll-bar-mode -1))
 (if (fboundp 'tool-bar-mode)
     (tool-bar-mode -1))
-(if (and (not (display-graphic-p))
-         (fboundp 'menu-bar-mode))
-    (menu-bar-mode -1))
+;; (if (and (not (display-graphic-p))
+;;          (fboundp 'menu-bar-mode))
+;;     (menu-bar-mode -1))
 
 ;; use local eReader theme from ~/.emacs.d/themes/ereader-theme.el
 (add-to-list 'custom-theme-load-path

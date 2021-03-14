@@ -2545,8 +2545,7 @@ See [[https://orgmode.org/manual/Structure-Templates.html][Org documentation]] f
 #+begin_src emacs-lisp
 ;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
 (with-eval-after-load 'org
-  (unless (version< (org-version) "9.2")
-    (require 'org-tempo)))
+  (require 'org-tempo nil :noerror))
 #+end_src
 
 * Programming
@@ -3079,9 +3078,9 @@ Remove toolbar and menu to maximize space usage.
     (scroll-bar-mode -1))
 (if (fboundp 'tool-bar-mode)
     (tool-bar-mode -1))
-(if (and (not (display-graphic-p))
-         (fboundp 'menu-bar-mode))
-    (menu-bar-mode -1))
+;; (if (and (not (display-graphic-p))
+;;          (fboundp 'menu-bar-mode))
+;;     (menu-bar-mode -1))
 #+end_src
 
 ** Display line numbers when editing code
@@ -3469,38 +3468,6 @@ with the following contents.
          (eval . (real-auto-save-mode 1))))) ;; buffer-local auto-save
 #+end_example
 
-** Configure mouse settings to be trackpad-friendly
-
-Modify mouse scroll settings to be friendlier for trackpads:
-- Regular scrolling is one line at a time.
-- Hold Shift while scrolling for five lines at a time.
-- Hold Control while scrolling for a screen at a time.
-- Natural scrolling (scrolling right moves the screen left and the
-  converse is true as well).
-
-Only apply these settings after initialization is complete
-to avoid it being clobbered by settings applied by the
-Emacs implementation (looking at Emacs Mac Port here).
-
-#+name: mouse-settings
-#+begin_src emacs-lisp
-;; mouse settings
-(when (display-graphic-p)
-  (add-hook
-   'after-init-hook
-   (lambda ()
-     ;; use super-left-click as middle-click (trackpad workaround)
-     ;; (define-key key-translation-map (kbd "<s-mouse-1>") (kbd "<mouse-2>"))
-     ;; smooth scrolling, hold SHIFT/CONTROL for 5 line/full window increments
-     (setq mouse-wheel-scroll-amount '(1
-                                       ((shift) . 5)
-                                       ((control) . nil)))
-     ;; enable horizontal scrolling
-     (setq mouse-wheel-flip-direction t ;; t/nil for trackpad/mouse
-           mouse-wheel-tilt-scroll t))
-   t))
-#+end_src
-
 ** Scratch buffer default mode set to fundamental-mode
 
 Set the initial mode of the scratch buffer to ~fundamental-mode~,
@@ -3834,6 +3801,17 @@ Specifically, this package provides these non-interactive functions:
 #+begin_src emacs-lisp
 ;; convert regexp to rx notation
 (use-package xr)
+#+end_src
+
+** Binding for opening menu bar
+
+Alternate binding for opening the menu bar using the keyboard when the
+keyboard does not have an ~F10~ key.
+
+#+name: menu-bar-open-alternate-binding
+#+begin_src emacs-lisp
+;; alternative binding for opening the menu bar
+(global-set-key (kbd "C-c e m") #'menu-bar-open)
 #+end_src
 
 * Transient commands                                              :transient:
@@ -4950,24 +4928,12 @@ Currently only works for Emacs Mac port."
     ("-" "Decrease" text-scale-decrease)
     ("0" "Reset" transient/visual--text-scale-reset)
     ]
-   ["Layout"
+   ["Other"
     ("m" (lambda ()
            (transient--make-description
             "Menu bar"
             menu-bar-mode))
      menu-bar-mode)
-    ("s" (lambda ()
-           (transient--make-description
-            "Vscroll bar"
-            (frame-parameter nil 'vertical-scroll-bars)))
-     toggle-scroll-bar)
-    ("S" (lambda ()
-           (transient--make-description
-            "Hscroll bar"
-            (frame-parameter nil 'horizontal-scroll-bars)))
-     toggle-horizontal-scroll-bar)
-    ]
-   ["Other"
     ("C" (lambda ()
            (transient--make-description
             "Scroll lock"
@@ -6476,8 +6442,6 @@ The main configuration file.
 
 <<real-auto-save>>
 
-<<mouse-settings>>
-
 <<scratch-buffer-initial-mode>>
 
 <<scroll-conservatively>>
@@ -6513,6 +6477,8 @@ The main configuration file.
 <<my-clear-register>>
 
 <<xr>>
+
+<<menu-bar-open-alternate-binding>>
 
 ;; Transient commands
 

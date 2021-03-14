@@ -4485,6 +4485,18 @@ See the Org docs for [[https://orgmode.org/manual/The-clock-table.html][using th
 #+begin: clocktable :maxlevel 2 :scope agenda-with-archives :tstart "<-2w>" :tend "<now>" :match "+@work+important-sales"
 #+end
 
+** Old-style structure expansions using Org Tempo
+
+Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB.
+See [[https://orgmode.org/manual/Structure-Templates.html][Org documentation]] for more info.
+
+#+name: org-tempo
+#+begin_src emacs-lisp
+;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
+(with-eval-after-load 'org
+  (require 'org-tempo))
+#+end_src
+
 * Programming
 
 ** Buffer reformatter macro                                           :melpa:
@@ -10860,6 +10872,8 @@ The main configuration file.
 <<org-wild-notifier>>
 
 <<ob-pikchr>>
+
+<<org-tempo>>
 
 ;; Programming / Buffer reformatter macro
 

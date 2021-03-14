@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 00:41:33 2021
+;; Generated: Sun Mar 14 16:59:40 2021
 
 ;;; Commentary:
 
@@ -2101,6 +2101,10 @@ call `open-line' on the very first character."
     (setq org-babel-pikchr-cmd (executable-find "pikchr"))
     (require 'ob-pikchr)))
 
+;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
+(with-eval-after-load 'org
+  (require 'org-tempo))
+
 ;; Programming / Buffer reformatter macro
 
 ;; defines the `reformatter-define' macro that allows definition of
@@ -3057,11 +3061,6 @@ for more information."
 (use-package dictionary
   :init (setq dictionary-server "dict.org"
               dictionary-default-dictionary "*"))
-
-;; thesaurus functions using Synosaurus
-(use-package synosaurus
-  :init (setq synosaurus-choose-method 'default
-              synosaurus-backend 'synosaurus-backend-wordnet))
 
 ;; grammar checking functions using LanguageTool
 ;; n-gram data, if any, should be in ~/languagetool/ngram-data/<lang>
@@ -4546,7 +4545,6 @@ Currently only works for Emacs Mac port."
 
 ;; add transient popup for writing commands
 (require 'dictionary)
-(require 'synosaurus)
 (require 'langtool)
 (require 'typo)
 
@@ -4586,16 +4584,6 @@ not support restricting to a region."
     ("C" "Correct buffer/region" transient/writing--ispell-dwim :transient t)
     ("D" "Change dictionary" ispell-change-dictionary :transient t)
     ]
-   ["Thesaurus"
-    ("tm" (lambda ()
-            (interactive)
-            (transient--make-description "Synosaurus mode"
-                                         synosaurus-mode))
-     synosaurus-mode :transient t)
-    ("tl" "Lookup" synosaurus-lookup)
-    ("tr" "Replace" synosaurus-choose-and-replace)
-    ("ti" "Insert" synosaurus-choose-and-insert)
-    ]
    ["LanguageTool"
     ("gs" "Start check" langtool-check)
     ("gc" "Correct buffer" langtool-correct-buffer)
@@ -4603,12 +4591,12 @@ not support restricting to a region."
     ("gl" "Switch language" langtool-switch-default-language
      :transient t)
     ]
-   ]
-  [
    ["Dictionary"
     ("ds" "Search" dictionary-search)
     ("dm" "Match words" dictionary-match-words)
     ]
+   ]
+  [
    ["Typography"
     ("y" (lambda ()
            (interactive)

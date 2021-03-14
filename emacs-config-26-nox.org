@@ -5864,7 +5864,9 @@ Org major mode transient.
       ("M-l" (lambda ()
                (transient--make-description
                 "Link display"
-                (not org-link-descriptive)))
+                (if (version< org-version "9.3")
+                    (not org-descriptive-links)
+                  (not org-link-descriptive))))
        org-toggle-link-display :transient t)
       ("M-i" (lambda ()
                (transient--make-description

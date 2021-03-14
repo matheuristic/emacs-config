@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 17:04:37 2021
+;; Generated: Sun Mar 14 17:26:55 2021
 
 ;;; Commentary:
 
@@ -3716,7 +3716,9 @@ not support restricting to a region."
       ("M-l" (lambda ()
                (transient--make-description
                 "Link display"
-                (not org-link-descriptive)))
+                (if (version< org-version "9.3")
+                    (not org-descriptive-links)
+                  (not org-link-descriptive))))
        org-toggle-link-display :transient t)
       ("M-i" (lambda ()
                (transient--make-description

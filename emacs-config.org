@@ -9,14 +9,9 @@
 
 This configuration assumes _Emacs version ~27~ or newer_.
 
-Clone this repository and initialize and update the submodules (see
-"Cloning a Project with Submodules" under [[https://git-scm.com/book/en/v2/Git-Tools-Submodules][Submodules]] in [[https://git-scm.com/book/en/v2/Git-Tools-Submodules][Pro Git]]).
-
 #+begin_example
 $ git clone https://github.com/matheuristic/emacs-config.git
 $ cd emacs-config
-$ git submodule init
-$ git submodule update
 #+end_example
 
 Make sure [[https://www.gnu.org/software/stow/][GNU Stow]] is installed. Run the following to create the

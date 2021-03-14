@@ -5907,9 +5907,11 @@ It is configured here as a fallback backend for
         dumb-jump-default-project "./"
         dumb-jump-prefer-searcher 'rg)
   :config
-  ;; add dumb-jump to the end of the list of backends for
-  ;; `xref-find-definitions' so it is used as a fallback option
-  ;; when no better finders are available
+  ;; remove the default etags backend from the list of backends for
+  ;; `xref-find-definitions' and add dumb-jump to the end of that list
+  ;; so it is used as a fallback when no better finders are available
+  (setq xref-backend-functions (remq 'etags--xref-backend
+                                     xref-backend-functions))
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
 #+end_src
 

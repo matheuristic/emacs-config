@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Mar 13 14:08:59 2021
+;; Generated: Sun Mar 14 00:41:33 2021
 
 ;;; Commentary:
 
@@ -2802,9 +2802,11 @@ environment has Racket installed."
         dumb-jump-default-project "./"
         dumb-jump-prefer-searcher 'rg)
   :config
-  ;; add dumb-jump to the end of the list of backends for
-  ;; `xref-find-definitions' so it is used as a fallback option
-  ;; when no better finders are available
+  ;; remove the default etags backend from the list of backends for
+  ;; `xref-find-definitions' and add dumb-jump to the end of that list
+  ;; so it is used as a fallback when no better finders are available
+  (setq xref-backend-functions (remq 'etags--xref-backend
+                                     xref-backend-functions))
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
 
 ;; jump to visible text using char-based decision tree

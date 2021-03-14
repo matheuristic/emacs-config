@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 14:52:55 2021
+;; Generated: Sun Mar 14 15:18:53 2021
 
 ;;; Commentary:
 
@@ -295,70 +295,7 @@ features are reloaded."
     (dolist (feat reload-features)
       (require feat))))
 
-;; Environment variables
-
-;; copy environment variables from shell
-(use-package exec-path-from-shell
-  :config
-  (defvar my-exec-path-envs-cache-file
-    (expand-file-name ".my-exec-path-envs.el" user-emacs-directory)
-    "Cache file for `exec-path-from-shell-variables' env var values.")
-  (defvar my-exec-path-envs nil
-    "List of (NAME . VALUE) pairs corresponding to environment variable values.
-Variables should match `exec-path-from-shell-variables'.")
-  (defun my-exec-path-from-shell-initialize (reload)
-    "Memoized version of `exec-path-from-shell-initialized' using a cache file.
-
-The cache is assumed to stored in the file
-`my-exec-path-envs-cache-file'. If the cache file
-does not exist, generate one. If RELOAD is non-nil (say using
-\"C-u M-x my-exec-path-from-shell-initialize\"), regenerate the
-cache before processing."
-    (interactive "P")
-    (when (and (not reload)
-               (file-exists-p my-exec-path-envs-cache-file))
-      (message "Using existing exec-path-from-shell envs cache file")
-      (load-file my-exec-path-envs-cache-file))
-    (when (or reload
-              (not my-exec-path-envs))
-      (setq my-exec-path-envs (exec-path-from-shell-getenvs
-                               exec-path-from-shell-variables))
-      (message "Persisting exec-path-from-shell envs cache file")
-      (my-persist-variables-to-file '(my-exec-path-envs)
-                                    my-exec-path-envs-cache-file))
-    ;; copied from exec-path-from-shell-copy-envs
-    (mapc (lambda (pair)
-            (exec-path-from-shell-setenv (car pair) (cdr pair)))
-          my-exec-path-envs)
-    (message "Initialized exec-path-from-shell environment variables"))
-  (my-exec-path-from-shell-initialize nil))
-
 ;; Backend and frontend frameworks for building user interfaces
-
-;; enable minibuffer completion
-(use-package ido-completing-read+
-  :init (setq ido-enable-flex-matching t
-              ido-everywhere t)
-  :config
-  (with-eval-after-load 'magit
-    (setq magit-completing-read-function 'magit-ido-completing-read))
-  (ido-mode 1)
-  (ido-ubiquitous-mode 1))
-
-;; text completion framework
-(use-package company
-  :defer t
-  :init
-  (with-eval-after-load 'prog-mode
-    (add-hook 'prog-mode-hook 'company-mode))
-  (setq company-dabbrev-downcase nil
-        company-idle-delay 0.5
-        company-minimum-prefix-length 2
-        company-selection-wrap-around t
-        company-show-numbers t ;; use M-<num> to directly choose completion
-        company-tooltip-align-annotations t)
-  :config
-  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
@@ -379,11 +316,6 @@ cache before processing."
         backup-by-copying t)) ;; backup by copying instead of renaming
 
 ;; Bookmarks and history
-
-;; alternative interface for M-x
-(use-package amx
-  :bind ("M-X" . amx-major-mode-commands)
-  :init (amx-mode))
 
 ;; recently opened files
 (setq recentf-max-menu-items 10
@@ -506,12 +438,6 @@ Specifically, the current buffer is checked to see if it is in
     ;; use "default" saved filter groups list by default
     (ibuffer-switch-to-saved-filter-groups "default"))
   (add-hook 'ibuffer-mode-hook #'my-ibuffer-filter-groups-setup))
-
-;; build VC project ibuffer filter groups
-(use-package ibuffer-vc
-  :after ibuffer
-  :bind (:map ibuffer-mode-map
-         ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
 
 ;; visual buffer switching using a grid of windows
 (use-package buffer-expose
@@ -699,20 +625,10 @@ provided, the default interactive `eshell' command is run."
           (eshell 42)
           (rename-buffer (concat "*eshell*<" my-es-buf-name ">")))))))
 
-;; history autosuggestions
-;; <right> or C-f completes fully, <M-right> or M-f completes partially
-(use-package esh-autosuggest
+(use-package eshell-bookmark
   :after eshell
-  :hook (eshell-mode . esh-autosuggest-mode))
-
-;; extend pcomplete with fish shell
-(when (executable-find "fish")
-  (use-package fish-completion
-    :after eshell
-    :config (add-hook 'eshell-mode-hook #'fish-completion-mode)))
-
-(use-package eshell-z
-  :after eshell)
+  :config
+  (add-hook 'eshell-mode-hook #'eshell-bookmark-setup))
 
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
@@ -866,22 +782,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 (require 'epa-file)
 (epa-file-enable)
 
-;; display available bindings in popup
-(use-package which-key
-  :bind ("C-c H w" . which-key-show-top-level)
-  :init
-  (setq which-key-allow-multiple-replacements t
-        which-key-compute-remaps t
-        ;; configure for manual activation using C-h in the middle of a key seq
-        ;; see https://github.com/justbur/emacs-which-key#manual-activation
-        which-key-idle-delay 10000
-        which-key-idle-secondary-delay 0.05
-        which-key-show-early-on-C-h t)
-  (which-key-mode 1)
-  :config
-  ;; hide mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(which-key-mode . "")))
-
 ;; expand selected region by semantic units
 (use-package expand-region
   :commands er/expand-region
@@ -916,20 +816,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   ;; setting a height of 1 ends up rendering a thick bar
   ;; probably because it is too small a value
   (set-face-attribute 'mc/cursor-bar-face nil :height 10))
-
-;; expandable snippet template system
-(use-package yasnippet
-  :defer 1 ;; load asynchronously after startup
-  :config
-  ;; abbreviate mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ¥"))
-  ;; (use-package yasnippet-snippets) ;; official snippets
-  (use-package auto-yasnippet) ;; enable creation of temporary snippets
-  ;; remove default bindings to avoid conflicts with other packages
-  ;; removing prefix bindings also removes bindings that use them
-  (unbind-key "\C-c&" yas-minor-mode-map)
-  (unbind-key "\C-c" yas-minor-mode-map)
-  (yas-global-mode 1))
 
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
@@ -1186,15 +1072,13 @@ Formatting a selected region only works on top-level objects."
 
 ;; Org-mode
 
-;; install ELPA version of Org
-(my-install-elpa-package 'org)
+;; ;; install ELPA version of Org
+;; (my-install-elpa-package 'org)
 
 ;; rebind `org-force-cycle-archived' in older Org versions to not
 ;; conflict with the `tab-next' default binding
 (with-eval-after-load 'org
-  (when (and org-version
-             (not (string-empty-p org-version)) ; guardrail for empty `org-version' in Org 9.4
-             (version< (org-version) "9.4"))
+  (when (version< (org-version) "9.4")
     (define-key org-mode-map (kbd "<C-tab>") nil)
     (org-defkey org-mode-map (kbd "C-c C-<tab>") #'org-force-cycle-archived)))
 
@@ -1523,111 +1407,12 @@ call `open-line' on the very first character."
     (push "lualatex -interaction nonstopmode -output-directory %o %f"
           org-latex-pdf-process)))
 
-;; add mouse support and use variable pitch fonts in graphical Emacs org-mode
-(when (display-graphic-p)
-  (with-eval-after-load 'org
-    (require 'org-mouse) ;; mouse support
-    ;; use variable pitch fonts ...
-    (add-hook 'org-mode-hook #'variable-pitch-mode)
-    (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1)))
-    ;; ... but keep some faces fixed-pitch
-    (require 'org-indent) ;; ensure `org-indent' face is defined
-    (let ((fixed-pitch-family (face-attribute 'fixed-pitch :family nil 'default)))
-      (dolist (curr-face '(org-block
-                           org-block-begin-line
-                           org-block-end-line
-                           org-code
-                           org-date
-                           org-document-info-keyword
-                           org-done
-                           org-indent ;; properly align indentation
-                           org-latex-and-related
-                           org-meta-line
-                           org-property-value
-                           org-special-keyword
-                           org-table
-                           org-todo
-                           org-verbatim))
-        (set-face-attribute curr-face nil :family fixed-pitch-family)))))
-
 ;; insert urls from clipboard as links with title of page
 (when (display-graphic-p)
   (use-package org-cliplink
     :after org
     :bind (:map org-mode-map
            ("C-c C-S-l" . org-cliplink))))
-
-;; drag and drop images into Org buffers
-(use-package org-download
-  :after org
-  :config
-  ;; Mac screenshot command
-  (if (memq window-system '(mac ns))
-      (setq org-download-screenshot-method "screencapture -i %s"))
-  ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
-  ;; save drag-and-drop images into folder of the same name as Org file
-  ;; with filename prefixed by a timestamp of format `org-download-timestamp'
-  ;; e.g. dragging test.png to abc.org saves it to abc/20180522183050-test.png
-  (require 'subr-x) ; for `string-remove-prefix'
-  (defun my-org-download-method (link)
-    """Returns download save path for LINK, for use with `org-download'"""
-    (let* ((filename (format "%s%s"
-                             (format-time-string org-download-timestamp)
-                             (file-name-nondirectory
-                              (car (url-path-and-query
-                                    (url-generic-parse-url link))))))
-           (bufname-sans-ext (file-name-sans-extension (buffer-name)))
-           (dirname (if (and (boundp 'org-capture-mode)
-                             org-capture-mode)
-                        (string-remove-prefix "CAPTURE-"
-                                              bufname-sans-ext)
-                      bufname-sans-ext)))
-      ;; create dir if it does not exist
-      (unless (file-exists-p dirname)
-        (make-directory dirname))
-      ;; save path
-      (expand-file-name filename dirname)))
-  (setq org-download-method 'my-org-download-method
-        org-download-timestamp "%Y%m%d%H%M%S-"))
-
-;; presentations from Org documents
-(use-package org-tree-slide
-  :init (setq org-tree-slide-activate-message "Start slideshow mode"
-              org-tree-slide-deactivate-message "End slideshow mode"
-              org-tree-slide-fold-subtrees-skipped nil)
-  :config
-  ;; custom org-tree-slide profile
-  (defun my-org-tree-slide-custom-profile ()
-    "Set variables for custom org-tree-slide profile.
-
-`org-tree-slide-header'            => t
-`org-tree-slide-slide-in-effect'   => nil
-`org-tree-slide-heading-emphasis'  => t
-`org-tree-slide-cursor-init'       => t
-`org-tree-slide-modeline-display'  => 'outside
-`org-tree-slide-skip-done'         => nil
-`org-tree-slide-skip-comments'     => t"
-    (interactive)
-    (setq org-tree-slide-header t
-          org-tree-slide-slide-in-effect nil
-          org-tree-slide-heading-emphasis t
-          org-tree-slide-cursor-init t
-          org-tree-slide-modeline-display 'outside
-          org-tree-slide-skip-done nil
-          org-tree-slide-skip-comments t)
-    (message "custom profile: ON"))
-  ;; use custom profile
-  (call-interactively #'my-org-tree-slide-custom-profile)
-  ;; unbind some default mode bindings
-  (define-key org-tree-slide-mode-map (kbd "C-x s c") nil)
-  ;; (define-key org-tree-slide-mode-map (kbd "C-x <") nil)
-  ;; (define-key org-tree-slide-mode-map (kbd "C-x >") nil)
-  ;; add mode bindings
-  (define-key org-tree-slide-mode-map (kbd "C-c c") #'org-tree-slide-content)
-  (define-key org-mode-map (kbd "<f8>") #'org-tree-slide-mode)
-  (define-key org-mode-map (kbd "S-<f8>") #'org-tree-slide-skip-done-toggle)
-  (define-key org-tree-slide-mode-map (kbd "<f9>") 'org-tree-slide-move-previous-tree)
-  (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree))
 
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
@@ -1640,10 +1425,6 @@ call `open-line' on the very first character."
               org-superstar-prettify-item-bullets nil))
 
 
-
-;; send notifications for Org agenda deadlines and scheduled tasks
-(use-package org-wild-notifier
-  :hook (after-init . org-wild-notifier-mode))
 
 ;; Programming / Buffer reformatter macro
 
@@ -1853,51 +1634,6 @@ Lisp function does not specify a special indentation."
   (org-projectile-per-project)
   (setq org-projectile-per-project-filepath "TODO.org"))
 
-;; Reference management
-
-;; manager for BibTeX bibliographic databases
-(use-package ebib
-  :init (setq ebib-preload-bib-files '("main.bib")
-              ebib-bib-search-dirs '("~/bib/"))
-  :config
-  ;; friendlier key bindings in `ebib-multiline-edit-mode' buffers
-  (define-key ebib-multiline-mode-map (kbd "C-c C-c")
-    #'ebib-quit-multiline-buffer-and-save)
-  (define-key ebib-multiline-mode-map (kbd "C-c C-s")
-    #'ebib-save-from-multiline-buffer)
-  (define-key ebib-multiline-mode-map (kbd "C-c C-q")
-    #'ebib-cancel-multiline-buffer)
-  ;; custom user interface setup for `ebib-multiline-mode' buffers
-  (defun my-ebib-multiline-mode--setup ()
-    "Custom user interface setup for `ebib-multiline-mode' buffers."
-    ;; show mode bindings in header
-    (setq-local header-line-format
-                "Edit, then exit with ‘C-c C-c’, save with ‘C-c C-s’ or abort with ‘C-c C-q’"))
-  (add-hook 'ebib-multiline-mode-hook #'my-ebib-multiline-mode--setup)
-  ;; wrapper function for inserting citations differently by major-mode
-  (require 'org-ebib)
-  (defun my-ebib-insert-citation ()
-    "Wrapper function for inserting an ebib citation differently by major-mode."
-    (interactive)
-    (cond ((eq major-mode 'org-mode)
-           (call-interactively #'org-ebib-insert-link))
-          (t
-           (call-interactively #'ebib-insert-citation)))))
-
-;; browse and import bibliographic references
-(use-package biblio
-  :config
-  ;; generate and pop up a BibTeX entry from DOI in a special buffer
-  (defun my-biblio--get-bibtex-from-doi (doi)
-    "Retrieves BibTeX entry matching DOI into the \"*Biblio output*\" buffer."
-    (interactive "MDOI: ")
-    (let ((buf (get-buffer-create "*Biblio output*")))
-      (with-current-buffer buf
-        (erase-buffer)
-        (doi-insert-bibtex doi)
-        (pop-to-buffer (current-buffer))
-        (current-buffer)))))
-
 ;; Search
 
 ;; "C-c C-p" in grep bufs allow writing with changes pushed to files
@@ -1967,30 +1703,6 @@ Lisp function does not specify a special indentation."
 
 ;; Visual (part 2)
 
-;; resize window margins for nicer writing environment
-(use-package olivetti)
-
-;; color code by depth
-(use-package prism
-  :config
-  (prism-set-colors :num 16
-    :desaturations (cl-loop for i from 0 below 16
-                            collect (* i 2.5))
-    :lightens (cl-loop for i from 0 below 16
-                       collect (* i 2.5))
-    :colors (list "saddle brown"
-                  "midnight blue"
-                  "dark green")
-    :comments-fn
-    (lambda (color)
-      (prism-blend color
-                   (face-attribute 'font-lock-comment-face
-                                   :foreground)
-                   0.25))
-    :strings-fn
-    (lambda (color)
-      (prism-blend color "white" 0.5))))
-
 ;; display line numbers by default when editing code
 (add-hook 'prog-mode-hook
           (lambda ()
@@ -2031,14 +1743,6 @@ Lisp function does not specify a special indentation."
 
 (require 'censor)
 
-;; add visual indentation guides
-;; don't enable this in any mode by default as it can cause slowdown
-;; when editing large files, as well as issues with copy-pasting
-(use-package highlight-indent-guides
-  :init (setq highlight-indent-guides-method 'character
-              highlight-indent-guides-responsive 'top
-              highlight-indent-guides-character ?\x2502))
-
 ;; pulse line when point is cycled btw top/middle/bottom of window
 (advice-add 'move-to-window-line-top-bottom :after #'my-pulse-line)
 
@@ -2054,14 +1758,6 @@ Lisp function does not specify a special indentation."
 
 (require 'too-long-lines-mode)
 (too-long-lines-mode 1)
-
-(use-package hl-todo
-  :bind (:map hl-todo-mode-map
-         ("C-c t n" . hl-todo-next)
-         ("C-c t p" . hl-todo-prev)
-         ("C-c t o" . hl-todo-occur)
-         ("C-c t i" . hl-todo-insert))
-  :hook (prog-mode . hl-todo-mode))
 
 ;; Web
 
@@ -2081,20 +1777,6 @@ Lisp function does not specify a special indentation."
     (eww-reload)
     (message "Images are now %s" (if shr-inhibit-images "off" "on")))
   (define-key eww-mode-map "I" #'eww--toggle-images))
-
-(use-package restclient
-  :defer t
-  ;; assume request source files have ".http" suffix
-  :mode ("\\.http\\'" . restclient-mode)
-  :config
-  ;; pulse *HTTP Response* buffer after receiving request response
-  ;; adapted from https://github.com/jordonbiondo/.emacs.d/blob/master/init.el
-  (defun my-restclient-pulse-buffer ()
-    "Pulses the current buffer."
-    (save-excursion
-      (goto-char (point-min))
-      (pulse-momentary-highlight-region (point-min) (point-max))))
-  (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
 
 (defun open-gnutls-stream--after-sleep-250ms (&rest args)
   "Workaround for race condition bug in `open-gnutls-stream'.
@@ -2260,70 +1942,6 @@ for more information."
 (when (executable-find "pass")
   (use-package password-store))
 
-;; extend `tabulated-list-mode' with more functionality, adapted from
-;; https://emacsnotes.wordpress.com/2019/04/16/how-i-shortlist-add-ons-for-my-emacs-introducing-tablist/
-(use-package tablist
-  :config
-  ;; enable `tablist-minor-mode' automatically
-  (add-hook 'tabulated-list-mode-hook 'tablist-minor-mode)
-  ;; tablist-minor-mode shadows "U" binding in package-menu-mode-map
-  ;; so add an extra binding for package-menu-mark-upgrades
-  (define-key package-menu-mode-map (kbd "C-c u") #'package-menu-mark-upgrades)
-  ;; add tablist entries to the menu bar
-  (easy-menu-define my-tablist-minor-mode-menu tablist-minor-mode-map
-    "Menu for Tablist Minor Mode Map."
-    '("Tablist"
-      ("Mark"
-       ["Mark Items Regexp" tablist-mark-items-regexp :help "(tablist-mark-items-regexp COLUMN-NAME REGEXP)\n\nMark entries matching REGEXP in column COLUMN-NAME."]
-       ["Mark Items Numeric" tablist-mark-items-numeric :help "(tablist-mark-items-numeric BINOP COLUMN-NAME OPERAND)\n\nMark items fulfilling BINOP with arg OPERAND in column COLUMN-NAME.\n\nFirst the column's value is coerced to a number N.  Then the test\nproceeds as (BINOP N OPERAND)."]
-       "--"
-       ["Mark Forward" tablist-mark-forward :help "(tablist-mark-forward &optional ARG INTERACTIVE)\n\nMark ARG entries forward.\n\nARG is interpreted as a prefix-arg.  If interactive is non-nil,\nmaybe use the active region instead of ARG.\n\nSee `tablist-put-mark' for how entries are marked."]
-       ["Unmark Forward" tablist-unmark-forward :help "(tablist-unmark-forward &optional ARG INTERACTIVE)\n\nUnmark ARG entries forward.\n\nSee `tablist-mark-forward'."]
-       ["Unmark Backward" tablist-unmark-backward :help "(tablist-unmark-backward &optional ARG INTERACTIVE)\n\nUnmark ARG entries backward.\n\nSee `tablist-mark-forward'."]
-       "--"
-       ["Change Marks" tablist-change-marks :help "(tablist-change-marks OLD NEW)\n\nChange all OLD marks to NEW marks.\n\nOLD and NEW are both characters used to mark files."]
-       "--"
-       ["Toggle Marks" tablist-toggle-marks :help "(tablist-toggle-marks)\n\nUnmark all marked and mark all unmarked entries.\n\nSee `tablist-put-mark'."]
-       ["Unmark All Marks" tablist-unmark-all-marks :help "(tablist-unmark-all-marks &optional MARKS INTERACTIVE)\n\nRemove alls marks in MARKS.\n\nMARKS should be a string of mark characters to match and defaults\nto all marks.  Interactively, remove all marks, unless a prefix\narg was given, in which case ask about which ones to remove.\nGive a message, if interactive is non-nil.\n\nReturns the number of unmarked marks."])
-      "--"
-      ("Filter"
-       ["Push Regexp Filter" tablist-push-regexp-filter :help "(tablist-push-regexp-filter COLUMN-NAME REGEXP)\n\nAdd a new filter matching REGEXP in COLUMN-NAME.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Push Equal Filter" tablist-push-equal-filter :help "(tablist-push-equal-filter COLUMN-NAME STRING)\n\nAdd a new filter whre string equals COLUMN-NAME's value.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Push Numeric Filter" tablist-push-numeric-filter :help "(tablist-push-numeric-filter OP COLUMN-NAME 2ND-ARG)\n\nAdd a new filter matching a numeric predicate.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Pop Filter" tablist-pop-filter :help "(tablist-pop-filter &optional N INTERACTIVE)\n\nRemove the first N filter components."]
-       "--"
-       ["Negate Filter" tablist-negate-filter :help "(tablist-negate-filter &optional INTERACTIVE)\n\nNegate the current filter."]
-       ["Suspend Filter" tablist-suspend-filter :style toggle :selected tablist-filter-suspended :help "(tablist-suspend-filter &optional FLAG)\n\nTemporarily disable filtering according to FLAG.\n\nInteractively, this command toggles filtering."]
-       ["Clear Filter" tablist-clear-filter :help "(tablist-clear-filter)"]
-       ["Toggle First Filter Logic" tablist-toggle-first-filter-logic :help "(tablist-toggle-first-filter-logic)\n\nToggle between and/or for the first filter operand."]
-       ["Display Filter" tablist-display-filter :style toggle :selected (assq 'tablist-display-filter-mode-line-tag mode-line-format) :help "(tablist-display-filter &optional FLAG)\n\nDisplay the current filter according to FLAG.\n\nIf FLAG has the value 'toggle, toggle it's visibility.\nIf FLAG has the 'state, then do nothing but return the current\nvisibility."]
-       ["Edit Filter" tablist-edit-filter :help "(tablist-edit-filter)"]
-       "--"
-       ["Name Current Filter" tablist-name-current-filter :help "(tablist-name-current-filter NAME)"]
-       ["Push Named Filter" tablist-push-named-filter :help "(tablist-push-named-filter NAME)\n\nAdd a named filter called NAME.\n\nNamed filter are saved in the variable `tablist-named-filter'."]
-       ["Delete Named Filter" tablist-delete-named-filter :help "(tablist-delete-named-filter NAME &optional MODE)"]
-       ["Deconstruct Named Filter" tablist-deconstruct-named-filter :help "(tablist-deconstruct-named-filter)"])
-      "--"
-      ("Column"
-       ["Forward Column" tablist-forward-column :help "(tablist-forward-column N)\n\nMove n columns forward, while wrapping around."]
-       ["Backward Column" tablist-backward-column :help "(tablist-backward-column N)\n\nMove n columns backward, while wrapping around."]
-       "--"
-       ["Move To Major Column" tablist-move-to-major-column :help "(tablist-move-to-major-column &optional FIRST-SKIP-INVISIBLE-P)\n\nMove to the first major column."]
-       "--"
-       ["Shrink Column" tablist-shrink-column :help "(tablist-shrink-column &optional COLUMN WIDTH)"]
-       ["Enlarge Column" tablist-enlarge-column :help "(tablist-enlarge-column &optional COLUMN WIDTH)\n\nEnlarge column COLUMN by WIDTH.\n\nThis function is lazy and therfore pretty slow."])
-      "--"
-      ["Sort" tablist-sort :help "(tablist-sort &optional COLUMN)\n\nSort the tabulated-list by COLUMN.\n\nCOLUMN may be either a name or an index.  The default compare\nfunction is given by the `tabulated-list-format', which see.\n\nThis function saves the current sort column and the inverse\nsort-direction in the variable `tabulated-list-sort-key', which\nalso determines the default COLUMN and direction.\n\nThe main difference to `tabulated-list-sort' is, that this\nfunction sorts the buffer in-place and it ignores a nil sort\nentry in `tabulated-list-format' and sorts on the column\nanyway (why not ?)."]
-      ["Do Kill Lines" tablist-do-kill-lines :help "(tablist-do-kill-lines &optional ARG INTERACTIVE)\n\nRemove ARG lines from the display."]
-      "--"
-      ["Export Csv" tablist-export-csv :help "(tablist-export-csv &optional SEPARATOR ALWAYS-QUOTE-P INVISIBLE-P OUT-BUFFER DISPLAY-P)\n\nExport a tabulated list to a CSV format.\n\nUse SEPARATOR (or ;) and quote if necessary (or always if\nALWAYS-QUOTE-P is non-nil).  Only consider non-filtered entries,\nunless invisible-p is non-nil.  Create a buffer for the output or\ninsert it after point in OUT-BUFFER.  Finally if DISPLAY-P is\nnon-nil, display this buffer.\n\nReturn the output buffer."]
-      "--"
-      ["Previous Line" tablist-previous-line :help "(tablist-previous-line &optional N)"]
-      ["Next Line" tablist-next-line :help "(tablist-next-line &optional N)"]
-      "--"
-      ["Revert" tablist-revert :help "(tablist-revert)\n\nRevert the list with marks preserved, position kept."]
-      ["Quit" tablist-quit :help "(tablist-quit)"])))
-
 ;; add remote user paths to the TRAMP remote search paths
 (with-eval-after-load 'tramp-sh
   (add-to-list 'tramp-remote-path 'tramp-own-remote-path))
@@ -2377,27 +1995,6 @@ Example of use with transient suffix definitions in a
   (transient-bind-q-to-quit))
 
 ;; Transient commands / Global transients
-
-;; add transient popup for bibliography commands
-(require 'ebib)
-(require 'biblio)
-(transient-define-prefix transient/bibliography ()
-  "Various bibliography commands."
-  ["Bibliography"
-   ["Biblio"
-    ("bl" "Search" biblio-lookup)
-    ("bd" "Show BibTeX from DOI" my-biblio--get-bibtex-from-doi)
-    ("bi" "Insert BibTeX from DOI" doi-insert-bibtex)
-    ("bo" "Show open access from DOI" dissemin-lookup)
-    ]
-   ["Ebib"
-    ("eb" "Open" ebib)
-    ("ei" "Import" ebib-import)
-    ("ec" "Cite" my-ebib-insert-citation)
-    ]
-   ]
-  )
-(global-set-key (kbd "C-c B") #'transient/bibliography)
 
 ;; add transient popup for bookmark commands
 (transient-define-prefix transient/bookmarks ()
@@ -3081,11 +2678,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
                                  system-configuration-features))
                       "\n")))
 
-(defun transient/system--regenerate-my-exec-path-envs-cache ()
-  "Regenerate `my-exec-path-envs-cache-file' and reload env vars."
-  (interactive)
-  (my-exec-path-from-shell-initialize t))
-
 ;; add transient popup for system process management and info, and
 ;; Emacs build and runtime info
 (transient-define-prefix transient/system ()
@@ -3097,7 +2689,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("ep" "Emacs PID" transient/system--display-emacs-pid)
     ("eu" "Uptime" emacs-uptime)
     ("ev" "Version" emacs-version)
-    ("eV" "Regen exec-path-envs cache" transient/system--regenerate-my-exec-path-envs-cache)
     ]
    ["System"
     ("sp" "Proced" proced)
@@ -3117,10 +2708,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (require 'whitespace)
 
 (require 'censor)
-(require 'olivetti)
-(require 'highlight-indent-guides)
-(require 'hl-todo)
-(require 'prism)
 (require 'too-long-lines-mode)
 
 (defvar-local transient/visual--face-remap-cookies '()
@@ -3202,11 +2789,6 @@ Currently only works for Emacs Mac port."
             "Highlight changes"
             highlight-changes-mode))
      highlight-changes-mode)
-    ("i" (lambda ()
-           (transient--make-description
-            "Indent guides"
-            highlight-indent-guides-mode))
-     highlight-indent-guides-mode)
     ("l" (lambda ()
            (transient--make-description
             "Line numbers"
@@ -3297,21 +2879,6 @@ Currently only works for Emacs Mac port."
              (null (assq 'font-lock-doc-face
                          transient/visual--face-remap-cookies))))
      transient/visual--toggle-lighten-font-lock-doc-face)
-    ("cp" (lambda ()
-            (transient--make-description
-             "Prism"
-             prism-mode))
-     prism-mode)
-    ("cP" (lambda ()
-            (transient--make-description
-             "Prism whitespace"
-             prism-whitespace-mode))
-     prism-whitespace-mode)
-    ("cT" (lambda ()
-             (transient--make-description
-              "Highlight TODOs"
-              hl-todo-mode))
-     hl-todo-mode)
     ]
    ]
   [
@@ -3350,11 +2917,6 @@ Currently only works for Emacs Mac port."
             "Hscroll bar"
             (frame-parameter nil 'horizontal-scroll-bars)))
      toggle-horizontal-scroll-bar)
-    ("o" (lambda ()
-           (transient--make-description
-            "Olivetti"
-            olivetti-mode))
-     olivetti-mode)
     ]
    ["Other"
     ("C" (lambda ()
@@ -3545,32 +3107,6 @@ not support restricting to a region."
   )
 
 (global-set-key (kbd "C-c l w") #'transient/writing)
-
-;; add transient popup for yasnippet commands
-(with-eval-after-load 'yasnippet
-  (with-eval-after-load 'auto-yasnippet
-    (defun transient/yasnippet--aya-show-current ()
-     "Show the current auto-snippet `aya-current' in the minibuffer."
-     (interactive)
-     (message "Current auto-yasnippet:\n%s" aya-current))
-   (transient-define-prefix transient/yasnippet ()
-     "YASnippet commands."
-     ["YASnippet"
-      ["Stored snippets"
-       ("SPC" "Expand" yas-expand)
-       ("s" "Insert" yas-insert-snippet)
-       ("n" "New" yas-new-snippet)
-       ("d" "Describe" yas-describe-tables)
-       ("v" "Visit file" yas-visit-snippet-file)
-       ]
-      ["Auto snippets"
-       ("w" "Create" aya-create)
-       ("y" "Expand" aya-expand)
-       ("?" "Show current" transient/yasnippet--aya-show-current)
-       ]
-      ]
-     )
-   (global-set-key (kbd "C-c Y") #'transient/yasnippet)))
 
 ;; Transient commands / Major mode transients
 
@@ -3915,7 +3451,6 @@ not support restricting to a region."
    ]
   )
 
-(require 'ibuffer-vc)
 (transient-define-prefix transient/ibuffer-mode/filter ()
   "`ibuffer-mode' filter commands."
   :transient-suffix 'transient--do-stay
@@ -3939,7 +3474,6 @@ not support restricting to a region."
     ("\\" "Clear" ibuffer-clear-filter-groups)
     ]
    ["Presets"
-    ("V" "VC groups" ibuffer-vc-set-filter-groups-by-vc-root)
     ("R" "Saved" ibuffer-switch-to-saved-filter-groups)
     ("/" "Disable" ibuffer-filter-disable)
     ]
@@ -4134,8 +3668,6 @@ not support restricting to a region."
 
 ;; major-mode specific transient for org-mode
 (with-eval-after-load 'org
-  (require 'org-download)
-  (require 'org-tree-slide)
   (defun transient/org-mode--toggle-display-image-width ()
     "Toggle resizing of inline images in `org-mode' to one-third screen width."
     (interactive)
@@ -4228,57 +3760,12 @@ not support restricting to a region."
      ["Other"
       ("<tab>" "Cycle node" org-cycle :transient t)
       ("<S-tab>" "Cycle global" org-global-cycle :transient t)
-      ("C-p" (lambda ()
-               (transient--make-description
-                "Slideshow mode"
-                org-tree-slide-mode))
-       org-tree-slide-mode)
-      ("ds" "Download screenshot" org-download-screenshot)
-      ("dy" "Download yank" org-download-yank)
       ]
      ]
     )
   (define-key org-mode-map (kbd "C-c m") #'transient/org-mode))
 
-;; major-mode specific transient for restclient-mode
-(with-eval-after-load 'restclient
-  (defun transient/restclient-mode--toggle-narrow ()
-    "Toggle narrowing to the current query in a `restclient-mode' buffer."
-    (interactive)
-    (if (buffer-narrowed-p)
-        (widen)
-      (restclient-narrow-to-current)))
-  (defun transient/restclient-mode--format-json-region ()
-    "Format a selected region containing JSON code."
-    (interactive)
-    (require 'json-mode nil t)
-    (if (fboundp 'json-mode-pretty-print-dwim)
-        (call-interactively 'json-mode-pretty-print-dwim)
-      (message "Requires the `json-mode' package be installed.")))
-  (transient-define-prefix transient/restclient-mode ()
-    "`restclient-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["REST client"
-     ["Send query"
-      ("v" "And stay" restclient-http-send-current-stay-in-window)
-      ("c" "And switch" restclient-http-send-current :transient nil)
-      ("r" "And switch (raw results)" restclient-http-send-current-raw
-       :transient nil)
-      ]
-     ["Movement"
-      ("n" "Next query" restclient-jump-next)
-      ("p" "Previous query" restclient-jump-prev)
-      ("." "Mark current" restclient-mark-current)
-      ]
-     ["Other"
-      ("u" "Copy as CURL command" restclient-copy-curl-command)
-      ("N" "Narrow/Widen buffer" transient/restclient-mode--toggle-narrow)
-      ("f" "Format JSON region" transient/restclient-mode--format-json-region
-       :transient nil)
-      ]
-     ]
-    )
-  (define-key restclient-mode-map (kbd "C-c m") #'transient/restclient-mode))
+
 
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode

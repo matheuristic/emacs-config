@@ -599,95 +599,7 @@ features are reloaded."
       (require feat))))
 #+end_src
 
-* Environment variables                                     :semiearly:melpa:
-
-Copy the environment variables over from the login shell.
-
-#+name: environment-variables
-#+begin_src emacs-lisp
-;; copy environment variables from shell
-(use-package exec-path-from-shell
-  :config
-  (defvar my-exec-path-envs-cache-file
-    (expand-file-name ".my-exec-path-envs.el" user-emacs-directory)
-    "Cache file for `exec-path-from-shell-variables' env var values.")
-  (defvar my-exec-path-envs nil
-    "List of (NAME . VALUE) pairs corresponding to environment variable values.
-Variables should match `exec-path-from-shell-variables'.")
-  (defun my-exec-path-from-shell-initialize (reload)
-    "Memoized version of `exec-path-from-shell-initialized' using a cache file.
-
-The cache is assumed to stored in the file
-`my-exec-path-envs-cache-file'. If the cache file
-does not exist, generate one. If RELOAD is non-nil (say using
-\"C-u M-x my-exec-path-from-shell-initialize\"), regenerate the
-cache before processing."
-    (interactive "P")
-    (when (and (not reload)
-               (file-exists-p my-exec-path-envs-cache-file))
-      (message "Using existing exec-path-from-shell envs cache file")
-      (load-file my-exec-path-envs-cache-file))
-    (when (or reload
-              (not my-exec-path-envs))
-      (setq my-exec-path-envs (exec-path-from-shell-getenvs
-                               exec-path-from-shell-variables))
-      (message "Persisting exec-path-from-shell envs cache file")
-      (my-persist-variables-to-file '(my-exec-path-envs)
-                                    my-exec-path-envs-cache-file))
-    ;; copied from exec-path-from-shell-copy-envs
-    (mapc (lambda (pair)
-            (exec-path-from-shell-setenv (car pair) (cdr pair)))
-          my-exec-path-envs)
-    (message "Initialized exec-path-from-shell environment variables"))
-  (my-exec-path-from-shell-initialize nil))
-#+end_src
-
 * Backend and frontend frameworks for building user interfaces
-
-** Minibuffer completion
-
-Completion using [[https://www.masteringemacs.org/article/introduction-to-ido-mode][Ido]] mode extended with [[https://github.com/DarwinAwardWinner/ido-completing-read-plus][ido-completing-read+]].
-
-#+name: ido-minibuffer-completion
-#+begin_src emacs-lisp
-;; enable minibuffer completion
-(use-package ido-completing-read+
-  :init (setq ido-enable-flex-matching t
-              ido-everywhere t)
-  :config
-  (with-eval-after-load 'magit
-    (setq magit-completing-read-function 'magit-ido-completing-read))
-  (ido-mode 1)
-  (ido-ubiquitous-mode 1))
-#+end_src
-
-** Text completion with Company                                       :melpa:
-
-[[https://company-mode.github.io/][Company]] is a text completion framework for Emacs that supports
-pluggable back-ends and front-ends for retrieving and displaying
-completion candidates.
-Many other Emacs packages support this.
-
-This can get in the way for non-programming modes, so it is
-enabled by default only in programming modes.
-
-#+name: company
-#+begin_src emacs-lisp
-;; text completion framework
-(use-package company
-  :defer t
-  :init
-  (with-eval-after-load 'prog-mode
-    (add-hook 'prog-mode-hook 'company-mode))
-  (setq company-dabbrev-downcase nil
-        company-idle-delay 0.5
-        company-minimum-prefix-length 2
-        company-selection-wrap-around t
-        company-show-numbers t ;; use M-<num> to directly choose completion
-        company-tooltip-align-annotations t)
-  :config
-  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
-#+end_src
 
 ** Edit-indirect                                                      :melpa:
 
@@ -720,24 +632,6 @@ Backup files to the =~/.backup/= directory, keeping only the newest three versio
 #+end_src
 
 * Bookmarks and history
-
-** Minibuffer commands                                                :melpa:
-
-Use [[https://github.com/DarwinAwardWinner/amx][amx]] in place of the standard ~M-x~. It also has an additional
-binding ~M-X~ which is limited to major mode commands.
-
-It is compatible with most completion systems and provides the
-following enhancements:
-- Prioritizing most-used commands.
-- Showing keyboard shortcuts.
-
-#+name: amx
-#+begin_src emacs-lisp
-;; alternative interface for M-x
-(use-package amx
-  :bind ("M-X" . amx-major-mode-commands)
-  :init (amx-mode))
-#+end_src
 
 ** Recent files
 
@@ -916,19 +810,6 @@ Specifically, the current buffer is checked to see if it is in
     ;; use "default" saved filter groups list by default
     (ibuffer-switch-to-saved-filter-groups "default"))
   (add-hook 'ibuffer-mode-hook #'my-ibuffer-filter-groups-setup))
-#+end_src
-
-**** Group by version-controlled project in Ibuffer                   :melpa:
-
-Add support for grouping files by version-controlled project ([[https://github.com/purcell/ibuffer-vc][link]]).
-
-#+name: ibuffer-vc
-#+begin_src emacs-lisp
-;; build VC project ibuffer filter groups
-(use-package ibuffer-vc
-  :after ibuffer
-  :bind (:map ibuffer-mode-map
-         ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
 #+end_src
 
 *** Visual buffer switching using a grid of windows                    :elpa:
@@ -1260,50 +1141,6 @@ provided, the default interactive `eshell' command is run."
           (rename-buffer (concat "*eshell*<" my-es-buf-name ">")))))))
 #+end_src
 
-*** Eshell fish-like history autosuggestions                          :melpa:
-
-[[https://github.com/dieggsy/esh-autosuggest][esh-autosuggest]] provides [[https://fishshell.com/][fish]]-like history autosuggestions in Eshell.
-
-When an autosuggestion is displayed, press ~<right>~ or ~C-f~ to fully
-autocomplete, or ~M-<right>~ or ~M-f~ to autocomplete just the next word.
-
-#+name: esh-autosuggest
-#+begin_src emacs-lisp
-;; history autosuggestions
-;; <right> or C-f completes fully, <M-right> or M-f completes partially
-(use-package esh-autosuggest
-  :after eshell
-  :hook (eshell-mode . esh-autosuggest-mode))
-#+end_src
-
-*** fish-completion of CLI options in Eshell                 :external:melpa:
-
-The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to power Eshell CLI
-option completions using [[https://fishshell.com/][fish]].
-
-This package requires that ~fish~ be installed on the system and
-be on the system path.
-
-#+name: fish-completion
-#+begin_src emacs-lisp
-;; extend pcomplete with fish shell
-(when (executable-find "fish")
-  (use-package fish-completion
-    :after eshell
-    :config (add-hook 'eshell-mode-hook #'fish-completion-mode)))
-#+end_src
-
-*** eshell-z for jumping to frecent directories                       :melpa:
-
-[[https://github.com/xuchunyang/eshell-z][eshell-z]] is a port of [[https://github.com/rupa/z][z]] to Eshell, providing a shell facility for
-jumping to frecent directories.
-
-#+name: eshell-z
-#+begin_src emacs-lisp
-(use-package eshell-z
-  :after eshell)
-#+end_src
-
 *** Integrate Eshell with bookmark.el                                 :melpa:
 
 Extend bookmark.el to support bookmarking Eshell buffers opened to a
@@ -1598,31 +1435,6 @@ non-breaking space character.
 (epa-file-enable)
 #+end_src
 
-** Display available bindings in a popup                              :melpa:
-
-[[https://github.com/justbur/emacs-which-key][which-key]] shows the available bindings in the minibuffer.
-Modify the configuration from the default to only manually using ~C-h~
-in the middle of a key sequence.
-
-#+name: which-key
-#+begin_src emacs-lisp
-;; display available bindings in popup
-(use-package which-key
-  :bind ("C-c H w" . which-key-show-top-level)
-  :init
-  (setq which-key-allow-multiple-replacements t
-        which-key-compute-remaps t
-        ;; configure for manual activation using C-h in the middle of a key seq
-        ;; see https://github.com/justbur/emacs-which-key#manual-activation
-        which-key-idle-delay 10000
-        which-key-idle-secondary-delay 0.05
-        which-key-show-early-on-C-h t)
-  (which-key-mode 1)
-  :config
-  ;; hide mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(which-key-mode . "")))
-#+end_src
-
 ** Expanding selected regions by semantic units                       :melpa:
 
 Use the [[https://github.com/magnars/expand-region.el][expand-region]] package to support expanding selected regions by semantic units.
@@ -1697,38 +1509,6 @@ buffer simultaneously.
   ;; setting a height of 1 ends up rendering a thick bar
   ;; probably because it is too small a value
   (set-face-attribute 'mc/cursor-bar-face nil :height 10))
-#+end_src
-
-** Snippet expansion using YASnippet                                  :melpa:
-
-[[https://github.com/joaotavora/yasnippet/tree/5b1217ab085fab4abeb1118dccb260691b446703][YASnippet]] is a snippet expansion package for Emacs, which supports
-expanding abbreviations into templates. Snippets can defined and
-stored in the =snippets= folder within ~user-emacs-directory~.
-
-Two additional supporting packages can also be loaded:
-- The YASnippet official snippet collections package containing
-  definitions for multiple file types and languages. (Not enabled.)
-- The [[https://github.com/abo-abo/auto-yasnippet][Auto-YASnippet]] package, which enables temporary snippet
-  definitions that can optionally be persisted. Persisted snippets are
-  saved to ~aya-persist-snippet-dir~ (defaults to ~snippets~ in
-  ~user-emacs-directory~) in a subfolder corresponding to the major
-  mode. (Enabled.)
-
-#+name: yasnippet
-#+begin_src emacs-lisp
-;; expandable snippet template system
-(use-package yasnippet
-  :defer 1 ;; load asynchronously after startup
-  :config
-  ;; abbreviate mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ¥"))
-  ;; (use-package yasnippet-snippets) ;; official snippets
-  (use-package auto-yasnippet) ;; enable creation of temporary snippets
-  ;; remove default bindings to avoid conflicts with other packages
-  ;; removing prefix bindings also removes bindings that use them
-  (unbind-key "\C-c&" yas-minor-mode-map)
-  (unbind-key "\C-c" yas-minor-mode-map)
-  (yas-global-mode 1))
 #+end_src
 
 ** Structured editing using Paredit                                   :melpa:
@@ -2226,9 +2006,7 @@ in newer Org versions.
 ;; rebind `org-force-cycle-archived' in older Org versions to not
 ;; conflict with the `tab-next' default binding
 (with-eval-after-load 'org
-  (when (and org-version
-             (not (string-empty-p org-version)) ; guardrail for empty `org-version' in Org 9.4
-             (version< (org-version) "9.4"))
+  (when (version< (org-version) "9.4")
     (define-key org-mode-map (kbd "<C-tab>") nil)
     (org-defkey org-mode-map (kbd "C-c C-<tab>") #'org-force-cycle-archived)))
 #+end_src
@@ -2704,43 +2482,6 @@ to the build chain.
           org-latex-pdf-process)))
 #+end_src
 
-** Mouse support and variable pitch fonts in graphical Emacs Org-mode
-
-When using graphical emacs, enable mouse support (like clicking on the
-header stars to cycle visibility of the subtree) and use variable
-pitch fonts with a little extra line spacing except for certain parts of
-Org documents like code and tables.
-
-#+name: org-graphical-customizations
-#+begin_src emacs-lisp
-;; add mouse support and use variable pitch fonts in graphical Emacs org-mode
-(when (display-graphic-p)
-  (with-eval-after-load 'org
-    (require 'org-mouse) ;; mouse support
-    ;; use variable pitch fonts ...
-    (add-hook 'org-mode-hook #'variable-pitch-mode)
-    (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1)))
-    ;; ... but keep some faces fixed-pitch
-    (require 'org-indent) ;; ensure `org-indent' face is defined
-    (let ((fixed-pitch-family (face-attribute 'fixed-pitch :family nil 'default)))
-      (dolist (curr-face '(org-block
-                           org-block-begin-line
-                           org-block-end-line
-                           org-code
-                           org-date
-                           org-document-info-keyword
-                           org-done
-                           org-indent ;; properly align indentation
-                           org-latex-and-related
-                           org-meta-line
-                           org-property-value
-                           org-special-keyword
-                           org-table
-                           org-todo
-                           org-verbatim))
-        (set-face-attribute curr-face nil :family fixed-pitch-family)))))
-#+end_src
-
 ** org-cliplink for inserting URLs from the clipboard as Org-mode links :melpa:
 
 [[https://github.com/rexim/org-cliplink][org-cliplink]] provides support for inserting URLs from the clipboard as
@@ -2755,103 +2496,6 @@ descriptions.
     :after org
     :bind (:map org-mode-map
            ("C-c C-S-l" . org-cliplink))))
-#+end_src
-
-** org-download for dragging and dropping images into Org-mode        :melpa:
-
-[[https://github.com/abo-abo/org-download][org-download]] enables support for downloading images to Org-mode
-documents, either by running an external command to capture a
-screenshot or by dragging and dropping an image onto the document.
-
-#+name: org-download
-#+begin_src emacs-lisp
-;; drag and drop images into Org buffers
-(use-package org-download
-  :after org
-  :config
-  ;; Mac screenshot command
-  (if (memq window-system '(mac ns))
-      (setq org-download-screenshot-method "screencapture -i %s"))
-  ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
-  ;; save drag-and-drop images into folder of the same name as Org file
-  ;; with filename prefixed by a timestamp of format `org-download-timestamp'
-  ;; e.g. dragging test.png to abc.org saves it to abc/20180522183050-test.png
-  (require 'subr-x) ; for `string-remove-prefix'
-  (defun my-org-download-method (link)
-    """Returns download save path for LINK, for use with `org-download'"""
-    (let* ((filename (format "%s%s"
-                             (format-time-string org-download-timestamp)
-                             (file-name-nondirectory
-                              (car (url-path-and-query
-                                    (url-generic-parse-url link))))))
-           (bufname-sans-ext (file-name-sans-extension (buffer-name)))
-           (dirname (if (and (boundp 'org-capture-mode)
-                             org-capture-mode)
-                        (string-remove-prefix "CAPTURE-"
-                                              bufname-sans-ext)
-                      bufname-sans-ext)))
-      ;; create dir if it does not exist
-      (unless (file-exists-p dirname)
-        (make-directory dirname))
-      ;; save path
-      (expand-file-name filename dirname)))
-  (setq org-download-method 'my-org-download-method
-        org-download-timestamp "%Y%m%d%H%M%S-"))
-#+end_src
-
-** org-tree-slide for presentations from Org documents
-
-[[https://github.com/takaxp/org-tree-slide][org-tree-slide]] is a presentation tool for Org mode using narrowing.
-
-*Bindings*:
-| Mode                  | Binding            | Description                                                 |
-|-----------------------+--------------------+-------------------------------------------------------------|
-| ~org-mode~            | ~<f8>~             | Toggle ~org-tree-slide-mode~                                |
-| ~org-mode~            | ~S-<f8>~           | Toggle skipping of DONE items when in ~org-tree-slide-mode~ |
-| ~org-tree-slide-mode~ | ~C-<~ or ~<f9>~    | Go to previous header                                       |
-| ~org-tree-slide-mode~ | ~C->~ or ~<f10>~   | Go to next header                                           |
-| ~org-tree-slide-mode~ | ~C-c c~            | View presentation contents at the header level              |
-
-#+name: org-tree-slide
-#+begin_src emacs-lisp
-;; presentations from Org documents
-(use-package org-tree-slide
-  :init (setq org-tree-slide-activate-message "Start slideshow mode"
-              org-tree-slide-deactivate-message "End slideshow mode"
-              org-tree-slide-fold-subtrees-skipped nil)
-  :config
-  ;; custom org-tree-slide profile
-  (defun my-org-tree-slide-custom-profile ()
-    "Set variables for custom org-tree-slide profile.
-
-`org-tree-slide-header'            => t
-`org-tree-slide-slide-in-effect'   => nil
-`org-tree-slide-heading-emphasis'  => t
-`org-tree-slide-cursor-init'       => t
-`org-tree-slide-modeline-display'  => 'outside
-`org-tree-slide-skip-done'         => nil
-`org-tree-slide-skip-comments'     => t"
-    (interactive)
-    (setq org-tree-slide-header t
-          org-tree-slide-slide-in-effect nil
-          org-tree-slide-heading-emphasis t
-          org-tree-slide-cursor-init t
-          org-tree-slide-modeline-display 'outside
-          org-tree-slide-skip-done nil
-          org-tree-slide-skip-comments t)
-    (message "custom profile: ON"))
-  ;; use custom profile
-  (call-interactively #'my-org-tree-slide-custom-profile)
-  ;; unbind some default mode bindings
-  (define-key org-tree-slide-mode-map (kbd "C-x s c") nil)
-  ;; (define-key org-tree-slide-mode-map (kbd "C-x <") nil)
-  ;; (define-key org-tree-slide-mode-map (kbd "C-x >") nil)
-  ;; add mode bindings
-  (define-key org-tree-slide-mode-map (kbd "C-c c") #'org-tree-slide-content)
-  (define-key org-mode-map (kbd "<f8>") #'org-tree-slide-mode)
-  (define-key org-mode-map (kbd "S-<f8>") #'org-tree-slide-skip-done-toggle)
-  (define-key org-tree-slide-mode-map (kbd "<f9>") 'org-tree-slide-move-previous-tree)
-  (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree))
 #+end_src
 
 ** ox-md for Org export backend to Markdown
@@ -2880,18 +2524,6 @@ header star replacements are configured.
   :init (setq org-superstar-headline-bullets-list '("◉" "◇" "○" "▷")
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
-#+end_src
-
-** org-wild-notifier for Org agenda event notifications               :melpa:
-
-[[https://github.com/akhramov/org-wild-notifier.el][org-wild-notifier.el]] adds notification support for Org agenda views,
-specifically it sends notifications for upcoming ~TODO~ entries.
-
-#+name: org-wild-notifier
-#+begin_src emacs-lisp
-;; send notifications for Org agenda deadlines and scheduled tasks
-(use-package org-wild-notifier
-  :hook (after-init . org-wild-notifier-mode))
 #+end_src
 
 ** Generating an Org agenda clock table by tag
@@ -3230,76 +2862,6 @@ Also add a corresponding entry type to ~org-capture-templates~.
   (setq org-projectile-per-project-filepath "TODO.org"))
 #+end_src
 
-* Reference management
-
-** ebib for managing BibTeX databases                                 :melpa:
-
-[[http://joostkremers.github.io/ebib/][ebib]] provides support for managing BibTeX bibliographic databases
-(=.bib= files).
-
-#+name: ebib
-#+begin_src emacs-lisp
-;; manager for BibTeX bibliographic databases
-(use-package ebib
-  :init (setq ebib-preload-bib-files '("main.bib")
-              ebib-bib-search-dirs '("~/bib/"))
-  :config
-  ;; friendlier key bindings in `ebib-multiline-edit-mode' buffers
-  (define-key ebib-multiline-mode-map (kbd "C-c C-c")
-    #'ebib-quit-multiline-buffer-and-save)
-  (define-key ebib-multiline-mode-map (kbd "C-c C-s")
-    #'ebib-save-from-multiline-buffer)
-  (define-key ebib-multiline-mode-map (kbd "C-c C-q")
-    #'ebib-cancel-multiline-buffer)
-  ;; custom user interface setup for `ebib-multiline-mode' buffers
-  (defun my-ebib-multiline-mode--setup ()
-    "Custom user interface setup for `ebib-multiline-mode' buffers."
-    ;; show mode bindings in header
-    (setq-local header-line-format
-                "Edit, then exit with ‘C-c C-c’, save with ‘C-c C-s’ or abort with ‘C-c C-q’"))
-  (add-hook 'ebib-multiline-mode-hook #'my-ebib-multiline-mode--setup)
-  ;; wrapper function for inserting citations differently by major-mode
-  (require 'org-ebib)
-  (defun my-ebib-insert-citation ()
-    "Wrapper function for inserting an ebib citation differently by major-mode."
-    (interactive)
-    (cond ((eq major-mode 'org-mode)
-           (call-interactively #'org-ebib-insert-link))
-          (t
-           (call-interactively #'ebib-insert-citation)))))
-#+end_src
-
-** Biblio                                                             :melpa:
-
-[[https://github.com/cpitclaudel/biblio.el][Biblio]] provides Emacs functions to browse bibliographic references
-from a number of sources and import them as BibTeX records.
-
-It complements ebib very well, and one simple workflow to look up
-bibliographic info from a [[https://www.doi.org/][Digital Object Identifier]] (DOI) link is:
-1. Copy DOI link.
-2. Use Biblio to generate a BibTeX entry from looking up the DOI link.
-3. Call ~ebib-import~ on the region or buffer containing the BibTeX
-   entry to import the entry (or entries in the buffer) into the current
-   database in ebib.
-For more info, see /Merging and Importing/ in the Ebib [[http://joostkremers.github.io/ebib/ebib-manual.html][manual]].
-
-#+name: biblio
-#+begin_src emacs-lisp
-;; browse and import bibliographic references
-(use-package biblio
-  :config
-  ;; generate and pop up a BibTeX entry from DOI in a special buffer
-  (defun my-biblio--get-bibtex-from-doi (doi)
-    "Retrieves BibTeX entry matching DOI into the \"*Biblio output*\" buffer."
-    (interactive "MDOI: ")
-    (let ((buf (get-buffer-create "*Biblio output*")))
-      (with-current-buffer buf
-        (erase-buffer)
-        (doi-insert-bibtex doi)
-        (pop-to-buffer (current-buffer))
-        (current-buffer)))))
-#+end_src
-
 * Search
 
 ** wgrep for writable grep buffers with changes pushed to files       :melpa:
@@ -3519,48 +3081,6 @@ Use ~whiteboard~ built-in color theme.
 (load-theme 'whiteboard t)
 #+end_src
 
-** Nicer writing environment                                          :melpa:
-
-[[https://github.com/rnkn/olivetti][Olivetti]] (named for the typewriter) provides a buffer-local minor mode
-that resizes margins so text comfortably centered in the window.
-
-#+name: olivetti
-#+begin_src emacs-lisp
-;; resize window margins for nicer writing environment
-(use-package olivetti)
-#+end_src
-
-** Color coding by depth using prism                                  :melpa:
-
-[[https://github.com/alphapapa/prism.el][prism.el]] disperses Lisp and other forms in different colors by depth.
-There are two modes:
-- ~prism-mode~ for Lisp forms.
-- ~prism-whitespace-mode~ for languages where whitespace has semantic meaning.
-
-#+name: prism
-#+begin_src emacs-lisp
-;; color code by depth
-(use-package prism
-  :config
-  (prism-set-colors :num 16
-    :desaturations (cl-loop for i from 0 below 16
-                            collect (* i 2.5))
-    :lightens (cl-loop for i from 0 below 16
-                       collect (* i 2.5))
-    :colors (list "saddle brown"
-                  "midnight blue"
-                  "dark green")
-    :comments-fn
-    (lambda (color)
-      (prism-blend color
-                   (face-attribute 'font-lock-comment-face
-                                   :foreground)
-                   0.25))
-    :strings-fn
-    (lambda (color)
-      (prism-blend color "white" 0.5))))
-#+end_src
-
 ** Display line numbers when editing code
 
 Display line numbers by default when editing code.
@@ -3661,24 +3181,6 @@ the =.gpg= suffix (the default for GnuPG-encrypted files).
 (require 'censor)
 #+end_src
 
-** Highlight indentation levels                                       :melpa:
-
-[[https://github.com/DarthFennec/highlight-indent-guides][highlight-indent-guides]] adds dynamic indentation guides which are
-useful for languages where whitespace is important like Python.
-
-Use when editing Python files by default.
-
-#+name: highlight-indent-guides
-#+begin_src emacs-lisp
-;; add visual indentation guides
-;; don't enable this in any mode by default as it can cause slowdown
-;; when editing large files, as well as issues with copy-pasting
-(use-package highlight-indent-guides
-  :init (setq highlight-indent-guides-method 'character
-              highlight-indent-guides-responsive 'top
-              highlight-indent-guides-character ?\x2502))
-#+end_src
-
 ** Pulse line on moving point to top/middle/bottom of window
 
 Advise ~move-to-window-line-top-bottom~ to pulse the line after it is
@@ -3727,23 +3229,6 @@ minor modes that may contribute to the slowdown.
 (too-long-lines-mode 1)
 #+end_src
 
-** Highlight TODO keywords                                            :melpa:
-
-[[https://github.com/tarsius/hl-todo][hl-todo]] highlights TODO keywords and provides functions for quick
-insertion and navigation between them. Modify ~hl-todo-keyword-faces~
-to control which keywords get highlighted.
-
-#+name: hl-todo
-#+begin_src emacs-lisp
-(use-package hl-todo
-  :bind (:map hl-todo-mode-map
-         ("C-c t n" . hl-todo-next)
-         ("C-c t p" . hl-todo-prev)
-         ("C-c t o" . hl-todo-occur)
-         ("C-c t i" . hl-todo-insert))
-  :hook (prog-mode . hl-todo-mode))
-#+end_src
-
 * Web
 
 ** Browsing
@@ -3775,36 +3260,6 @@ It supports text and images, but not webfonts or Javascript.
     (eww-reload)
     (message "Images are now %s" (if shr-inhibit-images "off" "on")))
   (define-key eww-mode-map "I" #'eww--toggle-images))
-#+end_src
-
-** REST development tools
-
-*** restclient.el                                                     :melpa:
-
-[[https://github.com/pashky/restclient.el][restclient.el]] provides a major mode for interacting with HTTP queries
-stored in text files, in particular editing and sending them.
-
-*Customizations*:
-- Load the major mode automatically when opening files with a ~.http~ suffix.
-- When the response to a sent HTTP query is received, the request is
-  pulsed once in the buffer to give visual feedback on which query the
-  response is for (adapted from [[https://github.com/jordonbiondo/.emacs.d/blob/master/init.el][here]]).
-
-#+name: restclient
-#+begin_src emacs-lisp
-(use-package restclient
-  :defer t
-  ;; assume request source files have ".http" suffix
-  :mode ("\\.http\\'" . restclient-mode)
-  :config
-  ;; pulse *HTTP Response* buffer after receiving request response
-  ;; adapted from https://github.com/jordonbiondo/.emacs.d/blob/master/init.el
-  (defun my-restclient-pulse-buffer ()
-    "Pulses the current buffer."
-    (save-excursion
-      (goto-char (point-min))
-      (pulse-momentary-highlight-region (point-min) (point-max))))
-  (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
 #+end_src
 
 ** Hacky workaround for GnuTLS timing issues                     :workaround:
@@ -4307,79 +3762,6 @@ package.
   (use-package password-store))
 #+end_src
 
-** Add marks and filters to tabulated-list-mode                       :melpa:
-
-[[https://github.com/politza/tablist][Tablist]] extends ~tabulated-list-mode~ to add marks, filters, a column
-visibility toggle, and CSV export. One example of a buffer with this
-major mode is the one opened by ~list-packages~.
-
-#+name: tablist
-#+begin_src emacs-lisp
-;; extend `tabulated-list-mode' with more functionality, adapted from
-;; https://emacsnotes.wordpress.com/2019/04/16/how-i-shortlist-add-ons-for-my-emacs-introducing-tablist/
-(use-package tablist
-  :config
-  ;; enable `tablist-minor-mode' automatically
-  (add-hook 'tabulated-list-mode-hook 'tablist-minor-mode)
-  ;; tablist-minor-mode shadows "U" binding in package-menu-mode-map
-  ;; so add an extra binding for package-menu-mark-upgrades
-  (define-key package-menu-mode-map (kbd "C-c u") #'package-menu-mark-upgrades)
-  ;; add tablist entries to the menu bar
-  (easy-menu-define my-tablist-minor-mode-menu tablist-minor-mode-map
-    "Menu for Tablist Minor Mode Map."
-    '("Tablist"
-      ("Mark"
-       ["Mark Items Regexp" tablist-mark-items-regexp :help "(tablist-mark-items-regexp COLUMN-NAME REGEXP)\n\nMark entries matching REGEXP in column COLUMN-NAME."]
-       ["Mark Items Numeric" tablist-mark-items-numeric :help "(tablist-mark-items-numeric BINOP COLUMN-NAME OPERAND)\n\nMark items fulfilling BINOP with arg OPERAND in column COLUMN-NAME.\n\nFirst the column's value is coerced to a number N.  Then the test\nproceeds as (BINOP N OPERAND)."]
-       "--"
-       ["Mark Forward" tablist-mark-forward :help "(tablist-mark-forward &optional ARG INTERACTIVE)\n\nMark ARG entries forward.\n\nARG is interpreted as a prefix-arg.  If interactive is non-nil,\nmaybe use the active region instead of ARG.\n\nSee `tablist-put-mark' for how entries are marked."]
-       ["Unmark Forward" tablist-unmark-forward :help "(tablist-unmark-forward &optional ARG INTERACTIVE)\n\nUnmark ARG entries forward.\n\nSee `tablist-mark-forward'."]
-       ["Unmark Backward" tablist-unmark-backward :help "(tablist-unmark-backward &optional ARG INTERACTIVE)\n\nUnmark ARG entries backward.\n\nSee `tablist-mark-forward'."]
-       "--"
-       ["Change Marks" tablist-change-marks :help "(tablist-change-marks OLD NEW)\n\nChange all OLD marks to NEW marks.\n\nOLD and NEW are both characters used to mark files."]
-       "--"
-       ["Toggle Marks" tablist-toggle-marks :help "(tablist-toggle-marks)\n\nUnmark all marked and mark all unmarked entries.\n\nSee `tablist-put-mark'."]
-       ["Unmark All Marks" tablist-unmark-all-marks :help "(tablist-unmark-all-marks &optional MARKS INTERACTIVE)\n\nRemove alls marks in MARKS.\n\nMARKS should be a string of mark characters to match and defaults\nto all marks.  Interactively, remove all marks, unless a prefix\narg was given, in which case ask about which ones to remove.\nGive a message, if interactive is non-nil.\n\nReturns the number of unmarked marks."])
-      "--"
-      ("Filter"
-       ["Push Regexp Filter" tablist-push-regexp-filter :help "(tablist-push-regexp-filter COLUMN-NAME REGEXP)\n\nAdd a new filter matching REGEXP in COLUMN-NAME.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Push Equal Filter" tablist-push-equal-filter :help "(tablist-push-equal-filter COLUMN-NAME STRING)\n\nAdd a new filter whre string equals COLUMN-NAME's value.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Push Numeric Filter" tablist-push-numeric-filter :help "(tablist-push-numeric-filter OP COLUMN-NAME 2ND-ARG)\n\nAdd a new filter matching a numeric predicate.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Pop Filter" tablist-pop-filter :help "(tablist-pop-filter &optional N INTERACTIVE)\n\nRemove the first N filter components."]
-       "--"
-       ["Negate Filter" tablist-negate-filter :help "(tablist-negate-filter &optional INTERACTIVE)\n\nNegate the current filter."]
-       ["Suspend Filter" tablist-suspend-filter :style toggle :selected tablist-filter-suspended :help "(tablist-suspend-filter &optional FLAG)\n\nTemporarily disable filtering according to FLAG.\n\nInteractively, this command toggles filtering."]
-       ["Clear Filter" tablist-clear-filter :help "(tablist-clear-filter)"]
-       ["Toggle First Filter Logic" tablist-toggle-first-filter-logic :help "(tablist-toggle-first-filter-logic)\n\nToggle between and/or for the first filter operand."]
-       ["Display Filter" tablist-display-filter :style toggle :selected (assq 'tablist-display-filter-mode-line-tag mode-line-format) :help "(tablist-display-filter &optional FLAG)\n\nDisplay the current filter according to FLAG.\n\nIf FLAG has the value 'toggle, toggle it's visibility.\nIf FLAG has the 'state, then do nothing but return the current\nvisibility."]
-       ["Edit Filter" tablist-edit-filter :help "(tablist-edit-filter)"]
-       "--"
-       ["Name Current Filter" tablist-name-current-filter :help "(tablist-name-current-filter NAME)"]
-       ["Push Named Filter" tablist-push-named-filter :help "(tablist-push-named-filter NAME)\n\nAdd a named filter called NAME.\n\nNamed filter are saved in the variable `tablist-named-filter'."]
-       ["Delete Named Filter" tablist-delete-named-filter :help "(tablist-delete-named-filter NAME &optional MODE)"]
-       ["Deconstruct Named Filter" tablist-deconstruct-named-filter :help "(tablist-deconstruct-named-filter)"])
-      "--"
-      ("Column"
-       ["Forward Column" tablist-forward-column :help "(tablist-forward-column N)\n\nMove n columns forward, while wrapping around."]
-       ["Backward Column" tablist-backward-column :help "(tablist-backward-column N)\n\nMove n columns backward, while wrapping around."]
-       "--"
-       ["Move To Major Column" tablist-move-to-major-column :help "(tablist-move-to-major-column &optional FIRST-SKIP-INVISIBLE-P)\n\nMove to the first major column."]
-       "--"
-       ["Shrink Column" tablist-shrink-column :help "(tablist-shrink-column &optional COLUMN WIDTH)"]
-       ["Enlarge Column" tablist-enlarge-column :help "(tablist-enlarge-column &optional COLUMN WIDTH)\n\nEnlarge column COLUMN by WIDTH.\n\nThis function is lazy and therfore pretty slow."])
-      "--"
-      ["Sort" tablist-sort :help "(tablist-sort &optional COLUMN)\n\nSort the tabulated-list by COLUMN.\n\nCOLUMN may be either a name or an index.  The default compare\nfunction is given by the `tabulated-list-format', which see.\n\nThis function saves the current sort column and the inverse\nsort-direction in the variable `tabulated-list-sort-key', which\nalso determines the default COLUMN and direction.\n\nThe main difference to `tabulated-list-sort' is, that this\nfunction sorts the buffer in-place and it ignores a nil sort\nentry in `tabulated-list-format' and sorts on the column\nanyway (why not ?)."]
-      ["Do Kill Lines" tablist-do-kill-lines :help "(tablist-do-kill-lines &optional ARG INTERACTIVE)\n\nRemove ARG lines from the display."]
-      "--"
-      ["Export Csv" tablist-export-csv :help "(tablist-export-csv &optional SEPARATOR ALWAYS-QUOTE-P INVISIBLE-P OUT-BUFFER DISPLAY-P)\n\nExport a tabulated list to a CSV format.\n\nUse SEPARATOR (or ;) and quote if necessary (or always if\nALWAYS-QUOTE-P is non-nil).  Only consider non-filtered entries,\nunless invisible-p is non-nil.  Create a buffer for the output or\ninsert it after point in OUT-BUFFER.  Finally if DISPLAY-P is\nnon-nil, display this buffer.\n\nReturn the output buffer."]
-      "--"
-      ["Previous Line" tablist-previous-line :help "(tablist-previous-line &optional N)"]
-      ["Next Line" tablist-next-line :help "(tablist-next-line &optional N)"]
-      "--"
-      ["Revert" tablist-revert :help "(tablist-revert)\n\nRevert the list with marks preserved, position kept."]
-      ["Quit" tablist-quit :help "(tablist-quit)"])))
-#+end_src
-
 ** Reuse path settings of remote account when using TRAMP
 
 By default, the paths on the remote machine used by TRAMP for
@@ -4529,34 +3911,6 @@ Example of use with transient suffix definitions in a
 
 Global transients have global bindings other than ~C-c m~ (that is
 reserved for major mode transients) and are always active.
-
-*** Bibliography transient
-
-Transient for bibliography management.
-
-#+name: bibliography-transient
-#+begin_src emacs-lisp
-;; add transient popup for bibliography commands
-(require 'ebib)
-(require 'biblio)
-(transient-define-prefix transient/bibliography ()
-  "Various bibliography commands."
-  ["Bibliography"
-   ["Biblio"
-    ("bl" "Search" biblio-lookup)
-    ("bd" "Show BibTeX from DOI" my-biblio--get-bibtex-from-doi)
-    ("bi" "Insert BibTeX from DOI" doi-insert-bibtex)
-    ("bo" "Show open access from DOI" dissemin-lookup)
-    ]
-   ["Ebib"
-    ("eb" "Open" ebib)
-    ("ei" "Import" ebib-import)
-    ("ec" "Cite" my-ebib-insert-citation)
-    ]
-   ]
-  )
-(global-set-key (kbd "C-c B") #'transient/bibliography)
-#+end_src
 
 *** Bookmarks transient
 
@@ -5368,11 +4722,6 @@ restarting Emacs as a server.
                                  system-configuration-features))
                       "\n")))
 
-(defun transient/system--regenerate-my-exec-path-envs-cache ()
-  "Regenerate `my-exec-path-envs-cache-file' and reload env vars."
-  (interactive)
-  (my-exec-path-from-shell-initialize t))
-
 ;; add transient popup for system process management and info, and
 ;; Emacs build and runtime info
 (transient-define-prefix transient/system ()
@@ -5384,7 +4733,6 @@ restarting Emacs as a server.
     ("ep" "Emacs PID" transient/system--display-emacs-pid)
     ("eu" "Uptime" emacs-uptime)
     ("ev" "Version" emacs-version)
-    ("eV" "Regen exec-path-envs cache" transient/system--regenerate-my-exec-path-envs-cache)
     ]
    ["System"
     ("sp" "Proced" proced)
@@ -5411,10 +4759,6 @@ Transient for visual commands and toggles.
 (require 'whitespace)
 
 (require 'censor)
-(require 'olivetti)
-(require 'highlight-indent-guides)
-(require 'hl-todo)
-(require 'prism)
 (require 'too-long-lines-mode)
 
 (defvar-local transient/visual--face-remap-cookies '()
@@ -5496,11 +4840,6 @@ Currently only works for Emacs Mac port."
             "Highlight changes"
             highlight-changes-mode))
      highlight-changes-mode)
-    ("i" (lambda ()
-           (transient--make-description
-            "Indent guides"
-            highlight-indent-guides-mode))
-     highlight-indent-guides-mode)
     ("l" (lambda ()
            (transient--make-description
             "Line numbers"
@@ -5591,21 +4930,6 @@ Currently only works for Emacs Mac port."
              (null (assq 'font-lock-doc-face
                          transient/visual--face-remap-cookies))))
      transient/visual--toggle-lighten-font-lock-doc-face)
-    ("cp" (lambda ()
-            (transient--make-description
-             "Prism"
-             prism-mode))
-     prism-mode)
-    ("cP" (lambda ()
-            (transient--make-description
-             "Prism whitespace"
-             prism-whitespace-mode))
-     prism-whitespace-mode)
-    ("cT" (lambda ()
-             (transient--make-description
-              "Highlight TODOs"
-              hl-todo-mode))
-     hl-todo-mode)
     ]
    ]
   [
@@ -5644,11 +4968,6 @@ Currently only works for Emacs Mac port."
             "Hscroll bar"
             (frame-parameter nil 'horizontal-scroll-bars)))
      toggle-horizontal-scroll-bar)
-    ("o" (lambda ()
-           (transient--make-description
-            "Olivetti"
-            olivetti-mode))
-     olivetti-mode)
     ]
    ["Other"
     ("C" (lambda ()
@@ -5860,40 +5179,6 @@ not support restricting to a region."
   )
 
 (global-set-key (kbd "C-c l w") #'transient/writing)
-#+end_src
-
-*** YASnippet transient
-
-Transient for ~yas-minor-mode~ YASnippet commands and YASnippet
-supporting packages.
-
-#+name: yasnippet-transient
-#+begin_src emacs-lisp
-;; add transient popup for yasnippet commands
-(with-eval-after-load 'yasnippet
-  (with-eval-after-load 'auto-yasnippet
-    (defun transient/yasnippet--aya-show-current ()
-     "Show the current auto-snippet `aya-current' in the minibuffer."
-     (interactive)
-     (message "Current auto-yasnippet:\n%s" aya-current))
-   (transient-define-prefix transient/yasnippet ()
-     "YASnippet commands."
-     ["YASnippet"
-      ["Stored snippets"
-       ("SPC" "Expand" yas-expand)
-       ("s" "Insert" yas-insert-snippet)
-       ("n" "New" yas-new-snippet)
-       ("d" "Describe" yas-describe-tables)
-       ("v" "Visit file" yas-visit-snippet-file)
-       ]
-      ["Auto snippets"
-       ("w" "Create" aya-create)
-       ("y" "Expand" aya-expand)
-       ("?" "Show current" transient/yasnippet--aya-show-current)
-       ]
-      ]
-     )
-   (global-set-key (kbd "C-c Y") #'transient/yasnippet)))
 #+end_src
 
 ** Major mode transients
@@ -6283,7 +5568,6 @@ Ibuffer major mode transient.
    ]
   )
 
-(require 'ibuffer-vc)
 (transient-define-prefix transient/ibuffer-mode/filter ()
   "`ibuffer-mode' filter commands."
   :transient-suffix 'transient--do-stay
@@ -6307,7 +5591,6 @@ Ibuffer major mode transient.
     ("\\" "Clear" ibuffer-clear-filter-groups)
     ]
    ["Presets"
-    ("V" "VC groups" ibuffer-vc-set-filter-groups-by-vc-root)
     ("R" "Saved" ibuffer-switch-to-saved-filter-groups)
     ("/" "Disable" ibuffer-filter-disable)
     ]
@@ -6530,8 +5813,6 @@ Org major mode transient.
 #+begin_src emacs-lisp
 ;; major-mode specific transient for org-mode
 (with-eval-after-load 'org
-  (require 'org-download)
-  (require 'org-tree-slide)
   (defun transient/org-mode--toggle-display-image-width ()
     "Toggle resizing of inline images in `org-mode' to one-third screen width."
     (interactive)
@@ -6624,64 +5905,10 @@ Org major mode transient.
      ["Other"
       ("<tab>" "Cycle node" org-cycle :transient t)
       ("<S-tab>" "Cycle global" org-global-cycle :transient t)
-      ("C-p" (lambda ()
-               (transient--make-description
-                "Slideshow mode"
-                org-tree-slide-mode))
-       org-tree-slide-mode)
-      ("ds" "Download screenshot" org-download-screenshot)
-      ("dy" "Download yank" org-download-yank)
       ]
      ]
     )
   (define-key org-mode-map (kbd "C-c m") #'transient/org-mode))
-#+end_src
-
-*** restclient-mode transient
-
-REST client major mode transient.
-
-#+name: restclient-mode-transient
-#+begin_src emacs-lisp
-;; major-mode specific transient for restclient-mode
-(with-eval-after-load 'restclient
-  (defun transient/restclient-mode--toggle-narrow ()
-    "Toggle narrowing to the current query in a `restclient-mode' buffer."
-    (interactive)
-    (if (buffer-narrowed-p)
-        (widen)
-      (restclient-narrow-to-current)))
-  (defun transient/restclient-mode--format-json-region ()
-    "Format a selected region containing JSON code."
-    (interactive)
-    (require 'json-mode nil t)
-    (if (fboundp 'json-mode-pretty-print-dwim)
-        (call-interactively 'json-mode-pretty-print-dwim)
-      (message "Requires the `json-mode' package be installed.")))
-  (transient-define-prefix transient/restclient-mode ()
-    "`restclient-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["REST client"
-     ["Send query"
-      ("v" "And stay" restclient-http-send-current-stay-in-window)
-      ("c" "And switch" restclient-http-send-current :transient nil)
-      ("r" "And switch (raw results)" restclient-http-send-current-raw
-       :transient nil)
-      ]
-     ["Movement"
-      ("n" "Next query" restclient-jump-next)
-      ("p" "Previous query" restclient-jump-prev)
-      ("." "Mark current" restclient-mark-current)
-      ]
-     ["Other"
-      ("u" "Copy as CURL command" restclient-copy-curl-command)
-      ("N" "Narrow/Widen buffer" transient/restclient-mode--toggle-narrow)
-      ("f" "Format JSON region" transient/restclient-mode--format-json-region
-       :transient nil)
-      ]
-     ]
-    )
-  (define-key restclient-mode-map (kbd "C-c m") #'transient/restclient-mode))
 #+end_src
 
 *** smerge-mode transient
@@ -6962,15 +6189,7 @@ The main configuration file.
 
 <<my-package-reinstall>>
 
-;; Environment variables
-
-<<environment-variables>>
-
 ;; Backend and frontend frameworks for building user interfaces
-
-<<ido-minibuffer-completion>>
-
-<<company>>
 
 <<edit-indirect>>
 
@@ -6981,8 +6200,6 @@ The main configuration file.
 <<backup-files-directory>>
 
 ;; Bookmarks and history
-
-<<amx>>
 
 <<recentf>>
 
@@ -6997,8 +6214,6 @@ The main configuration file.
 <<ibuffer>>
 
 <<ibuffer-filter-groups>>
-
-<<ibuffer-vc>>
 
 <<buffer-expose>>
 
@@ -7038,11 +6253,7 @@ The main configuration file.
 
 <<eshell-named-buffers>>
 
-<<esh-autosuggest>>
-
-<<fish-completion>>
-
-<<eshell-z>>
+<<eshell-bookmark>>
 
 <<comint-prompt-read-only>>
 
@@ -7078,15 +6289,11 @@ The main configuration file.
 
 <<epa-file>>
 
-<<which-key>>
-
 <<expand-region>>
 
 <<iedit>>
 
 <<multiple-cursors>>
-
-<<yasnippet>>
 
 <<paredit>>
 
@@ -7130,7 +6337,7 @@ The main configuration file.
 
 ;; Org-mode
 
-<<org-elpa>>
+;; <<org-elpa>>
 
 <<rebind-org-force-cycle-archived-when-using-older-org-versions>>
 
@@ -7158,21 +6365,13 @@ The main configuration file.
 
 <<org-latex-pdf-process>>
 
-<<org-graphical-customizations>>
-
 <<org-cliplink>>
-
-<<org-download>>
-
-<<org-tree-slide>>
 
 <<ox-md>>
 
 <<org-superstar>>
 
 <<org-capture-websnippet>>
-
-<<org-wild-notifier>>
 
 ;; Programming / Buffer reformatter macro
 
@@ -7204,12 +6403,6 @@ The main configuration file.
 
 <<org-projectile>>
 
-;; Reference management
-
-<<ebib>>
-
-<<biblio>>
-
 ;; Search
 
 <<wgrep>>
@@ -7232,10 +6425,6 @@ The main configuration file.
 
 ;; Visual (part 2)
 
-<<olivetti>>
-
-<<prism>>
-
 <<display-line-numbers-when-editing-code>>
 
 <<show-trailing-whitespace>>
@@ -7250,21 +6439,15 @@ The main configuration file.
 
 <<censor>>
 
-<<highlight-indent-guides>>
-
 <<pulse-line-after-move-to-window-line-top-bottom>>
 
 <<pulse-line-after-focus-change-or-pop-mark-ring>>
 
 <<too-long-lines-mode>>
 
-<<hl-todo>>
-
 ;; Web
 
 <<eww>>
-
-<<restclient>>
 
 <<open-gnutls-stream-workaround>>
 
@@ -7316,8 +6499,6 @@ The main configuration file.
 
 <<password-store>>
 
-<<tablist>>
-
 <<tramp-remote-search-paths>>
 
 <<set-mark-command-repeat-pop>>
@@ -7331,8 +6512,6 @@ The main configuration file.
 <<transient>>
 
 ;; Transient commands / Global transients
-
-<<bibliography-transient>>
 
 <<bookmarks-transient>>
 
@@ -7377,8 +6556,6 @@ The main configuration file.
 <<workspace-transient>>
 
 <<writing-transient>>
-
-<<yasnippet-transient>>
 
 ;; Transient commands / Major mode transients
 

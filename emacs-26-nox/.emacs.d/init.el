@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar 15 13:33:28 2021
+;; Generated: Mon Mar 15 13:37:48 2021
 
 ;;; Commentary:
 
@@ -672,7 +672,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
-  :ensure nil ;; built-in, comment this line to use the MELPA version
   :commands paredit-mode
   :bind (:map paredit-mode-map
          ("{" . paredit-open-curly)

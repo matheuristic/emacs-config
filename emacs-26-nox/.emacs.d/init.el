@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar 15 13:17:30 2021
+;; Generated: Mon Mar 15 13:21:14 2021
 
 ;;; Commentary:
 
@@ -2786,6 +2786,8 @@ not support restricting to a region."
      ]
     )
   (define-key eww-mode-map (kbd "C-c m") #'transient/eww-mode))
+
+(require 'ibuffer)
 
 (transient-define-prefix transient/ibuffer-mode/mark ()
   "`ibuffer-mode' mark commands."

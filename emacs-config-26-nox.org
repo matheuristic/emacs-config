@@ -4566,6 +4566,8 @@ Ibuffer major mode transient.
 
 #+name: ibuffer-mode-transient
 #+begin_src emacs-lisp
+(require 'ibuffer)
+
 (transient-define-prefix transient/ibuffer-mode/mark ()
   "`ibuffer-mode' mark commands."
   :transient-suffix 'transient--do-stay

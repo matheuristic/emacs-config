@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 22:00:17 2021
+;; Generated: Sun Mar 14 22:39:48 2021
 
 ;;; Commentary:
 
@@ -2100,10 +2100,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("n" "Next" next-buffer :transient t)
     ("p" "Previous" previous-buffer :transient t)
     ("z" "Open external" transient/buffer--open-containing-dir-externally)
-    ;; commands below are autoloaded, so there should be no need
-    ;; to make sure (require 'browse-at-remote) is run prior
-    ("gb" "Git browse" browse-at-remote)
-    ("gw" "Git copy URL" browse-at-remote-kill)
     ]
    ["Hygiene"
     ("cr" "Whitespace report" whitespace-report)

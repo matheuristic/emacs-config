@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 19:12:57 2021
+;; Generated: Sun Mar 14 22:00:17 2021
 
 ;;; Commentary:
 
@@ -1081,14 +1081,16 @@ Formatting a selected region only works on top-level objects."
 
 ;; set Org directory and inbox file
 (setq org-directory (file-truename (file-name-as-directory (expand-file-name "~/org"))))
-(defvar my-org-agenda-inbox (concat org-directory "inbox.org")
+(defvar my-org-agenda-inbox (concat org-directory "agenda/inbox.org")
   "Path to Org agenda inbox.")
-(defvar my-org-someday-inbox (concat org-directory "someday.org")
+(defvar my-org-someday-inbox (concat org-directory "agenda/someday.org")
   "Path to Org someday inbox.")
-(defvar my-org-journal-file (concat org-directory "journal.org")
+(defvar my-org-journal-file (concat org-directory "agenda/journal.org")
   "Path to Org journal file.")
-(defvar my-org-scratch-file (concat org-directory "scratch/scratch.org")
+(defvar my-org-scratch-file (concat org-directory "agenda/scratch.org")
   "Path to Org scratch file.")
+(defvar my-org-websnippet-file (concat org-directory "agenda/websnippets.org")
+  "Path to Org websnippet file.")
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
@@ -1321,8 +1323,10 @@ call `open-line' on the very first character."
                         (lambda (x)
                           (and
                            (not (string-suffix-p my-org-agenda-inbox x))
-                           (not (string-suffix-p my-org-someday-inbox x))))
-                        (file-expand-wildcards (concat org-directory "*.org"))))
+                           (not (string-suffix-p my-org-someday-inbox x))
+                           (not (string-suffix-p my-org-scratch-file x))
+                           (not (string-suffix-p my-org-websnippet-file x))))
+                        (file-expand-wildcards (concat org-directory "agenda/*.org"))))
 
 ;; add separator between each day in agenda view
 (setq org-agenda-format-date
@@ -2388,6 +2392,10 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     "Open a file buffer for `my-org-journal-file'."
     (interactive)
     (find-file my-org-journal-file))
+  (defun transient/org-launcher--find-org-websnippet-capture-file ()
+    "Open a file buffer for `org-websnippet-capture-file'."
+    (interactive)
+    (find-file org-websnippet-capture-file))
   (defun transient/org-launcher--find-my-org-scratch-file ()
     "Open a file buffer for `my-org-scratch-file'."
     (interactive)
@@ -2406,6 +2414,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
       ("fi" "Inbox" transient/org-launcher--find-my-org-agenda-inbox)
       ("fs" "Someday" transient/org-launcher--find-my-org-someday-inbox)
       ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
+      ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
       ("fx" "Scratch" transient/org-launcher--find-my-org-scratch-file)
       ]
      ]

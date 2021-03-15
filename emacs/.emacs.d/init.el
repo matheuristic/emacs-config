@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 19:12:16 2021
+;; Generated: Sun Mar 14 21:46:06 2021
 
 ;;; Commentary:
 
@@ -1595,14 +1595,16 @@ Formatting a selected region only works on top-level objects."
 
 ;; set Org directory and inbox file
 (setq org-directory (file-truename (file-name-as-directory (expand-file-name "~/org"))))
-(defvar my-org-agenda-inbox (concat org-directory "inbox.org")
+(defvar my-org-agenda-inbox (concat org-directory "agenda/inbox.org")
   "Path to Org agenda inbox.")
-(defvar my-org-someday-inbox (concat org-directory "someday.org")
+(defvar my-org-someday-inbox (concat org-directory "agenda/someday.org")
   "Path to Org someday inbox.")
-(defvar my-org-journal-file (concat org-directory "journal.org")
+(defvar my-org-journal-file (concat org-directory "agenda/journal.org")
   "Path to Org journal file.")
-(defvar my-org-scratch-file (concat org-directory "scratch/scratch.org")
+(defvar my-org-scratch-file (concat org-directory "agenda/scratch.org")
   "Path to Org scratch file.")
+(defvar my-org-websnippet-file (concat org-directory "agenda/websnippets.org")
+  "Path to Org websnippet file.")
 
 ;; basic Org-mode settings
 (setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
@@ -1835,8 +1837,10 @@ call `open-line' on the very first character."
                         (lambda (x)
                           (and
                            (not (string-suffix-p my-org-agenda-inbox x))
-                           (not (string-suffix-p my-org-someday-inbox x))))
-                        (file-expand-wildcards (concat org-directory "*.org"))))
+                           (not (string-suffix-p my-org-someday-inbox x))
+                           (not (string-suffix-p my-org-scratch-file x))
+                           (not (string-suffix-p my-org-websnippet-file x))))
+                        (file-expand-wildcards (concat org-directory "agenda/*.org"))))
 
 ;; add separator between each day in agenda view
 (setq org-agenda-format-date
@@ -2003,32 +2007,10 @@ call `open-line' on the very first character."
   :after org
   :config
   ;; Mac screenshot command
-  (if (memq window-system '(mac ns))
-      (setq org-download-screenshot-method "screencapture -i %s"))
-  ;; adapted from https://coldnew.github.io/hexo-org-example/2018/05/22/use-org-download-to-drag-image-to-emacs/
-  ;; save drag-and-drop images into folder of the same name as Org file
-  ;; with filename prefixed by a timestamp of format `org-download-timestamp'
-  ;; e.g. dragging test.png to abc.org saves it to abc/20180522183050-test.png
-  (require 'subr-x) ; for `string-remove-prefix'
-  (defun my-org-download-method (link)
-    """Returns download save path for LINK, for use with `org-download'"""
-    (let* ((filename (format "%s%s"
-                             (format-time-string org-download-timestamp)
-                             (file-name-nondirectory
-                              (car (url-path-and-query
-                                    (url-generic-parse-url link))))))
-           (bufname-sans-ext (file-name-sans-extension (buffer-name)))
-           (dirname (if (and (boundp 'org-capture-mode)
-                             org-capture-mode)
-                        (string-remove-prefix "CAPTURE-"
-                                              bufname-sans-ext)
-                      bufname-sans-ext)))
-      ;; create dir if it does not exist
-      (unless (file-exists-p dirname)
-        (make-directory dirname))
-      ;; save path
-      (expand-file-name filename dirname)))
-  (setq org-download-method 'my-org-download-method
+  (setq org-download-screenshot-method
+        (cond ((memq window-system '(mac ns)) "screencapture -i %s")
+              (t "gnome-screenshot -a -f %s"))) ; default to GNOME screenshot tool
+  (setq org-download-method 'attach ; use `org-attach' machinery
         org-download-timestamp "%Y%m%d%H%M%S-"))
 
 ;; presentations from Org documents
@@ -2085,7 +2067,7 @@ call `open-line' on the very first character."
 (require 'org-protocol)
 
 ;; add capture template for web snippets
-(setq org-websnippet-capture-file (concat org-directory "scratch/websnippets.org"))
+(setq org-websnippet-capture-file my-org-websnippet-file)
 (add-to-list 'org-capture-templates
              `("W" "Websnippet" entry
                (file+headline ,org-websnippet-capture-file "Unsorted")

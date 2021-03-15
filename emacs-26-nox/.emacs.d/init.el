@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar 15 10:36:46 2021
+;; Generated: Mon Mar 15 11:06:00 2021
 
 ;;; Commentary:
 
@@ -1328,13 +1328,6 @@ call `open-line' on the very first character."
     (push "lualatex -interaction nonstopmode -output-directory %o %f"
           org-latex-pdf-process)))
 
-;; insert urls from clipboard as links with title of page
-(when (display-graphic-p)
-  (use-package org-cliplink
-    :after org
-    :bind (:map org-mode-map
-           ("C-c C-S-l" . org-cliplink))))
-
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
   (require 'ox-md))
@@ -1568,45 +1561,7 @@ Lisp function does not specify a special indentation."
   (use-package rg
     :bind ("<f6>" . rg-menu)))
 
-;; jump to definition using ag or rg and applying heuristics
-(use-package dumb-jump
-  :init
-  (setq dumb-jump-aggressive nil
-        dumb-jump-default-project "./"
-        dumb-jump-prefer-searcher 'rg)
-  :config
-  ;; add dumb-jump to the list of xref backends
-  (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
-
-;; jump to visible text using char-based decision tree
-(use-package avy
-  :config
-  ;; bind over `goto-line' since it can be invoked by entering numbers
-  ;; for `avy-goto-line' input instead characters in the decision tree
-  (global-set-key [remap goto-line] #'avy-goto-line)
-  ;; jump to location of any text that is visible in the current frame
-  ;; bind over "M-g M-g" (use "M-g g" for `goto-line' instead)
-  (global-set-key (kbd "M-g M-g") #'avy-goto-char-timer))
-
-;; display, select and jump to links in various major modes
-(use-package ace-link
-  :config
-  ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
-  ;; eww-mode, help-mode, Info-mode and woman-mode
-  (ace-link-setup-default)
-  ;; bind "C-c M-o" to jump to link in Org mode
-  (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "C-c M-o") #'ace-link-org))
-  (with-eval-after-load 'org-agenda
-    (define-key org-agenda-mode-map (kbd "C-c M-o") #'ace-link-org-agenda)))
-
 (setq imenu-auto-rescan t)
-
-;; menu list of major definitions across several buffers
-(use-package imenu-anywhere
-  :defer t
-  :after imenu
-  :bind ("C-c I" . imenu-anywhere))
 
 ;; show imenu as a list in a side buffer
 (use-package imenu-list
@@ -1787,47 +1742,6 @@ for more information."
 (put 'upcase-region 'disabled nil)
 
 (global-set-key (kbd "<f5>") #'revert-buffer)
-
-;; enable auth-source integration with pass
-(when (executable-find "pass")
-  (use-package auth-source-pass
-    :demand t
-    :config
-    (defcustom auth-source-pass-filename-list '("~/.password-store")
-      "Directory filenames of different pass repositories on the system."
-      :group 'auth-source
-      :type '(repeat string))
-    (defun auth-source-pass-cycle-active-store ()
-      "Sets `auth-source-pass-filename' by cycling through `auth-source-pass-filename-list'."
-      (interactive)
-      (let* ((cur-pos (seq-position auth-source-pass-filename-list
-                                    auth-source-pass-filename))
-             (new-pos (if cur-pos ; non-nil
-                          (mod (1+ cur-pos)
-                               (length auth-source-pass-filename-list))
-                        0)) ; default to first entry
-             (new-dir (elt auth-source-pass-filename-list
-                           new-pos)))
-        (setq auth-source-pass-filename new-dir)
-        (message (concat "auth-source-pass-filename set to: "
-                         auth-source-pass-filename))))
-    (defun my-auth-source-pass-enable ()
-      "Enable auth-source and pass integration."
-      (interactive)
-      (auth-source-pass-enable)
-      (message "auth-source-password-store enabled"))
-    (defun my-auth-source-pass-disable ()
-      "Disable auth-source and pass integration."
-      (interactive)
-      ;; To add password-store to the list of sources, evaluate the following:
-      (setq auth-sources (delete 'password-store auth-sources))
-      ;; clear the cache (required after each change to #'auth-source-pass-search)
-      (auth-source-forget-all-cached)
-      (message "auth-source-password-store disabled"))))
-
-;; emacs integration with pass password-store
-(when (executable-find "pass")
-  (use-package password-store))
 
 ;; add remote user paths to the TRAMP remote search paths
 (with-eval-after-load 'tramp-sh
@@ -2356,49 +2270,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ]
   )
 (global-set-key (kbd "C-c e P") #'transient/package)
-
-;; add transient for password-store commands
-(with-eval-after-load 'auth-source-pass
-  (with-eval-after-load 'password-store
-    (defun transient/password-store--toggle-auth-source-pass-store ()
-      "Toggle auto-source and password-store integration."
-      (interactive)
-      (if (member 'password-store auth-sources)
-          (my-auth-source-pass-disable)
-        (my-auth-source-pass-enable)))
-    (transient-define-prefix transient/password-store ()
-      "Various password-store commands."
-      [:description (lambda ()
-                      (concat "Password store ["
-                              (password-store-dir)
-                              "]"))
-       ["Copy"
-        ("c" "Password" password-store-copy)
-        ("f" "Field" password-store-copy-field)
-        ("u" "URL" password-store-url)
-        ]
-       ["Add/Remove/Modify"
-        ("g" "Generate" password-store-generate)
-        ("i" "Insert" password-store-insert)
-        ("e" "Edit" password-store-edit)
-        ("r" "Rename" password-store-rename)
-        ("R" "Remove" password-store-remove)
-        ]
-       ["Other"
-        ("<tab>" "Cycle store" auth-source-pass-cycle-active-store :transient t)
-        ("A" (lambda ()
-               (transient--make-description
-                "Auth-source integration"
-                (member 'password-store auth-sources)))
-         transient/password-store--toggle-auth-source-pass-store
-         :transient t)
-        ("C" "Clear" password-store-clear)
-        ("I" "Init store" password-store-init)
-        ("v" "Version" password-store-version)
-        ]
-       ]
-      )
-    (global-set-key (kbd "C-c P") #'transient/password-store)))
 
 ;; add transient for Emacs profiler
 (transient-define-prefix transient/profiler ()

@@ -686,8 +686,8 @@ Specifically, the current buffer is checked to see if it is in
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)))
-           ("Data" (or (mode . csv-mode)
-                       (mode . json-mode)
+           ("Data" (or (name . ".csv")
+                       (name . ".json")
                        (mode . nxml-mode)))
            ("Programming" (derived-mode . prog-mode))
            ("Agenda" (or (mode . org-agenda-mode)
@@ -1216,19 +1216,6 @@ This opens the file using the preferred application by filetype."
   (define-key dired-mode-map (kbd "z") #'dired--open-file-at-pt))
 #+end_src
 
-** dired-filter extension to add Ibuffer-like filters to Dired        :melpa:
-
-~dired-filter~ from the [[https://github.com/Fuco1/dired-hacks][dired-hacks]] collection adds filtering capability like that of [[Advanced buffer management with Ibuffer][Ibuffer]] to Dired.
-
-#+name: dired-filter
-#+begin_src emacs-lisp
-(use-package dired-filter
-  :bind (:map dired-mode-map
-         ("/" . dired-filter-map))
-  :hook (dired-mode . dired-filter-mode)
-  :init (setq-default dired-filter-stack nil))
-#+end_src
-
 * Editing text
 
 ** Indent with soft tabs
@@ -1306,19 +1293,6 @@ non-breaking space character.
 ;; enable transparent editing of GPG files
 (require 'epa-file)
 (epa-file-enable)
-#+end_src
-
-** Expanding selected regions by semantic units                       :melpa:
-
-Use the [[https://github.com/magnars/expand-region.el][expand-region]] package to support expanding selected regions by semantic units.
-Examples include character to word, word to sentence, etc.
-
-#+name: expand-region
-#+begin_src emacs-lisp
-;; expand selected region by semantic units
-(use-package expand-region
-  :commands er/expand-region
-  :bind ("C-=" . er/expand-region))
 #+end_src
 
 ** Iedit mode for editing occurances of the same word simultaneously  :melpa:
@@ -1520,52 +1494,6 @@ With arg N, insert N newlines."
 (global-set-key (kbd "C-S-o") #'my-open-line-above)
 #+end_src
 
-** Show keyboard macros and latest commands as Elisp                  :melpa:
-
-[[https://github.com/Silex/elmacro][Elmacro]] provides commands that show Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Keyboard-Macros.html][keyboard macros]] or the
-latest interactive commands as Elisp, and can be a useful tool for
-creating Elisp function or as a nicer version of ~view-lossage~.
-See [[https://emacsnotes.wordpress.com/2018/11/15/elmacro-write-emacs-lisp-snippet-even-when-you-arent-a-programmer/][here]] for more a nice introduction to the package.
-
-#+name: elmacro
-#+begin_src emacs-lisp
-;; show keyboard macros and latest commands as Elisp, adapted from
-;; https://emacsnotes.wordpress.com/2018/11/15/elmacro-write-emacs-lisp-snippet-even-when-you-arent-a-programmer/
-(use-package elmacro
-  :config
-  ;; uncomment below to enable `elmacro-mode' by default, at the cost
-  ;; of some slowdown (it is better to enable it only when needed)
-  ;; (elmacro-mode 1)
-  ;; add Elmacro entry under Tools in the menu bar
-  (easy-menu-define my-elmacro-menu nil
-    "Menu for Elmacro."
-    '("Elmacro"
-      ["Elmacro Mode"
-       (customize-save-variable 'elmacro-mode (not elmacro-mode))
-       :style toggle
-       :selected elmacro-mode
-       :help "(elmacro-mode &optional ARG)\n\nToggle emacs activity recording (elmacro mode).\nWith a prefix argument ARG, enable elmacro mode if ARG is\npositive, and disable it otherwise. If called from Lisp, enable\nthe mode if ARG is omitted or nil."]
-      "--"
-      ["Show Last Commands"
-       elmacro-show-last-commands
-       :active elmacro-mode
-       :help "(elmacro-show-last-commands &optional COUNT)\n\nTake the latest COUNT commands and show them as emacs lisp.\n\nThis is basically a better version of `kmacro-edit-lossage'.\n\nThe default number of commands shown is modifiable in variable\n`elmacro-show-last-commands-default'.\n\nYou can also modify this number by using a numeric prefix argument or\nby using the universal argument, in which case it'll ask for how many\nin the minibuffer."]
-      ["Show Last Macro"
-       elmacro-show-last-macro
-       :active elmacro-mode
-       :help "(elmacro-show-last-macro NAME)\n\nShow the last macro as emacs lisp with NAME."]
-      "--"
-      ["Clear Command History"
-       elmacro-clear-command-history
-       :active elmacro-mode
-       :help "(elmacro-clear-command-history)\n\nClear the list of recorded commands."]))
-  (dolist (menu-item '(["--" nil] my-elmacro-menu ["--" nil]))
-    (easy-menu-add-item
-     (current-global-map)
-     '("menu-bar" "Tools")
-     menu-item)))
-#+end_src
-
 ** Use DWIM versions of default editing commands
 
 #+name: bind-dwim-editing-commands
@@ -1634,154 +1562,6 @@ $ pkill -SIGUSR1 -i emacs
 #+end_example
 
 * Non-programming files
-
-** csv-mode for comma-delimited and tab-delimited files (CSV, TSV)     :elpa:
-
-[[https://elpa.gnu.org/packages/csv-mode.html][csv-mode]] provides a major mode for editing comma and tab delimited
-(CSV and TSV) files.
-
-To extend it to separator characters other the default comma and tab,
-add or modify the ~csv-separators~ list.
-
-#+name: csv-mode
-#+begin_src emacs-lisp
-(use-package csv-mode
-  :commands csv-mode
-  :bind (:map csv-mode-map
-         ("C-c C-S-a" . csv-align-visible-fields))
-  :config
-  (setq csv-align-style 'auto) ;; `csv-align-fields' left/right-aligns text/numbers
-  (defun csv-align-visible-fields ()
-    "Align visible lines in `csv-mode'. Useful for large CSV files where
-`csv-align-fields' can take a very long time to run."
-    (interactive)
-    (csv-align-fields nil (window-start) (window-end))))
-#+end_src
-
-** dockerfile-mode for editing Dockerfiles                            :melpa:
-
-[[https://github.com/spotify/dockerfile-mode][dockerfile-mode]] provides a major mode for editing Docker files.
-
-#+name: dockerfile-mode
-#+begin_src emacs-lisp
-(use-package dockerfile-mode
-  :commands dockerfile-mode
-  :config (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
-#+end_src
-
-** JSON
-
-*** jq-mode for editing jq scripts                                    :melpa:
-
-[[https://github.com/stedolan/jq][jq]] is a command-line JSON processor much like Awk or Sed for text
-processing. [[https://github.com/ljos/jq-mode][jq-mode]] provides a major mode for editing jq scripts.
-
-#+name: jq-mode
-#+begin_src emacs-lisp
-(when (executable-find "jq")
-  (use-package jq-mode
-    :mode "\\.jq\\'"))
-#+end_src
-
-*** json-mode for editing JSON files                                  :melpa:
-
-[[https://github.com/joshwnj/json-mode][json-mode]] provides a major mode for editing [[https://www.json.org/json-en.html][JSON]] files.
-
-#+name: json-mode
-#+begin_src emacs-lisp
-;; provides a major mode for editing JSON files
-(use-package json-mode
-  :defer t
-  :init (setq js-indent-level 2
-              json-reformat:indent-width 2
-              json-reformat:pretty-string? nil))
-#+end_src
-
-*** JSON file linting using jq and Flymake
-
-Lint JSON buffers using [[https://stedolan.github.io/jq/][jq]] and Flymake. The backend using jq is defined using ~flymake-quickdef-backend~ from [[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]].
-
-#+name: flymake-jq
-#+begin_src emacs-lisp
-(when (executable-find "jq")
-  (with-eval-after-load 'flymake-quickdef
-    (flymake-quickdef-backend flymake-jq-backend
-      :pre-let ((jq-exec (executable-find "jq")))
-      :pre-check (unless jq-exec (error "Cannot find jq executable"))
-      :write-type 'file
-      :proc-form (list jq-exec "." fmqd-temp-file)
-      :search-regexp
-      "\\(parse error: \\)?\\(.+\\) at line \\([[:digit:]]+\\), column \\([[:digit:]]+\\).*$"
-      :prep-diagnostic (let* ((msg (match-string 2))
-                              (lnum (string-to-number (match-string 3)))
-                              (lcol (string-to-number (match-string 4)))
-                              (pos (flymake-diag-region fmqd-source lnum lcol))
-                              (beg (car pos))
-                              (end (cdr pos))
-                              (type :error))
-                         (list fmqd-source beg end type msg)))
-    ;; define function for enabling the Flymake backend
-    (defun flymake-jq-setup ()
-      "Enable jq backend for Flymake."
-      (add-hook 'flymake-diagnostic-functions
-                #'flymake-jq-backend
-                nil
-                t))
-    (with-eval-after-load 'json-mode
-      ;; enable Flymake jq backend in JSON buffers
-      (add-hook 'json-mode-hook #'flymake-jq-setup t)
-      (add-hook 'json-mode-hook #'flymake-mode))))
-#+end_src
-
-*** JSON file reformatting using jq
-
-[[https://stedolan.github.io/jq/][jq]] can be used as a formatter for JSON codes. It pretty-prints by
-default, so it can be called with its ~.~ operator which the input to
-format JSON code. Reformatting commands can be defined using the
-~reformatter-define~ macro.
-
-#+name: json-jq-format
-#+begin_src emacs-lisp
-(when (executable-find "jq")
-  (with-eval-after-load 'json-mode
-    ;; use jq with the basic operator "." (to pretty print but leave
-    ;; the input unmodified otherwise) to format JSON code
-    (with-eval-after-load 'reformatter
-      ;; json
-      ;; define `json-jq-format-{buffer|region|on-save-mode}'
-      (reformatter-define json-jq-format
-        :program "jq"
-        :args '("--sort-keys" "." "-")
-        :group 'json-mode
-        :lighter " JSONFmt")
-      ;; dwim function calling `json-jq-format-region' if a region is
-      ;; selected, or `json-jq-format-buffer' otherwise
-      (defun json-jq-format-buffer-or-region ()
-        "Format the current JSON buffer or a region if selected.
-Formatting a selected region only works on top-level objects."
-        (interactive)
-        (cond
-         ((use-region-p) (json-jq-format-region (region-beginning)
-                                                (region-end)))
-         (t (json-jq-format-buffer))))
-      ;; jsonlines
-      ;; define `jsonl-jq-format-{buffer|region|on-save-mode}'
-      (reformatter-define jsonl-jq-format
-        :program "jq"
-        :args '("--compact-output" "--sort-keys" "." "-")
-        :group 'json-mode
-        :lighter " JSONLFmt")
-      ;; dwim function calling `jsonl-jq-format-region' if a region is
-      ;; selected, or `jsonl-jq-format-buffer' otherwise
-      (defun jsonl-jq-format-buffer-or-region ()
-        "Format the current JSONL buffer or a region if selected.
-Formatting a selected region only works on top-level objects."
-        (interactive)
-        (cond
-         ((use-region-p) (jsonl-jq-format-region (region-beginning)
-                                                 (region-end)))
-         (t (jsonl-jq-format-buffer)))))))
-#+end_src
 
 ** markdown-mode for editing Markdown files                           :melpa:
 
@@ -2411,35 +2191,6 @@ See [[https://orgmode.org/manual/Structure-Templates.html][Org documentation]] f
 
 * Programming
 
-** Buffer reformatter macro                                           :melpa:
-
-[[https://github.com/purcell/reformatter.el][reformatter.el]] defines a macro to allow an easy way to create Elisp
-commands that reformat the current buffer or a given region using a
-command-line program, along with an optional minor mode that applies
-the reformatting command automatically on save.
-
-The following example from the official repository defines the following:
-- An interactive command ~yaml-format-buffer~ which reformats the
-  buffer.
-- An interactive command ~yaml-format-region~ which reformats a
-  selected region.
-- A buffer-local minor mode ~yaml-format-on-save-mode~ that reformats
-  the buffer on save when it is enabled.
-
-#+begin_example
-(reformatter-define yaml-format
-  :program "prettier"
-  :group 'yaml
-  :lighter 'YAMLFmt)
-#+end_example
-
-#+name: reformatter
-#+begin_src emacs-lisp
-;; defines the `reformatter-define' macro that allows definition of
-;; commands that run reformatters on the current buffer
-(use-package reformatter)
-#+end_src
-
 ** Flymake syntax checker
 
 [[https://elpa.gnu.org/packages/flymake.html][Flymake]] is a built-in on-the-fly syntax checker, with updated versions
@@ -2505,54 +2256,6 @@ For some problematic file, the easiest solution is to add an Emacs [[https://www
 #+begin_src emacs-lisp
 ;; TODO add :around advice to flymake-mode to not enable mode
 ;; when editing a remote file
-#+end_src
-
-*** flymake-quickdef for defining Flymake backends                    :melpa:
-
-[[https://github.com/karlotness/flymake-quickdef][Flymake-Quickdef]] provides a macro for quickly defining Flymake backends.
-See the [[https://github.com/karlotness/flymake-quickdef/blob/master/flymake-quickdef.el#L56-L158][documentation]] for how to use this macro.
-
-#+name: flymake-quickdef
-#+begin_src emacs-lisp
-(use-package flymake-quickdef
-  :demand t)
-#+end_src
-
-** Bash and sh shell scripts
-
-*** ShellCheck shell script static analyzer and Flymake
-
-#+name: flymake-shellcheck
-#+begin_src emacs-lisp
-(with-eval-after-load 'flymake-quickdef
-  (flymake-quickdef-backend flymake-shellcheck-backend
-    :pre-let ((shellcheck-exec (executable-find "shellcheck")))
-    :pre-check (unless shellcheck-exec (error "Cannot find shellcheck executable"))
-    :write-type 'file
-    :proc-form (list shellcheck-exec
-                     "-f" "gcc"
-                     fmqd-temp-file)
-    :search-regexp
-    "^.+?:\\([0-9]+\\):\\([0-9]+\\): \\(.*\\): \\(.*\\)$"
-    :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
-                            (lcol (string-to-number (match-string 2)))
-                            (severity (downcase (match-string 3)))
-                            (msg (match-string 4))
-                            (pos (flymake-diag-region fmqd-source lnum lcol))
-                            (beg (car pos))
-                            (end (cdr pos))
-                            (type (cond
-                                    ((string= severity "note") :note)
-                                    ((string= severity "warning") :warning)
-                                    (t :error))))
-                       (list fmqd-source beg end type msg)))
-  ;; define function for enabling the Flymake backend
-  (defun flymake-shellcheck-setup ()
-    "Enable shellcheck backend for Flymake."
-    (add-hook 'flymake-diagnostic-functions #'flymake-shellcheck-backend nil t))
-  (with-eval-after-load 'sh-script
-    (add-hook 'sh-mode-hook #'flymake-shellcheck-setup)
-    (add-hook 'sh-mode-hook #'flymake-mode)))
 #+end_src
 
 ** Emacs Lisp
@@ -2750,21 +2453,6 @@ Automatically installed by ~rg.el~.
 (use-package wgrep
   :config (setq wgrep-auto-save-buffer nil
                 wgrep-too-many-file-length 10))
-#+end_src
-
-** Ripgrep support with rg.el                                :external:melpa:
-
-[[https://github.com/dajva/rg.el][rg.el]] provides support for [[https://github.com/BurntSushi/ripgrep][ripgrep]], an alternative for the grep search tool that is
-extremely fast.
-
-It supports inline editing of search results via [[https://github.com/mhayashi1120/Emacs-wgrep][wgrep]], accessed
-through ~e~ while on the search results page.
-
-#+name: ripgrep
-#+begin_src emacs-lisp
-(when (executable-find "rg")
-  (use-package rg
-    :bind ("<f6>" . rg-menu)))
 #+end_src
 
 ** Imenu
@@ -3834,7 +3522,6 @@ the terminal.
     ]
    ["Other"
     (";" "Iedit" iedit-mode) ; autoloaded from iedit.el
-    ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
     ]
    ]
   )
@@ -3930,47 +3617,39 @@ For an example, see the writeup on [[https://www.emacswiki.org/emacs/KeyboardMac
 #+name: keyboard-macros-transient
 #+begin_src emacs-lisp
 ;; add transient for keyboard macros
-(with-eval-after-load 'elmacro
-  (transient-define-prefix transient/keyboard-macros ()
-    "Keyboard macro commands. Tries to adhere to \"C-x C-k\" bindings."
-    ["Keyboard Macros"
-     ["Actions"
-      ("C-s" "Start" kmacro-start-macro)           ; also "C-x ("
-      ("C-k" "Call last" kmacro-end-or-call-macro) ; also "C-x )"
-      ("C-r" "Call last on region" apply-macro-to-region-lines)
-      ]
-     ["Ring"
-      ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)
-      ("C-p" "Cycle prev" kmacro-cycle-ring-previous :transient t)
-      ("C-v" "View last" kmacro-view-macro :transient t)
-      ("C-d" "Delete head" kmacro-delete-ring-head :transient t)
-      ]
-     ["Edit"
-      ("e" "Named" edit-kbd-macro)
-      ("RET" "Last" kmacro-edit-macro)
-      ("l" "Lossage" kmacro-edit-lossage)
-      ("SPC" "Step" kmacro-step-edit-macro)
-      ]
-     ]
-    [
-     ["Bind/Name"
-      ("b" "Bind to key" kmacro-bind-to-key)
-      ("n" "Name last" kmacro-name-last-macro)
-      ("x" "To register" kmacro-to-register)
-      ]
-     [:description (lambda ()
-                     (transient--make-description "Elmacro" elmacro-mode))
-      ("Em" "Toggle mode" elmacro-mode :transient t)
-      ("Ec" "Show last commands" elmacro-show-last-commands)
-      ("El" "Show last macro" elmacro-show-last-macro)
-      ("EC" "Clear history" elmacro-clear-command-history)
-      ]
-     ["Other"
-      ("i" "Insert named" insert-kbd-macro)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c k") #'transient/keyboard-macros))
+(transient-define-prefix transient/keyboard-macros ()
+  "Keyboard macro commands. Tries to adhere to \"C-x C-k\" bindings."
+  ["Keyboard Macros"
+   ["Actions"
+    ("C-s" "Start" kmacro-start-macro)           ; also "C-x ("
+    ("C-k" "Call last" kmacro-end-or-call-macro) ; also "C-x )"
+    ("C-r" "Call last on region" apply-macro-to-region-lines)
+    ]
+   ["Ring"
+    ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)
+    ("C-p" "Cycle prev" kmacro-cycle-ring-previous :transient t)
+    ("C-v" "View last" kmacro-view-macro :transient t)
+    ("C-d" "Delete head" kmacro-delete-ring-head :transient t)
+    ]
+   ["Edit"
+    ("e" "Named" edit-kbd-macro)
+    ("RET" "Last" kmacro-edit-macro)
+    ("l" "Lossage" kmacro-edit-lossage)
+    ("SPC" "Step" kmacro-step-edit-macro)
+    ]
+   ]
+  [
+   ["Bind/Name"
+    ("b" "Bind to key" kmacro-bind-to-key)
+    ("n" "Name last" kmacro-name-last-macro)
+    ("x" "To register" kmacro-to-register)
+    ]
+   ["Other"
+    ("i" "Insert named" insert-kbd-macro)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c k") #'transient/keyboard-macros)
 #+end_src
 
 *** Marks and markers transient
@@ -4233,18 +3912,11 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
 #+name: search-transient
 #+begin_src emacs-lisp
 ;; add transient popup for search tools
-(defun transient/search--rg-menu-or-rgrep ()
-  "Dispatch to `rg-menu' if command available, else `rgrep'."
-  (interactive)
-  (if (and (executable-find "rg")
-           (fboundp 'rg-menu))
-      (call-interactively #'rg-menu)
-    (call-interactively #'rgrep)))
 (transient-define-prefix transient/search ()
   "Search commands."
   ["Search"
    ["Grep"
-    ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
+    ("gr" "Recursive" rgrep)
     ("gz" "Recursive (*.gz)" rzgrep)
     ("gg" "With user args" grep)
     ("gf" "Via find" grep-find)
@@ -4789,41 +4461,6 @@ not support restricting to a region."
 Major mode transients are always bound to ~C-c m~ and that binding
 is active only when their corresponding major mode is active.
 
-*** csv-mode transient
-
-CSV major mode transient.
-
-#+name: csv-mode-transient
-#+begin_src emacs-lisp
-;; major-mode specific transient for csv-mode
-(with-eval-after-load 'csv-mode
-  (transient-define-prefix transient/csv-mode ()
-    "`csv-mode' commands."
-    ["CSV"
-     ["Sort"
-      ("s" "Lexicographic" csv-sort-fields)
-      ("n" "Numerically" csv-sort-numeric-fields)
-      ("r" "Reverse" csv-reverse-region)
-      ("d" "Toggle descending" csv-toggle-descending :transient t)
-      ]
-     ["Edit"
-      ("t" "Transpose" csv-transpose)
-      ("k" "Cut" csv-kill-fields)
-      ("y" "Paste" csv-yank-fields)
-      ("z" "Paste as new table" csv-yank-as-new-table)
-      ]
-     ["Visual"
-      ("A" "Align visible" csv-align-visible-fields :transient t)
-      ("a" "Align" csv-align-fields :transient t)
-      ("u" "Unalign" csv-unalign-fields :transient t)
-      ("h" "Toggle header" csv-header-line :transient t)
-      ("v" "Toggle separator" csv-toggle-invisibility :transient t)
-      ]
-     ]
-    )
-  (define-key csv-mode-map (kbd "C-c m") #'transient/csv-mode))
-#+end_src
-
 *** debugger-mode transient
 
 [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Debugger.html][Debugger]] major mode transient.
@@ -4876,116 +4513,78 @@ Dired major mode transient.
 #+begin_src emacs-lisp
 ;; major-mode specific transient for dired-mode
 (with-eval-after-load 'dired
-  (with-eval-after-load 'dired-filter
-    (defun transient/dired-mode--dired-kill-and-next-subdir ()
-      "Kill current subdir in dired, and jump back to its parent dir."
-      (interactive)
-      (let* ((subdir-name (directory-file-name (dired-current-directory)))
-             (parent-dir  (file-name-directory subdir-name))
-             (search-term (concat " "
-                                  (file-name-base subdir-name)
-                                  (file-name-extension subdir-name t))))
-        (dired-kill-subdir)
-        (dired-goto-subdir parent-dir)
-        (search-forward search-term)))
-    (transient-define-prefix transient/dired-mode/filter ()
-      "`dired-mode' Dired-Filter commands."
-      ;; have suffixes not exit the transient by default
-      :transient-suffix 'transient--do-stay
-      ["Dired → Filter"
-       ["Filter by"
-        ("n" "Name" dired-filter-by-name)
-        ("r" "Regexp" dired-filter-by-regexp)
-        ("." "Extension" dired-filter-by-extension)
-        ("h" "Hidden" dired-filter-by-dot-files)
-        ("o" "Omitted" dired-filter-by-omit)
-        ("g" "Garbage" dired-filter-by-garbage)
-        ("e" "Predicate" dired-filter-by-predicate)
-        ("f" "File" dired-filter-by-file)
-        ("d" "Directory" dired-filter-by-directory)
-        ("m" "Mode" dired-filter-by-mode)
-        ("s" "Symlink" dired-filter-by-symlink)
-        ("x" "Executable" dired-filter-by-executable)
-        ("ig" "Git-ignored" dired-filter-by-git-ignored)
-        ]
-       ["Operators"
-        ("|" "OR" dired-filter-or)
-        ("!" "NOT" dired-filter-negate)
-        ("*" "Decompose" dired-filter-decompose)
-        ("TAB" "Transpose" dired-filter-transpose)
-        ("p" "Pop" dired-filter-pop)
-        ("/" "Reset" dired-filter-pop-all)
-        ]
-       ["Save/Load"
-        ("S" "Save" dired-filter-save-filters)
-        ("L" "Load" dired-filter-load-saved-filters)
-        ("A" "Add" dired-filter-add-saved-filters)
-        ("D" "Delete" dired-filter-delete-saved-filters)
-        ]
-       ]
-      )
-    (transient-define-prefix transient/dired-mode ()
-      "`dired-mode' commands."
-      ["Dired"
-       ["File open"
-        ("RET" "Open" dired-find-file)
-        ("o" "Open other" dired-find-file-other-window)
-        ("F" "Open marked" dired-do-find-marked-files)
-        ("z" "Open external" dired--open-file-at-pt)
-        ("v" "View file" dired-view-file)
-        ("+" "Create dir" dired-create-directory)
-        ("=" "Diff" dired-diff)
-        ]
-       ["File operations"
-        ("C" "Copy" dired-do-copy)
-        ("D" "Delete" dired-do-delete)
-        ("x" "Delete marked" dired-do-flagged-delete)
-        ("S" "Symlink" dired-do-symlink)
-        ("Y" "Symlink to" dired-do-relsymlink)
-        ("c" "Compress to" dired-do-compress-to)
-        ("Z" "Compress" dired-do-compress)
-        ]
-       ["File modification"
-        ("R" "Rename" dired-do-rename)
-        ("%R" "Rename by regexp" dired-do-rename-regexp)
-        ("G" "chgrp" dired-do-chgrp)
-        ("M" "chmod" dired-do-chmod)
-        ("O" "chown" dired-do-chown)
-        ("T" "Touch" dired-do-touch)
-        ]
-       ["Mark"
-        ("m" "File at pt" dired-mark :transient t)
-        ("E" "By extension" dired-mark-extension :transient t)
-        ("t" "Toggle marks" dired-toggle-marks :transient t)
-        ("u" "Unmark" dired-unmark :transient t)
-        ("U" "Unmark all" dired-unmark-all-marks :transient t)
-        ]
-       ]
-      [
-       ["Search/Filter"
-        ("A" "Query" dired-do-find-regexp)
-        ("Q" "Query-replace" dired-do-find-regexp-and-replace)
-        ("{" "Find by name" find-name-dired)
-        ("}" "Find by query" find-grep-dired)
-        ("/" "Filter" transient/dired-mode/filter)
-        ]
-       ["View"
-        ("(" "Toggle details" dired-hide-details-mode :transient t)
-        (")" "Toggle omit" dired-omit-mode :transient t)
-        ("i" "Insert subdir" dired-maybe-insert-subdir :transient t)
-        ("K" "Kill subdir" transient/dired-mode--dired-kill-and-next-subdir :transient t)
-        ("s" "Sort by date" dired-sort-toggle-or-edit :transient t)
-        ]
-       ["Other"
-        ("y" "Show file type" dired-show-file-type :transient t)
-        ("g" "Refresh" revert-buffer :transient t)
-        ("l" "Redisplay" dired-do-redisplay :transient t)
-        ("C-o" "Display other" dired-display-file)
-        ("h" "Help" describe-mode)
-        ]
-       ]
-      )
-    (define-key dired-mode-map (kbd "C-c m") #'transient/dired-mode)))
+  (defun transient/dired-mode--dired-kill-and-next-subdir ()
+    "Kill current subdir in dired, and jump back to its parent dir."
+    (interactive)
+    (let* ((subdir-name (directory-file-name (dired-current-directory)))
+           (parent-dir  (file-name-directory subdir-name))
+           (search-term (concat " "
+                                (file-name-base subdir-name)
+                                (file-name-extension subdir-name t))))
+      (dired-kill-subdir)
+      (dired-goto-subdir parent-dir)
+      (search-forward search-term)))
+  (transient-define-prefix transient/dired-mode ()
+    "`dired-mode' commands."
+    ["Dired"
+     ["File open"
+      ("RET" "Open" dired-find-file)
+      ("o" "Open other" dired-find-file-other-window)
+      ("F" "Open marked" dired-do-find-marked-files)
+      ("z" "Open external" dired--open-file-at-pt)
+      ("v" "View file" dired-view-file)
+      ("+" "Create dir" dired-create-directory)
+      ("=" "Diff" dired-diff)
+      ]
+     ["File operations"
+      ("C" "Copy" dired-do-copy)
+      ("D" "Delete" dired-do-delete)
+      ("x" "Delete marked" dired-do-flagged-delete)
+      ("S" "Symlink" dired-do-symlink)
+      ("Y" "Symlink to" dired-do-relsymlink)
+      ("c" "Compress to" dired-do-compress-to)
+      ("Z" "Compress" dired-do-compress)
+      ]
+     ["File modification"
+      ("R" "Rename" dired-do-rename)
+      ("%R" "Rename by regexp" dired-do-rename-regexp)
+      ("G" "chgrp" dired-do-chgrp)
+      ("M" "chmod" dired-do-chmod)
+      ("O" "chown" dired-do-chown)
+      ("T" "Touch" dired-do-touch)
+      ]
+     ["Mark"
+      ("m" "File at pt" dired-mark :transient t)
+      ("E" "By extension" dired-mark-extension :transient t)
+      ("t" "Toggle marks" dired-toggle-marks :transient t)
+      ("u" "Unmark" dired-unmark :transient t)
+      ("U" "Unmark all" dired-unmark-all-marks :transient t)
+      ]
+     ]
+    [
+     ["Search/Filter"
+      ("A" "Query" dired-do-find-regexp)
+      ("Q" "Query-replace" dired-do-find-regexp-and-replace)
+      ("{" "Find by name" find-name-dired)
+      ("}" "Find by query" find-grep-dired)
+      ]
+     ["View"
+      ("(" "Toggle details" dired-hide-details-mode :transient t)
+      (")" "Toggle omit" dired-omit-mode :transient t)
+      ("i" "Insert subdir" dired-maybe-insert-subdir :transient t)
+      ("K" "Kill subdir" transient/dired-mode--dired-kill-and-next-subdir :transient t)
+      ("s" "Sort by date" dired-sort-toggle-or-edit :transient t)
+      ]
+     ["Other"
+      ("y" "Show file type" dired-show-file-type :transient t)
+      ("g" "Refresh" revert-buffer :transient t)
+      ("l" "Redisplay" dired-do-redisplay :transient t)
+      ("C-o" "Display other" dired-display-file)
+      ("h" "Help" describe-mode)
+      ]
+     ]
+    )
+  (define-key dired-mode-map (kbd "C-c m") #'transient/dired-mode))
 #+end_src
 
 *** edebug-mode transient
@@ -5235,30 +4834,6 @@ Ibuffer major mode transient.
    ]
   )
 (define-key ibuffer-mode-map (kbd "C-c m") #'transient/ibuffer-mode)
-#+end_src
-
-*** json-mode transient
-
-JSON major mode transient.
-
-#+name: json-mode-transient
-#+begin_src emacs-lisp
-;; major-mode specific transient for json-mode
-(with-eval-after-load 'json-mode
-  (transient-define-prefix transient/json-mode ()
-    "`json-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["JSON mode"
-     ("p" "Copy path" json-mode-show-path)
-     ("b" "Toggle bool value" json-toggle-boolean)
-     ("i" "Increment num" json-increment-number-at-point)
-     ("d" "Decrement num" json-decrement-number-at-point)
-     ("k" "Nullify sexp" json-nullify-sexp)
-     ("B" "Beautify" json-mode-beautify)
-     ("R" "Reformat (jq)" json-jq-format-buffer-or-region)
-     ]
-    )
-  (define-key json-mode-map (kbd "C-c m") #'transient/json-mode))
 #+end_src
 
 *** markdown-mode transient
@@ -5617,33 +5192,32 @@ Flymake minor mode transient.
 #+begin_src emacs-lisp
 ;; add transient for Flymake
 (with-eval-after-load 'flymake
-  (with-eval-after-load 'flymake-quickdef
-    (transient-define-prefix transient/flymake-mode ()
-      "`flymake-mode' commands."
-      :transient-suffix 'transient--do-stay
-      [:description (lambda ()
-                      (transient--make-description
-                       "Flymake"
-                       flymake-mode))
-       ["Error"
-        ("n" "Next" flymake-goto-next-error)
-        ("p" "Previous" flymake-goto-prev-error)
-        ("l" "List" my-toggle-flymake-diagnostics)
-        ("." "Describe" display-local-help)
-        ]
-       ["Check"
-        ("c" "Start" flymake-start)
-        ("k" "Stop" flymake-proc-stop-all-syntax-checks)
-        ]
-       ["Other"
-        ("m" "Toggle mode" flymake-mode)
-        ("r" "Reporting backends" flymake-reporting-backends)
-        ("d" "Disabled backends" flymake-disabled-backends)
-        ("l" "Log" flymake-switch-to-log-buffer)
-        ("c" "Compile (no check)" flymake-proc-compile)
-        ]
-       ]
-      ))
+  (transient-define-prefix transient/flymake-mode ()
+    "`flymake-mode' commands."
+    :transient-suffix 'transient--do-stay
+    [:description (lambda ()
+                    (transient--make-description
+                     "Flymake"
+                     flymake-mode))
+     ["Error"
+      ("n" "Next" flymake-goto-next-error)
+      ("p" "Previous" flymake-goto-prev-error)
+      ("l" "List" my-toggle-flymake-diagnostics)
+      ("." "Describe" display-local-help)
+      ]
+     ["Check"
+      ("c" "Start" flymake-start)
+      ("k" "Stop" flymake-proc-stop-all-syntax-checks)
+      ]
+     ["Other"
+      ("m" "Toggle mode" flymake-mode)
+      ("r" "Reporting backends" flymake-reporting-backends)
+      ("d" "Disabled backends" flymake-disabled-backends)
+      ("l" "Log" flymake-switch-to-log-buffer)
+      ("c" "Compile (no check)" flymake-proc-compile)
+      ]
+     ]
+    )
   (global-set-key (kbd "C-c F") #'transient/flymake-mode))
 #+end_src
 
@@ -5804,8 +5378,6 @@ The main configuration file.
 
 <<dired-open-file-at-pt>>
 
-<<dired-filter>>
-
 ;; Editing text
 
 <<indent-with-soft-tabs>>
@@ -5817,8 +5389,6 @@ The main configuration file.
 <<sentence-end-single-space>>
 
 <<epa-file>>
-
-<<expand-region>>
 
 <<iedit>>
 
@@ -5836,8 +5406,6 @@ The main configuration file.
 
 <<my-open-line-below-and-above>>
 
-<<elmacro>>
-
 <<bind-dwim-editing-commands>>
 
 ;; Emacs as an edit server
@@ -5845,18 +5413,6 @@ The main configuration file.
 <<sigusr1-restart-emacs-server>>
 
 ;; Non-programming files
-
-<<csv-mode>>
-
-<<dockerfile-mode>>
-
-<<jq-mode>>
-
-<<json-mode>>
-
-<<flymake-jq>>
-
-<<json-jq-format>>
 
 <<markdown-mode>>
 
@@ -5900,19 +5456,9 @@ The main configuration file.
 
 <<org-tempo>>
 
-;; Programming / Buffer reformatter macro
-
-<<reformatter>>
-
 ;; Programming / Flymake syntax checker
 
 <<flymake>>
-
-<<flymake-quickdef>>
-
-;; Programming / Bash and sh shell scripts
-
-<<flymake-shellcheck>>
 
 ;; Programming / Emacs Lisp
 
@@ -5933,8 +5479,6 @@ The main configuration file.
 ;; Search
 
 <<wgrep>>
-
-<<ripgrep>>
 
 <<imenu-auto-rescan>>
 
@@ -6068,8 +5612,6 @@ The main configuration file.
 
 ;; Transient commands / Major mode transients
 
-<<csv-mode-transient>>
-
 <<debugger-mode-transient>>
 
 <<dired-mode-transient>>
@@ -6079,8 +5621,6 @@ The main configuration file.
 <<eww-mode-transient>>
 
 <<ibuffer-mode-transient>>
-
-<<json-mode-transient>>
 
 <<markdown-mode-transient>>
 

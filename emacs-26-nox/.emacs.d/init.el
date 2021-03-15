@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar 15 11:06:00 2021
+;; Generated: Mon Mar 15 13:02:45 2021
 
 ;;; Commentary:
 
@@ -350,8 +350,8 @@ Specifically, the current buffer is checked to see if it is in
            ("Shell" (or (mode . eshell-mode)
                         (mode . shell-mode)
                         (mode . term-mode)))
-           ("Data" (or (mode . csv-mode)
-                       (mode . json-mode)
+           ("Data" (or (name . ".csv")
+                       (name . ".json")
                        (mode . nxml-mode)))
            ("Programming" (derived-mode . prog-mode))
            ("Agenda" (or (mode . org-agenda-mode)
@@ -663,12 +663,6 @@ This opens the file using the preferred application by filetype."
                      filename)))
   (define-key dired-mode-map (kbd "z") #'dired--open-file-at-pt))
 
-(use-package dired-filter
-  :bind (:map dired-mode-map
-         ("/" . dired-filter-map))
-  :hook (dired-mode . dired-filter-mode)
-  :init (setq-default dired-filter-stack nil))
-
 ;; Editing text
 
 ;; indent with soft tabs; use C-q <TAB> for real tabs
@@ -698,11 +692,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 ;; enable transparent editing of GPG files
 (require 'epa-file)
 (epa-file-enable)
-
-;; expand selected region by semantic units
-(use-package expand-region
-  :commands er/expand-region
-  :bind ("C-=" . er/expand-region))
 
 (use-package iedit
   :init (setq iedit-toggle-key-default (kbd "C-;"))
@@ -805,42 +794,6 @@ With arg N, insert N newlines."
 ;; binding for `my-open-line-above
 (global-set-key (kbd "C-S-o") #'my-open-line-above)
 
-;; show keyboard macros and latest commands as Elisp, adapted from
-;; https://emacsnotes.wordpress.com/2018/11/15/elmacro-write-emacs-lisp-snippet-even-when-you-arent-a-programmer/
-(use-package elmacro
-  :config
-  ;; uncomment below to enable `elmacro-mode' by default, at the cost
-  ;; of some slowdown (it is better to enable it only when needed)
-  ;; (elmacro-mode 1)
-  ;; add Elmacro entry under Tools in the menu bar
-  (easy-menu-define my-elmacro-menu nil
-    "Menu for Elmacro."
-    '("Elmacro"
-      ["Elmacro Mode"
-       (customize-save-variable 'elmacro-mode (not elmacro-mode))
-       :style toggle
-       :selected elmacro-mode
-       :help "(elmacro-mode &optional ARG)\n\nToggle emacs activity recording (elmacro mode).\nWith a prefix argument ARG, enable elmacro mode if ARG is\npositive, and disable it otherwise. If called from Lisp, enable\nthe mode if ARG is omitted or nil."]
-      "--"
-      ["Show Last Commands"
-       elmacro-show-last-commands
-       :active elmacro-mode
-       :help "(elmacro-show-last-commands &optional COUNT)\n\nTake the latest COUNT commands and show them as emacs lisp.\n\nThis is basically a better version of `kmacro-edit-lossage'.\n\nThe default number of commands shown is modifiable in variable\n`elmacro-show-last-commands-default'.\n\nYou can also modify this number by using a numeric prefix argument or\nby using the universal argument, in which case it'll ask for how many\nin the minibuffer."]
-      ["Show Last Macro"
-       elmacro-show-last-macro
-       :active elmacro-mode
-       :help "(elmacro-show-last-macro NAME)\n\nShow the last macro as emacs lisp with NAME."]
-      "--"
-      ["Clear Command History"
-       elmacro-clear-command-history
-       :active elmacro-mode
-       :help "(elmacro-clear-command-history)\n\nClear the list of recorded commands."]))
-  (dolist (menu-item '(["--" nil] my-elmacro-menu ["--" nil]))
-    (easy-menu-add-item
-     (current-global-map)
-     '("menu-bar" "Tools")
-     menu-item)))
-
 ;; use built-in DWIM versions of default editing commands
 ;; note that comment insertion command ("M-;") is already DWIM-ified
 (global-set-key (kbd "M-u") #'upcase-dwim)
@@ -860,102 +813,6 @@ With arg N, insert N newlines."
 (define-key special-event-map [sigusr1] #'restart-emacs-server)
 
 ;; Non-programming files
-
-(use-package csv-mode
-  :commands csv-mode
-  :bind (:map csv-mode-map
-         ("C-c C-S-a" . csv-align-visible-fields))
-  :config
-  (setq csv-align-style 'auto) ;; `csv-align-fields' left/right-aligns text/numbers
-  (defun csv-align-visible-fields ()
-    "Align visible lines in `csv-mode'. Useful for large CSV files where
-`csv-align-fields' can take a very long time to run."
-    (interactive)
-    (csv-align-fields nil (window-start) (window-end))))
-
-(use-package dockerfile-mode
-  :commands dockerfile-mode
-  :config (add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-mode)))
-
-(when (executable-find "jq")
-  (use-package jq-mode
-    :mode "\\.jq\\'"))
-
-;; provides a major mode for editing JSON files
-(use-package json-mode
-  :defer t
-  :init (setq js-indent-level 2
-              json-reformat:indent-width 2
-              json-reformat:pretty-string? nil))
-
-(when (executable-find "jq")
-  (with-eval-after-load 'flymake-quickdef
-    (flymake-quickdef-backend flymake-jq-backend
-      :pre-let ((jq-exec (executable-find "jq")))
-      :pre-check (unless jq-exec (error "Cannot find jq executable"))
-      :write-type 'file
-      :proc-form (list jq-exec "." fmqd-temp-file)
-      :search-regexp
-      "\\(parse error: \\)?\\(.+\\) at line \\([[:digit:]]+\\), column \\([[:digit:]]+\\).*$"
-      :prep-diagnostic (let* ((msg (match-string 2))
-                              (lnum (string-to-number (match-string 3)))
-                              (lcol (string-to-number (match-string 4)))
-                              (pos (flymake-diag-region fmqd-source lnum lcol))
-                              (beg (car pos))
-                              (end (cdr pos))
-                              (type :error))
-                         (list fmqd-source beg end type msg)))
-    ;; define function for enabling the Flymake backend
-    (defun flymake-jq-setup ()
-      "Enable jq backend for Flymake."
-      (add-hook 'flymake-diagnostic-functions
-                #'flymake-jq-backend
-                nil
-                t))
-    (with-eval-after-load 'json-mode
-      ;; enable Flymake jq backend in JSON buffers
-      (add-hook 'json-mode-hook #'flymake-jq-setup t)
-      (add-hook 'json-mode-hook #'flymake-mode))))
-
-(when (executable-find "jq")
-  (with-eval-after-load 'json-mode
-    ;; use jq with the basic operator "." (to pretty print but leave
-    ;; the input unmodified otherwise) to format JSON code
-    (with-eval-after-load 'reformatter
-      ;; json
-      ;; define `json-jq-format-{buffer|region|on-save-mode}'
-      (reformatter-define json-jq-format
-        :program "jq"
-        :args '("--sort-keys" "." "-")
-        :group 'json-mode
-        :lighter " JSONFmt")
-      ;; dwim function calling `json-jq-format-region' if a region is
-      ;; selected, or `json-jq-format-buffer' otherwise
-      (defun json-jq-format-buffer-or-region ()
-        "Format the current JSON buffer or a region if selected.
-Formatting a selected region only works on top-level objects."
-        (interactive)
-        (cond
-         ((use-region-p) (json-jq-format-region (region-beginning)
-                                                (region-end)))
-         (t (json-jq-format-buffer))))
-      ;; jsonlines
-      ;; define `jsonl-jq-format-{buffer|region|on-save-mode}'
-      (reformatter-define jsonl-jq-format
-        :program "jq"
-        :args '("--compact-output" "--sort-keys" "." "-")
-        :group 'json-mode
-        :lighter " JSONLFmt")
-      ;; dwim function calling `jsonl-jq-format-region' if a region is
-      ;; selected, or `jsonl-jq-format-buffer' otherwise
-      (defun jsonl-jq-format-buffer-or-region ()
-        "Format the current JSONL buffer or a region if selected.
-Formatting a selected region only works on top-level objects."
-        (interactive)
-        (cond
-         ((use-region-p) (jsonl-jq-format-region (region-beginning)
-                                                 (region-end)))
-         (t (jsonl-jq-format-buffer)))))))
 
 ;; major mode for editing Markdown files
 (use-package markdown-mode
@@ -1342,12 +1199,6 @@ call `open-line' on the very first character."
 (with-eval-after-load 'org
   (require 'org-tempo nil :noerror))
 
-;; Programming / Buffer reformatter macro
-
-;; defines the `reformatter-define' macro that allows definition of
-;; commands that run reformatters on the current buffer
-(use-package reformatter)
-
 ;; Programming / Flymake syntax checker
 
 ;; basic Flymake customizations
@@ -1385,41 +1236,6 @@ call `open-line' on the very first character."
 
 ;; enable Flymake when editing Emacs Lisp buffers
 (add-hook 'emacs-lisp-mode-hook #'flymake-mode)
-
-(use-package flymake-quickdef
-  :demand t)
-
-;; Programming / Bash and sh shell scripts
-
-(with-eval-after-load 'flymake-quickdef
-  (flymake-quickdef-backend flymake-shellcheck-backend
-    :pre-let ((shellcheck-exec (executable-find "shellcheck")))
-    :pre-check (unless shellcheck-exec (error "Cannot find shellcheck executable"))
-    :write-type 'file
-    :proc-form (list shellcheck-exec
-                     "-f" "gcc"
-                     fmqd-temp-file)
-    :search-regexp
-    "^.+?:\\([0-9]+\\):\\([0-9]+\\): \\(.*\\): \\(.*\\)$"
-    :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
-                            (lcol (string-to-number (match-string 2)))
-                            (severity (downcase (match-string 3)))
-                            (msg (match-string 4))
-                            (pos (flymake-diag-region fmqd-source lnum lcol))
-                            (beg (car pos))
-                            (end (cdr pos))
-                            (type (cond
-                                    ((string= severity "note") :note)
-                                    ((string= severity "warning") :warning)
-                                    (t :error))))
-                       (list fmqd-source beg end type msg)))
-  ;; define function for enabling the Flymake backend
-  (defun flymake-shellcheck-setup ()
-    "Enable shellcheck backend for Flymake."
-    (add-hook 'flymake-diagnostic-functions #'flymake-shellcheck-backend nil t))
-  (with-eval-after-load 'sh-script
-    (add-hook 'sh-mode-hook #'flymake-shellcheck-setup)
-    (add-hook 'sh-mode-hook #'flymake-mode)))
 
 ;; Programming / Emacs Lisp
 
@@ -1556,10 +1372,6 @@ Lisp function does not specify a special indentation."
 (use-package wgrep
   :config (setq wgrep-auto-save-buffer nil
                 wgrep-too-many-file-length 10))
-
-(when (executable-find "rg")
-  (use-package rg
-    :bind ("<f6>" . rg-menu)))
 
 (setq imenu-auto-rescan t)
 
@@ -2047,7 +1859,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ["Other"
     (";" "Iedit" iedit-mode) ; autoloaded from iedit.el
-    ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
     ]
    ]
   )
@@ -2121,47 +1932,39 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (global-set-key (kbd "C-c H h") #'transient/help)
 
 ;; add transient for keyboard macros
-(with-eval-after-load 'elmacro
-  (transient-define-prefix transient/keyboard-macros ()
-    "Keyboard macro commands. Tries to adhere to \"C-x C-k\" bindings."
-    ["Keyboard Macros"
-     ["Actions"
-      ("C-s" "Start" kmacro-start-macro)           ; also "C-x ("
-      ("C-k" "Call last" kmacro-end-or-call-macro) ; also "C-x )"
-      ("C-r" "Call last on region" apply-macro-to-region-lines)
-      ]
-     ["Ring"
-      ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)
-      ("C-p" "Cycle prev" kmacro-cycle-ring-previous :transient t)
-      ("C-v" "View last" kmacro-view-macro :transient t)
-      ("C-d" "Delete head" kmacro-delete-ring-head :transient t)
-      ]
-     ["Edit"
-      ("e" "Named" edit-kbd-macro)
-      ("RET" "Last" kmacro-edit-macro)
-      ("l" "Lossage" kmacro-edit-lossage)
-      ("SPC" "Step" kmacro-step-edit-macro)
-      ]
-     ]
-    [
-     ["Bind/Name"
-      ("b" "Bind to key" kmacro-bind-to-key)
-      ("n" "Name last" kmacro-name-last-macro)
-      ("x" "To register" kmacro-to-register)
-      ]
-     [:description (lambda ()
-                     (transient--make-description "Elmacro" elmacro-mode))
-      ("Em" "Toggle mode" elmacro-mode :transient t)
-      ("Ec" "Show last commands" elmacro-show-last-commands)
-      ("El" "Show last macro" elmacro-show-last-macro)
-      ("EC" "Clear history" elmacro-clear-command-history)
-      ]
-     ["Other"
-      ("i" "Insert named" insert-kbd-macro)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c k") #'transient/keyboard-macros))
+(transient-define-prefix transient/keyboard-macros ()
+  "Keyboard macro commands. Tries to adhere to \"C-x C-k\" bindings."
+  ["Keyboard Macros"
+   ["Actions"
+    ("C-s" "Start" kmacro-start-macro)           ; also "C-x ("
+    ("C-k" "Call last" kmacro-end-or-call-macro) ; also "C-x )"
+    ("C-r" "Call last on region" apply-macro-to-region-lines)
+    ]
+   ["Ring"
+    ("C-n" "Cycle next" kmacro-cycle-ring-next :transient t)
+    ("C-p" "Cycle prev" kmacro-cycle-ring-previous :transient t)
+    ("C-v" "View last" kmacro-view-macro :transient t)
+    ("C-d" "Delete head" kmacro-delete-ring-head :transient t)
+    ]
+   ["Edit"
+    ("e" "Named" edit-kbd-macro)
+    ("RET" "Last" kmacro-edit-macro)
+    ("l" "Lossage" kmacro-edit-lossage)
+    ("SPC" "Step" kmacro-step-edit-macro)
+    ]
+   ]
+  [
+   ["Bind/Name"
+    ("b" "Bind to key" kmacro-bind-to-key)
+    ("n" "Name last" kmacro-name-last-macro)
+    ("x" "To register" kmacro-to-register)
+    ]
+   ["Other"
+    ("i" "Insert named" insert-kbd-macro)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c k") #'transient/keyboard-macros)
 
 (defun transient/marks-and-markers--xref-pop-marker-stack-all ()
   "Pop back to where `xref-find-definitions' was first invoked.
@@ -2375,18 +2178,11 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (global-set-key (kbd "C-c R") #'transient/registers)
 
 ;; add transient popup for search tools
-(defun transient/search--rg-menu-or-rgrep ()
-  "Dispatch to `rg-menu' if command available, else `rgrep'."
-  (interactive)
-  (if (and (executable-find "rg")
-           (fboundp 'rg-menu))
-      (call-interactively #'rg-menu)
-    (call-interactively #'rgrep)))
 (transient-define-prefix transient/search ()
   "Search commands."
   ["Search"
    ["Grep"
-    ("gr" "Recursive" transient/search--rg-menu-or-rgrep)
+    ("gr" "Recursive" rgrep)
     ("gz" "Recursive (*.gz)" rzgrep)
     ("gg" "With user args" grep)
     ("gf" "Via find" grep-find)
@@ -2876,34 +2672,6 @@ not support restricting to a region."
 
 ;; Transient commands / Major mode transients
 
-;; major-mode specific transient for csv-mode
-(with-eval-after-load 'csv-mode
-  (transient-define-prefix transient/csv-mode ()
-    "`csv-mode' commands."
-    ["CSV"
-     ["Sort"
-      ("s" "Lexicographic" csv-sort-fields)
-      ("n" "Numerically" csv-sort-numeric-fields)
-      ("r" "Reverse" csv-reverse-region)
-      ("d" "Toggle descending" csv-toggle-descending :transient t)
-      ]
-     ["Edit"
-      ("t" "Transpose" csv-transpose)
-      ("k" "Cut" csv-kill-fields)
-      ("y" "Paste" csv-yank-fields)
-      ("z" "Paste as new table" csv-yank-as-new-table)
-      ]
-     ["Visual"
-      ("A" "Align visible" csv-align-visible-fields :transient t)
-      ("a" "Align" csv-align-fields :transient t)
-      ("u" "Unalign" csv-unalign-fields :transient t)
-      ("h" "Toggle header" csv-header-line :transient t)
-      ("v" "Toggle separator" csv-toggle-invisibility :transient t)
-      ]
-     ]
-    )
-  (define-key csv-mode-map (kbd "C-c m") #'transient/csv-mode))
-
 ;; major-mode specific transient for debugger-mode
 (with-eval-after-load 'debug
   (transient-define-prefix transient/debugger-mode ()
@@ -2943,116 +2711,78 @@ not support restricting to a region."
 
 ;; major-mode specific transient for dired-mode
 (with-eval-after-load 'dired
-  (with-eval-after-load 'dired-filter
-    (defun transient/dired-mode--dired-kill-and-next-subdir ()
-      "Kill current subdir in dired, and jump back to its parent dir."
-      (interactive)
-      (let* ((subdir-name (directory-file-name (dired-current-directory)))
-             (parent-dir  (file-name-directory subdir-name))
-             (search-term (concat " "
-                                  (file-name-base subdir-name)
-                                  (file-name-extension subdir-name t))))
-        (dired-kill-subdir)
-        (dired-goto-subdir parent-dir)
-        (search-forward search-term)))
-    (transient-define-prefix transient/dired-mode/filter ()
-      "`dired-mode' Dired-Filter commands."
-      ;; have suffixes not exit the transient by default
-      :transient-suffix 'transient--do-stay
-      ["Dired → Filter"
-       ["Filter by"
-        ("n" "Name" dired-filter-by-name)
-        ("r" "Regexp" dired-filter-by-regexp)
-        ("." "Extension" dired-filter-by-extension)
-        ("h" "Hidden" dired-filter-by-dot-files)
-        ("o" "Omitted" dired-filter-by-omit)
-        ("g" "Garbage" dired-filter-by-garbage)
-        ("e" "Predicate" dired-filter-by-predicate)
-        ("f" "File" dired-filter-by-file)
-        ("d" "Directory" dired-filter-by-directory)
-        ("m" "Mode" dired-filter-by-mode)
-        ("s" "Symlink" dired-filter-by-symlink)
-        ("x" "Executable" dired-filter-by-executable)
-        ("ig" "Git-ignored" dired-filter-by-git-ignored)
-        ]
-       ["Operators"
-        ("|" "OR" dired-filter-or)
-        ("!" "NOT" dired-filter-negate)
-        ("*" "Decompose" dired-filter-decompose)
-        ("TAB" "Transpose" dired-filter-transpose)
-        ("p" "Pop" dired-filter-pop)
-        ("/" "Reset" dired-filter-pop-all)
-        ]
-       ["Save/Load"
-        ("S" "Save" dired-filter-save-filters)
-        ("L" "Load" dired-filter-load-saved-filters)
-        ("A" "Add" dired-filter-add-saved-filters)
-        ("D" "Delete" dired-filter-delete-saved-filters)
-        ]
-       ]
-      )
-    (transient-define-prefix transient/dired-mode ()
-      "`dired-mode' commands."
-      ["Dired"
-       ["File open"
-        ("RET" "Open" dired-find-file)
-        ("o" "Open other" dired-find-file-other-window)
-        ("F" "Open marked" dired-do-find-marked-files)
-        ("z" "Open external" dired--open-file-at-pt)
-        ("v" "View file" dired-view-file)
-        ("+" "Create dir" dired-create-directory)
-        ("=" "Diff" dired-diff)
-        ]
-       ["File operations"
-        ("C" "Copy" dired-do-copy)
-        ("D" "Delete" dired-do-delete)
-        ("x" "Delete marked" dired-do-flagged-delete)
-        ("S" "Symlink" dired-do-symlink)
-        ("Y" "Symlink to" dired-do-relsymlink)
-        ("c" "Compress to" dired-do-compress-to)
-        ("Z" "Compress" dired-do-compress)
-        ]
-       ["File modification"
-        ("R" "Rename" dired-do-rename)
-        ("%R" "Rename by regexp" dired-do-rename-regexp)
-        ("G" "chgrp" dired-do-chgrp)
-        ("M" "chmod" dired-do-chmod)
-        ("O" "chown" dired-do-chown)
-        ("T" "Touch" dired-do-touch)
-        ]
-       ["Mark"
-        ("m" "File at pt" dired-mark :transient t)
-        ("E" "By extension" dired-mark-extension :transient t)
-        ("t" "Toggle marks" dired-toggle-marks :transient t)
-        ("u" "Unmark" dired-unmark :transient t)
-        ("U" "Unmark all" dired-unmark-all-marks :transient t)
-        ]
-       ]
-      [
-       ["Search/Filter"
-        ("A" "Query" dired-do-find-regexp)
-        ("Q" "Query-replace" dired-do-find-regexp-and-replace)
-        ("{" "Find by name" find-name-dired)
-        ("}" "Find by query" find-grep-dired)
-        ("/" "Filter" transient/dired-mode/filter)
-        ]
-       ["View"
-        ("(" "Toggle details" dired-hide-details-mode :transient t)
-        (")" "Toggle omit" dired-omit-mode :transient t)
-        ("i" "Insert subdir" dired-maybe-insert-subdir :transient t)
-        ("K" "Kill subdir" transient/dired-mode--dired-kill-and-next-subdir :transient t)
-        ("s" "Sort by date" dired-sort-toggle-or-edit :transient t)
-        ]
-       ["Other"
-        ("y" "Show file type" dired-show-file-type :transient t)
-        ("g" "Refresh" revert-buffer :transient t)
-        ("l" "Redisplay" dired-do-redisplay :transient t)
-        ("C-o" "Display other" dired-display-file)
-        ("h" "Help" describe-mode)
-        ]
-       ]
-      )
-    (define-key dired-mode-map (kbd "C-c m") #'transient/dired-mode)))
+  (defun transient/dired-mode--dired-kill-and-next-subdir ()
+    "Kill current subdir in dired, and jump back to its parent dir."
+    (interactive)
+    (let* ((subdir-name (directory-file-name (dired-current-directory)))
+           (parent-dir  (file-name-directory subdir-name))
+           (search-term (concat " "
+                                (file-name-base subdir-name)
+                                (file-name-extension subdir-name t))))
+      (dired-kill-subdir)
+      (dired-goto-subdir parent-dir)
+      (search-forward search-term)))
+  (transient-define-prefix transient/dired-mode ()
+    "`dired-mode' commands."
+    ["Dired"
+     ["File open"
+      ("RET" "Open" dired-find-file)
+      ("o" "Open other" dired-find-file-other-window)
+      ("F" "Open marked" dired-do-find-marked-files)
+      ("z" "Open external" dired--open-file-at-pt)
+      ("v" "View file" dired-view-file)
+      ("+" "Create dir" dired-create-directory)
+      ("=" "Diff" dired-diff)
+      ]
+     ["File operations"
+      ("C" "Copy" dired-do-copy)
+      ("D" "Delete" dired-do-delete)
+      ("x" "Delete marked" dired-do-flagged-delete)
+      ("S" "Symlink" dired-do-symlink)
+      ("Y" "Symlink to" dired-do-relsymlink)
+      ("c" "Compress to" dired-do-compress-to)
+      ("Z" "Compress" dired-do-compress)
+      ]
+     ["File modification"
+      ("R" "Rename" dired-do-rename)
+      ("%R" "Rename by regexp" dired-do-rename-regexp)
+      ("G" "chgrp" dired-do-chgrp)
+      ("M" "chmod" dired-do-chmod)
+      ("O" "chown" dired-do-chown)
+      ("T" "Touch" dired-do-touch)
+      ]
+     ["Mark"
+      ("m" "File at pt" dired-mark :transient t)
+      ("E" "By extension" dired-mark-extension :transient t)
+      ("t" "Toggle marks" dired-toggle-marks :transient t)
+      ("u" "Unmark" dired-unmark :transient t)
+      ("U" "Unmark all" dired-unmark-all-marks :transient t)
+      ]
+     ]
+    [
+     ["Search/Filter"
+      ("A" "Query" dired-do-find-regexp)
+      ("Q" "Query-replace" dired-do-find-regexp-and-replace)
+      ("{" "Find by name" find-name-dired)
+      ("}" "Find by query" find-grep-dired)
+      ]
+     ["View"
+      ("(" "Toggle details" dired-hide-details-mode :transient t)
+      (")" "Toggle omit" dired-omit-mode :transient t)
+      ("i" "Insert subdir" dired-maybe-insert-subdir :transient t)
+      ("K" "Kill subdir" transient/dired-mode--dired-kill-and-next-subdir :transient t)
+      ("s" "Sort by date" dired-sort-toggle-or-edit :transient t)
+      ]
+     ["Other"
+      ("y" "Show file type" dired-show-file-type :transient t)
+      ("g" "Refresh" revert-buffer :transient t)
+      ("l" "Redisplay" dired-do-redisplay :transient t)
+      ("C-o" "Display other" dired-display-file)
+      ("h" "Help" describe-mode)
+      ]
+     ]
+    )
+  (define-key dired-mode-map (kbd "C-c m") #'transient/dired-mode))
 
 ;; major-mode specific transient for edebug-mode
 (with-eval-after-load 'edebug
@@ -3281,23 +3011,6 @@ not support restricting to a region."
    ]
   )
 (define-key ibuffer-mode-map (kbd "C-c m") #'transient/ibuffer-mode)
-
-;; major-mode specific transient for json-mode
-(with-eval-after-load 'json-mode
-  (transient-define-prefix transient/json-mode ()
-    "`json-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["JSON mode"
-     ("p" "Copy path" json-mode-show-path)
-     ("b" "Toggle bool value" json-toggle-boolean)
-     ("i" "Increment num" json-increment-number-at-point)
-     ("d" "Decrement num" json-decrement-number-at-point)
-     ("k" "Nullify sexp" json-nullify-sexp)
-     ("B" "Beautify" json-mode-beautify)
-     ("R" "Reformat (jq)" json-jq-format-buffer-or-region)
-     ]
-    )
-  (define-key json-mode-map (kbd "C-c m") #'transient/json-mode))
 
 ;; major-mode specific transient for markdown-mode
 (with-eval-after-load 'markdown-mode
@@ -3604,33 +3317,32 @@ not support restricting to a region."
 
 ;; add transient for Flymake
 (with-eval-after-load 'flymake
-  (with-eval-after-load 'flymake-quickdef
-    (transient-define-prefix transient/flymake-mode ()
-      "`flymake-mode' commands."
-      :transient-suffix 'transient--do-stay
-      [:description (lambda ()
-                      (transient--make-description
-                       "Flymake"
-                       flymake-mode))
-       ["Error"
-        ("n" "Next" flymake-goto-next-error)
-        ("p" "Previous" flymake-goto-prev-error)
-        ("l" "List" my-toggle-flymake-diagnostics)
-        ("." "Describe" display-local-help)
-        ]
-       ["Check"
-        ("c" "Start" flymake-start)
-        ("k" "Stop" flymake-proc-stop-all-syntax-checks)
-        ]
-       ["Other"
-        ("m" "Toggle mode" flymake-mode)
-        ("r" "Reporting backends" flymake-reporting-backends)
-        ("d" "Disabled backends" flymake-disabled-backends)
-        ("l" "Log" flymake-switch-to-log-buffer)
-        ("c" "Compile (no check)" flymake-proc-compile)
-        ]
-       ]
-      ))
+  (transient-define-prefix transient/flymake-mode ()
+    "`flymake-mode' commands."
+    :transient-suffix 'transient--do-stay
+    [:description (lambda ()
+                    (transient--make-description
+                     "Flymake"
+                     flymake-mode))
+     ["Error"
+      ("n" "Next" flymake-goto-next-error)
+      ("p" "Previous" flymake-goto-prev-error)
+      ("l" "List" my-toggle-flymake-diagnostics)
+      ("." "Describe" display-local-help)
+      ]
+     ["Check"
+      ("c" "Start" flymake-start)
+      ("k" "Stop" flymake-proc-stop-all-syntax-checks)
+      ]
+     ["Other"
+      ("m" "Toggle mode" flymake-mode)
+      ("r" "Reporting backends" flymake-reporting-backends)
+      ("d" "Disabled backends" flymake-disabled-backends)
+      ("l" "Log" flymake-switch-to-log-buffer)
+      ("c" "Compile (no check)" flymake-proc-compile)
+      ]
+     ]
+    )
   (global-set-key (kbd "C-c F") #'transient/flymake-mode))
 
 (provide 'init)

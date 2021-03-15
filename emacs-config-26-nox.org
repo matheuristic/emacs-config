@@ -187,67 +187,6 @@ Usually \"xdg-open\" on Linux and \"open\" on Mac."
   :group 'convenience)
 #+end_src
 
-*** Mode line lighter abbreviations
-
-~my-mode-line-abbrev-alist~ is an alist for mode line lighter
-abbreviations for different minor and major modes.
-
-Adapted from [[https://www.masteringemacs.org/article/hiding-replacing-modeline-strings][here]].
-
-#+name: my-mode-line-lighter-abbrev
-#+begin_src emacs-lisp
-(defcustom my-mode-lighter-abbrev-alist '(;; Minor modes
-                                          (abbrev-mode . "")
-                                          (auto-revert-mode . " ⤒")
-                                          (buffer-face-mode . "")
-                                          (eldoc-mode . "")
-                                          (paredit-mode . " ⁽⁾")
-                                          (too-long-lines-mode . " ⋯")
-                                          (visual-line-mode . " ⇌")
-                                          ;; Major modes
-                                          ;; (lisp-interaction-mode . "λ")
-                                          ;; (hi-lock-mode . "")
-                                          ;; (python-mode . "Py")
-                                          ;; (nxhtml-mode . "nx")
-                                          (emacs-lisp-mode . "ELisp"))
-  "Alist for `my-abbrev-mode-line' containing mode line lighter abbreviations.
-
-Each entry should be a cons cell (a . b) where a is the minor or
-major mode symbol and b is the string to be used as the
-abbreviated mode lighter in the mode line (can be an empty string).
-
-Abbreviations for minor modes should typically be prefixed by a
-space to make them easier to distinguish, but there is no need to
-do so for major mode abbreviations. Use an empty string as an
-abbreviation to not show a lighter for a mode.")
-
-(defun my-mode-line-lighter-abbrev ()
-  "Abbreviate mode line major and minor mode lighters.
-
-Configure `my-mode-lighter-abbrev-alist' to determine which mode
-lighters are abbreviated and what they are abbreviated to."
-  (interactive)
-  (dolist (abbr my-mode-lighter-abbrev-alist)
-    (let* ((mode (car abbr))
-           (mode-str (cdr abbr))
-           (is-minor-mode (member mode minor-mode-list))
-           (mode-str-old (cdr (assq mode minor-mode-alist))))
-      (if is-minor-mode
-          (let ((minor-mode-alist-entry (assq mode minor-mode-alist)))
-            ;; if entry for minor mode exists in `minor-mode-alist'
-            ;; modify its value, otherwise append a new entry
-            (if minor-mode-alist-entry
-                (setcdr minor-mode-alist-entry (list mode-str))
-              (add-to-list 'minor-mode-alist
-                           (cons mode (list mode-str))
-                           t)))
-        (when (eq mode major-mode)
-          (setq mode-name mode-str))))))
-
-;; rerun on major mode changes
-(add-hook 'after-change-major-mode-hook #'my-mode-line-lighter-abbrev)
-#+end_src
-
 ** Utility functions
 
 *** After jump context actions
@@ -503,9 +442,7 @@ enabled by default only in programming modes.
         company-minimum-prefix-length 2
         company-selection-wrap-around t
         company-show-numbers t ;; use M-<num> to directly choose completion
-        company-tooltip-align-annotations t)
-  :config
-  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
+        company-tooltip-align-annotations t))
 #+end_src
 
 * Backups
@@ -1410,8 +1347,6 @@ a tree and can be navigated using the regular movement keys.
 (use-package undo-tree
   :init (setq undo-tree-visualizer-relative-timestamps nil)
   :config
-  ;; hide mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(undo-tree-mode . ""))
   ;; enable globally
   (global-undo-tree-mode))
 #+end_src
@@ -5136,8 +5071,6 @@ The main configuration file.
 ;; Custom variables and utility functions / Custom variables
 
 <<my-system-open-command>>
-
-<<my-mode-line-lighter-abbrev>>
 
 ;; Custom variables and utility functions / Utility functions
 

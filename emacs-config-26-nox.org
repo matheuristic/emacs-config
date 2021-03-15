@@ -480,6 +480,34 @@ This is used by other packages, like ~markdown-mode~.
 (use-package edit-indirect)
 #+end_src
 
+** Text completion with Company                                       :melpa:
+
+[[https://company-mode.github.io/][Company]] is a text completion framework for Emacs that supports
+pluggable back-ends and front-ends for retrieving and displaying
+completion candidates.
+Many other Emacs packages support this.
+
+This can get in the way for non-programming modes, so it is
+enabled by default only in programming modes.
+
+#+name: company
+#+begin_src emacs-lisp
+;; text completion framework
+(use-package company
+  :defer t
+  :init
+  (with-eval-after-load 'prog-mode
+    (add-hook 'prog-mode-hook 'company-mode))
+  (setq company-dabbrev-downcase nil
+        company-idle-delay 0.5
+        company-minimum-prefix-length 2
+        company-selection-wrap-around t
+        company-show-numbers t ;; use M-<num> to directly choose completion
+        company-tooltip-align-annotations t)
+  :config
+  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
+#+end_src
+
 * Backups
 
 Backup files to the =~/.backup/= directory, keeping only the newest three versions.
@@ -907,11 +935,11 @@ manually and automatically.
                                          "\\|"
                                          )
                                         "\\)"))
-;; (add-hook 'after-init-hook
-;;           (lambda ()
-;;             (desktop-save-mode 1)
-;;             (desktop-read))
-;;           50) ; load after all other `after-init-hook' functions
+(add-hook 'after-init-hook
+          (lambda ()
+            (desktop-save-mode 1)
+            (desktop-read))
+          50) ; load after all other `after-init-hook' functions
 #+end_src
 
 * Command-line interaction
@@ -5916,6 +5944,8 @@ The main configuration file.
 ;; Backend and frontend frameworks for building user interfaces
 
 <<edit-indirect>>
+
+<<company>>
 
 ;; Visual (part 1)
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar 15 10:28:58 2021
+;; Generated: Mon Mar 15 10:36:46 2021
 
 ;;; Commentary:
 
@@ -215,6 +215,21 @@ features are reloaded."
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
+
+;; text completion framework
+(use-package company
+  :defer t
+  :init
+  (with-eval-after-load 'prog-mode
+    (add-hook 'prog-mode-hook 'company-mode))
+  (setq company-dabbrev-downcase nil
+        company-idle-delay 0.5
+        company-minimum-prefix-length 2
+        company-selection-wrap-around t
+        company-show-numbers t ;; use M-<num> to directly choose completion
+        company-tooltip-align-annotations t)
+  :config
+  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
 
 ;; Visual (part 1)
 
@@ -490,11 +505,11 @@ ROTATIONS can be negative, which rotates in the opposite direction."
                                          "\\|"
                                          )
                                         "\\)"))
-;; (add-hook 'after-init-hook
-;;           (lambda ()
-;;             (desktop-save-mode 1)
-;;             (desktop-read))
-;;           50) ; load after all other `after-init-hook' functions
+(add-hook 'after-init-hook
+          (lambda ()
+            (desktop-save-mode 1)
+            (desktop-read))
+          50) ; load after all other `after-init-hook' functions
 
 
 

@@ -116,56 +116,6 @@ File descriptions.
 ;; 2. init.el
 #+end_src
 
-* Optimizations
-
-** Startup optimizations
-
-Optimizations for improving startup time:
-- Increase garbage collection threshold from the default (~800~ kb) to
-  ~128~ MB and revert it after initialization.
-- Set ~file-name-handler-alist~ to ~nil~ as it is always scanned
-  whenever files are loaded and revert it after initialization.
-  This specifies special I/O handlers for files based on file name.
-  Startup files are always local ~*.el~ files, so no special handlers
-  are needed for them.
-- Don't load installed packages automatically.
-  Load them manually in the config.
-
-#+name: startup-optimizations
-#+begin_src emacs-lisp
-;; optimizations for reducing startup time (reverted later)
-;; * file-name-handler-alist -> nil as it is scanned when files are loaded
-;; * increase garbage collection threshold
-;; * increase max bytes read from a sub-process in a single op (Emacs 27+)
-(setq file-name-handler-alist-orig file-name-handler-alist
-      gc-cons-threshold-orig gc-cons-threshold
-      file-name-handler-alist nil ;; no special file handling during init
-      gc-cons-threshold 134217728) ;; 128MB in bytes, default is 800k
-
-;; revert optimizations after initialization
-(add-hook 'after-init-hook
-          (lambda ()
-            (setq file-name-handler-alist file-name-handler-alist-orig)
-            (setq gc-cons-threshold gc-cons-threshold-orig))
-          t)
-
-;; disable automatic activation of installed packages
-(setq package-enable-at-startup nil)
-#+end_src
-
-** I/O optimizations
-
-Increase the maximum bytes read from a sub-process in a single file
-operation from the default (~4096~ bytes) to ~1~ MB ([[https://github.com/emacs-mirror/emacs/blob/master/etc/NEWS.27#L3212-L3217][Emacs 27+]]).
-
-#+name: io-optimizations
-#+begin_src emacs-lisp
-;; optimizations for improving I/O performance
-;; * increase max bytes read from a sub-process in a single op (Emacs 27+)
-(when (boundp 'read-process-output-max)
-  (setq read-process-output-max 1048576)) ;; 1MB in bytes, default 4096 bytes
-#+end_src
-
 * Customize file and local configuration
 
 Emacs has a text GUI interface for customizing the editor, and
@@ -319,89 +269,6 @@ One useful context action example is to run `org-show-context'
 after jumping to an Org buffer location to ensure the region
 around the new point location is visible."
   (cond ((eq major-mode 'org-mode) (org-show-context))))
-#+end_src
-
-*** Persist variables in an external file
-
-Utility function for persisting variables in an external file.
-
-Adapted from:
-- [[https://stackoverflow.com/a/2322164][persistence - Elisp: How to save data in a file? - Stack Overflow]]
-
-#+name: my-persist-variables-to-file
-#+begin_src emacs-lisp
-(defun my-persist-variables-to-file (varlist filename)
-  "Persist variables in VARLIST to a file FILENAME."
-  (save-excursion
-    (let ((buf (find-file-noselect filename)))
-      (set-buffer buf)
-      (erase-buffer)
-      (dolist (var varlist)
-        (print (list 'setq var (list 'quote (symbol-value var)))
-               buf))
-      (save-buffer)
-      (kill-buffer))))
-#+end_src
-
-*** Pixel density for the screen containing the current frame
-
-Define function that can compute the DPI of the screen containing a
-given frame. This is useful for screen-dependent behavior when using
-multiple screens or machines with different display densities.
-
-#+name: my-frame-monitor-dpi
-#+begin_src emacs-lisp
-(defun my-frame-monitor-dpi (&optional frame)
-  "Get the pixel density in dots per inch (DPI) for the screen containing FRAME.
-If FRAME is nil, use the current frame.
-
-DPI (or really points per inch, PPI) is computed with the formula
-  PPI = diag_in_pixels / diag_in_inches
-where
-  diag_in_pixels = sqrt(width_in_pixels**2 + height_in_pixels**2)
-  diag_in_inches = sqrt(width_in_mm**2 + height_in_mm**2) / inch_in_mm
-  inch_in_mm = 25.4
-
-See https://en.wikipedia.org/wiki/Pixel_density for more details."
-  (let* ((attrs (frame-monitor-attributes frame))
-         (geom (assoc 'geometry attrs))
-         ;; diagonal in pixels
-         (width-pixels (nth 3 geom))
-         (height-pixels (nth 4 geom))
-         (diag-pixels (sqrt (+ (* width-pixels width-pixels)
-                               (* height-pixels height-pixels))))
-         ;; diagonal in inches
-         (scrn (assoc 'mm-size attrs))
-         (width-mm (nth 1 scrn))
-         (height-mm (nth 2 scrn))
-         (diag-mm (sqrt (+ (* width-mm width-mm)
-                           (* height-mm height-mm))))
-         (diag-inches (/ diag-mm 25.4))) ; 25.4mm per inch
-    ;; dpi (or ppi) = diagonal in pixels / diagonal in inches
-    (/ diag-pixels diag-inches)))
-#+end_src
-
-*** Pulse the current line
-
-Helper function for pulsing the current line. Adapted from [[https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f][here]].
-
-#+name: my-pulse-line
-#+begin_src emacs-lisp
-;; helper function for pulsing the current line, adapted from
-;; https://protesilaos.com/dotemacs/#h:6bbc41d6-da7c-4301-84c6-c5887c29283f
-(defun my-pulse-line (&rest _)
-    "Pulse the current line .
-If the point is at the newline at the end of the buffer, pulse
-the line before that. Additionally, the current line is not pulsed
-if the point is in the minibuffer."
-    (unless (minibufferp)
-      (let ((start (if (and (eobp)
-                            (= (point) (line-beginning-position)))
-                       (line-beginning-position 0)
-                     (line-beginning-position)))
-            (end (line-beginning-position 2))
-            (pulse-delay .25))
-        (pulse-momentary-highlight-region start end nil))))
 #+end_src
 
 *** Save and bury buffer
@@ -1040,11 +907,11 @@ manually and automatically.
                                          "\\|"
                                          )
                                         "\\)"))
-(add-hook 'after-init-hook
-          (lambda ()
-            (desktop-save-mode 1)
-            (desktop-read))
-          50) ; load after all other `after-init-hook' functions
+;; (add-hook 'after-init-hook
+;;           (lambda ()
+;;             (desktop-save-mode 1)
+;;             (desktop-read))
+;;           50) ; load after all other `after-init-hook' functions
 #+end_src
 
 * Command-line interaction
@@ -1273,28 +1140,6 @@ ARG is a prefix argument.  If nil, copy the current difference region."
                 "  d -copy A + B regions to C
 "
 )))
-#+end_src
-
-** View and compare directory trees using Ztree                       :melpa:
-
-The [[https://github.com/fourier/ztree][Ztree]] package provides a directory tree viewer and directory tree
-comparison functionality similar to [[https://www.scootersoftware.com/][Beyond Compare]] or [[https://www.araxis.com/merge/index.en][Araxis Merge]].
-
-#+name: ztree
-#+begin_src emacs-lisp
-;; view and compare directory trees, like Beyond Compare
-(use-package ztree
-  :bind (("C-x D" . ztree-dir)
-         ("C-c d z" . ztree-diff))
-  :config
-  (setq ztree-dir-move-focus t ;; RET in ztree-dir also moves focus
-        ztree-draw-unicode-lines t ;; unicode lines
-        ztree-show-number-of-children t)) ;; show number of files in subdir tree
-
-;; convenience navigation bindings for `ztreedir-mode' and `ztreediff-mode'
-(with-eval-after-load 'ztree-view
-  (define-key ztree-mode-map (kbd "n") #'ztree-next-line)
-  (define-key ztree-mode-map (kbd "p") #'ztree-previous-line))
 #+end_src
 
 * Dired
@@ -3132,20 +2977,6 @@ Show matching parentheses while editing without delay.
 (show-paren-mode 1)
 #+end_src
 
-** Pulse modified region                                              :melpa:
-
-[[https://github.com/minad/goggles][goggles.el]] provides a minor mode that pulses modified buffer regions.
-
-#+name: goggles
-#+begin_src emacs-lisp
-;; pulse modified region
-(use-package goggles
-  :init (setq goggles-pulse-delay 0.07)
-  :config
-  (goggles-mode) ; enable mode
-  (add-to-list 'my-mode-lighter-abbrev-alist '(goggles-mode . ""))) ; hide mode line lighter
-#+end_src
-
 ** Add frame internal border
 
 Adding a default frame internal border creates nicer typography at the
@@ -3185,38 +3016,6 @@ the =.gpg= suffix (the default for GnuPG-encrypted files).
 #+name: censor
 #+begin_src emacs-lisp
 (require 'censor)
-#+end_src
-
-** Pulse line on moving point to top/middle/bottom of window
-
-Advise ~move-to-window-line-top-bottom~ to pulse the line after it is
-called and the point moved to the top, middle or bottom of the window.
-
-#+name: pulse-line-after-move-to-window-line-top-bottom
-#+begin_src emacs-lisp
-;; pulse line when point is cycled btw top/middle/bottom of window
-(advice-add 'move-to-window-line-top-bottom :after #'my-pulse-line)
-#+end_src
-
-** Pulse line on window focus changes or after popping the mark ring
-
-Advise ~select-window~ to pulse the line after selecting a new window.
-This helps to locate the position of the cursor, particularly when the
-cursor type is set to ~bar~.
-
-Also pulse the line after popping ~mark-ring~ or ~global-mark-ring~.
-
-#+name: pulse-line-after-focus-change-or-pop-mark-ring
-#+begin_src emacs-lisp
-;; pulse line after changing focused window using `other-window'
-(advice-add 'other-window :after #'my-pulse-line)
-
-;; also pulse line when Emacs regains focus, covers focus on new frame
-(add-hook 'focus-in-hook #'my-pulse-line)
-
-;; as well as pulsing the line when popping the mark ring
-(advice-add 'pop-to-mark-command :after #'my-pulse-line)
-(advice-add 'pop-global-mark :after #'my-pulse-line)
 #+end_src
 
 ** Hide lines that are too long
@@ -4151,6 +3950,42 @@ Transient popup for launching Ediff commands.
 (global-set-key (kbd "C-c d e") #'transient/ediff)
 #+end_src
 
+*** Editing transient
+
+Transient for editing commands, mostly useful for using Emacs on the
+TTY where some key combinations like ~C-;~ don't get interpreted by
+the terminal.
+
+#+name: edit-transient
+#+begin_src emacs-lisp
+;; add transient popup for various editing commands
+(transient-define-prefix transient/edit ()
+  "Editing commands."
+  ["Edit"
+   ["Completion"
+    ("/" "Dyn. abbrev" dabbrev-expand :transient t) ; built-in
+    ("TAB" "Company" company-complete) ; autoloaded from company-mode.el
+    ]
+   ["Line"
+    ("O" "New line above" my-open-line-above :transient t)
+    ("o" "New line below" my-open-line-below :transient t)
+    ("J" "Join lines" my-join-next-line :transient t)
+    ]
+   ["Multi-cursor" ; functions autoloaded from multiple-cursors.el
+    ("C" "Edit lines" mc/edit-lines)
+    ("V" "Rect select" set-rectangular-region-anchor)
+    ("<" "Previous" mc/mark-previous-like-this :transient t)
+    (">" "Next" mc/mark-next-like-this :transient t)
+    ]
+   ["Other"
+    (";" "Iedit" iedit-mode) ; autoloaded from iedit.el
+    ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c e e") #'transient/edit)
+#+end_src
+
 *** Frame transient
 
 Transient for frame management.
@@ -4805,11 +4640,6 @@ Currently only works for Emacs Mac port."
   (interactive)
   (text-scale-set 0))
 
-(defun transient/visual--my-pulse-line ()
-  "Pulse the point's current line using `my-pulse-line'."
-  (interactive)
-  (my-pulse-line))
-
 ;; add transient popup for visual commands
 (transient-define-prefix transient/visual ()
   "Visual commands and toggles."
@@ -4965,7 +4795,6 @@ Currently only works for Emacs Mac port."
             "Censor (global)"
             global-censor-mode))
      global-censor-mode)
-    ("SPC" "Pulse line" transient/visual--my-pulse-line)
     ]
    ]
   )
@@ -5969,79 +5798,6 @@ to [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Shell-Mode.html#S
   (define-key term-raw-map (kbd "C-c m") #'transient/term-mode))
 #+end_src
 
-*** ztreedir-mode transient
-
-Ztree directory major mode transient.
-
-#+name: ztreedir-mode-transient
-#+begin_src emacs-lisp
-;; major-mode specific transient for ztreedir-mode
-(with-eval-after-load 'ztree-dir
-  (transient-define-prefix transient/ztreedir-mode ()
-    "`ztreedir-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["Ztree directory"
-     ["Movement"
-      ("n" "Next" ztree-next-line)
-      ("p" "Previous" ztree-previous-line)
-      ("DEL" "Up directory" ztree-move-up-in-tree)
-      ]
-     ["Actions"
-      ("RET" "Hard action" ztree-perform-action :transient nil)
-      ("SPC" "Soft action" ztree-perform-soft-action :transient nil)
-      ("x" "Expand subtree" ztree-toggle-expand-subtree)
-      ("d" "Dired at point" ztree-dir-open-dired-at-point :transient nil)
-      ]
-     ["View"
-      ("g" "Refresh" ztree-refresh-buffer)
-      ("H" "Toggle show filtered files" ztree-dir-toggle-show-filtered-files)
-      (">" "Narrow tree" ztree-dir-narrow-to-dir)
-      ("<" "Widen tree" ztree-dir-widen-to-parent)
-      ]
-     ]
-    )
-  (define-key ztreedir-mode-map (kbd "C-c m") #'transient/ztreedir-mode))
-#+end_src
-
-*** ztreediff-mode transient
-
-Ztree difference major mode transient.
-
-#+name: ztreediff-mode-transient
-#+begin_src emacs-lisp
-;; major-mode specific transient for ztreediff-mode
-(with-eval-after-load 'ztree-diff
-  (transient-define-prefix transient/ztreediff-mode ()
-    "`ztreediff-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["Ztree difference"
-     ["Movement"
-      ("n" "Next" ztree-next-line)
-      ("p" "Previous" ztree-previous-line)
-      ("TAB" "Jump side" ztree-jump-side)
-      ("DEL" "Up directory" ztree-move-up-in-tree)
-      ]
-     ["Actions"
-      ("RET" "Hard action" ztree-perform-action :transient nil)
-      ("SPC" "Soft action" ztree-perform-soft-action :transient nil)
-      ("x" "Expand subtree" ztree-toggle-expand-subtree)
-      ("d" "Diff files" ztree-diff-simple-diff-files :transient nil)
-      ("v" "View file" ztree-diff-view-file)
-      ("C" "Copy" ztree-diff-copy)
-      ("D" "Delete" ztree-diff-delete-file)
-      ]
-     ["View"
-      ("g" "Refresh" ztree-refresh-buffer)
-      ("r" "Rescan (partial)" ztree-diff-partial-rescan)
-      ("R" "Rescan (full)" ztree-diff-full-rescan)
-      ("h" "Toggle show equal files" ztree-diff-toggle-show-equal-files)
-      ("H" "Toggle show filtered files" ztree-diff-toggle-show-filtered-files)
-      ]
-     ]
-    )
-  (define-key ztreediff-mode-map (kbd "C-c m") #'transient/ztreediff-mode))
-#+end_src
-
 ** Minor mode transients
 
 Minor mode transients are bound to a binding /other/ than ~C-c m~
@@ -6115,10 +5871,6 @@ The main configuration file.
 
 ;;; Code:
 
-<<startup-optimizations>>
-
-<<io-optimizations>>
-
 ;; Package management
 
 <<load-prefer-newer>>
@@ -6146,12 +5898,6 @@ The main configuration file.
 ;; Custom variables and utility functions / Utility functions
 
 <<my-after-jump-context-actions>>
-
-<<my-persist-variables-to-file>>
-
-<<my-frame-monitor-dpi>>
-
-<<my-pulse-line>>
 
 <<my-save-and-bury-buffer>>
 
@@ -6244,8 +5990,6 @@ The main configuration file.
 <<ediff>>
 
 <<ediff-copy-a-and-b-to-c>>
-
-<<ztree>>
 
 ;; Dired
 
@@ -6411,15 +6155,9 @@ The main configuration file.
 
 <<show-matching-parentheses>>
 
-<<goggles>>
-
 <<add-frame-internal-border>>
 
 <<censor>>
-
-<<pulse-line-after-move-to-window-line-top-bottom>>
-
-<<pulse-line-after-focus-change-or-pop-mark-ring>>
 
 <<too-long-lines-mode>>
 
@@ -6499,6 +6237,8 @@ The main configuration file.
 
 <<ediff-transient>>
 
+<<edit-transient>>
+
 <<frame-transient>>
 
 <<help-transient>>
@@ -6562,10 +6302,6 @@ The main configuration file.
 <<smerge-mode-transient>>
 
 <<term-mode-transient>>
-
-<<ztreedir-mode-transient>>
-
-<<ztreediff-mode-transient>>
 
 ;; Transient commands / Minor mode transients
 

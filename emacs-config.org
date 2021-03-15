@@ -7898,6 +7898,42 @@ Transient popup for launching Ediff commands.
 (global-set-key (kbd "C-c d e") #'transient/ediff)
 #+end_src
 
+*** Editing transient
+
+Transient for editing commands, mostly useful for using Emacs on the
+TTY where some key combinations like ~C-;~ don't get interpreted by
+the terminal.
+
+#+name: edit-transient
+#+begin_src emacs-lisp
+;; add transient popup for various editing commands
+(transient-define-prefix transient/edit ()
+  "Editing commands."
+  ["Edit"
+   ["Completion"
+    ("/" "Dyn. abbrev" dabbrev-expand :transient t) ; built-in
+    ("TAB" "Company" company-complete) ; autoloaded from company-mode.el
+    ]
+   ["Line"
+    ("O" "New line above" my-open-line-above :transient t)
+    ("o" "New line below" my-open-line-below :transient t)
+    ("J" "Join lines" my-join-next-line :transient t)
+    ]
+   ["Multi-cursor" ; functions autoloaded from multiple-cursors.el
+    ("C" "Edit lines" mc/edit-lines)
+    ("V" "Rect select" set-rectangular-region-anchor)
+    ("<" "Previous" mc/mark-previous-like-this :transient t)
+    (">" "Next" mc/mark-next-like-this :transient t)
+    ]
+   ["Other"
+    (";" "Iedit" iedit-mode) ; autoloaded from iedit.el
+    ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c e e") #'transient/edit)
+#+end_src
+
 *** Frame transient
 
 Transient for frame management.
@@ -11147,6 +11183,8 @@ The main configuration file.
 <<debugger-transient>>
 
 <<ediff-transient>>
+
+<<edit-transient>>
 
 <<frame-transient>>
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Mar 14 21:46:06 2021
+;; Generated: Mon Mar 15 10:29:32 2021
 
 ;;; Commentary:
 
@@ -3660,6 +3660,33 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ]
   )
 (global-set-key (kbd "C-c d e") #'transient/ediff)
+
+;; add transient popup for various editing commands
+(transient-define-prefix transient/edit ()
+  "Editing commands."
+  ["Edit"
+   ["Completion"
+    ("/" "Dyn. abbrev" dabbrev-expand :transient t) ; built-in
+    ("TAB" "Company" company-complete) ; autoloaded from company-mode.el
+    ]
+   ["Line"
+    ("O" "New line above" my-open-line-above :transient t)
+    ("o" "New line below" my-open-line-below :transient t)
+    ("J" "Join lines" my-join-next-line :transient t)
+    ]
+   ["Multi-cursor" ; functions autoloaded from multiple-cursors.el
+    ("C" "Edit lines" mc/edit-lines)
+    ("V" "Rect select" set-rectangular-region-anchor)
+    ("<" "Previous" mc/mark-previous-like-this :transient t)
+    (">" "Next" mc/mark-next-like-this :transient t)
+    ]
+   ["Other"
+    (";" "Iedit" iedit-mode) ; autoloaded from iedit.el
+    ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c e e") #'transient/edit)
 
 (defun transient/frame--previous-frame ()
   "Select previous frame."

@@ -676,6 +676,28 @@ version is present (even if pinned to a specific repository)."
                             0)))))
 #+end_src
 
+*** Enable buffer-face-mode using a given font
+
+It can be useful to for certain modes to use specific fonts. For
+example, ~dyalog-mode~ buffers should use an APL-compatible font to
+ensure all necessary glyphs for APL symbols are available.
+
+This function will set ~buffer-face-mode-face~ for the current buffer
+and activate ~buffer-face-mode~ if the given font family is available.
+
+#+name: my-set-buffer-face-mode-font-family
+#+begin_src emacs-lisp
+;; use FONT-FAMILY-NAME for buffer-face-mode and enable the mode
+(defun my-set-buffer-face-mode-font-family (font-family-name)
+  "Configure `buffer-face-mode' to use FONT-FAMILY-NAME and enable it."
+  (if (find-font (font-spec :name font-family-name))
+      (progn
+        (setq-local buffer-face-mode-face `(:family ,font-family-name))
+        (buffer-face-mode))
+    (message "Skipping `buffer-face-mode' changes: cannot find font-family %s."
+             font-family-name)))
+#+end_src
+
 * Package management
 
 ** Prefer newer Elisp files                                           :early:
@@ -4901,12 +4923,9 @@ Connect to a Dyalog RIDE session using ~dyalog-ride-session~.
   ;; setup Dyalog APL buffer-specific editing environment
   (defun dyalog-mode--setup ()
     "Setup code to run when entering a `dyalog-mode' buffer."
-    ;; set font
-    (let ((apl-font-name "APL385 Unicode"))
-      (when (find-font (font-spec :name apl-font-name))
-        (setq-local buffer-face-mode-face `(:family ,apl-font-name))
-        (buffer-face-mode)))
-    ;; set input method
+    ;; use APL-compatible font
+    (my-set-buffer-face-mode-font-family "APL385 Unicode")
+    ;; enable Dyalog backtick input method
     (set-input-method "dyalog-apl-prefix"))
   ;; run setup code when entering Dyalog APL buffers
   (add-hook 'dyalog-mode-hook #'dyalog-mode--setup)
@@ -5057,6 +5076,15 @@ lint the current buffer.
   :ensure nil ; in site-lisp directory
   :init (setq j-help-browser-function #'eww-browse-url)
   :config
+  ;; setup J buffer-specific editing environment
+  (defun j-mode--setup ()
+    "Setup code to run when entering a `j-mode' buffer."
+    ;; use nicer font
+    (my-set-buffer-face-mode-font-family "APL385 Unicode"))
+  ;; run `j-mode--setup' in J and J REPL buffers
+  (add-hook 'j-mode-hook #'j-mode--setup)
+  (add-hook 'inferior-j-mode-hook #'j-mode--setup)
+  ;; setup Flymake
   (with-eval-after-load 'flymake-quickdef
     (flymake-quickdef-backend flymake-j-console-debug-lint-backend
       :pre-let ((j-console-exec (executable-find j-console-cmd)))
@@ -6113,14 +6141,17 @@ slow down the redisplay.
 #+begin_src emacs-lisp
 ;; set typefaces for graphical Emacs
 ;; main fonts
+;; - note that the default face must specify :height using an integer
+;;   in units of 1/10 point but other faces can use a float specifying
+;;   height relative to its underlying face if desired
 (set-face-attribute 'default nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 150 110)
                     :weight 'normal :width 'normal)
 (set-face-attribute 'fixed-pitch nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 150 110)
+                    :height 1.0
                     :weight 'normal :width 'normal)
 (set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
-                    :height (if (eq system-type 'darwin) 150 110)
+                    :height 1.0
                     :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 120 90)
@@ -10641,6 +10672,8 @@ The main configuration file.
 <<my-save-and-bury-buffer>>
 
 <<my-install-elpa-package>>
+
+<<my-set-buffer-face-mode-font-family>>
 
 ;; Package management
 

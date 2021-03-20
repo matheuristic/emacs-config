@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar 15 10:29:32 2021
+;; Generated: Sat Mar 20 16:05:25 2021
 
 ;;; Commentary:
 
@@ -174,6 +174,16 @@ version is present (even if pinned to a specific repository)."
       (package-install (elt (cdr (assoc pkg-symb
                                         package-archive-contents))
                             0)))))
+
+;; use FONT-FAMILY-NAME for buffer-face-mode and enable the mode
+(defun my-set-buffer-face-mode-font-family (font-family-name)
+  "Configure `buffer-face-mode' to use FONT-FAMILY-NAME and enable it."
+  (if (find-font (font-spec :name font-family-name))
+      (progn
+        (setq-local buffer-face-mode-face `(:family ,font-family-name))
+        (buffer-face-mode))
+    (message "Skipping `buffer-face-mode' changes: cannot find font-family %s."
+             font-family-name)))
 
 ;; Package management
 
@@ -2342,12 +2352,9 @@ call `open-line' on the very first character."
   ;; setup Dyalog APL buffer-specific editing environment
   (defun dyalog-mode--setup ()
     "Setup code to run when entering a `dyalog-mode' buffer."
-    ;; set font
-    (let ((apl-font-name "APL385 Unicode"))
-      (when (find-font (font-spec :name apl-font-name))
-        (setq-local buffer-face-mode-face `(:family ,apl-font-name))
-        (buffer-face-mode)))
-    ;; set input method
+    ;; use APL-compatible font
+    (my-set-buffer-face-mode-font-family "APL385 Unicode")
+    ;; enable Dyalog backtick input method
     (set-input-method "dyalog-apl-prefix"))
   ;; run setup code when entering Dyalog APL buffers
   (add-hook 'dyalog-mode-hook #'dyalog-mode--setup)
@@ -2463,6 +2470,15 @@ Lisp function does not specify a special indentation."
   :ensure nil ; in site-lisp directory
   :init (setq j-help-browser-function #'eww-browse-url)
   :config
+  ;; setup J buffer-specific editing environment
+  (defun j-mode--setup ()
+    "Setup code to run when entering a `j-mode' buffer."
+    ;; use nicer font
+    (my-set-buffer-face-mode-font-family "APL385 Unicode"))
+  ;; run `j-mode--setup' in J and J REPL buffers
+  (add-hook 'j-mode-hook #'j-mode--setup)
+  (add-hook 'inferior-j-mode-hook #'j-mode--setup)
+  ;; setup Flymake
   (with-eval-after-load 'flymake-quickdef
     (flymake-quickdef-backend flymake-j-console-debug-lint-backend
       :pre-let ((j-console-exec (executable-find j-console-cmd)))

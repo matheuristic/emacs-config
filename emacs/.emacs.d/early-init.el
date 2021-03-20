@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Mar 15 10:29:31 2021
+;; Generated: Sat Mar 20 16:05:24 2021
 
 ;;; Commentary:
 
@@ -89,14 +89,17 @@
 
 ;; set typefaces for graphical Emacs
 ;; main fonts
+;; - note that the default face must specify :height using an integer
+;;   in units of 1/10 point but other faces can use a float specifying
+;;   height relative to its underlying face if desired
 (set-face-attribute 'default nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 150 110)
                     :weight 'normal :width 'normal)
 (set-face-attribute 'fixed-pitch nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 150 110)
+                    :height 1.0
                     :weight 'normal :width 'normal)
 (set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
-                    :height (if (eq system-type 'darwin) 150 110)
+                    :height 1.0
                     :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 120 90)

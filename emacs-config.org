@@ -2046,38 +2046,6 @@ buffer simultaneously.
   (set-face-attribute 'mc/cursor-bar-face nil :height 10))
 #+end_src
 
-** Snippet expansion using YASnippet                                  :melpa:
-
-[[https://github.com/joaotavora/yasnippet/tree/5b1217ab085fab4abeb1118dccb260691b446703][YASnippet]] is a snippet expansion package for Emacs, which supports
-expanding abbreviations into templates. Snippets can defined and
-stored in the =snippets= folder within ~user-emacs-directory~.
-
-Two additional supporting packages can also be loaded:
-- The YASnippet official snippet collections package containing
-  definitions for multiple file types and languages. (Not enabled.)
-- The [[https://github.com/abo-abo/auto-yasnippet][Auto-YASnippet]] package, which enables temporary snippet
-  definitions that can optionally be persisted. Persisted snippets are
-  saved to ~aya-persist-snippet-dir~ (defaults to ~snippets~ in
-  ~user-emacs-directory~) in a subfolder corresponding to the major
-  mode. (Enabled.)
-
-#+name: yasnippet
-#+begin_src emacs-lisp
-;; expandable snippet template system
-(use-package yasnippet
-  :defer 1 ;; load asynchronously after startup
-  :config
-  ;; abbreviate mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ¥"))
-  ;; (use-package yasnippet-snippets) ;; official snippets
-  (use-package auto-yasnippet) ;; enable creation of temporary snippets
-  ;; remove default bindings to avoid conflicts with other packages
-  ;; removing prefix bindings also removes bindings that use them
-  (unbind-key "\C-c&" yas-minor-mode-map)
-  (unbind-key "\C-c" yas-minor-mode-map)
-  (yas-global-mode 1))
-#+end_src
-
 ** Structured editing using Paredit                                   :melpa:
 
 [[https://www.emacswiki.org/emacs/ParEdit][Paredit]] provides a minor mode for structured editing S-expression data.
@@ -9026,40 +8994,6 @@ not support restricting to a region."
 (global-set-key (kbd "C-c l w") #'transient/writing)
 #+end_src
 
-*** YASnippet transient
-
-Transient for ~yas-minor-mode~ YASnippet commands and YASnippet
-supporting packages.
-
-#+name: yasnippet-transient
-#+begin_src emacs-lisp
-;; add transient popup for yasnippet commands
-(with-eval-after-load 'yasnippet
-  (with-eval-after-load 'auto-yasnippet
-    (defun transient/yasnippet--aya-show-current ()
-     "Show the current auto-snippet `aya-current' in the minibuffer."
-     (interactive)
-     (message "Current auto-yasnippet:\n%s" aya-current))
-   (transient-define-prefix transient/yasnippet ()
-     "YASnippet commands."
-     ["YASnippet"
-      ["Stored snippets"
-       ("SPC" "Expand" yas-expand)
-       ("s" "Insert" yas-insert-snippet)
-       ("n" "New" yas-new-snippet)
-       ("d" "Describe" yas-describe-tables)
-       ("v" "Visit file" yas-visit-snippet-file)
-       ]
-      ["Auto snippets"
-       ("w" "Create" aya-create)
-       ("y" "Expand" aya-expand)
-       ("?" "Show current" transient/yasnippet--aya-show-current)
-       ]
-      ]
-     )
-   (global-set-key (kbd "C-c Y") #'transient/yasnippet)))
-#+end_src
-
 ** Major mode transients
 
 Major mode transients are always bound to ~C-c m~ and that binding
@@ -10819,8 +10753,6 @@ The main configuration file.
 
 <<multiple-cursors>>
 
-<<yasnippet>>
-
 <<paredit>>
 
 <<undo-tree>>
@@ -11254,8 +11186,6 @@ The main configuration file.
 <<workspace-transient>>
 
 <<writing-transient>>
-
-<<yasnippet-transient>>
 
 ;; Transient commands / Major mode transients
 

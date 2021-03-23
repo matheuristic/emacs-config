@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Mar 20 16:05:25 2021
+;; Generated: Tue Mar 23 18:12:28 2021
 
 ;;; Commentary:
 
@@ -904,20 +904,6 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
   ;; setting a height of 1 ends up rendering a thick bar
   ;; probably because it is too small a value
   (set-face-attribute 'mc/cursor-bar-face nil :height 10))
-
-;; expandable snippet template system
-(use-package yasnippet
-  :defer 1 ;; load asynchronously after startup
-  :config
-  ;; abbreviate mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist '(yas-minor-mode . " ¥"))
-  ;; (use-package yasnippet-snippets) ;; official snippets
-  (use-package auto-yasnippet) ;; enable creation of temporary snippets
-  ;; remove default bindings to avoid conflicts with other packages
-  ;; removing prefix bindings also removes bindings that use them
-  (unbind-key "\C-c&" yas-minor-mode-map)
-  (unbind-key "\C-c" yas-minor-mode-map)
-  (yas-global-mode 1))
 
 ;; structured editing of S-expressions with Paredit
 (use-package paredit
@@ -4635,32 +4621,6 @@ not support restricting to a region."
   )
 
 (global-set-key (kbd "C-c l w") #'transient/writing)
-
-;; add transient popup for yasnippet commands
-(with-eval-after-load 'yasnippet
-  (with-eval-after-load 'auto-yasnippet
-    (defun transient/yasnippet--aya-show-current ()
-     "Show the current auto-snippet `aya-current' in the minibuffer."
-     (interactive)
-     (message "Current auto-yasnippet:\n%s" aya-current))
-   (transient-define-prefix transient/yasnippet ()
-     "YASnippet commands."
-     ["YASnippet"
-      ["Stored snippets"
-       ("SPC" "Expand" yas-expand)
-       ("s" "Insert" yas-insert-snippet)
-       ("n" "New" yas-new-snippet)
-       ("d" "Describe" yas-describe-tables)
-       ("v" "Visit file" yas-visit-snippet-file)
-       ]
-      ["Auto snippets"
-       ("w" "Create" aya-create)
-       ("y" "Expand" aya-expand)
-       ("?" "Show current" transient/yasnippet--aya-show-current)
-       ]
-      ]
-     )
-   (global-set-key (kbd "C-c Y") #'transient/yasnippet)))
 
 ;; Transient commands / Major mode transients
 

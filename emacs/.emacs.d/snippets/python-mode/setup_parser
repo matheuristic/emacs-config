@@ -1,9 +1,0 @@
-# -*- mode: snippet -*-
-# name: setup_parser
-# key: setparser
-# group: script
-# --
-def setup_parser(parser):
-`(make-string python-indent-offset ?\ )`"""Configures a given argparser.ArgumentParser object"""
-`(make-string python-indent-offset ?\ )`parser.add_argument("$1", help="$2")$0
-${3:`(make-string python-indent-offset ?\ )`parser.set_defaults(func=$4)}

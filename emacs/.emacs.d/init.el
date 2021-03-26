@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Mar 23 18:12:28 2021
+;; Generated: Thu Mar 25 23:08:36 2021
 
 ;;; Commentary:
 
@@ -178,7 +178,7 @@ version is present (even if pinned to a specific repository)."
 ;; use FONT-FAMILY-NAME for buffer-face-mode and enable the mode
 (defun my-set-buffer-face-mode-font-family (font-family-name)
   "Configure `buffer-face-mode' to use FONT-FAMILY-NAME and enable it."
-  (if (find-font (font-spec :name font-family-name))
+  (if (find-font (font-spec :family font-family-name))
       (progn
         (setq-local buffer-face-mode-face `(:family ,font-family-name))
         (buffer-face-mode))
@@ -286,10 +286,6 @@ cache before processing."
 ;; enable flex completion, requires Emacs 27+
 (with-eval-after-load 'minibuffer
   (add-to-list 'completion-styles 'flex t))
-
-;; use Icomplete as the completion backend
-;; enable `fido-mode' to emulate ido behavior where possible
-(fido-mode)
 
 ;; text completion framework
 (use-package company

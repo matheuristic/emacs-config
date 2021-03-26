@@ -267,6 +267,30 @@ deprecated ~cl~ library.
 (file-dependents (feature-file 'cl))
 #+end_example
 
+** Emacs default minibuffer completion
+
+Emacs has a built-in minibuffer completion mechanism that works very
+fast. When multiple completions are available, they are shown in a
+completions window.
+
+Here are some bindings in the minibuffer for this mechanism.
+
+- ~TAB~ completes as much as possible. If no additional completion is
+  possible it displays a window with list of potential completions or
+  indicates no matches.
+- ~RET~ uses the text in the minibuffer or the default option if no
+  text is entered.
+- ~M-v~ jumps to the completion-list window if one is open.
+
+Here are some bindings while in the completions window.
+
+- ~RET~ selects the entry at point to use.
+- ~TAB~ moves the point to the next entry.
+- ~S-TAB~ move the point to the previous entry.
+- ~q~ closes the completions window without selecting an entry.
+
+For more information, see the Emacs [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Completion-Commands.html][documentation]].
+
 * Tags
 
 - ~early~: Configuration code (not boilerplate comments) that should
@@ -690,7 +714,7 @@ and activate ~buffer-face-mode~ if the given font family is available.
 ;; use FONT-FAMILY-NAME for buffer-face-mode and enable the mode
 (defun my-set-buffer-face-mode-font-family (font-family-name)
   "Configure `buffer-face-mode' to use FONT-FAMILY-NAME and enable it."
-  (if (find-font (font-spec :name font-family-name))
+  (if (find-font (font-spec :family font-family-name))
       (progn
         (setq-local buffer-face-mode-face `(:family ,font-family-name))
         (buffer-face-mode))
@@ -916,23 +940,6 @@ only ~flex~ as part of the minibuffer setup hook.
 ;; enable flex completion, requires Emacs 27+
 (with-eval-after-load 'minibuffer
   (add-to-list 'completion-styles 'flex t))
-#+end_src
-
-** Minibuffer completion with Icomplete Fido-mode
-
-Use [[https://github.com/emacs-mirror/emacs/blob/master/lisp/icomplete.el][Icomplete]] as the completion backend, emulating [[https://www.gnu.org/software/emacs/manual/html_mono/ido.html][Ido]] where possible.
-In Emacs 27+, use ~fido-mode~ which is Icomplete mode with a default
-setup that closely emulates Ido. In prior versions, configure
-Icomplete behavior directly (not as thorough as ~fido-mode~).
-
-References:
-- [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Icomplete.html][GNU Emacs Manual---Fast minibuffer selection]]
-
-#+name: icomplete
-#+begin_src emacs-lisp
-;; use Icomplete as the completion backend
-;; enable `fido-mode' to emulate ido behavior where possible
-(fido-mode)
 #+end_src
 
 ** Text completion with Company                                       :melpa:
@@ -10626,8 +10633,6 @@ The main configuration file.
 ;; Backend and frontend frameworks for building user interfaces
 
 <<flex-minibuffer-completion-style>>
-
-<<icomplete>>
 
 <<company>>
 

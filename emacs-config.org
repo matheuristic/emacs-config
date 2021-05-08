@@ -671,6 +671,7 @@ Save current buffer and bury it.
 #+begin_src emacs-lisp
 (defun my-save-and-bury-buffer (&rest _)
   "Save and bury the current buffer."
+  (interactive)
   (save-buffer)
   (bury-buffer))
 #+end_src

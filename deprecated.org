@@ -3536,6 +3536,38 @@ This enables things like ElDoc and autocompletion."
   (add-hook 'ejc-sql-minor-mode-hook #'my-ejc-sql-minor-mode-setup))
 #+end_src
 
+** Dyalog APL
+
+Add [[https://github.com/harsman/dyalog-mode][support]] for editing [[https://www.dyalog.com/][Dyalog APL]] files and integration with
+[[https://www.dyalog.com/dyalog/development-environment.htm][Dyalog RIDE]] (built-in integrated development environment).
+
+Also add an input method for entering APL glyphs in Emacs using Dyalog
+RIDE bindings. This package is sourced from [[https://github.com/abochannek/Dyalog/tree/master/dyalog-apl-input][here]]. See [[https://aplwiki.com/wiki/Typing_glyphs][this link]] for
+more information on entering APL glyphs.
+
+Connect to a Dyalog RIDE session using ~dyalog-ride-session~.
+
+#+name: dyalog-mode
+#+begin_src emacs-lisp
+;; support for editing Dyalog files and integration with Dyalog RIDE
+(use-package dyalog-mode
+  :config
+  ;; support for entering APL glyphs using Dyalog RIDE bindings
+  (use-package dyalog-apl-input
+    :ensure nil) ; in site-lisp directory
+  ;; setup Dyalog APL buffer-specific editing environment
+  (defun dyalog-mode--setup ()
+    "Setup code to run when entering a `dyalog-mode' buffer."
+    ;; use APL-compatible font
+    (my-set-buffer-face-mode-font-family "APL385 Unicode")
+    ;; enable Dyalog backtick input method
+    (set-input-method "dyalog-apl-prefix"))
+  ;; run setup code when entering Dyalog APL buffers
+  (add-hook 'dyalog-mode-hook #'dyalog-mode--setup)
+  (add-hook 'dyalog-session-mode-hook #'dyalog-mode--setup)
+  (add-hook 'dyalog-debugger-mode-hook #'dyalog-mode--setup))
+#+end_src
+
 * Project interaction
 
 ** Git identity management                                            :melpa:

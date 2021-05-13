@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Mar 25 23:08:36 2021
+;; Generated: Wed May 12 21:15:00 2021
 
 ;;; Commentary:
 
@@ -158,6 +158,7 @@ if the point is in the minibuffer."
 
 (defun my-save-and-bury-buffer (&rest _)
   "Save and bury the current buffer."
+  (interactive)
   (save-buffer)
   (bury-buffer))
 
@@ -2322,26 +2323,6 @@ call `open-line' on the very first character."
     (with-eval-after-load 'clojure-mode
       (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
       (add-hook 'clojure-mode-hook 'flymake-mode t))))
-
-;; Programming / Dyalog APL
-
-;; support for editing Dyalog files and integration with Dyalog RIDE
-(use-package dyalog-mode
-  :config
-  ;; support for entering APL glyphs using Dyalog RIDE bindings
-  (use-package dyalog-apl-input
-    :ensure nil) ; in site-lisp directory
-  ;; setup Dyalog APL buffer-specific editing environment
-  (defun dyalog-mode--setup ()
-    "Setup code to run when entering a `dyalog-mode' buffer."
-    ;; use APL-compatible font
-    (my-set-buffer-face-mode-font-family "APL385 Unicode")
-    ;; enable Dyalog backtick input method
-    (set-input-method "dyalog-apl-prefix"))
-  ;; run setup code when entering Dyalog APL buffers
-  (add-hook 'dyalog-mode-hook #'dyalog-mode--setup)
-  (add-hook 'dyalog-session-mode-hook #'dyalog-mode--setup)
-  (add-hook 'dyalog-debugger-mode-hook #'dyalog-mode--setup))
 
 ;; Programming / Emacs Lisp
 

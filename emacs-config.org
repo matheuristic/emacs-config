@@ -4754,6 +4754,17 @@ Add company-mode support for lsp-mode.
   :init (setq company-lsp-cache-candidates t))
 #+end_src
 
+*** lsp-treemacs
+
+Integration to use ~treemacs~ to render and navigate treeview controls
+in ~lsp-mode~.
+
+#+name: lsp-treemacs
+#+begin_src emacs-lisp
+;; `treemacs' and `lsp-mode' integration
+(use-package lsp-treemacs)
+#+end_src
+
 ** dap-mode Debug Adaptor Protocol client                             :melpa:
 
 [[https://github.com/emacs-lsp/dap-mode][dap-mode]] is a Debug Adaptor Protocol client.
@@ -10431,11 +10442,6 @@ LSP minor mode transient.
                    "On type formatting"
                    lsp-enable-on-type-formatting))
            lsp-toggle-on-type-formatting :transient t)
-          ("TT" (lambda ()
-                  (transient--make-description
-                   "Treemacs sync"
-                   lsp-treemacs-sync-mode))
-           lsp-treemacs-sync-mode :transient t)
           ]
          ["Goto"
           ("gg" "Definition" lsp-find-definition)
@@ -10466,6 +10472,19 @@ LSP minor mode transient.
           ]
          ]
         [
+         ["Treemacs"
+          ("tS" (lambda ()
+                  (transient--make-description
+                   "Sync"
+                   lsp-treemacs-sync-mode))
+           lsp-treemacs-sync-mode :transient t)
+          ("te" "Errors" lsp-treemacs-errors-list)
+          ("ts" "Symbols" lsp-treemacs-symbols)
+          ("tr" "References" lsp-treemacs-references)
+          ("ti" "Implementatns" lsp-treemacs-implementations)
+          ("tc" "Call hierarchy" lsp-treemacs-call-hierarchy)
+          ("tt" "Type hierarchy" lsp-treemacs-type-hierarchy)
+          ]
          ["Refactoring"
           ("rr" "Rename" lsp-rename)
           ("ro" "Organize imports" lsp-organize-imports)
@@ -10864,6 +10883,8 @@ The main configuration file.
 <<lsp-mode>>
 
 <<company-lsp>>
+
+<<lsp-treemacs>>
 
 ;; Programming / dap-mode Debug Adaptor Protocol client
 

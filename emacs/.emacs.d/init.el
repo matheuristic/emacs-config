@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed May 12 21:15:00 2021
+;; Generated: Wed May 12 22:53:16 2021
 
 ;;; Commentary:
 
@@ -2237,6 +2237,9 @@ call `open-line' on the very first character."
 (use-package company-lsp
   :after lsp-mode
   :init (setq company-lsp-cache-candidates t))
+
+;; `treemacs' and `lsp-mode' integration
+(use-package lsp-treemacs)
 
 ;; Programming / dap-mode Debug Adaptor Protocol client
 
@@ -5886,11 +5889,6 @@ and `racket-repl-documentation' otherwise."
                    "On type formatting"
                    lsp-enable-on-type-formatting))
            lsp-toggle-on-type-formatting :transient t)
-          ("TT" (lambda ()
-                  (transient--make-description
-                   "Treemacs sync"
-                   lsp-treemacs-sync-mode))
-           lsp-treemacs-sync-mode :transient t)
           ]
          ["Goto"
           ("gg" "Definition" lsp-find-definition)
@@ -5921,6 +5919,19 @@ and `racket-repl-documentation' otherwise."
           ]
          ]
         [
+         ["Treemacs"
+          ("tS" (lambda ()
+                  (transient--make-description
+                   "Sync"
+                   lsp-treemacs-sync-mode))
+           lsp-treemacs-sync-mode :transient t)
+          ("te" "Errors" lsp-treemacs-errors-list)
+          ("ts" "Symbols" lsp-treemacs-symbols)
+          ("tr" "References" lsp-treemacs-references)
+          ("ti" "Implementatns" lsp-treemacs-implementations)
+          ("tc" "Call hierarchy" lsp-treemacs-call-hierarchy)
+          ("tt" "Type hierarchy" lsp-treemacs-type-hierarchy)
+          ]
          ["Refactoring"
           ("rr" "Rename" lsp-rename)
           ("ro" "Organize imports" lsp-organize-imports)

@@ -10806,7 +10806,7 @@ The main configuration file.
 
 ;; Org-mode
 
-;; <<org-elpa>>
+<<org-elpa>>
 
 <<rebind-org-force-cycle-archived-when-using-older-org-versions>>
 

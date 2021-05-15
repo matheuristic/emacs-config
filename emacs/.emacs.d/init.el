@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed May 12 22:53:16 2021
+;; Generated: Sat May 15 14:17:41 2021
 
 ;;; Commentary:
 
@@ -1576,8 +1576,8 @@ Formatting a selected region only works on top-level objects."
 
 ;; Org-mode
 
-;; ;; install ELPA version of Org
-;; (my-install-elpa-package 'org)
+;; install ELPA version of Org
+(my-install-elpa-package 'org)
 
 ;; rebind `org-force-cycle-archived' in older Org versions to not
 ;; conflict with the `tab-next' default binding

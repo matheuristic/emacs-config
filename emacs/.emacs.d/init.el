@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat May 15 14:17:41 2021
+;; Generated: Mon May 17 23:03:57 2021
 
 ;;; Commentary:
 
@@ -632,11 +632,7 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 
 ;; Command-line interaction
 
-(setq eshell-history-size 1024
-      eshell-review-quick-commands nil
-      eshell-smart-space-goes-to-end t
-      eshell-where-to-jump 'begin)
-(require 'em-smart)
+(setq eshell-history-size 1024)
 
 ;; enable Eshell to spawn visual commands inside
 (require 'em-term)
@@ -692,6 +688,43 @@ provided, the default interactive `eshell' command is run."
   :after eshell
   :config
   (add-hook 'eshell-mode-hook #'eshell-bookmark-setup))
+
+(defun my-eshell-send (command)
+  "Select an Eshell buffer and execute COMMAND."
+  (interactive)
+  (let* ((my-es-bufs (seq-filter
+                      (lambda (buf)
+                        (string-match-p "*eshell*" (buffer-name buf)))
+                      (buffer-list)))
+         (my-es-buf-name-list (mapcar #'buffer-name my-es-bufs)))
+    (if my-es-buf-name-list
+        (let* ((my-es-buf-name (completing-read
+                                (concat "Send to Eshell buffer ("
+                                        (car my-es-buf-name-list)
+                                        ") : ")
+                                my-es-buf-name-list nil t
+                                nil nil my-es-buf-name-list)))
+          (with-current-buffer my-es-buf-name
+            (goto-char (point-max))
+            (insert command)
+            (eshell-send-input)))
+      (message "No Eshell buffers"))))
+
+(defun my-eshell-send-region ()
+  "Select an Eshell buffer and execute the current region."
+  (interactive)
+  (cond
+   ((use-region-p)
+    (my-eshell-send (buffer-substring-no-properties
+                     (region-beginning)
+                     (region-end))))
+   (t (message "No region selected"))))
+
+(defun my-eshell-send-line ()
+  "Select an Eshell buffer and execute the current line."
+  (interactive)
+  (my-eshell-send
+   (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
 
 ;; make shell prompts read-only
 (setq comint-prompt-read-only t)
@@ -4098,6 +4131,9 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("e" "Eshell" my-eshell-with-name)
     ("a" "ANSI Term" ansi-term)
     ]
+   ["Send to Eshell"
+    ("l" "Line" my-eshell-send-line)
+    ("r" "Region" my-eshell-send-region)]
    ["Tmux"
     ("ts" "Send" tmux-send)
     ("tr" "Resend" tmux-resend)

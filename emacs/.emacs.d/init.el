@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon May 17 23:03:57 2021
+;; Generated: Sat May 29 17:56:42 2021
 
 ;;; Commentary:
 
@@ -2472,8 +2472,8 @@ Lisp function does not specify a special indentation."
   ;; setup J buffer-specific editing environment
   (defun j-mode--setup ()
     "Setup code to run when entering a `j-mode' buffer."
-    ;; use nicer font
-    (my-set-buffer-face-mode-font-family "APL385 Unicode"))
+    ;; use different font
+    (my-set-buffer-face-mode-font-family "Iosevka Term Slab"))
   ;; run `j-mode--setup' in J and J REPL buffers
   (add-hook 'j-mode-hook #'j-mode--setup)
   (add-hook 'inferior-j-mode-hook #'j-mode--setup)

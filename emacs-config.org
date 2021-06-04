@@ -2820,6 +2820,7 @@ Adapted from this [[https://notmuchmail.org/pipermail/notmuch/2020/029248.html][
   (defun notmuch-poll-async ()
     "Like `notmuch-poll' but asynchronous."
     (interactive)
+    (message "notmuch-new: syncing")
     (notmuch-start-notmuch
      "notmuch-new"
      nil

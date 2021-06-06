@@ -16,6 +16,16 @@ usually new packages or code.
 
 [[https://depp.brause.cc/shackle/][shackle: Enforce rules for popup windows]]
 
+* Command-line interaction
+
+** tshell
+
+[[https://github.com/TatriX/tshell][tshell]] is a buffer-oriented shell for Emacs.
+
+Unlike the other shells, outputs from running commands are piped to
+another buffer ~*tshell-out*~ by default and the user can switch
+between the shell and Elisp interpreters for evaluation.
+
 * DevOps
 
 ** [#C] Magit-style interface to Kubernetes                           :melpa:
@@ -324,6 +334,12 @@ References:
     (define-key org-mode-map (kbd "C-c \" \"")
       #'org-zotxt-insert-reference-link--current-selected-item)))
 #+end_src
+
+* Visual
+
+** [#C] mlscroll
+
+[[https://github.com/jdtsmith/mlscroll][mlscroll]] is a scrollbar for Emacs model line.
 
 * Web
 

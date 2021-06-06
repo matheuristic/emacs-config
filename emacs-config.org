@@ -768,8 +768,13 @@ When the packages with the same name exist on multiple repositories,
 the version on the repository with the highest priority is preferred.
 
 The following package repositories are the most well-known:
-- [[https://elpa.gnu.org/][GNU Emacs Lisp Package Archive]] (ELPA).
-  This is the default package repository for Emacs.
+- [[https://elpa.gnu.org/][GNU Emacs Lisp Package Archive]] (ELPA or GNU).
+  This is the default package repository for Emacs that contains only
+  packages with assigned copyright to the [[https://www.fsf.org/][Free Software Foundation]].
+- [[https://elpa.nongnu.org/][NonGNU Emacs Lisp Package Archive]] (NonGNU).
+  This is another default package repository for Emacs that contains
+  packages that don't want to or cannot assign copyright to the
+  [[https://www.fsf.org/][Free Software Foundation]].
 - [[https://melpa.org/][Milkypostman’s Emacs Lisp Package Archive]] (MELPA).
   This is an unofficial package repository containing a large
   selection of packages.
@@ -780,22 +785,16 @@ The following package repositories are the most well-known:
 - [[https://stable.melpa.org/][Milkypostman’s Emacs Lisp Package Archive Stable]] (MELPA Stable).
   This is a version of MELPA that only builds tagged releases.
   Has less packages compared to MELPA.
-- [[https://orgmode.org/elpa.html][Org Emacs Lisp Package Archive]] (Org).
-  This is the official [[https://orgmode.org/][Org]] package repository that contains the newest
-  version of ~org~ (also in ELPA), along with ~org-plus-contrib~ that
-  contains all contributed files (not in ELPA).
-
-Only ELPA and MELPA are used here so the latest package versions are
-installed, and because there isn't generally a need for all the
-contributed files for Org.
 
 #+name: elpa-repositories
 #+begin_src emacs-lisp
 ;; set ELPA-compatible package repositories and their priorities
-(setq package-archives '(("ELPA"   . "https://elpa.gnu.org/packages/")
-                         ("MELPA" . "https://melpa.org/packages/"))
-      package-archive-priorities '(("ELPA"  . 1)
-                                   ("MELPA" . 2)))
+(setq package-archives '(("GNU"   . "https://elpa.gnu.org/packages/")
+                         ("NonGNU" . "https://elpa.nongnu.org/nongnu/")
+                         ("MELPA"  . "https://melpa.org/packages/"))
+      package-archive-priorities '(("GNU"   . 1)
+                                   ("NonGNU" . 2)
+                                   ("MELPA"  . 3)))
 #+end_src
 
 ** Package initialization
@@ -2820,7 +2819,6 @@ Adapted from this [[https://notmuchmail.org/pipermail/notmuch/2020/029248.html][
   (defun notmuch-poll-async ()
     "Like `notmuch-poll' but asynchronous."
     (interactive)
-    (message "notmuch-new: syncing")
     (notmuch-start-notmuch
      "notmuch-new"
      nil
@@ -2829,7 +2827,8 @@ Adapted from this [[https://notmuchmail.org/pipermail/notmuch/2020/029248.html][
                         "\n"
                         "Please refresh buffer as needed.")
                 change))
-     "new"))
+     "new")
+    (message "notmuch-new: started"))
   ;; overwrite default "G" bindings in notmuch modes
   (define-key notmuch-common-keymap (kbd "G") #'notmuch-poll-async))
 #+end_src
@@ -5064,6 +5063,8 @@ lint the current buffer.
   ;; setup J buffer-specific editing environment
   (defun j-mode--setup ()
     "Setup code to run when entering a `j-mode' buffer."
+    ;; don't highlight matching parentheses
+    (show-paren-mode -1)
     ;; use different font
     (my-set-buffer-face-mode-font-family "Iosevka Term Slab"))
   ;; run `j-mode--setup' in J and J REPL buffers

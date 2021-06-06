@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat May 29 17:56:42 2021
+;; Generated: Sun Jun  6 08:59:23 2021
 
 ;;; Commentary:
 
@@ -189,10 +189,12 @@ version is present (even if pinned to a specific repository)."
 ;; Package management
 
 ;; set ELPA-compatible package repositories and their priorities
-(setq package-archives '(("ELPA"   . "https://elpa.gnu.org/packages/")
-                         ("MELPA" . "https://melpa.org/packages/"))
-      package-archive-priorities '(("ELPA"  . 1)
-                                   ("MELPA" . 2)))
+(setq package-archives '(("GNU"   . "https://elpa.gnu.org/packages/")
+                         ("NonGNU" . "https://elpa.nongnu.org/nongnu/")
+                         ("MELPA"  . "https://melpa.org/packages/"))
+      package-archive-priorities '(("GNU"   . 1)
+                                   ("NonGNU" . 2)
+                                   ("MELPA"  . 3)))
 
 ;; initialize package.el
 (require 'package)
@@ -1146,7 +1148,8 @@ tag based on the entry at the beginning of the region."
                         "\n"
                         "Please refresh buffer as needed.")
                 change))
-     "new"))
+     "new")
+    (message "notmuch-new: started"))
   ;; overwrite default "G" bindings in notmuch modes
   (define-key notmuch-common-keymap (kbd "G") #'notmuch-poll-async))
 
@@ -2472,6 +2475,8 @@ Lisp function does not specify a special indentation."
   ;; setup J buffer-specific editing environment
   (defun j-mode--setup ()
     "Setup code to run when entering a `j-mode' buffer."
+    ;; don't highlight matching parentheses
+    (show-paren-mode -1)
     ;; use different font
     (my-set-buffer-face-mode-font-family "Iosevka Term Slab"))
   ;; run `j-mode--setup' in J and J REPL buffers

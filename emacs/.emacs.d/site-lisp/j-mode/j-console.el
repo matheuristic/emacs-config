@@ -84,7 +84,7 @@ Should be NIL if there is no file not the empty string."
 
 (defun j-console-create-session ()
   "Start a comint session wrapped around the j-console-cmd."
-  (setq comint-process-echoes t)
+  (setq comint-process-echoes nil)
   (apply 'make-comint j-console-cmd-buffer-name
          j-console-cmd j-console-cmd-init-file j-console-cmd-args)
   (mapc

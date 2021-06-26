@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Jun 26 15:36:32 2021
+;; Generated: Sat Jun 26 18:11:11 2021
 
 ;;; Commentary:
 
@@ -478,14 +478,6 @@ Specifically, the current buffer is checked to see if it is in
   :after ibuffer
   :bind (:map ibuffer-mode-map
          ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
-
-;; visual buffer switching using a grid of windows
-(use-package buffer-expose
-  :init
-  (setq buffer-expose-show-current-buffer t)
-  ;; set auto initialization with ace-window if it is loaded
-  (with-eval-after-load 'ace-window
-    (setq buffer-expose-auto-init-aw t)))
 
 (define-minor-mode revert-without-query-mode
   "Minor mode for adding/removing current file to/from `revert-without-query'.
@@ -2239,6 +2231,7 @@ call `open-line' on the very first character."
 
 ;; Programming / Eglot Language Server Protocol client
 
+;; lightweight LSP client
 (use-package eglot
   :commands eglot
   :config
@@ -2246,7 +2239,7 @@ call `open-line' on the very first character."
   ;; completions from 0.5s to 2s to reduce request rate
   (setq eglot-send-changes-idle-time 2))
 
-;; compose outputs from eldoc doc functions in eglot managed buffers
+;; compose outputs from eldoc doc functions in Eglot managed buffers
 (with-eval-after-load 'eldoc
   (with-eval-after-load 'eglot
     (add-hook 'eglot--managed-mode-hook
@@ -2517,7 +2510,7 @@ Formatting a selected region only works on top-level objects."
                                                     (region-end)))
         (t (python-black-format-buffer)))))
 
-;; configure eglot to use pyright when working with Python files
+;; configure Eglot to use pyright when working with Python files
 (when (executable-find "pyright-langserver")
   (add-hook 'python-mode-hook #'eglot-ensure t)
   (with-eval-after-load 'eglot
@@ -2982,6 +2975,14 @@ for more information."
       (org-readitlater-archive)))
   (add-hook 'org-capture-before-finalize-hook #'do-org-readitlater-dl-hook))
 
+;; client for Gopher and Gemini protocol
+(use-package elpher
+  :config
+  ;; work around TLS verification issues for Gemini sites
+  (add-hook 'elpher-mode-hook
+            (lambda ()
+              (setq-local gnutls-verify-error nil))))
+
 ;; Writing
 
 ;; advise flyspell jump functions to perform context actions after
@@ -3218,7 +3219,7 @@ for more information."
 (use-package xr)
 
 ;; alternative binding for opening the menu bar
-(global-set-key (kbd "C-c e m") #'menu-bar-open)
+(global-set-key (kbd "C-c B o") #'menu-bar-open)
 
 ;; OS-specific / macOS
 
@@ -3373,7 +3374,7 @@ Example of use with transient suffix definitions in a
     ]
    ]
   )
-(global-set-key (kbd "C-c B") #'transient/bibliography)
+(global-set-key (kbd "C-c B b") #'transient/bibliography)
 
 ;; add transient popup for bookmark commands
 (transient-define-prefix transient/bookmarks ()
@@ -3394,9 +3395,7 @@ Example of use with transient suffix definitions in a
     ]
    ]
   )
-(global-set-key (kbd "C-c e B") #'transient/bookmarks)
-
-(require 'buffer-expose)
+(global-set-key (kbd "C-c B m") #'transient/bookmarks)
 
 (defun transient/buffer--tramp-cleanup-buffers ()
   "Clean up all TRAMP buffers and connections with confirm prompt."
@@ -3513,14 +3512,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("T" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
     ("I" "Make indirect" transient/buffer--clone-indirect-buffer-other-window)
     ]
-   ["Expose"
-    ("ee" "All" buffer-expose)
-    ("em" "Current mode" buffer-expose-current-mode)
-    ("eM" "Major mode" buffer-expose-major-mode)
-    ("ed" "Dired" buffer-expose-dired-buffers)
-    ("e!" "Non-special" buffer-expose-no-stars)
-    ("e*" "Special" buffer-expose-stars)
-    ]
    ]
   [
    ["Other"
@@ -3538,7 +3529,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c e b") #'transient/buffer)
+(global-set-key (kbd "C-c b") #'transient/buffer)
 
 ;; add transient popup for conda commands
 (with-eval-after-load 'conda
@@ -3584,7 +3575,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c e d") #'transient/debugger)
+(global-set-key (kbd "C-c D") #'transient/debugger)
 
 ;; add transient popup for Ediff commands
 (transient-define-prefix transient/ediff ()
@@ -3643,7 +3634,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c e e") #'transient/edit)
+(global-set-key (kbd "C-c e") #'transient/edit)
 
 (defun transient/frame--previous-frame ()
   "Select previous frame."
@@ -3670,7 +3661,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c e f") #'transient/frame)
+(global-set-key (kbd "C-c F r") #'transient/frame)
 
 ;; add transient popup for help commands
 (transient-define-prefix transient/help ()
@@ -3866,7 +3857,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ("R" "Use-package report" use-package-report) ; requires use-package-compute-statistics set to non-nil before use-package declarations
    ]
   )
-(global-set-key (kbd "C-c e P") #'transient/package)
+(global-set-key (kbd "C-c P k") #'transient/package)
 
 ;; add transient for password-store commands
 (with-eval-after-load 'auth-source-pass
@@ -3909,7 +3900,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
         ]
        ]
       )
-    (global-set-key (kbd "C-c P") #'transient/password-store)))
+    (global-set-key (kbd "C-c P w") #'transient/password-store)))
 
 ;; add transient for Emacs profiler
 (transient-define-prefix transient/profiler ()
@@ -3928,7 +3919,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ("e" "Stop" profiler-stop :transient t)
    ]
   )
-(global-set-key (kbd "C-c e p") #'transient/profiler)
+(global-set-key (kbd "C-c P f") #'transient/profiler)
 
 ;; add transient popup for projectile
 (with-eval-after-load 'projectile
@@ -4046,7 +4037,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c S") #'transient/search)
+(global-set-key (kbd "C-c S s") #'transient/search)
 
 ;; add transient popup for Emacs server management
 (transient-define-prefix transient/server ()
@@ -4063,7 +4054,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ("k" "Stop server and delete connection file" server-force-delete)
    ]
   )
-(global-set-key (kbd "C-c e s") #'transient/server)
+(global-set-key (kbd "C-c S v") #'transient/server)
 
 ;; add transient popup for shell tools
 (transient-define-prefix transient/shell ()
@@ -4130,7 +4121,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c e S") #'transient/system)
+(global-set-key (kbd "C-c S y") #'transient/system)
 
 ;; make sure functions used by visual transient are loaded
 (require 'follow)
@@ -4411,7 +4402,30 @@ Currently only works for Emacs Mac port."
     ]
    ]
   )
-(global-set-key (kbd "C-c l v") #'transient/visual)
+(global-set-key (kbd "C-c V") #'transient/visual)
+
+(require 'eww)
+
+;; add transient for launching web browsers
+(transient-define-prefix transient/web ()
+  "Web launcher commands."
+  ["Web launchers"
+   ["Emacs Web Wowser"
+    ("eo" "Open" eww)
+    ("eO" "Open in new buffer" eww-open-in-new-buffer)
+    ("ef" "Open file" eww-open-file)
+    ("eb" "List buffers" eww-list-buffers)
+    ("eB" "List bookmarks" eww-list-bookmarks)
+    ("eh" "List histories" eww-list-histories)
+    ("es" "Search" eww-search-words)
+    ]
+   ["Elpher Gopher/Gemini client"
+    ("go" "Open" elpher-go)
+    ("gh" "Open home" elpher)
+    ("gB" "List bookmarks" elpher-bookmarks)
+    ]
+   ])
+(global-set-key (kbd "C-c W b") #'transient/web)
 
 ;; `next-multiframe-window' & `previous-multiframe-window' renamed to
 ;; `next-window-any-frame' & `previous-window-any-frame' in Emacs 27
@@ -4486,7 +4500,7 @@ Currently only works for Emacs Mac port."
     ]
    ]
   )
-(global-set-key (kbd "C-c e w") #'transient/window)
+(global-set-key (kbd "C-c W n") #'transient/window)
 
 ;; add transient popup for workspace commands
 (transient-define-prefix transient/workspace ()
@@ -4513,7 +4527,7 @@ Currently only works for Emacs Mac port."
     ]
    ]
   )
-(global-set-key (kbd "C-c e W") #'transient/workspace)
+(global-set-key (kbd "C-c W s") #'transient/workspace)
 
 ;; add transient popup for writing commands
 (require 'dictionary)
@@ -4578,7 +4592,7 @@ not support restricting to a region."
    ]
   )
 
-(global-set-key (kbd "C-c l w") #'transient/writing)
+(global-set-key (kbd "C-c W r") #'transient/writing)
 
 ;; Transient commands / Major mode transients
 
@@ -5809,7 +5823,7 @@ and `racket-repl-documentation' otherwise."
       ]
      ]
     )
-  (global-set-key (kbd "C-c L") #'transient/eglot))
+  (global-set-key (kbd "C-c l") #'transient/eglot))
 
 ;; add transient for Flymake
 (with-eval-after-load 'flymake
@@ -5845,7 +5859,7 @@ and `racket-repl-documentation' otherwise."
         ]
        ]
       ))
-  (global-set-key (kbd "C-c F") #'transient/flymake-mode))
+  (global-set-key (kbd "C-c F m") #'transient/flymake-mode))
 
 (provide 'init)
 ;;; init.el ends here

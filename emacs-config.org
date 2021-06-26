@@ -138,8 +138,9 @@ Host *
 
 By convention, ~C-c <letter>~ bindings are reserved for user bindings.
 However, some packages do not adhere to this, like ~xcscope.el~ which
-bindings ~C-c s~ as a prefix for its cscope commands or ESS which binds
-~C-c h~ and ~C-c w~ for some of its package development commands.
+bindings ~C-c s~ as a prefix for its cscope commands or ESS which
+binds ~C-c h~ and ~C-c w~ for some of its package development
+commands.
 
 References:
 - [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Key-Binding-Conventions.html][Key Binding Conventions - GNU Emacs Lisp Reference Manual]]
@@ -1236,24 +1237,6 @@ Add support for grouping files by version-controlled project ([[https://github.c
   :after ibuffer
   :bind (:map ibuffer-mode-map
          ("/ V" . ibuffer-vc-set-filter-groups-by-vc-root)))
-#+end_src
-
-*** Visual buffer switching using a grid of windows                    :elpa:
-
-[[https://github.com/clemera/buffer-expose][buffer-expose]] visualizes buffers in a grid of windows and allows the
-user to switch to a selected buffer in that grid. Integrates with
-ace-window if available (set ~buffer-expose-auto-init-aw~ to ~t~ for
-automatically initializing grid buffer views with ace-window enabled).
-
-#+name: buffer-expose
-#+begin_src emacs-lisp
-;; visual buffer switching using a grid of windows
-(use-package buffer-expose
-  :init
-  (setq buffer-expose-show-current-buffer t)
-  ;; set auto initialization with ace-window if it is loaded
-  (with-eval-after-load 'ace-window
-    (setq buffer-expose-auto-init-aw t)))
 #+end_src
 
 *** Minor mode for reverting buffer to disk version without query
@@ -4733,6 +4716,7 @@ It is more lightweight than [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]],
 
 #+name: eglot
 #+begin_src emacs-lisp
+;; lightweight LSP client
 (use-package eglot
   :commands eglot
   :config
@@ -4757,7 +4741,7 @@ information, see [[https://github.com/joaotavora/eglot/issues/648][link]].
 
 #+name: eglot-eldoc-documentation-strategy
 #+begin_src emacs-lisp
-;; compose outputs from eldoc doc functions in eglot managed buffers
+;; compose outputs from eldoc doc functions in Eglot managed buffers
 (with-eval-after-load 'eldoc
   (with-eval-after-load 'eglot
     (add-hook 'eglot--managed-mode-hook
@@ -5234,7 +5218,7 @@ to install Pyright globally using ~npm install -g pyright~.
 
 #+name: eglot-pyright
 #+begin_src emacs-lisp
-;; configure eglot to use pyright when working with Python files
+;; configure Eglot to use pyright when working with Python files
 (when (executable-find "pyright-langserver")
   (add-hook 'python-mode-hook #'eglot-ensure t)
   (with-eval-after-load 'eglot
@@ -6245,6 +6229,21 @@ It supports text and images, but not webfonts or Javascript.
   (define-key eww-mode-map "I" #'eww--toggle-images))
 #+end_src
 
+*** Elpher Gopher and Gemini client
+
+[[https://thelambdalab.xyz/elpher/][Elpher]] is a [[https://en.wikipedia.org/wiki/Gopher_(protocol)][Gopher]] and [[https://gemini.circumlunar.space/][Gemini]] client for Emacs.
+
+#+name: elpher
+#+begin_src emacs-lisp
+;; client for Gopher and Gemini protocol
+(use-package elpher
+  :config
+  ;; work around TLS verification issues for Gemini sites
+  (add-hook 'elpher-mode-hook
+            (lambda ()
+              (setq-local gnutls-verify-error nil))))
+#+end_src
+
 ** REST development tools
 
 *** restclient.el                                                     :melpa:
@@ -7114,7 +7113,7 @@ keyboard does not have an ~F10~ key.
 #+name: menu-bar-open-alternate-binding
 #+begin_src emacs-lisp
 ;; alternative binding for opening the menu bar
-(global-set-key (kbd "C-c e m") #'menu-bar-open)
+(global-set-key (kbd "C-c B o") #'menu-bar-open)
 #+end_src
 
 * OS-specific
@@ -7367,17 +7366,11 @@ following conventions:
   unbound respectively.
 - Globally-accessible transients are always bound to a key sequence
   prefixed by ~C-c-~ and followed by one or more characters (for
-  example ~C-c B~ for the basic buffer management hydra or ~C-c e p~
+  example ~C-c b~ for the basic buffer management hydra or ~C-c P f~
   for the Emacs profiler). These should be chosen to not conflict with
   common packages with bindings that don't conform to the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Key-Binding-Conventions.html][convention]]
   of reserving ~C-c <letter>~ for user bindings (like ~xcscope.el~
   with its ~C-c s~ bindings).
-- Transients for toggling settings should be prefixed with ~C-c l~
-  where ~l~ is a mnemonic for layer (for example, ~C-c l v~ for the
-  visual layer or ~C-c l w~ for the writing layer).
-- Transients for accessing global Emacs functionality should be
-  prefixed with ~C-c e~ where ~e~ is a mnemonic for Emacs (for example
-  ~C-c e f~ for Emacs frames and ~C-c e p~ for Emacs profiler).
 - Major mode-specific transients are always bound to ~C-c m~.
 - Transients are always defined in their own section after all other
   user configuration, such that all dependencies in transients are
@@ -7455,7 +7448,7 @@ Transient for bibliography management.
     ]
    ]
   )
-(global-set-key (kbd "C-c B") #'transient/bibliography)
+(global-set-key (kbd "C-c B b") #'transient/bibliography)
 #+end_src
 
 *** Bookmarks transient
@@ -7483,7 +7476,7 @@ Transient for easier [[https://www.gnu.org/software/emacs/manual/html_node/emacs
     ]
    ]
   )
-(global-set-key (kbd "C-c e B") #'transient/bookmarks)
+(global-set-key (kbd "C-c B m") #'transient/bookmarks)
 #+end_src
 
 *** Buffer transient
@@ -7492,8 +7485,6 @@ Transient for buffer management.
 
 #+name: buffer-transient
 #+begin_src emacs-lisp
-(require 'buffer-expose)
-
 (defun transient/buffer--tramp-cleanup-buffers ()
   "Clean up all TRAMP buffers and connections with confirm prompt."
   (interactive)
@@ -7609,14 +7600,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("T" "TRAMP cleanup" transient/buffer--tramp-cleanup-buffers)
     ("I" "Make indirect" transient/buffer--clone-indirect-buffer-other-window)
     ]
-   ["Expose"
-    ("ee" "All" buffer-expose)
-    ("em" "Current mode" buffer-expose-current-mode)
-    ("eM" "Major mode" buffer-expose-major-mode)
-    ("ed" "Dired" buffer-expose-dired-buffers)
-    ("e!" "Non-special" buffer-expose-no-stars)
-    ("e*" "Special" buffer-expose-stars)
-    ]
    ]
   [
    ["Other"
@@ -7634,7 +7617,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c e b") #'transient/buffer)
+(global-set-key (kbd "C-c b") #'transient/buffer)
 #+end_src
 
 *** Conda transient
@@ -7694,7 +7677,7 @@ Transient for modifying Emacs Lisp [[https://www.gnu.org/software/emacs/manual/h
     ]
    ]
   )
-(global-set-key (kbd "C-c e d") #'transient/debugger)
+(global-set-key (kbd "C-c D") #'transient/debugger)
 #+end_src
 
 *** Ediff transient
@@ -7769,7 +7752,7 @@ the terminal.
     ]
    ]
   )
-(global-set-key (kbd "C-c e e") #'transient/edit)
+(global-set-key (kbd "C-c e") #'transient/edit)
 #+end_src
 
 *** Frame transient
@@ -7803,7 +7786,7 @@ Transient for frame management.
     ]
    ]
   )
-(global-set-key (kbd "C-c e f") #'transient/frame)
+(global-set-key (kbd "C-c F r") #'transient/frame)
 #+end_src
 
 *** Help transient
@@ -8035,7 +8018,7 @@ Transient for accessing Emacs package management.
    ("R" "Use-package report" use-package-report) ; requires use-package-compute-statistics set to non-nil before use-package declarations
    ]
   )
-(global-set-key (kbd "C-c e P") #'transient/package)
+(global-set-key (kbd "C-c P k") #'transient/package)
 #+end_src
 
 *** Password store transient
@@ -8085,7 +8068,7 @@ Transient for accessing password-store.el commands.
         ]
        ]
       )
-    (global-set-key (kbd "C-c P") #'transient/password-store)))
+    (global-set-key (kbd "C-c P w") #'transient/password-store)))
 #+end_src
 
 *** Profiler transient
@@ -8111,7 +8094,7 @@ Transient for built in Emacs [[https://www.gnu.org/software/emacs/manual/html_no
    ("e" "Stop" profiler-stop :transient t)
    ]
   )
-(global-set-key (kbd "C-c e p") #'transient/profiler)
+(global-set-key (kbd "C-c P f") #'transient/profiler)
 #+end_src
 
 *** Projectile transient
@@ -8250,7 +8233,7 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
     ]
    ]
   )
-(global-set-key (kbd "C-c S") #'transient/search)
+(global-set-key (kbd "C-c S s") #'transient/search)
 #+end_src
 
 *** Server transient
@@ -8274,7 +8257,7 @@ Transient for Emacs server management.
    ("k" "Stop server and delete connection file" server-force-delete)
    ]
   )
-(global-set-key (kbd "C-c e s") #'transient/server)
+(global-set-key (kbd "C-c S v") #'transient/server)
 #+end_src
 
 *** Shell entry transient
@@ -8357,7 +8340,7 @@ restarting Emacs as a server.
     ]
    ]
   )
-(global-set-key (kbd "C-c e S") #'transient/system)
+(global-set-key (kbd "C-c S y") #'transient/system)
 #+end_src
 
 *** Visual transient
@@ -8645,7 +8628,37 @@ Currently only works for Emacs Mac port."
     ]
    ]
   )
-(global-set-key (kbd "C-c l v") #'transient/visual)
+(global-set-key (kbd "C-c V") #'transient/visual)
+#+end_src
+
+*** Web browsing transient
+
+Transient for web browsing launchers.
+
+#+name: web-transient
+#+begin_src emacs-lisp
+(require 'eww)
+
+;; add transient for launching web browsers
+(transient-define-prefix transient/web ()
+  "Web launcher commands."
+  ["Web launchers"
+   ["Emacs Web Wowser"
+    ("eo" "Open" eww)
+    ("eO" "Open in new buffer" eww-open-in-new-buffer)
+    ("ef" "Open file" eww-open-file)
+    ("eb" "List buffers" eww-list-buffers)
+    ("eB" "List bookmarks" eww-list-bookmarks)
+    ("eh" "List histories" eww-list-histories)
+    ("es" "Search" eww-search-words)
+    ]
+   ["Elpher Gopher/Gemini client"
+    ("go" "Open" elpher-go)
+    ("gh" "Open home" elpher)
+    ("gB" "List bookmarks" elpher-bookmarks)
+    ]
+   ])
+(global-set-key (kbd "C-c W b") #'transient/web)
 #+end_src
 
 *** Window transient
@@ -8727,7 +8740,7 @@ Transient for window management.
     ]
    ]
   )
-(global-set-key (kbd "C-c e w") #'transient/window)
+(global-set-key (kbd "C-c W n") #'transient/window)
 #+end_src
 
 *** Workspace transient
@@ -8761,7 +8774,7 @@ Transient for workspace manipulation and usage.
     ]
    ]
   )
-(global-set-key (kbd "C-c e W") #'transient/workspace)
+(global-set-key (kbd "C-c W s") #'transient/workspace)
 #+end_src
 
 *** Writing transient
@@ -8833,7 +8846,7 @@ not support restricting to a region."
    ]
   )
 
-(global-set-key (kbd "C-c l w") #'transient/writing)
+(global-set-key (kbd "C-c W r") #'transient/writing)
 #+end_src
 
 ** Major mode transients
@@ -10234,7 +10247,7 @@ Eglot ~eglot--managed-mode~ transient.
       ]
      ]
     )
-  (global-set-key (kbd "C-c L") #'transient/eglot))
+  (global-set-key (kbd "C-c l") #'transient/eglot))
 #+end_src
 
 *** flymake-mode transient
@@ -10277,7 +10290,7 @@ Flymake minor mode transient.
         ]
        ]
       ))
-  (global-set-key (kbd "C-c F") #'transient/flymake-mode))
+  (global-set-key (kbd "C-c F m") #'transient/flymake-mode))
 #+end_src
 
 * Back matter
@@ -10429,8 +10442,6 @@ The main configuration file.
 <<ibuffer-filter-groups>>
 
 <<ibuffer-vc>>
-
-<<buffer-expose>>
 
 <<revert-without-query-mode>>
 
@@ -10806,6 +10817,8 @@ The main configuration file.
 
 <<org-capture-readitlater>>
 
+<<elpher>>
+
 ;; Writing
 
 <<flyspell-my-after-jump-context-actions-advice>>
@@ -10935,6 +10948,8 @@ The main configuration file.
 <<system-transient>>
 
 <<visual-transient>>
+
+<<web-transient>>
 
 <<window-transient>>
 

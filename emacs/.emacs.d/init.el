@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Jun 25 21:29:19 2021
+;; Generated: Sat Jun 26 15:36:32 2021
 
 ;;; Commentary:
 
@@ -2237,52 +2237,22 @@ call `open-line' on the very first character."
       :group 'conda)
     (conda-mode-line-mode 1)))
 
-;; Programming / lsp-mode Language Server Protocol client
+;; Programming / Eglot Language Server Protocol client
 
-;; lsp-mode Language Server Protocol client
-;; auto-signature-help activation is not enabled by default, but to
-;; show it activate it using `lsp-toggle-signature-auto-activate' or
-;; C-S-SPC to peek, https://github.com/emacs-lsp/lsp-mode/issues/1223
-(use-package lsp-mode
-  :init (setq lsp-print-io nil ; disable logging packets between Emacs and LS
-              lsp-print-performance nil ; disable performance logging
-              lsp-enable-file-watchers nil ; disable file watchers by default, use dir local vars if needed
-              lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
-              lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
-              lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
-              lsp-enable-snippet nil ; don't do snippet completion
-              lsp-modeline-code-actions-enable nil ; don't show code actions by default
-              lsp-modeline-diagnostics-enable nil ; don't show LS diagnostics by default
-              lsp-diagnostic-package :flymake ; use Flymake for syntax checking
-              lsp-signature-auto-activate nil) ; don't automatically show signature
+(use-package eglot
+  :commands eglot
   :config
-  ;; tighter mode line lighter
-  (add-to-list 'my-mode-lighter-abbrev-alist
-               '(lsp-mode . (:eval (concat " ʪ["
-                                           (let (workspaces (lsp-workspaces))
-                                             (if workspaces
-                                                 (mapconcat #'lsp--workspace-print
-                                                            workspaces
-                                                            "][")
-                                               "-"))
-                                           "]"))))
-  ;; enable which-key integration
-  (with-eval-after-load 'which-key
-    (add-hook 'lsp-mode #'lsp-enable-which-key-integration)))
+  ;; increase wait time after last change before asking for
+  ;; completions from 0.5s to 2s to reduce request rate
+  (setq eglot-send-changes-idle-time 2))
 
-;; company backend for LSP-driven completion
-(use-package company-lsp
-  :after lsp-mode
-  :init (setq company-lsp-cache-candidates t))
-
-;; `treemacs' and `lsp-mode' integration
-(use-package lsp-treemacs)
-
-;; Programming / dap-mode Debug Adaptor Protocol client
-
-;; client for Debug Adaptor Protocol servers
-(use-package dap-mode
-  :after lsp-mode)
+;; compose outputs from eldoc doc functions in eglot managed buffers
+(with-eval-after-load 'eldoc
+  (with-eval-after-load 'eglot
+    (add-hook 'eglot--managed-mode-hook
+              (lambda ()
+                (when (boundp 'eldoc-documentation-strategy)
+                  (setq-local eldoc-documentation-strategy #'eldoc-documentation-compose))))))
 
 ;; Programming / Bash and sh shell scripts
 
@@ -2547,22 +2517,11 @@ Formatting a selected region only works on top-level objects."
                                                     (region-end)))
         (t (python-black-format-buffer)))))
 
-(use-package lsp-pyright
-  :defer t
-  :init
-  (defun lsp-pyright--setup ()
-    "Convenience function for setting up lsp-pyright."
-    ;; load packages if deferred
-    (require 'lsp-mode)
-    (require 'lsp-pyright)
-    ;; start LSP client
-    (lsp-mode))
-  (add-hook 'python-mode-hook #'lsp-pyright--setup t))
-
-(add-hook 'python-mode-hook
-          (lambda ()
-            (require 'dap-python))
-          t)
+;; configure eglot to use pyright when working with Python files
+(when (executable-find "pyright-langserver")
+  (add-hook 'python-mode-hook #'eglot-ensure t)
+  (with-eval-after-load 'eglot
+    (add-to-list 'eglot-server-programs '(python-mode .  ("pyright-langserver" "--stdio")))))
 
 ;; Programming / R
 
@@ -2722,27 +2681,6 @@ environment has Racket installed."
   :bind ("C-x G" . git-timemachine))
 
 (use-package browse-at-remote)
-
-;; per-project file trees
-(use-package treemacs
-  :demand t
-  :bind ("C-c d t" . treemacs)
-  :init
-  ;; resize treemacs icon sizes to 75% of line-height
-  (add-hook 'after-init-hook
-            (lambda ()
-              (when (and (display-graphic-p)
-                         (eq system-type 'darwin))
-                (treemacs-resize-icons
-                 (truncate (* (line-pixel-height) 0.75)))))))
-
-;; treemacs projectile integration
-(use-package treemacs-projectile
-  :after (treemacs projectile))
-
-;; treemacs magit integration
-(use-package treemacs-magit
-  :after (treemacs magit))
 
 ;; Reference management
 
@@ -5834,6 +5772,45 @@ and `racket-repl-documentation' otherwise."
 
 ;; Transient commands / Minor mode transients
 
+;; add transient for Eglot
+(with-eval-after-load 'eglot
+  (transient-define-prefix transient/eglot ()
+    "`eglot' session commands"
+    ["Eglot Language Server Protocol client"
+     ["Session"
+      ("ss" "Start" eglot)
+      ("sr" "Reconnect" eglot-reconnect)
+      ("sS" "Shutdown" eglot-shutdown)
+      ("sQ" "Shutdown all" eglot-shutdown-all)
+      ("sc" "Update cfg" eglot-signal-didChangeConfiguration)
+      ]
+     ["Goto"
+      ("ga" "Apropos" xref-find-apropos)
+      ("gf" "Defn" xref-find-definitions)
+      ("gd" "Decl" eglot-find-declaration)
+      ("gi" "Impl" eglot-find-implementation)
+      ("gr" "Refs" xref-find-references)
+      ("gt" "Typedef" eglot-find-typeDefinition)
+      ]
+     ["Code Actions"
+      ("cc" "Ask server" eglot-code-actions)
+      ("re" "Extract" eglot-code-action-extract)
+      ("ri" "Inline" eglot-code-action-inline)
+      ("ro" "Org. Imprts" eglot-code-action-organize-imports)
+      ("rf" "Quickfix" eglot-code-action-quickfix)
+      ("rw" "Rewrite" eglot-code-action-rewrite)
+      ]
+     ["Other"
+      ("rh" "Help-at-pt" eldoc)
+      ("rr" "Rename" eglot-rename)
+      ("rf" "Format" eglot-format)
+      ("re" "Events buf" eglot-events-buffer)
+      ("rs" "Stderr buf" eglot-stderr-buffer)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c L") #'transient/eglot))
+
 ;; add transient for Flymake
 (with-eval-after-load 'flymake
   (with-eval-after-load 'flymake-quickdef
@@ -5858,7 +5835,7 @@ and `racket-repl-documentation' otherwise."
         ("m" "Toggle mode" flymake-mode)
         ("r" "Reporting backends" flymake-reporting-backends)
         ("d" "Disabled backends" flymake-disabled-backends)
-        ("l" "Log" flymake-switch-to-log-buffer)
+        ("L" "Log" flymake-switch-to-log-buffer)
         ("c" "Compile (no check)" flymake-proc-compile)
         ("D" (lambda ()
                (transient--make-description
@@ -5869,124 +5846,6 @@ and `racket-repl-documentation' otherwise."
        ]
       ))
   (global-set-key (kbd "C-c F") #'transient/flymake-mode))
-
-;; add transient for lsp-mode
-(with-eval-after-load 'lsp-mode
-  (with-eval-after-load 'dap-mode
-    (with-eval-after-load 'avy
-      (defun transient/lsp-mode--install-server ()
-        "Install or reinstall `lsp-mode' server."
-        (interactive)
-        (lsp-install-server t))
-      (transient-define-prefix transient/lsp-mode ()
-        "`lsp-mode' session commands."
-        ["Language server"
-         ["Session"
-          ("ss" "Start" lsp)
-          ("sr" "Restart" lsp-workspace-restart)
-          ("sQ" "Shutdown" lsp-workspace-shutdown) ; should normally be "sq", but using "sQ" to work around transient bug with `transient-bind-q-to-quit'
-          ("sd" "Describe" lsp-describe-session)
-          ("sD" "Disconnect" lsp-disconnect)
-          ]
-         ["Toggle"
-          ("Tl" (lambda ()
-                  (transient--make-description
-                   "Lens mode"
-                   lsp-lens-mode))
-           lsp-lens-mode :transient t)
-          ("TL" (lambda ()
-                  (transient--make-description
-                   "Trace I/O"
-                   lsp-print-io))
-           lsp-toggle-trace-io :transient t)
-          ("Th" (lambda ()
-                  (transient--make-description
-                   "Symbol highlight"
-                   lsp-enable-symbol-highlighting))
-           lsp-toggle-symbol-highlight :transient t)
-          ("Tb" (lambda ()
-                  (transient--make-description
-                   "Header breadcrumb"
-                   lsp-headerline-breadcrumb-mode))
-           lsp-headerline-breadcrumb-mode :transient t)
-          ("Ta" (lambda ()
-                  (transient--make-description
-                   "Modeline code actions"
-                   lsp-modeline-code-actions-mode))
-           lsp-modeline-code-actions-mode :transient t)
-          ("TD" (lambda ()
-                  (transient--make-description
-                   "Modeline diagnostics"
-                   lsp-modeline-diagnostics-mode))
-           lsp-modeline-diagnostics-mode :transient t)
-          ("Ts" (lambda ()
-                  (transient--make-description
-                   "Signature auto-activate"
-                   lsp-signature-auto-activate))
-           lsp-toggle-signature-auto-activate :transient t)
-          ("Tf" (lambda ()
-                  (transient--make-description
-                   "On type formatting"
-                   lsp-enable-on-type-formatting))
-           lsp-toggle-on-type-formatting :transient t)
-          ]
-         ["Goto"
-          ("gg" "Definition" lsp-find-definition)
-          ("gr" "References" lsp-find-references)
-          ("gi" "Implementation" lsp-find-implementation)
-          ("gt" "Type definition" lsp-find-type-definition)
-          ("gd" "Declaration" lsp-find-declaration)
-          ("gh" "Call hierarchy" lsp-treemacs-call-hierarchy)
-          ("ga" "Apropos" xref-find-apropos)
-          ("ge" "Errors list" lsp-treemacs-errors-list)
-          ]
-         ]
-        [
-         ["Folders"
-          ("Fa" "Add" lsp-workspace-folders-add)
-          ("Fr" "Remove" lsp-workspace-folders-remove)
-          ("Fb" "Blacklist remove" lsp-workspace-blacklist-remove)
-          ]
-         ["Actions"
-          ("aa" "Execute code action" lsp-execute-code-action)
-          ("al" "Click lens with Avy" lsp-avy-lens)
-          ("ah" "Highlight relevant" lsp-document-highlight)
-          ]
-         ["Other"
-          ("I" "Install server" transient/lsp-mode--install-server)
-          ("dd" "DAP debug" dap-debug)
-          ("de" "DAP edit template" dap-debug-edit-template)
-          ]
-         ]
-        [
-         ["Treemacs"
-          ("tS" (lambda ()
-                  (transient--make-description
-                   "Sync"
-                   lsp-treemacs-sync-mode))
-           lsp-treemacs-sync-mode :transient t)
-          ("te" "Errors" lsp-treemacs-errors-list)
-          ("ts" "Symbols" lsp-treemacs-symbols)
-          ("tr" "References" lsp-treemacs-references)
-          ("ti" "Implementatns" lsp-treemacs-implementations)
-          ("tc" "Call hierarchy" lsp-treemacs-call-hierarchy)
-          ("tt" "Type hierarchy" lsp-treemacs-type-hierarchy)
-          ]
-         ["Refactoring"
-          ("rr" "Rename" lsp-rename)
-          ("ro" "Organize imports" lsp-organize-imports)
-          ]
-         ["Format"
-          ("==" "Buffer" lsp-format-buffer)
-          ("=r" "Region" lsp-format-region)
-          ]
-         ["Help"
-          ("hh" "Describe" lsp-describe-thing-at-point)
-          ("hs" "Signature" lsp-signature-activate)
-          ]
-         ]
-        )
-      (global-set-key (kbd "C-c L") #'transient/lsp-mode))))
 
 (provide 'init)
 ;;; init.el ends here

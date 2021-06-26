@@ -2864,7 +2864,76 @@ conda (_q_: quit)"
   (global-set-key (kbd "C-c C-M-S-v") 'my-hydra/conda/body))
 #+end_src
 
-** lsp-mode Language Server Protocol Client                           :melpa:
+** lsp-mode Language Server Protocol client                           :melpa:
+
+[[https://github.com/emacs-lsp/lsp-mode][lsp-mode]] is an Language Server Protocol client for Emacs.
+It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglot) but also has more features.
+
+#+name: lsp-mode
+#+begin_src emacs-lisp
+;; lsp-mode Language Server Protocol client
+;; auto-signature-help activation is not enabled by default, but to
+;; show it activate it using `lsp-toggle-signature-auto-activate' or
+;; C-S-SPC to peek, https://github.com/emacs-lsp/lsp-mode/issues/1223
+(use-package lsp-mode
+  :init (setq lsp-print-io nil ; disable logging packets between Emacs and LS
+              lsp-print-performance nil ; disable performance logging
+              lsp-enable-file-watchers nil ; disable file watchers by default, use dir local vars if needed
+              lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
+              lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
+              lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
+              lsp-enable-snippet nil ; don't do snippet completion
+              lsp-modeline-code-actions-enable nil ; don't show code actions by default
+              lsp-modeline-diagnostics-enable nil ; don't show LS diagnostics by default
+              lsp-diagnostic-package :flymake ; use Flymake for syntax checking
+              lsp-signature-auto-activate nil) ; don't automatically show signature
+  :config
+  ;; tighter mode line lighter
+  (add-to-list 'my-mode-lighter-abbrev-alist
+               '(lsp-mode . (:eval (concat " ʪ["
+                                           (let (workspaces (lsp-workspaces))
+                                             (if workspaces
+                                                 (mapconcat #'lsp--workspace-print
+                                                            workspaces
+                                                            "][")
+                                               "-"))
+                                           "]"))))
+  ;; enable which-key integration
+  (with-eval-after-load 'which-key
+    (add-hook 'lsp-mode #'lsp-enable-which-key-integration)))
+#+end_src
+
+*** Installing and updating servers
+
+For a number of languages, lsp-mode and its related packages support
+automatic download of server binaries through ~lsp-dependency~
+declarations.
+
+~(lsp-install-server t)~ will manually update a server that was
+automatically installed.
+
+*** company-mode support for lsp-mode                                 :melpa:
+
+Add company-mode support for lsp-mode.
+
+#+name: company-lsp
+#+begin_src emacs-lisp
+;; company backend for LSP-driven completion
+(use-package company-lsp
+  :after lsp-mode
+  :init (setq company-lsp-cache-candidates t))
+#+end_src
+
+*** lsp-treemacs
+
+Integration to use ~treemacs~ to render and navigate treeview controls
+in ~lsp-mode~.
+
+#+name: lsp-treemacs
+#+begin_src emacs-lisp
+;; `treemacs' and `lsp-mode' integration
+(use-package lsp-treemacs)
+#+end_src
 
 *** Workaround for stale Flymake error reports                   :workaround:
 
@@ -2979,7 +3048,16 @@ Language Server → Actions (_q_: ←)"
   (define-key lsp-mode-map (kbd "C-c C-M-l") #'my-hydra/lsp/body))
 #+end_src
 
-** dap-mode Debug Adaptor Protocol client
+** dap-mode Debug Adaptor Protocol client                             :melpa:
+
+[[https://github.com/emacs-lsp/dap-mode][dap-mode]] is a Debug Adaptor Protocol client.
+
+#+name: dap-mode
+#+begin_src emacs-lisp
+;; client for Debug Adaptor Protocol servers
+(use-package dap-mode
+  :after lsp-mode)
+#+end_src
 
 *** Add entry points for dap-mode functions to lsp hydra              :hydra:
 
@@ -3404,6 +3482,125 @@ that toggles python live coding.
   ("L" live-py-mode "live-py-mode" :exit t))
 #+end_src
 
+*** Microsoft Pyright Language Server support with lsp-pyright        :melpa:
+
+[[https://github.com/emacs-lsp/lsp-pyright][lsp-pyright]] enables the use of ~lsp-mode~ as a client for the
+Microsoft [[https://github.com/microsoft/pyright][Pyright]] Python Language Server.
+
+#+name: lsp-pyright
+#+begin_src emacs-lisp
+(use-package lsp-pyright
+  :defer t
+  :init
+  (defun lsp-pyright--setup ()
+    "Convenience function for setting up lsp-pyright."
+    ;; load packages if deferred
+    (require 'lsp-mode)
+    (require 'lsp-pyright)
+    ;; start LSP client
+    (lsp-mode))
+  (add-hook 'python-mode-hook #'lsp-pyright--setup t))
+#+end_src
+
+**** Installing pyright
+
+If [[https://www.npmjs.com/][npm]] is installed and in ~$PATH~, pyright should be installed
+automatically the first the client is started.
+
+However, pyright can also be installed and managed manually.
+
+***** Managing Node.js versions (optional)                         :external:
+
+Installing a [[https://nodejs.org/][Node.js]] version manager will make managing Node.js
+versions much less painful.
+
+The standard Node.js version manager is [[https://github.com/nvm-sh/nvm][nvm]].
+
+****** Installing nvm when Bash is the login shell
+
+Either install nvm using the [[https://github.com/nvm-sh/nvm#installing-and-updating][install script]] or using MacPorts. The
+following installs it using MacPorts.
+
+#+begin_example
+$ sudo port install nvm
+#+end_example
+
+Make sure NVM is initialized during Bash startup by adding the
+following to the =~/.bash_profile= or =~/.bashrc= file.
+
+#+begin_example
+# Initialize NVM
+if [ -e /opt/local/share/nvm/init-nvm.sh ]; then
+  . /opt/local/share/nvm/init-nvm.sh
+fi
+#+end_example
+
+Install the latest LTS version of Node.js using nvm.
+
+#+begin_example
+$ nvm install --lts
+#+end_example
+
+****** Installing nvm when fish is the login shell
+
+If fish is the login shell, use [[https://github.com/jorgebucaran/fish-nvm][fish-nvm]] instead as nvm requires a
+POSIX shell. The following installs fish-nvm using [[https://github.com/jorgebucaran/fisher][fisher]].
+
+#+begin_example
+$ fisher add jorgebucaran/fish-nvm
+#+end_example
+
+Install the latest LTS version of Node.js using nvm.
+
+#+begin_example
+$ nvm use lts
+#+end_example
+
+***** Installing and updating pyright
+
+Make sure Node.js is installed and its binaries are in ~$PATH~.
+
+Install pyright using [[https://www.npmjs.com/][npm]] which is bundled with Node.js.
+
+The following installs it globally.
+
+#+begin_example
+$ npm install -g pyright
+#+end_example
+
+The following updates an existing install of pyright.
+
+#+begin_example
+$ npm update -g pyright
+#+end_example
+
+*** Microsoft Python DAP Server support with dap-mode
+
+#+name: dap-python
+#+begin_src emacs-lisp
+(add-hook 'python-mode-hook
+          (lambda ()
+            (require 'dap-python))
+          t)
+#+end_src
+
+**** Installing the Microsoft Python debugger for Visual Studio Code
+
+Microsoft's Python debugger for Visual Studio Code supports the Debug
+Adaptor Protocol, and is available from [[https://pypi.org/][PyPI]] as the ~ptvsd~ package.
+
+#+begin_example
+$ pip install "ptvsd>=4.2"
+#+end_example
+
+If using conda, ~ptvsd~ is available from the ~conda-forge~ channel.
+Make sure to install it within the environment where code to be
+debugged will be run.
+
+#+begin_example
+$ conda install -c conda-forge ptvsd
+#+end_example
+
 ** R
 
 *** ess-mode hydra                                                    :hydra:
@@ -3657,7 +3854,47 @@ Other  _C_ : configure proj     _c_ : compile proj       _u_ : run proj
   (define-key projectile-mode-map (kbd "C-c C-M-p") #'my-hydra/projectile-mode/body))
 #+end_src
 
-** Treemacs
+** Treemacs                                                           :melpa:
+
+[[https://github.com/Alexander-Miller/treemacs][Treemacs]] is a per-project file tree explorer for Emacs.
+
+#+name: treemacs
+#+begin_src emacs-lisp
+;; per-project file trees
+(use-package treemacs
+  :demand t
+  :bind ("C-c d t" . treemacs)
+  :init
+  ;; resize treemacs icon sizes to 75% of line-height
+  (add-hook 'after-init-hook
+            (lambda ()
+              (when (and (display-graphic-p)
+                         (eq system-type 'darwin))
+                (treemacs-resize-icons
+                 (truncate (* (line-pixel-height) 0.75)))))))
+#+end_src
+
+*** Treemacs Projectile integration
+
+Allows quick addition of Projectile projects to Treemacs workspaces.
+
+#+name: treemacs-projectile
+#+begin_src emacs-lisp
+;; treemacs projectile integration
+(use-package treemacs-projectile
+  :after (treemacs projectile))
+#+end_src
+
+*** Treemacs Magit integration
+
+Have Magit operations be reflected automatically in Treemacs.
+
+#+name: treemacs-magit
+#+begin_src emacs-lisp
+;; treemacs magit integration
+(use-package treemacs-magit
+  :after (treemacs magit))
+#+end_src
 
 *** Treemacs all-the-icons integration
 
@@ -5361,6 +5598,131 @@ ejc-sql minor mode transient.
      ]
     )
   (global-set-key (kbd "C-c q") #'transient/ejc-sql-mode))
+#+end_src
+
+*** lsp-mode transient
+
+LSP minor mode transient.
+
+#+name: lsp-mode-transient
+#+begin_src emacs-lisp
+;; add transient for lsp-mode
+(with-eval-after-load 'lsp-mode
+  (with-eval-after-load 'dap-mode
+    (with-eval-after-load 'avy
+      (defun transient/lsp-mode--install-server ()
+        "Install or reinstall `lsp-mode' server."
+        (interactive)
+        (lsp-install-server t))
+      (transient-define-prefix transient/lsp-mode ()
+        "`lsp-mode' session commands."
+        ["Language server"
+         ["Session"
+          ("ss" "Start" lsp)
+          ("sr" "Restart" lsp-workspace-restart)
+          ("sQ" "Shutdown" lsp-workspace-shutdown) ; should normally be "sq", but using "sQ" to work around transient bug with `transient-bind-q-to-quit'
+          ("sd" "Describe" lsp-describe-session)
+          ("sD" "Disconnect" lsp-disconnect)
+          ]
+         ["Toggle"
+          ("Tl" (lambda ()
+                  (transient--make-description
+                   "Lens mode"
+                   lsp-lens-mode))
+           lsp-lens-mode :transient t)
+          ("TL" (lambda ()
+                  (transient--make-description
+                   "Trace I/O"
+                   lsp-print-io))
+           lsp-toggle-trace-io :transient t)
+          ("Th" (lambda ()
+                  (transient--make-description
+                   "Symbol highlight"
+                   lsp-enable-symbol-highlighting))
+           lsp-toggle-symbol-highlight :transient t)
+          ("Tb" (lambda ()
+                  (transient--make-description
+                   "Header breadcrumb"
+                   lsp-headerline-breadcrumb-mode))
+           lsp-headerline-breadcrumb-mode :transient t)
+          ("Ta" (lambda ()
+                  (transient--make-description
+                   "Modeline code actions"
+                   lsp-modeline-code-actions-mode))
+           lsp-modeline-code-actions-mode :transient t)
+          ("TD" (lambda ()
+                  (transient--make-description
+                   "Modeline diagnostics"
+                   lsp-modeline-diagnostics-mode))
+           lsp-modeline-diagnostics-mode :transient t)
+          ("Ts" (lambda ()
+                  (transient--make-description
+                   "Signature auto-activate"
+                   lsp-signature-auto-activate))
+           lsp-toggle-signature-auto-activate :transient t)
+          ("Tf" (lambda ()
+                  (transient--make-description
+                   "On type formatting"
+                   lsp-enable-on-type-formatting))
+           lsp-toggle-on-type-formatting :transient t)
+          ]
+         ["Goto"
+          ("gg" "Definition" lsp-find-definition)
+          ("gr" "References" lsp-find-references)
+          ("gi" "Implementation" lsp-find-implementation)
+          ("gt" "Type definition" lsp-find-type-definition)
+          ("gd" "Declaration" lsp-find-declaration)
+          ("gh" "Call hierarchy" lsp-treemacs-call-hierarchy)
+          ("ga" "Apropos" xref-find-apropos)
+          ("ge" "Errors list" lsp-treemacs-errors-list)
+          ]
+         ]
+        [
+         ["Folders"
+          ("Fa" "Add" lsp-workspace-folders-add)
+          ("Fr" "Remove" lsp-workspace-folders-remove)
+          ("Fb" "Blacklist remove" lsp-workspace-blacklist-remove)
+          ]
+         ["Actions"
+          ("aa" "Execute code action" lsp-execute-code-action)
+          ("al" "Click lens with Avy" lsp-avy-lens)
+          ("ah" "Highlight relevant" lsp-document-highlight)
+          ]
+         ["Other"
+          ("I" "Install server" transient/lsp-mode--install-server)
+          ("dd" "DAP debug" dap-debug)
+          ("de" "DAP edit template" dap-debug-edit-template)
+          ]
+         ]
+        [
+         ["Treemacs"
+          ("tS" (lambda ()
+                  (transient--make-description
+                   "Sync"
+                   lsp-treemacs-sync-mode))
+           lsp-treemacs-sync-mode :transient t)
+          ("te" "Errors" lsp-treemacs-errors-list)
+          ("ts" "Symbols" lsp-treemacs-symbols)
+          ("tr" "References" lsp-treemacs-references)
+          ("ti" "Implementatns" lsp-treemacs-implementations)
+          ("tc" "Call hierarchy" lsp-treemacs-call-hierarchy)
+          ("tt" "Type hierarchy" lsp-treemacs-type-hierarchy)
+          ]
+         ["Refactoring"
+          ("rr" "Rename" lsp-rename)
+          ("ro" "Organize imports" lsp-organize-imports)
+          ]
+         ["Format"
+          ("==" "Buffer" lsp-format-buffer)
+          ("=r" "Region" lsp-format-region)
+          ]
+         ["Help"
+          ("hh" "Describe" lsp-describe-thing-at-point)
+          ("hs" "Signature" lsp-signature-activate)
+          ]
+         ]
+        )
+      (global-set-key (kbd "C-c L") #'transient/lsp-mode))))
 #+end_src
 
 * Backlog

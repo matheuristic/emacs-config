@@ -5064,8 +5064,6 @@ lint the current buffer.
   ;; setup J buffer-specific editing environment
   (defun j-mode--setup ()
     "Setup code to run when entering a `j-mode' buffer."
-    ;; don't highlight matching parentheses
-    (show-paren-mode -1)
     ;; use different font
     (my-set-buffer-face-mode-font-family "Iosevka Term Slab"))
   ;; run `j-mode--setup' in J and J REPL buffers

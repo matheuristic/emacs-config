@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jun  6 08:59:23 2021
+;; Generated: Fri Jun 25 21:29:19 2021
 
 ;;; Commentary:
 
@@ -2250,6 +2250,7 @@ call `open-line' on the very first character."
               lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
               lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
+              lsp-enable-snippet nil ; don't do snippet completion
               lsp-modeline-code-actions-enable nil ; don't show code actions by default
               lsp-modeline-diagnostics-enable nil ; don't show LS diagnostics by default
               lsp-diagnostic-package :flymake ; use Flymake for syntax checking
@@ -2475,8 +2476,6 @@ Lisp function does not specify a special indentation."
   ;; setup J buffer-specific editing environment
   (defun j-mode--setup ()
     "Setup code to run when entering a `j-mode' buffer."
-    ;; don't highlight matching parentheses
-    (show-paren-mode -1)
     ;; use different font
     (my-set-buffer-face-mode-font-family "Iosevka Term Slab"))
   ;; run `j-mode--setup' in J and J REPL buffers

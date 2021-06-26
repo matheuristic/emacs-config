@@ -100,7 +100,12 @@
   ;; (pretty-add-keywords nil j->apl)
   ;; (use-local-map j-mode-keymap)
   (set (make-local-variable 'comment-start) "NB. ")
-  (set (make-local-variable 'comment-start-skip) "NB.+\\s-*"))
+  (set (make-local-variable 'comment-start-skip) "NB.+\\s-*")
+  ;; Don't show matching parens as some parens are J primitives
+  ;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Matching.html
+  ;; https://endlessparentheses.com/locally-configure-or-disable-show-paren-mode.html
+  (setq-local blink-matching-paren nil
+              show-paren-mode nil))
 
 (add-to-list 'auto-mode-alist '("\\.ij[rstp]$" . j-mode))
 

@@ -4744,6 +4744,7 @@ It is heavier than [[https://github.com/joaotavora/eglot][Emacs Polyglot]] (eglo
               lsp-eldoc-enable-hover nil ; don't have eldoc display hover info
               lsp-eldoc-render-all nil ; don't show all returned from document/onHover, only symbol info
               lsp-enable-on-type-formatting nil ; don't have the LS automatically format the document when typing
+              lsp-enable-snippet nil ; don't do snippet completion
               lsp-modeline-code-actions-enable nil ; don't show code actions by default
               lsp-modeline-diagnostics-enable nil ; don't show LS diagnostics by default
               lsp-diagnostic-package :flymake ; use Flymake for syntax checking

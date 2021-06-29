@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Jun 26 18:11:11 2021
+;; Generated: Tue Jun 29 09:01:30 2021
 
 ;;; Commentary:
 
@@ -2881,12 +2881,13 @@ environment has Racket installed."
 (require 'too-long-lines-mode)
 (too-long-lines-mode 1)
 
+;; highlight todo keywords (NOTE TODO FIXME XXX etc etc)
 (use-package hl-todo
   :bind (:map hl-todo-mode-map
-         ("C-c t n" . hl-todo-next)
-         ("C-c t p" . hl-todo-prev)
-         ("C-c t o" . hl-todo-occur)
-         ("C-c t i" . hl-todo-insert))
+         ("C-c T n" . hl-todo-next)
+         ("C-c T p" . hl-todo-previous)
+         ("C-c T o" . hl-todo-occur)
+         ("C-c T i" . hl-todo-insert))
   :hook (prog-mode . hl-todo-mode))
 
 ;; Web
@@ -4073,7 +4074,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ]
   )
-(global-set-key (kbd "C-c T") #'transient/shell)
+(global-set-key (kbd "C-c t") #'transient/shell)
 
 (defun transient/system--display-current-datetime ()
   "Display the current time in the minibuffer."

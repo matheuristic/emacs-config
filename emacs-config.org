@@ -6187,12 +6187,13 @@ to control which keywords get highlighted.
 
 #+name: hl-todo
 #+begin_src emacs-lisp
+;; highlight todo keywords (NOTE TODO FIXME XXX etc etc)
 (use-package hl-todo
   :bind (:map hl-todo-mode-map
-         ("C-c t n" . hl-todo-next)
-         ("C-c t p" . hl-todo-prev)
-         ("C-c t o" . hl-todo-occur)
-         ("C-c t i" . hl-todo-insert))
+         ("C-c T n" . hl-todo-next)
+         ("C-c T p" . hl-todo-previous)
+         ("C-c T o" . hl-todo-occur)
+         ("C-c T i" . hl-todo-insert))
   :hook (prog-mode . hl-todo-mode))
 #+end_src
 
@@ -8283,7 +8284,7 @@ Transient providing entry points into Eshell and Ansi-Term.
     ]
    ]
   )
-(global-set-key (kbd "C-c T") #'transient/shell)
+(global-set-key (kbd "C-c t") #'transient/shell)
 #+end_src
 
 *** System information, process and Emacs runtime/server transient

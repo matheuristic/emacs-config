@@ -855,6 +855,23 @@ If using this, ~fish-completion-mode~ should be disabled.
                   #'helm-fish-completion)))))
 #+end_src
 
+*** fish-completion of CLI options in Eshell                 :external:melpa:
+
+The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to power Eshell CLI
+option completions using [[https://fishshell.com/][fish]].
+
+This package requires that ~fish~ be installed on the system and
+be on the system path.
+
+#+name: fish-completion
+#+begin_src emacs-lisp
+;; extend pcomplete with fish shell
+(when (executable-find "fish")
+  (use-package fish-completion
+    :after eshell
+    :config (add-hook 'eshell-mode-hook #'fish-completion-mode)))
+#+end_src
+
 ** Shell entry point hydra
 
 Hydra providing entry points into Eshell and vterm.

@@ -1584,23 +1584,6 @@ autocomplete, or ~M-<right>~ or ~M-f~ to autocomplete just the next word.
   :hook (eshell-mode . esh-autosuggest-mode))
 #+end_src
 
-*** fish-completion of CLI options in Eshell                 :external:melpa:
-
-The [[https://gitlab.com/ambrevar/emacs-fish-completion][fish-completion]] package extends [[https://github.com/emacs-mirror/emacs/blob/master/lisp/pcomplete.el][pcomplete]] to power Eshell CLI
-option completions using [[https://fishshell.com/][fish]].
-
-This package requires that ~fish~ be installed on the system and
-be on the system path.
-
-#+name: fish-completion
-#+begin_src emacs-lisp
-;; extend pcomplete with fish shell
-(when (executable-find "fish")
-  (use-package fish-completion
-    :after eshell
-    :config (add-hook 'eshell-mode-hook #'fish-completion-mode)))
-#+end_src
-
 *** eshell-z for jumping to frecent directories                       :melpa:
 
 [[https://github.com/xuchunyang/eshell-z][eshell-z]] is a port of [[https://github.com/rupa/z][z]] to Eshell, providing a shell facility for
@@ -9142,6 +9125,7 @@ Dired major mode transient.
         ("M" "chmod" dired-do-chmod)
         ("O" "chown" dired-do-chown)
         ("T" "Touch" dired-do-touch)
+        ("M-r" "Wdired" dired-toggle-read-only)
         ]
        ["Mark"
         ("m" "File at pt" dired-mark :transient t)
@@ -10481,8 +10465,6 @@ The main configuration file.
 <<eshell-named-buffers>>
 
 <<esh-autosuggest>>
-
-<<fish-completion>>
 
 <<eshell-z>>
 

@@ -45,6 +45,10 @@ between the shell and Elisp interpreters for evaluation.
   :commands broadcast-mode)
 #+end_src
 
+** [#B] Infer parentheses for Clojure, Lisp and Scheme from indentation :melpa:
+
+[[https://github.com/justinbarclay/parinfer-rust-mode][GitHub - justinbarclay/parinfer-rust-mode: Simplifying how you write Lisp]]
+
 * Email
 
 ** [#B] Multiple mailboxes

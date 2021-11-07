@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Jun 29 09:01:30 2021
+;; Generated: Sun Nov  7 16:04:53 2021
 
 ;;; Commentary:
 
@@ -189,12 +189,12 @@ version is present (even if pinned to a specific repository)."
 ;; Package management
 
 ;; set ELPA-compatible package repositories and their priorities
-(setq package-archives '(("GNU"   . "https://elpa.gnu.org/packages/")
-                         ("NonGNU" . "https://elpa.nongnu.org/nongnu/")
-                         ("MELPA"  . "https://melpa.org/packages/"))
-      package-archive-priorities '(("GNU"   . 1)
-                                   ("NonGNU" . 2)
-                                   ("MELPA"  . 3)))
+(setq package-archives '(("gnu"   . "https://elpa.gnu.org/packages/")
+                         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+                         ("melpa"  . "https://melpa.org/packages/"))
+      package-archive-priorities '(("gnu"   . 1)
+                                   ("nongnu" . 2)
+                                   ("melpa"  . 3)))
 
 ;; initialize package.el
 (require 'package)
@@ -454,8 +454,8 @@ Specifically, the current buffer is checked to see if it is in
            ("Data" (or (mode . csv-mode)
                        (mode . json-mode)
                        (mode . nxml-mode)))
-           ("Analytics" (or (mode . ess-r-mode)
-                            (mode . inferior-ess-r-mode)))
+           ;; ("Analytics" (or (mode . ess-r-mode)
+           ;;                  (mode . inferior-ess-r-mode)))
            ("Programming" (derived-mode . prog-mode))
            ("Agenda" (or (mode . org-agenda-mode)
                          (predicate . (my-ibuffer-org-agenda-files-filter))))
@@ -663,26 +663,6 @@ provided, the default interactive `eshell' command is run."
           (eshell 42)
           (rename-buffer (concat "*eshell*<" my-es-buf-name ">")))))))
 
-;; history autosuggestions
-;; <right> or C-f completes fully, <M-right> or M-f completes partially
-(use-package esh-autosuggest
-  :after eshell
-  :hook (eshell-mode . esh-autosuggest-mode))
-
-;; extend pcomplete with fish shell
-(when (executable-find "fish")
-  (use-package fish-completion
-    :after eshell
-    :config (add-hook 'eshell-mode-hook #'fish-completion-mode)))
-
-(use-package eshell-z
-  :after eshell)
-
-(use-package eshell-bookmark
-  :after eshell
-  :config
-  (add-hook 'eshell-mode-hook #'eshell-bookmark-setup))
-
 (defun my-eshell-send (command)
   "Select an Eshell buffer and execute COMMAND."
   (interactive)
@@ -806,12 +786,6 @@ ARG is a prefix argument.  If nil, copy the current difference region."
 (with-eval-after-load 'ztree-view
   (define-key ztree-mode-map (kbd "n") #'ztree-next-line)
   (define-key ztree-mode-map (kbd "p") #'ztree-previous-line))
-
-;; DevOps
-
-(when (executable-find "docker")
-  (use-package docker
-    :bind ("C-c x d" . docker)))
 
 ;; Dired
 
@@ -1604,8 +1578,8 @@ Formatting a selected region only works on top-level objects."
 
 ;; Org-mode
 
-;; install ELPA version of Org
-(my-install-elpa-package 'org)
+;; ;; install ELPA version of Org
+;; (my-install-elpa-package 'org)
 
 ;; rebind `org-force-cycle-archived' in older Org versions to not
 ;; conflict with the `tab-next' default binding
@@ -2034,45 +2008,6 @@ call `open-line' on the very first character."
   (setq org-download-method 'attach ; use `org-attach' machinery
         org-download-timestamp "%Y%m%d%H%M%S-"))
 
-;; presentations from Org documents
-(use-package org-tree-slide
-  :init (setq org-tree-slide-activate-message "Start slideshow mode"
-              org-tree-slide-deactivate-message "End slideshow mode"
-              org-tree-slide-fold-subtrees-skipped nil)
-  :config
-  ;; custom org-tree-slide profile
-  (defun my-org-tree-slide-custom-profile ()
-    "Set variables for custom org-tree-slide profile.
-
-`org-tree-slide-header'            => t
-`org-tree-slide-slide-in-effect'   => nil
-`org-tree-slide-heading-emphasis'  => t
-`org-tree-slide-cursor-init'       => t
-`org-tree-slide-modeline-display'  => 'outside
-`org-tree-slide-skip-done'         => nil
-`org-tree-slide-skip-comments'     => t"
-    (interactive)
-    (setq org-tree-slide-header t
-          org-tree-slide-slide-in-effect nil
-          org-tree-slide-heading-emphasis t
-          org-tree-slide-cursor-init t
-          org-tree-slide-modeline-display 'outside
-          org-tree-slide-skip-done nil
-          org-tree-slide-skip-comments t)
-    (message "custom profile: ON"))
-  ;; use custom profile
-  (call-interactively #'my-org-tree-slide-custom-profile)
-  ;; unbind some default mode bindings
-  (define-key org-tree-slide-mode-map (kbd "C-x s c") nil)
-  ;; (define-key org-tree-slide-mode-map (kbd "C-x <") nil)
-  ;; (define-key org-tree-slide-mode-map (kbd "C-x >") nil)
-  ;; add mode bindings
-  (define-key org-tree-slide-mode-map (kbd "C-c c") #'org-tree-slide-content)
-  (define-key org-mode-map (kbd "<f8>") #'org-tree-slide-mode)
-  (define-key org-mode-map (kbd "S-<f8>") #'org-tree-slide-skip-done-toggle)
-  (define-key org-tree-slide-mode-map (kbd "<f9>") 'org-tree-slide-move-previous-tree)
-  (define-key org-tree-slide-mode-map (kbd "<f10>") 'org-tree-slide-move-next-tree))
-
 ;; load Org backend for exporting to Markdown
 (with-eval-after-load 'org
   (require 'ox-md))
@@ -2229,24 +2164,6 @@ call `open-line' on the very first character."
       :group 'conda)
     (conda-mode-line-mode 1)))
 
-;; Programming / Eglot Language Server Protocol client
-
-;; lightweight LSP client
-(use-package eglot
-  :commands eglot
-  :config
-  ;; increase wait time after last change before asking for
-  ;; completions from 0.5s to 2s to reduce request rate
-  (setq eglot-send-changes-idle-time 2))
-
-;; compose outputs from eldoc doc functions in Eglot managed buffers
-(with-eval-after-load 'eldoc
-  (with-eval-after-load 'eglot
-    (add-hook 'eglot--managed-mode-hook
-              (lambda ()
-                (when (boundp 'eldoc-documentation-strategy)
-                  (setq-local eldoc-documentation-strategy #'eldoc-documentation-compose))))))
-
 ;; Programming / Bash and sh shell scripts
 
 (with-eval-after-load 'flymake-quickdef
@@ -2278,54 +2195,6 @@ call `open-line' on the very first character."
   (with-eval-after-load 'sh-script
     (add-hook 'sh-mode-hook #'flymake-shellcheck-setup)
     (add-hook 'sh-mode-hook #'flymake-mode)))
-
-;; Programming / Clojure
-
-;; basic support
-(use-package clojure-mode
-  :defer t
-  :hook ((clojure-mode . paredit-mode)
-         (clojure-mode . subword-mode)))
-
-;; Clojure IDE
-(use-package cider
-  :after clojure-mode
-  :hook ((cider-mode . eldoc-mode)
-         (cider-repl-mode . eldoc-mode)
-         (cider-repl-mode . paredit-mode))
-  :init (setq nrepl-log-messages t))
-
-;; linting, requires clj-kondo be installed on the system
-;; see https://github.com/borkdude/clj-kondo for install instructions
-(when (executable-find "clj-kondo")
-  ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
-  (with-eval-after-load 'flymake-quickdef
-    (flymake-quickdef-backend flymake-clj-kondo-backend
-      :pre-let ((clj-kondo-exec (executable-find "clj-kondo")))
-      :pre-check (unless clj-kondo-exec (error "Cannot find clj-kondo executable"))
-      :write-type 'pipe
-      :proc-form (list clj-kondo-exec "--lint" "-")
-      :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
-      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
-                              (lcol (string-to-number (match-string 2)))
-                              (severity (match-string 3))
-                              (msg (match-string 4))
-                              (pos (flymake-diag-region fmqd-source lnum lcol))
-                              (beg (car pos))
-                              (end (cdr pos))
-                              (type (cond
-                                     ((string= severity "error") :error)
-                                     ((string= severity "warning") :warning)
-                                     ((string= severity "info") :note)
-                                     (t :note))))
-                         (list fmqd-source beg end type msg)))
-    (defun flymake-clj-kondo-setup ()
-      "Enable clj-kondo backend for Flymake."
-      (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
-    ;; enable Flymake with clj-kondo backend when editing Clojure
-    (with-eval-after-load 'clojure-mode
-      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
-      (add-hook 'clojure-mode-hook 'flymake-mode t))))
 
 ;; Programming / Emacs Lisp
 
@@ -2423,17 +2292,12 @@ Lisp function does not specify a special indentation."
               (current-column)))
            (t $else)))))))
 
-;; Programming / fish shell scripts
-
-(use-package fish-mode
-  :init (setq fish-enable-auto-indent t
-              fish-indent-offset 4))
-
 ;; Programming / J
 
 ;; load support for editing J scripts
 (use-package j-mode
   :ensure nil ; in site-lisp directory
+  :pin manual ; in site-lisp directory
   :init (setq j-help-browser-function #'eww-browse-url)
   :config
   ;; setup J buffer-specific editing environment
@@ -2510,110 +2374,6 @@ Formatting a selected region only works on top-level objects."
                                                     (region-end)))
         (t (python-black-format-buffer)))))
 
-;; configure Eglot to use pyright when working with Python files
-(when (executable-find "pyright-langserver")
-  (add-hook 'python-mode-hook #'eglot-ensure t)
-  (with-eval-after-load 'eglot
-    (add-to-list 'eglot-server-programs '(python-mode .  ("pyright-langserver" "--stdio")))))
-
-;; Programming / R
-
-;; support for R language using Emacs Speaks Statistics
-(use-package ess
-  :mode ("\\.R$" . R-mode)
-  :commands (R-mode ess-switch-to-ESS)
-  :init (setq ess-eval-visibly 'nowait
-              ess-default-style 'RStudio
-              ;; use Flymake only when buffer has an inferior process
-              ess-use-flymake 'process))
-
-;; forward pipe and assignment R operator shortcuts, adapted from
-;; https://emacs.stackexchange.com/questions/8041/how-to-implement-the-piping-operator-in-ess-mode
-(defun my-insert-R-forward-pipe-operator ()
-  "Insert R magrittr forward pipe operator '%>%'."
-  (interactive)
-  (just-one-space 1)
-  (insert "%>%")
-  (reindent-then-newline-and-indent))
-(defun my-insert-R-assignment-operator ()
-  "Insert R assigment operator '<-'."
-  (interactive)
-  (just-one-space 1)
-  (insert "<- "))
-
-;; bindings for the above R operator shortcuts
-(with-eval-after-load 'ess-r-mode
-  (define-key ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
-  (define-key ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator)
-  (define-key inferior-ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
-  (define-key inferior-ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
-
-;; view data in ESS-R
-(use-package ess-view-data
-  :after ess-r-mode
-  :bind (:map ess-r-mode-map
-         ("C-c v" . ess-view-data-print))
-  :init
-  ;; set update print backend to knitr::kable() due to csv-mode
-  ;; header-line errors when using the default print backend
-  (setq ess-view-data-current-update-print-backend 'kable))
-
-;; insert column or variable names or values in ESS-R, useful when
-;; working with tidyverse
-(use-package ess-r-insert-obj
-  :after ess-r-mode
-  :bind (:map ess-r-mode-map
-         ("C-c i f" . ess-r-insert-obj-dt-name)
-         ("C-c i c" . ess-r-insert-obj-col-name)
-         ("C-c i C" . ess-r-insert-obj-col-name-all)
-         ("C-c i v" . ess-r-insert-obj-value)
-         ("C-c i V" . ess-r-insert-obj-value-all)))
-
-(use-package poly-R)
-
-(with-eval-after-load 'reformatter
-  (with-eval-after-load 'ess-r-mode
-    ;; define `ess-r-styler-format-buffer', `ess-r-styler-format-region'
-    ;; and `ess-r-styler-format-on-save-mode'
-    (reformatter-define ess-r-styler-format
-      :program "Rscript"
-      :args `("--vanilla"
-              "-e"
-              ,(mapconcat
-                'identity
-                '("options(styler.colored_print.vertical=FALSE)"
-                  "con <- file(\"stdin\")"
-                  "out <- styler::style_text(readLines(con))"
-                  "close(con)"
-                  "out")
-                "; ")
-              "-")
-      :group 'ess-R
-      :lighter 'RStylFmt)
-    ;; dwim function that calls `ess-r-styler-format-region' if a region
-    ;; is selected, or `ess-r-styler-format-buffer' otherwise
-    (defun ess-r-styler-format-buffer-or-region ()
-      "Format the current R buffer or a region if selected using styler.
-Formatting a selected region only works on top-level objects."
-      (interactive)
-      (cond
-       ((use-region-p) (ess-r-styler-format-region (region-beginning)
-                                                   (region-end)))
-       (t (ess-r-styler-format-buffer))))))
-
-;; Programming / Racket
-
-(use-package racket-mode
-  :defer t
-  :config
-  (defun racket-mode--maybe-enable-racket-xp-mode ()
-    "Enables `racket-xp-mode' if the \"racket\" executable is in system path.
-This is useful for only enabling `racket-xp-mode' when the active
-environment has Racket installed."
-    (when (executable-find "racket")
-      (racket-xp-mode 1)))
-  (add-hook 'racket-mode-hook #'racket-mode--maybe-enable-racket-xp-mode))
-
 ;; Project interaction
 
 ;; project interaction library
@@ -2674,51 +2434,6 @@ environment has Racket installed."
   :bind ("C-x G" . git-timemachine))
 
 (use-package browse-at-remote)
-
-;; Reference management
-
-;; manager for BibTeX bibliographic databases
-(use-package ebib
-  :init (setq ebib-preload-bib-files '("main.bib")
-              ebib-bib-search-dirs '("~/bib/"))
-  :config
-  ;; friendlier key bindings in `ebib-multiline-edit-mode' buffers
-  (define-key ebib-multiline-mode-map (kbd "C-c C-c")
-    #'ebib-quit-multiline-buffer-and-save)
-  (define-key ebib-multiline-mode-map (kbd "C-c C-s")
-    #'ebib-save-from-multiline-buffer)
-  (define-key ebib-multiline-mode-map (kbd "C-c C-q")
-    #'ebib-cancel-multiline-buffer)
-  ;; custom user interface setup for `ebib-multiline-mode' buffers
-  (defun my-ebib-multiline-mode--setup ()
-    "Custom user interface setup for `ebib-multiline-mode' buffers."
-    ;; show mode bindings in header
-    (setq-local header-line-format
-                "Edit, then exit with ‘C-c C-c’, save with ‘C-c C-s’ or abort with ‘C-c C-q’"))
-  (add-hook 'ebib-multiline-mode-hook #'my-ebib-multiline-mode--setup)
-  ;; wrapper function for inserting citations differently by major-mode
-  (require 'org-ebib)
-  (defun my-ebib-insert-citation ()
-    "Wrapper function for inserting an ebib citation differently by major-mode."
-    (interactive)
-    (cond ((eq major-mode 'org-mode)
-           (call-interactively #'org-ebib-insert-link))
-          (t
-           (call-interactively #'ebib-insert-citation)))))
-
-;; browse and import bibliographic references
-(use-package biblio
-  :config
-  ;; generate and pop up a BibTeX entry from DOI in a special buffer
-  (defun my-biblio--get-bibtex-from-doi (doi)
-    "Retrieves BibTeX entry matching DOI into the \"*Biblio output*\" buffer."
-    (interactive "MDOI: ")
-    (let ((buf (get-buffer-create "*Biblio output*")))
-      (with-current-buffer buf
-        (erase-buffer)
-        (doi-insert-bibtex doi)
-        (pop-to-buffer (current-buffer))
-        (current-buffer)))))
 
 ;; Search
 
@@ -2909,20 +2624,6 @@ environment has Racket installed."
     (message "Images are now %s" (if shr-inhibit-images "off" "on")))
   (define-key eww-mode-map "I" #'eww--toggle-images))
 
-(use-package restclient
-  :defer t
-  ;; assume request source files have ".http" suffix
-  :mode ("\\.http\\'" . restclient-mode)
-  :config
-  ;; pulse *HTTP Response* buffer after receiving request response
-  ;; adapted from https://github.com/jordonbiondo/.emacs.d/blob/master/init.el
-  (defun my-restclient-pulse-buffer ()
-    "Pulses the current buffer."
-    (save-excursion
-      (goto-char (point-min))
-      (pulse-momentary-highlight-region (point-min) (point-max))))
-  (add-hook 'restclient-response-loaded-hook #'my-restclient-pulse-buffer))
-
 (defun open-gnutls-stream--after-sleep-250ms (&rest args)
   "Workaround for race condition bug in `open-gnutls-stream'.
 
@@ -2996,36 +2697,7 @@ for more information."
 (with-eval-after-load 'flyspell
   (define-key flyspell-mode-map (kbd "C-;") nil)) ; `iedit-mode' binding
 
-;; provides word lookups from a dictionary server
-;; `dictionary-server' can be set to "localhost" to use a local
-;; dictionary server like dictd or GNU Dico that implements RFC 2229
-(use-package dictionary
-  :init (setq dictionary-server "dict.org"
-              dictionary-default-dictionary "*"))
-
-;; grammar checking functions using LanguageTool
-;; n-gram data, if any, should be in ~/languagetool/ngram-data/<lang>
-(use-package langtool
-  :init
-  (setq langtool-default-language "en-US"
-        langtool-user-arguments (let ((ngram-data-dir
-                                       (file-name-as-directory
-                                        (expand-file-name
-                                         "~/languagetool/ngram-data/"))))
-                                  (if (file-directory-p ngram-data-dir)
-                                      `("--languagemodel" ,ngram-data-dir)
-                                    nil))
-        langtool-language-tool-jar (expand-file-name
-                                    "~/jars/languagetool-commandline.jar")))
-
-(use-package typo)
-
 ;; Other
-
-;; buffer-local `auto-save-visited-mode'
-(use-package real-auto-save
-  :defer t
-  :config (setq real-auto-save-interval 10)) ;; save interval, in seconds
 
 ;; mouse settings
 (when (display-graphic-p)
@@ -3064,6 +2736,7 @@ for more information."
 
 ;; visit large files without loading it entirely
 (use-package vlf
+  :pin gnu
   :config (require 'vlf-setup))
 
 ;; automatically disable major and minor modes that can slow down
@@ -3094,111 +2767,6 @@ for more information."
 (put 'upcase-region 'disabled nil)
 
 (global-set-key (kbd "<f5>") #'revert-buffer)
-
-;; enable auth-source integration with pass
-(when (executable-find "pass")
-  (use-package auth-source-pass
-    :demand t
-    :config
-    (defcustom auth-source-pass-filename-list '("~/.password-store")
-      "Directory filenames of different pass repositories on the system."
-      :group 'auth-source
-      :type '(repeat string))
-    (defun auth-source-pass-cycle-active-store ()
-      "Sets `auth-source-pass-filename' by cycling through `auth-source-pass-filename-list'."
-      (interactive)
-      (let* ((cur-pos (seq-position auth-source-pass-filename-list
-                                    auth-source-pass-filename))
-             (new-pos (if cur-pos ; non-nil
-                          (mod (1+ cur-pos)
-                               (length auth-source-pass-filename-list))
-                        0)) ; default to first entry
-             (new-dir (elt auth-source-pass-filename-list
-                           new-pos)))
-        (setq auth-source-pass-filename new-dir)
-        (message (concat "auth-source-pass-filename set to: "
-                         auth-source-pass-filename))))
-    (defun my-auth-source-pass-enable ()
-      "Enable auth-source and pass integration."
-      (interactive)
-      (auth-source-pass-enable)
-      (message "auth-source-password-store enabled"))
-    (defun my-auth-source-pass-disable ()
-      "Disable auth-source and pass integration."
-      (interactive)
-      ;; To add password-store to the list of sources, evaluate the following:
-      (setq auth-sources (delete 'password-store auth-sources))
-      ;; clear the cache (required after each change to #'auth-source-pass-search)
-      (auth-source-forget-all-cached)
-      (message "auth-source-password-store disabled"))))
-
-;; emacs integration with pass password-store
-(when (executable-find "pass")
-  (use-package password-store))
-
-;; extend `tabulated-list-mode' with more functionality, adapted from
-;; https://emacsnotes.wordpress.com/2019/04/16/how-i-shortlist-add-ons-for-my-emacs-introducing-tablist/
-(use-package tablist
-  :config
-  ;; enable `tablist-minor-mode' automatically
-  (add-hook 'tabulated-list-mode-hook 'tablist-minor-mode)
-  ;; tablist-minor-mode shadows "U" binding in package-menu-mode-map
-  ;; so add an extra binding for package-menu-mark-upgrades
-  (define-key package-menu-mode-map (kbd "C-c u") #'package-menu-mark-upgrades)
-  ;; add tablist entries to the menu bar
-  (easy-menu-define my-tablist-minor-mode-menu tablist-minor-mode-map
-    "Menu for Tablist Minor Mode Map."
-    '("Tablist"
-      ("Mark"
-       ["Mark Items Regexp" tablist-mark-items-regexp :help "(tablist-mark-items-regexp COLUMN-NAME REGEXP)\n\nMark entries matching REGEXP in column COLUMN-NAME."]
-       ["Mark Items Numeric" tablist-mark-items-numeric :help "(tablist-mark-items-numeric BINOP COLUMN-NAME OPERAND)\n\nMark items fulfilling BINOP with arg OPERAND in column COLUMN-NAME.\n\nFirst the column's value is coerced to a number N.  Then the test\nproceeds as (BINOP N OPERAND)."]
-       "--"
-       ["Mark Forward" tablist-mark-forward :help "(tablist-mark-forward &optional ARG INTERACTIVE)\n\nMark ARG entries forward.\n\nARG is interpreted as a prefix-arg.  If interactive is non-nil,\nmaybe use the active region instead of ARG.\n\nSee `tablist-put-mark' for how entries are marked."]
-       ["Unmark Forward" tablist-unmark-forward :help "(tablist-unmark-forward &optional ARG INTERACTIVE)\n\nUnmark ARG entries forward.\n\nSee `tablist-mark-forward'."]
-       ["Unmark Backward" tablist-unmark-backward :help "(tablist-unmark-backward &optional ARG INTERACTIVE)\n\nUnmark ARG entries backward.\n\nSee `tablist-mark-forward'."]
-       "--"
-       ["Change Marks" tablist-change-marks :help "(tablist-change-marks OLD NEW)\n\nChange all OLD marks to NEW marks.\n\nOLD and NEW are both characters used to mark files."]
-       "--"
-       ["Toggle Marks" tablist-toggle-marks :help "(tablist-toggle-marks)\n\nUnmark all marked and mark all unmarked entries.\n\nSee `tablist-put-mark'."]
-       ["Unmark All Marks" tablist-unmark-all-marks :help "(tablist-unmark-all-marks &optional MARKS INTERACTIVE)\n\nRemove alls marks in MARKS.\n\nMARKS should be a string of mark characters to match and defaults\nto all marks.  Interactively, remove all marks, unless a prefix\narg was given, in which case ask about which ones to remove.\nGive a message, if interactive is non-nil.\n\nReturns the number of unmarked marks."])
-      "--"
-      ("Filter"
-       ["Push Regexp Filter" tablist-push-regexp-filter :help "(tablist-push-regexp-filter COLUMN-NAME REGEXP)\n\nAdd a new filter matching REGEXP in COLUMN-NAME.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Push Equal Filter" tablist-push-equal-filter :help "(tablist-push-equal-filter COLUMN-NAME STRING)\n\nAdd a new filter whre string equals COLUMN-NAME's value.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Push Numeric Filter" tablist-push-numeric-filter :help "(tablist-push-numeric-filter OP COLUMN-NAME 2ND-ARG)\n\nAdd a new filter matching a numeric predicate.\n\nThe filter is and'ed with the current filter.  Use\n`tablist-toggle-first-filter-logic' to change this."]
-       ["Pop Filter" tablist-pop-filter :help "(tablist-pop-filter &optional N INTERACTIVE)\n\nRemove the first N filter components."]
-       "--"
-       ["Negate Filter" tablist-negate-filter :help "(tablist-negate-filter &optional INTERACTIVE)\n\nNegate the current filter."]
-       ["Suspend Filter" tablist-suspend-filter :style toggle :selected tablist-filter-suspended :help "(tablist-suspend-filter &optional FLAG)\n\nTemporarily disable filtering according to FLAG.\n\nInteractively, this command toggles filtering."]
-       ["Clear Filter" tablist-clear-filter :help "(tablist-clear-filter)"]
-       ["Toggle First Filter Logic" tablist-toggle-first-filter-logic :help "(tablist-toggle-first-filter-logic)\n\nToggle between and/or for the first filter operand."]
-       ["Display Filter" tablist-display-filter :style toggle :selected (assq 'tablist-display-filter-mode-line-tag mode-line-format) :help "(tablist-display-filter &optional FLAG)\n\nDisplay the current filter according to FLAG.\n\nIf FLAG has the value 'toggle, toggle it's visibility.\nIf FLAG has the 'state, then do nothing but return the current\nvisibility."]
-       ["Edit Filter" tablist-edit-filter :help "(tablist-edit-filter)"]
-       "--"
-       ["Name Current Filter" tablist-name-current-filter :help "(tablist-name-current-filter NAME)"]
-       ["Push Named Filter" tablist-push-named-filter :help "(tablist-push-named-filter NAME)\n\nAdd a named filter called NAME.\n\nNamed filter are saved in the variable `tablist-named-filter'."]
-       ["Delete Named Filter" tablist-delete-named-filter :help "(tablist-delete-named-filter NAME &optional MODE)"]
-       ["Deconstruct Named Filter" tablist-deconstruct-named-filter :help "(tablist-deconstruct-named-filter)"])
-      "--"
-      ("Column"
-       ["Forward Column" tablist-forward-column :help "(tablist-forward-column N)\n\nMove n columns forward, while wrapping around."]
-       ["Backward Column" tablist-backward-column :help "(tablist-backward-column N)\n\nMove n columns backward, while wrapping around."]
-       "--"
-       ["Move To Major Column" tablist-move-to-major-column :help "(tablist-move-to-major-column &optional FIRST-SKIP-INVISIBLE-P)\n\nMove to the first major column."]
-       "--"
-       ["Shrink Column" tablist-shrink-column :help "(tablist-shrink-column &optional COLUMN WIDTH)"]
-       ["Enlarge Column" tablist-enlarge-column :help "(tablist-enlarge-column &optional COLUMN WIDTH)\n\nEnlarge column COLUMN by WIDTH.\n\nThis function is lazy and therfore pretty slow."])
-      "--"
-      ["Sort" tablist-sort :help "(tablist-sort &optional COLUMN)\n\nSort the tabulated-list by COLUMN.\n\nCOLUMN may be either a name or an index.  The default compare\nfunction is given by the `tabulated-list-format', which see.\n\nThis function saves the current sort column and the inverse\nsort-direction in the variable `tabulated-list-sort-key', which\nalso determines the default COLUMN and direction.\n\nThe main difference to `tabulated-list-sort' is, that this\nfunction sorts the buffer in-place and it ignores a nil sort\nentry in `tabulated-list-format' and sorts on the column\nanyway (why not ?)."]
-      ["Do Kill Lines" tablist-do-kill-lines :help "(tablist-do-kill-lines &optional ARG INTERACTIVE)\n\nRemove ARG lines from the display."]
-      "--"
-      ["Export Csv" tablist-export-csv :help "(tablist-export-csv &optional SEPARATOR ALWAYS-QUOTE-P INVISIBLE-P OUT-BUFFER DISPLAY-P)\n\nExport a tabulated list to a CSV format.\n\nUse SEPARATOR (or ;) and quote if necessary (or always if\nALWAYS-QUOTE-P is non-nil).  Only consider non-filtered entries,\nunless invisible-p is non-nil.  Create a buffer for the output or\ninsert it after point in OUT-BUFFER.  Finally if DISPLAY-P is\nnon-nil, display this buffer.\n\nReturn the output buffer."]
-      "--"
-      ["Previous Line" tablist-previous-line :help "(tablist-previous-line &optional N)"]
-      ["Next Line" tablist-next-line :help "(tablist-next-line &optional N)"]
-      "--"
-      ["Revert" tablist-revert :help "(tablist-revert)\n\nRevert the list with marks preserved, position kept."]
-      ["Quit" tablist-quit :help "(tablist-quit)"])))
 
 ;; add remote user paths to the TRAMP remote search paths
 (with-eval-after-load 'tramp-sh
@@ -3355,27 +2923,6 @@ Example of use with transient suffix definitions in a
   (transient-bind-q-to-quit))
 
 ;; Transient commands / Global transients
-
-;; add transient popup for bibliography commands
-(require 'ebib)
-(require 'biblio)
-(transient-define-prefix transient/bibliography ()
-  "Various bibliography commands."
-  ["Bibliography"
-   ["Biblio"
-    ("bl" "Search" biblio-lookup)
-    ("bd" "Show BibTeX from DOI" my-biblio--get-bibtex-from-doi)
-    ("bi" "Insert BibTeX from DOI" doi-insert-bibtex)
-    ("bo" "Show open access from DOI" dissemin-lookup)
-    ]
-   ["Ebib"
-    ("eb" "Open" ebib)
-    ("ei" "Import" ebib-import)
-    ("ec" "Cite" my-ebib-insert-citation)
-    ]
-   ]
-  )
-(global-set-key (kbd "C-c B b") #'transient/bibliography)
 
 ;; add transient popup for bookmark commands
 (transient-define-prefix transient/bookmarks ()
@@ -3859,49 +3406,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ]
   )
 (global-set-key (kbd "C-c P k") #'transient/package)
-
-;; add transient for password-store commands
-(with-eval-after-load 'auth-source-pass
-  (with-eval-after-load 'password-store
-    (defun transient/password-store--toggle-auth-source-pass-store ()
-      "Toggle auto-source and password-store integration."
-      (interactive)
-      (if (member 'password-store auth-sources)
-          (my-auth-source-pass-disable)
-        (my-auth-source-pass-enable)))
-    (transient-define-prefix transient/password-store ()
-      "Various password-store commands."
-      [:description (lambda ()
-                      (concat "Password store ["
-                              (password-store-dir)
-                              "]"))
-       ["Copy"
-        ("c" "Password" password-store-copy)
-        ("f" "Field" password-store-copy-field)
-        ("u" "URL" password-store-url)
-        ]
-       ["Add/Remove/Modify"
-        ("g" "Generate" password-store-generate)
-        ("i" "Insert" password-store-insert)
-        ("e" "Edit" password-store-edit)
-        ("r" "Rename" password-store-rename)
-        ("R" "Remove" password-store-remove)
-        ]
-       ["Other"
-        ("<tab>" "Cycle store" auth-source-pass-cycle-active-store :transient t)
-        ("A" (lambda ()
-               (transient--make-description
-                "Auth-source integration"
-                (member 'password-store auth-sources)))
-         transient/password-store--toggle-auth-source-pass-store
-         :transient t)
-        ("C" "Clear" password-store-clear)
-        ("I" "Init store" password-store-init)
-        ("v" "Version" password-store-version)
-        ]
-       ]
-      )
-    (global-set-key (kbd "C-c P w") #'transient/password-store)))
 
 ;; add transient for Emacs profiler
 (transient-define-prefix transient/profiler ()
@@ -4531,9 +4035,6 @@ Currently only works for Emacs Mac port."
 (global-set-key (kbd "C-c W s") #'transient/workspace)
 
 ;; add transient popup for writing commands
-(require 'dictionary)
-(require 'langtool)
-(require 'typo)
 
 (defun transient/writing--ispell-dwim ()
   "Dispatch to different Ispell spelling correction commands by major mode.
@@ -4571,148 +4072,12 @@ not support restricting to a region."
     ("C" "Correct buffer/region" transient/writing--ispell-dwim :transient t)
     ("D" "Change dictionary" ispell-change-dictionary :transient t)
     ]
-   ["LanguageTool"
-    ("gs" "Start check" langtool-check)
-    ("gc" "Correct buffer" langtool-correct-buffer)
-    ("ge" "End check" langtool-check-done)
-    ("gl" "Switch language" langtool-switch-default-language
-     :transient t)
-    ]
-   ["Dictionary"
-    ("ds" "Search" dictionary-search)
-    ("dm" "Match words" dictionary-match-words)
-    ]
-   ]
-  [
-   ["Typography"
-    ("y" (lambda ()
-           (interactive)
-           (transient--make-description "Typography mode"
-                                        typo-mode))
-     typo-mode :transient t)]
    ]
   )
 
 (global-set-key (kbd "C-c W r") #'transient/writing)
 
 ;; Transient commands / Major mode transients
-
-;; major-mode specific transient for clojure-mode
-(with-eval-after-load 'clojure-mode
-  (with-eval-after-load 'cider
-    (transient-define-prefix transient/clojure-mode/eval ()
-      "`clojure-mode' CIDER evaluation commands."
-      ["CIDER → Run"
-       ["Eval"
-        ("r" "Region" cider-eval-region)
-        ("n" "Namespace form" cider-eval-ns-form)
-        ("e" "Last sexp" cider-eval-last-sexp)
-        ("P" "Last sexp (pprint)" cider-pprint-eval-last-sexp)
-        ("w" "Last sexp replace" cider-eval-last-sexp-and-replace)
-        ("E" "Last sexp to REPL" cider-eval-last-sexp-to-repl)
-        ("d" "Defun at point" cider-eval-defun-at-point)
-        ("f" "Defun at point (pprint)" cider-pprint-eval-defun-at-point)
-        (":" "Minibuffer input" cider-read-and-eval)
-        ]
-       ["Load"
-        ("k" "Buffer" cider-load-buffer)
-        ("l" "File" cider-load-file)
-        ("p" "All proj ns" cider-load-all-project-ns)
-        ]
-       ["Other"
-        ("i" "Inspect" cider-inspect)
-        ("m" "Macroexpand (single level)" cider-macroexpand-1)
-        ("M" "Macroexpand (all levels)" cider-macroexpand-all)
-        ]
-       ]
-      )
-
-    (transient-define-prefix transient/clojure-mode/test ()
-      "`clojure-mode' CIDER testing commands."
-      ["CIDER → Test"
-       ("t" "Run" cider-test-run-test)
-       ("l" "Run loaded" cider-test-run-loaded-tests)
-       ("p" "Run project" cider-test-run-project-tests)
-       ("n" "Run namespace" cider-test-run-ns-tests)
-       ("r" "Rerun failed" cider-test-rerun-failed-tests)
-       ("s" "Show report" cider-test-show-report)
-       ]
-      )
-
-    (transient-define-prefix transient/clojure-mode/help ()
-      "`clojure-mode' CIDER help/documentation commands."
-      ["CIDER → Help"
-       ("d" "CIDER docs" cider-doc)
-       ("c" "Clojure docs" cider-clojuredocs)
-       ("C" "Clojure docs (web)" cider-clojuredocs-web)
-       ("j" "Java docs (web)" cider-javadoc)
-       ("a" "Search symbols" cider-apropos)
-       ("s" "Select symbols" cider-apropos-select)
-       ("A" "Search docs" cider-apropos-documentation)
-       ("S" "Select docs" cider-apropos-documentation-select)
-       ]
-      )
-
-    (defun transient/clojure-mode/debug--eval-defun-at-point ()
-      "Debug version of `cider-eval-defun-at-point'."
-      (interactive)
-      (cider-eval-defun-at-point t))
-
-    (transient-define-prefix transient/clojure-mode/debug ()
-      "`clojure-mode' CIDER debug/documentation commands."
-      ["CIDER → Debug"
-       ("x" "Eval at point" transient/clojure-mode/debug--eval-defun-at-point)
-       ("v" "Toggle trace variable" cider-toggle-trace-var)
-       ("n" "Toggle trace namespace" cider-toggle-trace-ns)
-       ]
-      )
-
-    (defun transient/clojure-mode/repl--clear-output-all ()
-      "Clear all output in CIDER REPL buffer."
-      (interactive)
-      (cider-find-and-clear-repl-output t))
-
-    (transient-define-prefix transient/clojure-mode/repl ()
-      "`clojure-mode' CIDER REPL commands."
-      ["CIDER → REPL"
-       ["Input"
-        ("z" "Switch to buffer" cider-switch-to-repl-buffer)
-        ("n" "Set namespace" cider-repl-set-ns)
-        ("p" "Insert last sexp" cider-insert-last-sexp-in-repl)
-        ("x" "Refresh" cider-refresh)
-        ]
-       ["Output"
-        ("o" "Clear" cider-find-and-clear-repl-output)
-        ("O" "Clear all" transient/clojure-mode/repl--clear-output-all)
-        ]
-       [
-        "Other"
-        ("d" "Display conn info" cider-display-connection-info)
-        ("b" "Interrupt" cider-interrupt)
-        ("Q" "Quit CIDER" cider-quit)
-        ]
-       ]
-      )
-
-    (transient-define-prefix transient/clojure-mode ()
-      "`clojure-mode' CIDER commands."
-      ["CIDER"
-       ["Session"
-        ("jc" "Jack-in (Clojure)" cider-jack-in-clj)
-        ("js" "Jack-in (ClojureScript)" cider-jack-in-cljs)
-        ("jb" "Jack-in (Both)" cider-jack-in-clj&cljs)
-        ]
-       ["Submenus"
-        ("r" "→ REPL" transient/clojure-mode/repl)
-        ("e" "→ Run" transient/clojure-mode/eval)
-        ("t" "→ Test" transient/clojure-mode/test)
-        ("d" "→ Debug" transient/clojure-mode/debug)
-        ("h" "→ Help" transient/clojure-mode/help)
-        ]
-       ]
-      )
-
-    (define-key clojure-mode-map (kbd "C-c m") #'transient/clojure-mode)))
 
 ;; major-mode specific transient for csv-mode
 (with-eval-after-load 'csv-mode
@@ -4857,6 +4222,7 @@ not support restricting to a region."
         ("M" "chmod" dired-do-chmod)
         ("O" "chown" dired-do-chown)
         ("T" "Touch" dired-do-touch)
+        ("M-r" "Wdired" dired-toggle-read-only)
         ]
        ["Mark"
         ("m" "File at pt" dired-mark :transient t)
@@ -4950,57 +4316,6 @@ not support restricting to a region."
      ]
     )
   (define-key edebug-mode-map (kbd "C-c m") #'transient/edebug-mode))
-
-;; major-mode specific transient for ess-r-mode
-(with-eval-after-load 'ess-r-mode
-  (require 'ess-view-data)
-  (require 'ess-r-insert-obj)
-  (transient-define-prefix transient/ess-r-mode ()
-    "`ess-r-mode' commands."
-    ["Emacs Speaks Statistics"
-     ["Session"
-      ("N" "New" R)
-      ("R" "Request" ess-request-a-process)
-      ("s" "Switch" ess-switch-to-ESS)
-      ("q" "Quit" ess-quit)
-      ]
-     ["Eval"
-      ("l" "Line" ess-eval-line)
-      ("f" "Function" ess-eval-function)
-      ("r" "Region" ess-eval-region)
-      ("b" "Buffer" ess-eval-buffer)
-      ]
-     ["Workspace"
-      ("D" "Change dir" ess-change-directory)
-      ("d" "R dired" ess-rdired)
-      ("v" "View data" ess-view-data-print)
-      ]
-     ["Insert"
-      ("if" "Dataframe name" ess-r-insert-obj-dt-name)
-      ("ic" "Column name" ess-r-insert-obj-col-name)
-      ("iC" "Column name (all)" ess-r-insert-obj-col-name-all)
-      ("iv" "Column value" ess-r-insert-obj-value)
-      ("iV" "Column value (all)" ess-r-insert-obj-value-all)
-      ]
-     ["Help"
-      ("h" "Object" ess-display-help-on-object)
-      ("A" "Apropos" ess-display-help-apropos)
-      ("H" "Browser" ess-display-help-in-browser)
-      ]
-     ]
-    [
-     ["Format"
-      ("y" "Region or buffer" ess-r-styler-format-buffer-or-region)
-      ("Y" (lambda ()
-             (interactive)
-             (transient--make-description
-              "Buffer on save"
-              ess-r-styler-format-on-save-mode))
-       ess-r-styler-format-on-save-mode :transient t)
-      ]
-     ]
-    )
-  (define-key ess-r-mode-map (kbd "C-c m") #'transient/ess-r-mode))
 
 ;; major-mode specific transient for eww-mode
 (with-eval-after-load 'eww
@@ -5361,7 +4676,6 @@ not support restricting to a region."
 (with-eval-after-load 'org
   (require 'org-download)
   (require 'org-readitlater)
-  (require 'org-tree-slide)
   (defun transient/org-mode--toggle-display-image-width ()
     "Toggle resizing of inline images in `org-mode' to one-third screen width."
     (interactive)
@@ -5470,11 +4784,6 @@ not support restricting to a region."
      ["Other"
       ("<tab>" "Cycle node" org-cycle :transient t)
       ("<S-tab>" "Cycle global" org-global-cycle :transient t)
-      ("C-p" (lambda ()
-               (transient--make-description
-                "Slideshow mode"
-                org-tree-slide-mode))
-       org-tree-slide-mode)
       ("ds" "Download screenshot" org-download-screenshot)
       ("dy" "Download yank" org-download-yank)
       ("R" "→ Read-it-later" transient/org-mode/readitlater)
@@ -5546,129 +4855,6 @@ not support restricting to a region."
      ]
     )
   (define-key python-mode-map (kbd "C-c m") #'transient/python-mode))
-
-;; major-mode specific transient for racket-mode
-(with-eval-after-load 'racket-mode
-  (defun transient/racket-mode--visit-definition ()
-    "Visits definition of identifier at point in `racket-mode' buffers.
-Uses `racket-xp-visit-definition' if `racket-xp-mode' is enabled,
-and `racket-repl-visit-definition' otherwise."
-    (interactive)
-    (if racket-xp-mode
-        (racket-xp-visit-definition)
-      (racket-repl-visit-definition)))
-
-  (defun transient/racket-mode--describe ()
-    "Describe identifier at point in `racket-mode' buffers.
-Uses `racket-xp-describe' if `racket-xp-mode' is enabled, and
-`racket-repl-describe' otherwise."
-    (interactive)
-    (if racket-xp-mode
-        (racket-xp-describe)
-      (racket-repl-describe)))
-
-  (defun transient/racket-mode--documentation ()
-    "Show documentation for identifier at point in `racket-mode' buffers.
-Documentation is opened in an external browser.
-Uses `racket-xp-documentation' if `racket-xp-mode' is enabled,
-and `racket-repl-documentation' otherwise."
-    (interactive)
-    (if racket-xp-mode
-        (racket-xp-documentation)
-      (racket-repl-documentation)))
-
-  (transient-define-prefix transient/racket-mode ()
-    "`racket-mode' commands."
-    ["Racket"
-     ["Run"
-      ("rr" "Buffer in REPL" racket-run)
-      ("rm" "Module in REPL" racket-run-module-at-point)
-      ("rR" "File in shell" racket-racket)
-      ]
-     ["Profiling/Logging"
-      ("rp" "Profiler" racket-profile)
-      ("rl" "Logger" racket-logger)
-      ]
-     ["Refactoring"
-      ("Rb" "Base requires" racket-base-requires)
-      ("Rt" "Tidy requires" racket-tidy-requires)
-      ("RT" "Trim requires" racket-trim-requires)
-      ]
-     ["Editing"
-      ("a" "Align" racket-align)
-      ("u" "Unalign" racket-unalign)
-      ]
-     ]
-    [
-     ["Testing"
-      ("tt" "Run tests in REPL" racket-test)
-      ("tr" "Raco test" racket-raco-test)
-      ]
-     ["Help"
-      ("." "Visit definition" transient/racket-mode--visit-definition)
-      ("C-." "Visit module" racket-visit-module)
-      ("," "Unvisit" racket-unvisit)
-      ("h" "Describe" transient/racket-mode--describe)
-      ("H" "Documentation" transient/racket-mode--documentation)
-      ]
-     ["Other"
-      ("f" "Find collection" racket-find-collection)
-      ("p" (lambda ()
-             (transient--make-description
-              "Paredit mode"
-              paredit-mode))
-       paredit-mode :transient t)
-      ("x" (lambda ()
-             (transient--make-description
-              "Explain/Explore mode"
-              racket-xp-mode))
-       racket-xp-mode :transient t)
-      ("s" "Recompile racket-mode" racket-mode-start-faster)
-      ]
-     ]
-    )
-
-  (define-key racket-mode-map (kbd "C-c m") #'transient/racket-mode))
-
-;; major-mode specific transient for restclient-mode
-(with-eval-after-load 'restclient
-  (defun transient/restclient-mode--toggle-narrow ()
-    "Toggle narrowing to the current query in a `restclient-mode' buffer."
-    (interactive)
-    (if (buffer-narrowed-p)
-        (widen)
-      (restclient-narrow-to-current)))
-  (defun transient/restclient-mode--format-json-region ()
-    "Format a selected region containing JSON code."
-    (interactive)
-    (require 'json-mode nil t)
-    (if (fboundp 'json-mode-pretty-print-dwim)
-        (call-interactively 'json-mode-pretty-print-dwim)
-      (message "Requires the `json-mode' package be installed.")))
-  (transient-define-prefix transient/restclient-mode ()
-    "`restclient-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["REST client"
-     ["Send query"
-      ("v" "And stay" restclient-http-send-current-stay-in-window)
-      ("c" "And switch" restclient-http-send-current :transient nil)
-      ("r" "And switch (raw results)" restclient-http-send-current-raw
-       :transient nil)
-      ]
-     ["Movement"
-      ("n" "Next query" restclient-jump-next)
-      ("p" "Previous query" restclient-jump-prev)
-      ("." "Mark current" restclient-mark-current)
-      ]
-     ["Other"
-      ("u" "Copy as CURL command" restclient-copy-curl-command)
-      ("N" "Narrow/Widen buffer" transient/restclient-mode--toggle-narrow)
-      ("f" "Format JSON region" transient/restclient-mode--format-json-region
-       :transient nil)
-      ]
-     ]
-    )
-  (define-key restclient-mode-map (kbd "C-c m") #'transient/restclient-mode))
 
 ;; major-mode specific transient for smerge-mode
 (with-eval-after-load 'smerge-mode
@@ -5786,45 +4972,6 @@ and `racket-repl-documentation' otherwise."
   (define-key ztreediff-mode-map (kbd "C-c m") #'transient/ztreediff-mode))
 
 ;; Transient commands / Minor mode transients
-
-;; add transient for Eglot
-(with-eval-after-load 'eglot
-  (transient-define-prefix transient/eglot ()
-    "`eglot' session commands"
-    ["Eglot Language Server Protocol client"
-     ["Session"
-      ("ss" "Start" eglot)
-      ("sr" "Reconnect" eglot-reconnect)
-      ("sS" "Shutdown" eglot-shutdown)
-      ("sQ" "Shutdown all" eglot-shutdown-all)
-      ("sc" "Update cfg" eglot-signal-didChangeConfiguration)
-      ]
-     ["Goto"
-      ("ga" "Apropos" xref-find-apropos)
-      ("gf" "Defn" xref-find-definitions)
-      ("gd" "Decl" eglot-find-declaration)
-      ("gi" "Impl" eglot-find-implementation)
-      ("gr" "Refs" xref-find-references)
-      ("gt" "Typedef" eglot-find-typeDefinition)
-      ]
-     ["Code Actions"
-      ("cc" "Ask server" eglot-code-actions)
-      ("re" "Extract" eglot-code-action-extract)
-      ("ri" "Inline" eglot-code-action-inline)
-      ("ro" "Org. Imprts" eglot-code-action-organize-imports)
-      ("rf" "Quickfix" eglot-code-action-quickfix)
-      ("rw" "Rewrite" eglot-code-action-rewrite)
-      ]
-     ["Other"
-      ("rh" "Help-at-pt" eldoc)
-      ("rr" "Rename" eglot-rename)
-      ("rf" "Format" eglot-format)
-      ("re" "Events buf" eglot-events-buffer)
-      ("rs" "Stderr buf" eglot-stderr-buffer)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c l") #'transient/eglot))
 
 ;; add transient for Flymake
 (with-eval-after-load 'flymake

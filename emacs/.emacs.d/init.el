@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  7 16:04:53 2021
+;; Generated: Sun Nov  7 16:19:03 2021
 
 ;;; Commentary:
 
@@ -282,7 +282,11 @@ cache before processing."
             (exec-path-from-shell-setenv (car pair) (cdr pair)))
           my-exec-path-envs)
     (message "Initialized exec-path-from-shell environment variables"))
-  (my-exec-path-from-shell-initialize nil))
+  (my-exec-path-from-shell-initialize nil)
+  ;; set EDITOR to call emacsclient
+  (when (executable-find "emacsclient")
+    (setenv "EDITOR" "emacsclient"))
+  )
 
 ;; Backend and frontend frameworks for building user interfaces
 

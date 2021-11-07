@@ -922,7 +922,11 @@ cache before processing."
             (exec-path-from-shell-setenv (car pair) (cdr pair)))
           my-exec-path-envs)
     (message "Initialized exec-path-from-shell environment variables"))
-  (my-exec-path-from-shell-initialize nil))
+  (my-exec-path-from-shell-initialize nil)
+  ;; set EDITOR to call emacsclient
+  (when (executable-find "emacsclient")
+    (setenv "EDITOR" "emacsclient"))
+  )
 #+end_src
 
 * Backend and frontend frameworks for building user interfaces

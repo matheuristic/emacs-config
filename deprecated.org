@@ -4292,7 +4292,58 @@ It has integration with Magit.
   (git-identity-magit-mode 1))
 #+end_src
 
-** Projectile
+** Projectile                                                         :melpa:
+
+[[https://github.com/bbatsov/projectile][Projectile]] is a project interaction library for Emacs, providing many
+convenience functions to navigate, search and build projects.
+
+*Customizations*:
+- Create test file if missing when toggling to it using ~projectile-toggle-between-implementation-and-test~.
+- Run ~projectile-commander~ instead of ~projectile-find-file~ when switching projects using ~projectile-switch-project~.
+- Use ~git grep~ when searching within the project.
+- Enable globally.
+
+#+name: projectile
+#+begin_src emacs-lisp
+;; project interaction library
+(use-package projectile
+  :demand t
+  :init (setq projectile-completion-system 'default
+              projectile-create-missing-test-files t ; create test file if none is found when toggling
+              projectile-mode-line-prefix " ℙ"
+              projectile-switch-project-action 'projectile-commander
+              projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
+  :config
+  ;; don't show project type in minor mode lighter
+  (defun my-projectile-mode-line ()
+    "Report project name in the modeline."
+    (format "%s[%s]" projectile-mode-line-prefix (or (projectile-project-name) "-")))
+  (setq projectile-mode-line-function 'my-projectile-mode-line)
+  ;; enable mode globally
+  (projectile-mode))
+#+end_src
+
+*** org-projectile for Projectile project Org TODOs                   :melpa:
+
+[[https://github.com/IvanMalison/org-projectile][org-projectile]] provides functions for creating Org TODOs for [[Projectile][Projectile]] projects.
+It can be set up to use one file for all projects (the default), or one file per
+project.
+Configure it to use one file per project, specifically a ~TODO.org~ file at the
+root directory of the project.
+Also add a corresponding entry type to ~org-capture-templates~.
+
+#+name: org-projectile
+#+begin_src emacs-lisp
+;; Org TODOs for projectile projects
+;; in `org-projectile-per-project-filepath' at the project's root directory
+(use-package org-projectile
+  :after (org projectile)
+  :config
+  (org-projectile-per-project)
+  (setq org-projectile-per-project-filepath "TODO.org"))
+#+end_src
+
+** Projectile (OLD)
 
 *** Projectile hydra                                                  :hydra:
 
@@ -6383,6 +6434,74 @@ Transient for accessing password-store.el commands.
        ]
       )
     (global-set-key (kbd "C-c P w") #'transient/password-store)))
+#+end_src
+
+*** Projectile transient
+
+Transient for interfacing with Projectile commands
+
+#+name: projectile-transient
+#+begin_src emacs-lisp
+;; add transient popup for projectile
+(with-eval-after-load 'projectile
+  (require 'org-projectile)
+  (transient-define-prefix transient/projectile ()
+    "Projectile commands"
+    [:description (lambda ()
+                    (concat "Projectile ["
+                            (projectile-project-name)
+                            "]"))
+     ["Project"
+      ("C" "Configure" projectile-configure-project)
+      ("c" "Compile" projectile-compile-project)
+      ("u" "Run" projectile-run-project)
+      ("P" "Test" projectile-test-project)
+      ("z" "Cache file" projectile-cache-current-file)
+      ("i" "Invalidate cache" projectile-invalidate-cache)
+      ("x" "Run Eshell" projectile-run-eshell)
+      ("!" "Run command" projectile-run-shell-command-in-root)
+      ("&" "Run command async" projectile-run-async-shell-command-in-root)
+      ]
+     ["Buffer"
+      ("b" "Switchb" projectile-switch-to-buffer)
+      ("<left>" "Previous" projectile-previous-project-buffer :transient t)
+      ("<right>" "Next" projectile-next-project-buffer :transient t)
+      ("I" "Ibuffer" projectile-ibuffer)
+      ("S" "Save" projectile-save-project-buffers)
+      ("k" "Kill" projectile-kill-buffers)
+      ]
+     ["Search"
+      ("o" "Occur" projectile-multi-occur)
+      ("s" "Grep" projectile-grep)
+      ("r" "Replace" projectile-replace)
+      ]
+     ["Tags"
+      ("j" "Find tag" projectile-find-tag)
+      ("R" "Regen tags" projectile-regenerate-tags)
+      ]
+     ]
+    [
+     ["File"
+      ("f" "Find file" projectile-find-file)
+      ("F" "Find file (known prjs)" projectile-find-file-in-known-projects)
+      ("g" "Find file (dwim)" projectile-find-file-dwim)
+      ("t" "Toggle impl/test" projectile-toggle-between-implementation-and-test)
+      ("e" "Recentf" projectile-recentf)
+      ("E" "Edit dir-locals" projectile-edit-dir-locals)
+      ]
+     ["Dir"
+      ("d" "Find dir" projectile-find-dir)
+      ("D" "Dired" projectile-dired)
+      ]
+     ["Other"
+      ("m" "Commander" projectile-commander)
+      ("p" "Switch project" projectile-switch-project)
+      ("K" "Add project TODO" org-projectile-project-todo-completing-read)
+      ("T" "Goto project TODOs" org-projectile-goto-location-for-project)
+      ]
+     ]
+    )
+  (define-key projectile-mode-map (kbd "C-c p") #'transient/projectile))
 #+end_src
 
 *** Symbol overlay transient

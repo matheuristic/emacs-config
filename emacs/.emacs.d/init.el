@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  7 16:19:03 2021
+;; Generated: Sat Nov 13 09:55:56 2021
 
 ;;; Commentary:
 
@@ -1021,6 +1021,9 @@ With arg N, insert N newlines."
 
 ;; Emacs as an edit server
 
+;; start server mode
+(server-mode 1)
+
 ;; server mode restart safety valve
 (defun restart-emacs-server ()
   "Restarts an Emacs server."
@@ -2022,8 +2025,7 @@ call `open-line' on the very first character."
               ;; don't prettify plain lists, which can be slow
               org-superstar-prettify-item-bullets nil))
 
-;; start server and load org-protocol
-(server-mode 1)
+;; load org-protocol
 (require 'org-protocol)
 
 ;; add capture template for web snippets
@@ -2379,31 +2381,6 @@ Formatting a selected region only works on top-level objects."
         (t (python-black-format-buffer)))))
 
 ;; Project interaction
-
-;; project interaction library
-(use-package projectile
-  :demand t
-  :init (setq projectile-completion-system 'default
-              projectile-create-missing-test-files t ; create test file if none is found when toggling
-              projectile-mode-line-prefix " ℙ"
-              projectile-switch-project-action 'projectile-commander
-              projectile-use-git-grep t) ; use git grep to skip backup, object, and untracked files when in a Git project
-  :config
-  ;; don't show project type in minor mode lighter
-  (defun my-projectile-mode-line ()
-    "Report project name in the modeline."
-    (format "%s[%s]" projectile-mode-line-prefix (or (projectile-project-name) "-")))
-  (setq projectile-mode-line-function 'my-projectile-mode-line)
-  ;; enable mode globally
-  (projectile-mode))
-
-;; Org TODOs for projectile projects
-;; in `org-projectile-per-project-filepath' at the project's root directory
-(use-package org-projectile
-  :after (org projectile)
-  :config
-  (org-projectile-per-project)
-  (setq org-projectile-per-project-filepath "TODO.org"))
 
 ;; binding for calling Magit
 (use-package magit
@@ -3429,67 +3406,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ]
   )
 (global-set-key (kbd "C-c P f") #'transient/profiler)
-
-;; add transient popup for projectile
-(with-eval-after-load 'projectile
-  (require 'org-projectile)
-  (transient-define-prefix transient/projectile ()
-    "Projectile commands"
-    [:description (lambda ()
-                    (concat "Projectile ["
-                            (projectile-project-name)
-                            "]"))
-     ["Project"
-      ("C" "Configure" projectile-configure-project)
-      ("c" "Compile" projectile-compile-project)
-      ("u" "Run" projectile-run-project)
-      ("P" "Test" projectile-test-project)
-      ("z" "Cache file" projectile-cache-current-file)
-      ("i" "Invalidate cache" projectile-invalidate-cache)
-      ("x" "Run Eshell" projectile-run-eshell)
-      ("!" "Run command" projectile-run-shell-command-in-root)
-      ("&" "Run command async" projectile-run-async-shell-command-in-root)
-      ]
-     ["Buffer"
-      ("b" "Switchb" projectile-switch-to-buffer)
-      ("<left>" "Previous" projectile-previous-project-buffer :transient t)
-      ("<right>" "Next" projectile-next-project-buffer :transient t)
-      ("I" "Ibuffer" projectile-ibuffer)
-      ("S" "Save" projectile-save-project-buffers)
-      ("k" "Kill" projectile-kill-buffers)
-      ]
-     ["Search"
-      ("o" "Occur" projectile-multi-occur)
-      ("s" "Grep" projectile-grep)
-      ("r" "Replace" projectile-replace)
-      ]
-     ["Tags"
-      ("j" "Find tag" projectile-find-tag)
-      ("R" "Regen tags" projectile-regenerate-tags)
-      ]
-     ]
-    [
-     ["File"
-      ("f" "Find file" projectile-find-file)
-      ("F" "Find file (known prjs)" projectile-find-file-in-known-projects)
-      ("g" "Find file (dwim)" projectile-find-file-dwim)
-      ("t" "Toggle impl/test" projectile-toggle-between-implementation-and-test)
-      ("e" "Recentf" projectile-recentf)
-      ("E" "Edit dir-locals" projectile-edit-dir-locals)
-      ]
-     ["Dir"
-      ("d" "Find dir" projectile-find-dir)
-      ("D" "Dired" projectile-dired)
-      ]
-     ["Other"
-      ("m" "Commander" projectile-commander)
-      ("p" "Switch project" projectile-switch-project)
-      ("K" "Add project TODO" org-projectile-project-todo-completing-read)
-      ("T" "Goto project TODOs" org-projectile-goto-location-for-project)
-      ]
-     ]
-    )
-  (define-key projectile-mode-map (kbd "C-c p") #'transient/projectile))
 
 ;; add transient popup for register commands
 (transient-define-prefix transient/registers ()

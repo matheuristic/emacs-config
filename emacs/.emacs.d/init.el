@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Nov 13 09:55:56 2021
+;; Generated: Sun Dec  5 16:59:15 2021
 
 ;;; Commentary:
 
@@ -2147,6 +2147,7 @@ call `open-line' on the very first character."
     :init (setq conda-anaconda-home (seq-some (lambda (fname)
                                                 (and (file-directory-p fname) fname))
                                               (list
+                                               (expand-file-name "~/mambaforge/")
                                                (expand-file-name "~/miniforge3/")
                                                (expand-file-name "~/miniconda3/")
                                                (expand-file-name "~/anaconda3/"))))
@@ -3830,6 +3831,7 @@ Currently only works for Emacs Mac port."
 (global-set-key (kbd "C-c V") #'transient/visual)
 
 (require 'eww)
+(require 'elpher)
 
 ;; add transient for launching web browsers
 (transient-define-prefix transient/web ()
@@ -3847,7 +3849,7 @@ Currently only works for Emacs Mac port."
    ["Elpher Gopher/Gemini client"
     ("go" "Open" elpher-go)
     ("gh" "Open home" elpher)
-    ("gB" "List bookmarks" elpher-bookmarks)
+    ("gB" "List bookmarks" elpher-show-bookmarks)
     ]
    ])
 (global-set-key (kbd "C-c W b") #'transient/web)

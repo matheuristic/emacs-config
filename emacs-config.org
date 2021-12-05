@@ -4605,6 +4605,7 @@ packages.
     :init (setq conda-anaconda-home (seq-some (lambda (fname)
                                                 (and (file-directory-p fname) fname))
                                               (list
+                                               (expand-file-name "~/mambaforge/")
                                                (expand-file-name "~/miniforge3/")
                                                (expand-file-name "~/miniconda3/")
                                                (expand-file-name "~/anaconda3/"))))
@@ -7603,6 +7604,7 @@ Transient for web browsing launchers.
 #+name: web-transient
 #+begin_src emacs-lisp
 (require 'eww)
+(require 'elpher)
 
 ;; add transient for launching web browsers
 (transient-define-prefix transient/web ()
@@ -7620,7 +7622,7 @@ Transient for web browsing launchers.
    ["Elpher Gopher/Gemini client"
     ("go" "Open" elpher-go)
     ("gh" "Open home" elpher)
-    ("gB" "List bookmarks" elpher-bookmarks)
+    ("gB" "List bookmarks" elpher-show-bookmarks)
     ]
    ])
 (global-set-key (kbd "C-c W b") #'transient/web)

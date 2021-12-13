@@ -4833,7 +4833,8 @@ lint the current buffer.
       (add-hook 'flymake-diagnostic-functions #'flymake-j-console-debug-lint-backend nil t))
     ;; enable Flymake with j-console backend when editing J files
     (add-hook 'j-mode-hook #'flymake-j-console-debug-lint-setup)
-    (add-hook 'j-mode-hook #'flymake-mode t)))
+    ;; (add-hook 'j-mode-hook #'flymake-mode t)
+    ))
 #+end_src
 
 ** Python

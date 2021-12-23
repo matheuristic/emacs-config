@@ -1,0 +1,178 @@
+#+title: Emacs machine-local configuration snippets
+#+author: matheuristic
+#+options: h:4 num:t toc:t
+#+property: header-args:emacs-lisp :exports code
+
+* About
+
+Snippets that can be copied into ~$HOME/.emacs.d/lisp/init-local.el~
+for machine-local configuration.
+
+* R
+
+R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]], more commonly known
+by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
+
+- Install the [[https://cran.r-project.org/web/packages/lintr/index.html][lintr]] and [[https://cran.r-project.org/web/packages/styler/index.html][styler]] CRAN packages
+  #+begin_src R
+  install.packages("lintr")
+  install.packages("styler")
+  #+end_src
+- Linting via Flycheck or Flymake uses the [[https://github.com/r-lib/lintr][lintr]] R package, and
+  sometimes manual creation the =~/.R/lintr_cache~= directory is
+  needed (see [[https://emacs.stackexchange.com/questions/53018/flycheck-r-lintr-doesnt-find-anything][StackOverflow issue]]).
+- ~M--~ inserts ~<-~ in ~ess-mode~ and ~inferior-ess-mode~.
+- ~C-S-m~ inserts ~%>%~ followed by a new line in ~ess-mode~ and
+  ~inferior-ess-mode~.
+- [[https://github.com/ShuguangSun/ess-r-insert-obj][ess-r-insert-obj]] provides utilities for inserting variable and
+  column names or their values in ESS-R.
+- [[https://github.com/ShuguangSun/ess-r-insert-obj][ess-r-insert-obj]] provides utilities for inserting variable and
+  column names or their values in ESS-R.
+- [[https://github.com/polymode/poly-R/][poly-R]] provides better support for R Markdown and bookdown files,
+  leveraging [[https://github.com/polymode/polymode][polymode]] to have different major modes be active for
+  different buffer regions.
+- Code reformatting is done using the ~reformatter-define~ macro from
+  the ~reformatter~ package, which defines two interactive commands
+  ~r-styler-format-buffer~ and ~r-styler-format-region~ (only works on
+  top-level objects) along with the local minor mode
+  ~r-styler-format-on-save-mode~ that uses [[https://github.com/r-lib/styler][styler]] to format the code
+  in the buffer.
+- When in an R buffer, ~C-c m~ invokes a mode-specific transient.
+
+#+begin_src emacs-lisp
+;; support for R language using Emacs Speaks Statistics
+(use-package ess
+  :mode ("\\.R$" . R-mode)
+  :commands (R-mode ess-switch-to-ESS)
+  :init (setq ess-eval-visibly 'nowait
+              ess-default-style 'RStudio
+              ;; use Flymake only when buffer has an inferior process
+              ess-use-flymake 'process))
+
+;; forward pipe and assignment R operator shortcuts, adapted from
+;; https://emacs.stackexchange.com/questions/8041/how-to-implement-the-piping-operator-in-ess-mode
+(defun my-insert-R-forward-pipe-operator ()
+  "Insert R magrittr forward pipe operator '%>%'."
+  (interactive)
+  (just-one-space 1)
+  (insert "%>%")
+  (reindent-then-newline-and-indent))
+(defun my-insert-R-assignment-operator ()
+  "Insert R assigment operator '<-'."
+  (interactive)
+  (just-one-space 1)
+  (insert "<- "))
+
+;; bindings for the above R operator shortcuts
+(with-eval-after-load 'ess-r-mode
+  (define-key ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+  (define-key ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator)
+  (define-key inferior-ess-r-mode-map (kbd "M--") #'my-insert-R-assignment-operator)
+  (define-key inferior-ess-r-mode-map (kbd "C-S-m") #'my-insert-R-forward-pipe-operator))
+
+;; view data in ESS-R
+(use-package ess-view-data
+  :after ess-r-mode
+  :bind (:map ess-r-mode-map
+         ("C-c v" . ess-view-data-print))
+  :init
+  ;; set update print backend to knitr::kable() due to csv-mode
+  ;; header-line errors when using the default print backend
+  (setq ess-view-data-current-update-print-backend 'kable))
+
+;; insert column or variable names or values in ESS-R, useful when
+;; working with tidyverse
+(use-package ess-r-insert-obj
+  :after ess-r-mode
+  :bind (:map ess-r-mode-map
+         ("C-c i f" . ess-r-insert-obj-dt-name)
+         ("C-c i c" . ess-r-insert-obj-col-name)
+         ("C-c i C" . ess-r-insert-obj-col-name-all)
+         ("C-c i v" . ess-r-insert-obj-value)
+         ("C-c i V" . ess-r-insert-obj-value-all)))
+
+;; better support for R Markdown and bookdown files
+(use-package poly-R)
+
+;; format R using 
+(with-eval-after-load 'reformatter
+  (with-eval-after-load 'ess-r-mode
+    ;; define `ess-r-styler-format-buffer', `ess-r-styler-format-region'
+    ;; and `ess-r-styler-format-on-save-mode'
+    (reformatter-define ess-r-styler-format
+      :program "Rscript"
+      :args `("--vanilla"
+              "-e"
+              ,(mapconcat
+                'identity
+                '("options(styler.colored_print.vertical=FALSE)"
+                  "con <- file(\"stdin\")"
+                  "out <- styler::style_text(readLines(con))"
+                  "close(con)"
+                  "out")
+                "; ")
+              "-")
+      :group 'ess-R
+      :lighter 'RStylFmt)
+    ;; dwim function that calls `ess-r-styler-format-region' if a region
+    ;; is selected, or `ess-r-styler-format-buffer' otherwise
+    (defun ess-r-styler-format-buffer-or-region ()
+      "Format the current R buffer or a region if selected using styler.
+Formatting a selected region only works on top-level objects."
+      (interactive)
+      (cond
+       ((use-region-p) (ess-r-styler-format-region (region-beginning)
+                                                   (region-end)))
+       (t (ess-r-styler-format-buffer))))))
+
+;; major-mode specific transient for ess-r-mode
+(with-eval-after-load 'ess-r-mode
+  (require 'ess-view-data)
+  (require 'ess-r-insert-obj)
+  (transient-define-prefix transient/ess-r-mode ()
+    "`ess-r-mode' commands."
+    ["Emacs Speaks Statistics"
+     ["Session"
+      ("N" "New" R)
+      ("R" "Request" ess-request-a-process)
+      ("s" "Switch" ess-switch-to-ESS)
+      ("q" "Quit" ess-quit)
+      ]
+     ["Eval"
+      ("l" "Line" ess-eval-line)
+      ("f" "Function" ess-eval-function)
+      ("r" "Region" ess-eval-region)
+      ("b" "Buffer" ess-eval-buffer)
+      ]
+     ["Workspace"
+      ("D" "Change dir" ess-change-directory)
+      ("d" "R dired" ess-rdired)
+      ("v" "View data" ess-view-data-print)
+      ]
+     ["Insert"
+      ("if" "Dataframe name" ess-r-insert-obj-dt-name)
+      ("ic" "Column name" ess-r-insert-obj-col-name)
+      ("iC" "Column name (all)" ess-r-insert-obj-col-name-all)
+      ("iv" "Column value" ess-r-insert-obj-value)
+      ("iV" "Column value (all)" ess-r-insert-obj-value-all)
+      ]
+     ["Help"
+      ("h" "Object" ess-display-help-on-object)
+      ("A" "Apropos" ess-display-help-apropos)
+      ("H" "Browser" ess-display-help-in-browser)
+      ]
+     ]
+    [
+     ["Format"
+      ("y" "Region or buffer" ess-r-styler-format-buffer-or-region)
+      ("Y" (lambda ()
+             (interactive)
+             (transient--make-description
+              "Buffer on save"
+              ess-r-styler-format-on-save-mode))
+       ess-r-styler-format-on-save-mode :transient t)
+      ]
+     ]
+    )
+  (define-key ess-r-mode-map (kbd "C-c m") #'transient/ess-r-mode))
+#+end_src

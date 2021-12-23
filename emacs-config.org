@@ -8857,7 +8857,7 @@ Flymake minor mode transient.
         ("r" "Reporting backends" flymake-reporting-backends)
         ("d" "Disabled backends" flymake-disabled-backends)
         ("L" "Log" flymake-switch-to-log-buffer)
-        ("c" "Compile (no check)" flymake-proc-compile)
+        ("C" "Compile (no check)" flymake-proc-compile)
         ("D" (lambda ()
                (transient--make-description
                 "Devskim"

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Dec 13 14:04:09 2021
+;; Generated: Wed Dec 22 12:32:32 2021
 
 ;;; Commentary:
 
@@ -4921,7 +4921,7 @@ not support restricting to a region."
         ("r" "Reporting backends" flymake-reporting-backends)
         ("d" "Disabled backends" flymake-disabled-backends)
         ("L" "Log" flymake-switch-to-log-buffer)
-        ("c" "Compile (no check)" flymake-proc-compile)
+        ("C" "Compile (no check)" flymake-proc-compile)
         ("D" (lambda ()
                (transient--make-description
                 "Devskim"

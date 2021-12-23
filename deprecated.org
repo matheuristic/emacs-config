@@ -3,9 +3,10 @@
 
 * Notes
 
-This file contains Emacs configuration components that were used but
-removed as they were not needed or deprecated in favor of updated
-packages or code.
+This file contains Emacs configuration components that were used in
+the main Emacs configuration but removed as they were moved into the
+machine-local configuration, no longer needed or deprecated in favor
+of updated packages or code.
 
 * Backward compatibility
 
@@ -3927,7 +3928,7 @@ R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]]
 by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
 
 If linting using Flycheck or Flymake, it might be necessary to install
-the r-lintr CRAN package and also create the =~/.R/lintr_cache~=
+the lintr CRAN package and also create the =~/.R/lintr_cache~=
 directory (see [[https://emacs.stackexchange.com/questions/53018/flycheck-r-lintr-doesnt-find-anything][StackOverflow issue]]).
 
 #+begin_example

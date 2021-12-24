@@ -8,6 +8,92 @@
 Snippets that can be copied into ~$HOME/.emacs.d/lisp/init-local.el~
 for machine-local configuration.
 
+* Language Server Protocol
+
+[[https://github.com/joaotavora/eglot][Emacs Polyglot]] (or eglot) is an Emacs Language Server Protocol client.
+It is more lightweight than [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]], though also with less features.
+
+- Compose output from multiple eldoc documentation functions instead
+  of only using the first one which is the default behavior ([[https://github.com/joaotavora/eglot/issues/648][link]]).
+- ~C-c l~ invokes an eglot transient globally.
+
+#+begin_src emacs-lisp
+;; lightweight LSP client
+(use-package eglot
+  :commands eglot
+  :config
+  ;; increase wait time after last change before asking for
+  ;; completions from 0.5s to 2s to reduce request rate
+  (setq eglot-send-changes-idle-time 2))
+
+;; compose outputs from eldoc doc functions in Eglot managed buffers
+(with-eval-after-load 'eldoc
+  (with-eval-after-load 'eglot
+    (add-hook 'eglot--managed-mode-hook
+              (lambda ()
+                (when (boundp 'eldoc-documentation-strategy)
+                  (setq-local eldoc-documentation-strategy #'eldoc-documentation-compose))))))
+
+;; add transient for Eglot
+(with-eval-after-load 'eglot
+  (transient-define-prefix transient/eglot ()
+    "`eglot' session commands"
+    ["Eglot Language Server Protocol client"
+     ["Session"
+      ("ss" "Start" eglot)
+      ("sr" "Reconnect" eglot-reconnect)
+      ("sS" "Shutdown" eglot-shutdown)
+      ("sQ" "Shutdown all" eglot-shutdown-all)
+      ("sc" "Update cfg" eglot-signal-didChangeConfiguration)
+      ]
+     ["Goto"
+      ("ga" "Apropos" xref-find-apropos)
+      ("gf" "Defn" xref-find-definitions)
+      ("gd" "Decl" eglot-find-declaration)
+      ("gi" "Impl" eglot-find-implementation)
+      ("gr" "Refs" xref-find-references)
+      ("gt" "Typedef" eglot-find-typeDefinition)
+      ]
+     ["Code Actions"
+      ("cc" "Ask server" eglot-code-actions)
+      ("re" "Extract" eglot-code-action-extract)
+      ("ri" "Inline" eglot-code-action-inline)
+      ("ro" "Org. Imprts" eglot-code-action-organize-imports)
+      ("rf" "Quickfix" eglot-code-action-quickfix)
+      ("rw" "Rewrite" eglot-code-action-rewrite)
+      ]
+     ["Other"
+      ("rh" "Help-at-pt" eldoc)
+      ("rr" "Rename" eglot-rename)
+      ("rf" "Format" eglot-format)
+      ("re" "Events buf" eglot-events-buffer)
+      ("rs" "Stderr buf" eglot-stderr-buffer)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c l") #'transient/eglot))
+#+end_src
+
+* Python
+
+- Enable Flymake mode when editing Python files.
+- Use [[https://github.com/microsoft/DevSkim][DevSkim]] for code security analysis if it is installed.
+- Add Imenu entry to the menubar in ~python-mode~ buffers.
+
+#+begin_src emacs-lisp
+;; enable `flymake-mode' in `python-mode' buffers
+(add-hook 'python-mode-hook #'flymake-mode t)
+
+;; use devskim for code security analysis if installed
+(when (executable-find "devskim")
+  (with-eval-after-load 'flymake-quickdef
+    (add-hook 'python-mode-hook #'flymake-devskim-setup)))
+
+;; add Imenu index to menubar
+(with-eval-after-load 'imenu
+  (add-hook 'python-mode-hook 'imenu-add-menubar-index))
+#+end_src
+
 * R
 
 R support is provided by [[https://ess.r-project.org/][Emacs Speaks Statistics]], more commonly known

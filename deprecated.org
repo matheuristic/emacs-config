@@ -3622,9 +3622,10 @@ entry to the menubar.
 
 #+name: python-which-func-imenu
 #+begin_src emacs-lisp
-;; show function at point
-(with-eval-after-load 'which-func
-  (add-to-list 'which-func-modes 'python-mode))
+;; show function at point, usually enabled for `python-mode' buffers
+;; by default, but uncomment the following if needed
+;; (with-eval-after-load 'which-func
+;;   (add-to-list 'which-func-modes 'python-mode))
 
 ;; add Imenu index to menubar
 (with-eval-after-load 'imenu

@@ -262,3 +262,151 @@ Formatting a selected region only works on top-level objects."
     )
   (define-key ess-r-mode-map (kbd "C-c m") #'transient/ess-r-mode))
 #+end_src
+
+* Racket
+
+[[https://github.com/greghendershott/racket-mode][racket-mode]] provides a major mode for editing [[https://racket-lang.org/][Racket]] buffers.
+
+- When in a Racket buffer, ~C-c m~ invokes a mode-specific transient.
+
+#+begin_src emacs-lisp
+;; support for Racket buffers
+(use-package racket-mode
+  :defer t
+  :config
+  (defun racket-mode--maybe-enable-racket-xp-mode ()
+    "Enables `racket-xp-mode' if the \"racket\" executable is in system path.
+This is useful for only enabling `racket-xp-mode' when the active
+environment has Racket installed."
+    (when (executable-find "racket")
+      (racket-xp-mode 1)))
+  (add-hook 'racket-mode-hook #'racket-mode--maybe-enable-racket-xp-mode))
+
+;; major-mode specific transient for racket-mode
+(with-eval-after-load 'racket-mode
+  (defun transient/racket-mode--visit-definition ()
+    "Visits definition of identifier at point in `racket-mode' buffers.
+Uses `racket-xp-visit-definition' if `racket-xp-mode' is enabled,
+and `racket-repl-visit-definition' otherwise."
+    (interactive)
+    (if racket-xp-mode
+        (racket-xp-visit-definition)
+      (racket-repl-visit-definition)))
+
+  (defun transient/racket-mode--describe ()
+    "Describe identifier at point in `racket-mode' buffers.
+Uses `racket-xp-describe' if `racket-xp-mode' is enabled, and
+`racket-repl-describe' otherwise."
+    (interactive)
+    (if racket-xp-mode
+        (racket-xp-describe)
+      (racket-repl-describe)))
+
+  (defun transient/racket-mode--documentation ()
+    "Show documentation for identifier at point in `racket-mode' buffers.
+Documentation is opened in an external browser.
+Uses `racket-xp-documentation' if `racket-xp-mode' is enabled,
+and `racket-repl-documentation' otherwise."
+    (interactive)
+    (if racket-xp-mode
+        (racket-xp-documentation)
+      (racket-repl-documentation)))
+
+  (transient-define-prefix transient/racket-mode ()
+    "`racket-mode' commands."
+    ["Racket"
+     ["Run"
+      ("rr" "Buffer in REPL" racket-run)
+      ("rm" "Module in REPL" racket-run-module-at-point)
+      ("rR" "File in shell" racket-racket)
+      ]
+     ["Profiling/Logging"
+      ("rp" "Profiler" racket-profile)
+      ("rl" "Logger" racket-logger)
+      ]
+     ["Refactoring"
+      ("Rb" "Base requires" racket-base-requires)
+      ("Rt" "Tidy requires" racket-tidy-requires)
+      ("RT" "Trim requires" racket-trim-requires)
+      ]
+     ["Editing"
+      ("a" "Align" racket-align)
+      ("u" "Unalign" racket-unalign)
+      ]
+     ]
+    [
+     ["Testing"
+      ("tt" "Run tests in REPL" racket-test)
+      ("tr" "Raco test" racket-raco-test)
+      ]
+     ["Help"
+      ("." "Visit definition" transient/racket-mode--visit-definition)
+      ("C-." "Visit module" racket-visit-module)
+      ("," "Unvisit" racket-unvisit)
+      ("h" "Describe" transient/racket-mode--describe)
+      ("H" "Documentation" transient/racket-mode--documentation)
+      ]
+     ["Other"
+      ("f" "Find collection" racket-find-collection)
+      ("p" (lambda ()
+             (transient--make-description
+              "Paredit mode"
+              paredit-mode))
+       paredit-mode :transient t)
+      ("x" (lambda ()
+             (transient--make-description
+              "Explain/Explore mode"
+              racket-xp-mode))
+       racket-xp-mode :transient t)
+      ("s" "Compile racket-mode" racket-mode-start-faster)
+      ("S" "Revert compile" racket-mode-start-slower)
+      ]
+     ]
+    )
+
+  (define-key racket-mode-map (kbd "C-c m") #'transient/racket-mode))
+#+end_src
+
+* Insert characters from a menu
+
+[[https://github.com/mrkkrp/char-menu][char-menu]] allows inserting characters by selecting from an [[https://github.com/mrkkrp/avy-menu][Avy menu]].
+
+#+begin_src emacs-lisp
+;; insert characters from a menu
+(use-package char-menu
+  :bind ("C-c 8" . char-menu)
+  :custom
+  (char-menu '("—" "‘’" "“”" "…" "«»" "–"
+               ("Typography"
+                "•" "©" "®" "™" "†" "‡" "°" "·" "§" "¶" "№" "★" "¡" "¿" "※"
+                "◊" "❧" "☞" "¢" "£" "€" "Æ" "Œ" "æ" "œ" "½" "⅓" "¼" "⅛")
+               ("Emoji"
+                "😄" "😁" "😆" "😅" "🤣" "🙂" "🙃" "😉" "😇" "😙" "🤔" "🤨"
+                "😑" "🙄" "😌" "🙁" "😮" "😭" "😢" "😖" "😞" "😤" "😠" "🤬"
+                "😷" "🤒" "🥳" "💩" "❤" "💯" "👋" "👍" "👎" "🙏" "👀" "🤷" "🎉")
+               ("Mathematical Operators"
+                "±" "×" "÷" "√" "∑" "∏" "∫" "∮" "∴" "∵" "≠" "≈" "≉" "≤" "≥"
+                "⊂" "⊃" "⊄" "⊅" "⊆" "⊇" "⊈" "⊉" "⩵" "⩶" "≔" "≕" "≜" "∷" "∹"
+                "∀" "∂" "∃" "∄" "∅" "∆" "∇" "∈" "∉" "⊲" "⊳" "⊴" "⊵" "∝" "∞"
+                "⋀" "⋁" "⋂" "⋃" "∧" "∨" "∩" "∪" "⊼" "⊽" "¬" "⊥"
+                "⊢" "⊨" "⊬" "⊭" "≃" "≁" "∥" "⋮" "⋯")
+               ("Superscripts & Subscripts"
+                "⁰" "¹" "²" "³" "⁴" "⁵" "⁶" "⁷" "⁸" "⁹" "⁺" "⁻" "⁼" "⁽⁾"
+                "ⁱ" "ⁿ"
+                "₀" "₁" "₂" "₃" "₄" "₅" "₆" "₇" "₈" "₉" "₊" "₋" "₌" "₍₎"
+                "ₐ" "ₑ" "ₒ" "ₓ" "ₔ" "ₕ" "ₖ" "ₗ" "ₘ" "ₙ" "ₚ" "ₛ" "ₜ")
+               ("Arrows"
+                "←" "→" "↑" "↓" "⇐" "⇒" "⇑" "⇓" "⇔" "⇕" "⇍" "⇏" "⇎"
+                "↤" "↦" "↥" "↧" "↺" "↻")
+               ("Technical"
+                "⌘" "⌥" "⌫" "␡" "⌦" "⌃" "⎋" "␛" "⏎" "↩"
+                "⇥" "⇧" "⇪" "⏏" "⌽" "␣" "␀" "␖" "␆")
+               ("Greek"
+                "α" "β" "Y" "δ" "ε" "ζ" "η" "θ" "ι" "κ" "λ" "μ"
+                "ν" "ξ" "ο" "π" "ρ" "σ" "τ" "υ" "φ" "χ" "ψ" "ω")
+               ("Enclosed Alphanumerics"
+                "①" "②" "③" "④" "⑤" "⑥" "⑦" "⑧" "⑨" "Ⓐ" "Ⓑ" "Ⓒ" "Ⓓ" "Ⓔ" "Ⓕ" "Ⓖ"
+                "Ⓗ" "Ⓘ" "Ⓙ" "Ⓚ" "Ⓛ" "Ⓜ" "Ⓝ" "Ⓞ" "Ⓟ" "Ⓠ" "Ⓡ" "Ⓢ" "Ⓣ" "Ⓤ" "Ⓥ" "Ⓦ"
+                "Ⓧ" "Ⓨ" "Ⓩ" "ⓐ" "ⓑ" "ⓒ" "ⓓ" "ⓔ" "ⓕ" "ⓖ" "ⓗ" "ⓘ" "ⓙ" "ⓚ" "ⓛ" "ⓜ"
+                "ⓝ" "ⓞ" "ⓟ" "ⓠ" "ⓡ" "ⓢ" "ⓣ" "ⓤ" "ⓥ" "ⓦ" "ⓧ" "ⓨ" "ⓩ" "⓪"))))
+#+end_src

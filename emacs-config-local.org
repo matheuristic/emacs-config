@@ -128,7 +128,7 @@ by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
 #+begin_src emacs-lisp
 ;; support for R language using Emacs Speaks Statistics
 (use-package ess
-  :mode ("\\.R$" . R-mode)
+  :mode ("\\.R\\'" . R-mode)
   :commands (R-mode ess-switch-to-ESS)
   :init (setq ess-eval-visibly 'nowait
               ess-default-style 'RStudio
@@ -180,7 +180,7 @@ by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
 ;; better support for R Markdown and bookdown files
 (use-package poly-R)
 
-;; format R using 
+;; format R buffers using styler
 (with-eval-after-load 'reformatter
   (with-eval-after-load 'ess-r-mode
     ;; define `ess-r-styler-format-buffer', `ess-r-styler-format-region'
@@ -365,6 +365,29 @@ and `racket-repl-documentation' otherwise."
     )
 
   (define-key racket-mode-map (kbd "C-c m") #'transient/racket-mode))
+#+end_src
+
+* Go
+
+- Support for Go buffers
+- Enable Flymake mode when editing Python files
+- Use [[https://github.com/microsoft/DevSkim][DevSkim]] for code security analysis if it is installed
+- Add Imenu entry to the menubar in ~go-mode~ buffers
+
+#+begin_src emacs-lisp
+;; support for Go buffers
+(use-package go-mode
+  :mode ("\\.go\\'" . go-mode)
+  :config
+  ;; enable Flymake
+  (add-hook 'go-mode-hook #'flymake-mode t)
+  ;; use devskim for code security if available
+  (when (executable-find "devskim")
+    (with-eval-after-load 'flymake-quickdef
+      (add-hook 'go-mode-hook #'flymake-devskim-setup)))
+  ;; add Imenu index to menubar
+  (with-eval-after-load 'imenu
+    (add-hook 'go-mode-hook 'imenu-add-menubar-index)))
 #+end_src
 
 * Insert characters from a menu

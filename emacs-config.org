@@ -669,7 +669,7 @@ if the point is in the minibuffer."
                        (line-beginning-position 0)
                      (line-beginning-position)))
             (end (line-beginning-position 2))
-            (pulse-delay .25))
+            (pulse-delay .06))
         (pulse-momentary-highlight-region start end nil))))
 #+end_src
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Jan 26 22:33:30 2022
+;; Generated: Thu Jan 27 13:54:18 2022
 
 ;;; Commentary:
 
@@ -153,7 +153,7 @@ if the point is in the minibuffer."
                        (line-beginning-position 0)
                      (line-beginning-position)))
             (end (line-beginning-position 2))
-            (pulse-delay .25))
+            (pulse-delay .06))
         (pulse-momentary-highlight-region start end nil))))
 
 (defun my-save-and-bury-buffer (&rest _)

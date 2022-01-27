@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Wed Dec 22 12:32:32 2021
+;; Generated: Wed Jan 26 22:33:30 2022
 
 ;;; Commentary:
 
@@ -2058,8 +2058,8 @@ call `open-line' on the very first character."
 ;; Programming / Flymake syntax checker
 
 ;; basic Flymake customizations
-(setq flymake-no-changes-timeout 0.5 ;; auto check buffer change wait time
-      flymake-start-on-save-buffer nil) ;; don't run checks when saving
+(setq flymake-no-changes-timeout nil ;; don't run checks on no typing
+      flymake-start-on-save-buffer t) ;; only run checks on saving
 
 ;; deferred Flymake customizations
 (with-eval-after-load 'flymake
@@ -2100,8 +2100,8 @@ call `open-line' on the very first character."
 
 ;; Code security analysis using devskim, https://github.com/microsoft/DevSkim
 ;; A Flymake backend for it is defined here, and can be used by calling
-;; `flymake-devskim-setup' before `flymake-mode' in a given mode's hook, e.g.
-;;   (add-hook 'python-mode-hook 'flymake-devskim-setup)
+;; `flymake-devskim-toggle' before `flymake-mode' in a given mode's hook, e.g.
+;;   (add-hook 'python-mode-hook 'flymake-devskim-toggle)
 ;;   (add-hook 'python-mode-hook 'flymake-mode t)
 ;; For more info on the different severity types, see
 ;; https://github.com/microsoft/DevSkim/wiki/Rule-Object-Schema
@@ -4899,6 +4899,10 @@ not support restricting to a region."
 ;; add transient for Flymake
 (with-eval-after-load 'flymake
   (with-eval-after-load 'flymake-quickdef
+    (defun transient/flymake-mode--flymake-devskim-toggle ()
+      "Wrapper for calling `flymake-devskim-toggle' if defined."
+      (interactive)
+      (call-interactively #'flymake-devskim-toggle))
     (transient-define-prefix transient/flymake-mode ()
       "`flymake-mode' commands."
       :transient-suffix 'transient--do-stay
@@ -4926,7 +4930,7 @@ not support restricting to a region."
                (transient--make-description
                 "Devskim"
                 (memq 'flymake-devskim-backend flymake-diagnostic-functions)))
-         flymake-devskim-toggle)
+         transient/flymake-mode--flymake-devskim-toggle)
         ]
        ]
       ))

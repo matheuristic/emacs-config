@@ -364,8 +364,9 @@ and `racket-repl-documentation' otherwise."
 * Go
 
 - Support for Go buffers
-- Enable Flymake mode when editing Python files
 - Add Imenu entry to the menubar in ~go-mode~ buffers
+- Install ~gopls~ which is usable with Eglot by running
+  ~GO111MODULE=on go get golang.org/x/tools/gopls@latest~
 
 #+begin_src emacs-lisp
 ;; support for Go buffers
@@ -374,7 +375,38 @@ and `racket-repl-documentation' otherwise."
   :config
   ;; add Imenu index to menubar
   (with-eval-after-load 'imenu
-    (add-hook 'go-mode-hook 'imenu-add-menubar-index)))
+    (add-hook 'go-mode-hook 'imenu-add-menubar-index))
+  ;; major-mode specific transient for Go buffers
+  (transient-define-prefix transient/go-mode ()
+    "`go-mode' commands."
+    ["Go"
+     ["Goto"
+      ("fa" "Arguments" go-goto-arguments)
+      ("fd" "Docstring" go-goto-docstring)
+      ("ff" "Function" go-goto-function)
+      ("fi" "Imports" go-goto-imports)
+      ("fm" "Method recv" go-goto-method-receiver)
+      ("fn" "Func name" go-goto-function-name)
+      ("fr" "Return vals" go-goto-return-values)
+      ]
+     ["Imports"
+      ("a" "Add" go-import-add)
+      ("r" "Remove unused" go-remove-unused-imports)
+      ""
+      "Playground"
+      ("pd" "Download URL" go-download-play)
+      ("pb" "Send buffer" go-play-buffer)
+      ("pr" "Send region" go-play-region)
+      ]
+     ["Other"
+      ("C" "Test coverage" go-coverage)
+      ("D" "Godoc" godoc)
+      ("F" "Gofmt" gofmt)
+      ("P" "Set project" go-set-project)
+      ]
+     ]
+    )
+  (define-key go-mode-map (kbd "C-c m") #'transient/go-mode))
 #+end_src
 
 * Insert characters from a menu

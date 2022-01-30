@@ -5279,84 +5279,6 @@ Use custom ~ereader~ theme in ~lisp/ereader-theme.el~.
 
 *Note*: Emacs 27+ added a new face attribute ~:extend~ to control extension of the face from the EOL until the edge of the window. By default it is only turned on for the ~hl-line~ and ~region~ faces. When modifying the custom theme, make sure to set this attribute to ~t~ for the faces that need to be extended.
 
-** Display face fonts                                                 :early:
-
-Set the fonts used for display faces.
-
-There are a few main display faces many other faces inherit from:
-- ~default~: The main display face, everything inherits from this directly or
-  indirectly unless otherwise specified.
-- ~fixed-pitch~: For specific cases where a fixed-pitch
-  (i.e. monospace) font is expected.
-- ~variable-pitch~: For specific cases where a variable-pitch
-  (i.e. proportional) font is expected.
-- ~mode-line~: Mode line face for active buffers.
-- ~mode-line-inactive~: Mode line face for inactive buffers.
-
-Also set a fallback font for filling gaps in character coverage in the
-display face fonts using ~set-fontset-font~,
-which has the function signature
-~(set-fontset-font NAME TARGET FONT-SPEC &optional FRAME ADD)~.
-The key observations here are that:
-- When ~NAME~ is ~t~, this is applied to the default fontset.
-- When ~TARGET~ is ~nil~, ~FONT-SPEC~ is used for missing characters
-  (if it has that character).
-- When ~ADD~ is ~append~, then this font is added to the end of the
-  fontset which means it will be searched for a matching character
-  glyph after all other fonts in the set.
-
-For a list of good free or open-source fonts, see this [[https://github.com/matheuristic/dotfiles/blob/master/font_notes.org][link]].
-For more information about fonts and fontsets in Emacs, see this [[https://idiocy.org/emacs-fonts-and-fontsets.html][link]].
-
-If using a large font, it is also a good idea to set
-~inhibit-compacting-font-caches~ to ~t~ which avoids garbage
-collecting font caches. This mitigates scenarios where the font is
-removed from the cache and reloaded again during redisplay which can
-slow down the redisplay.
-
-#+name: set-display-face-fonts
-#+begin_src emacs-lisp
-;; set typefaces for graphical Emacs
-;; main fonts
-;; - note that the default face must specify :height using an integer
-;;   in units of 1/10 point but other faces can use a float specifying
-;;   height relative to its underlying face if desired
-(set-face-attribute 'default nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 150 110)
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'fixed-pitch nil :family "Iosevka Term"
-                    :height 1.0
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
-                    :height 1.0
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 120 90)
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line-inactive nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 120 90)
-                    :weight 'normal :width 'normal)
-;; fallback font
-(set-fontset-font t nil "Symbola" nil 'append)
-;; increase min underline offset for more readable underlined words
-(setq underline-minimum-offset 5)
-;; uncomment below if using a large font to not compact it duing GC
-(setq inhibit-compacting-font-caches t)
-#+end_src
-
-For some fonts, an alternative character may be preferable to the
-standard character show for some symbol code.
-In those instances, the [[https://www.gnu.org/software/emacs/manual/html_node/elisp/Active-Display-Table.html#Active-Display-Table][standard display table]] can be modified to
-display replace characters of a given code with characters of a
-different one.
-An example is shown below.
-
-#+begin_example
-;; the following displays '0' using '\ue007' (private slashed zero in B612 font)
-(setq standard-display-table (make-display-table))
-(aset standard-display-table ?0 [?])
-#+end_example
-
 ** Nicer writing environment                                          :melpa:
 
 [[https://github.com/rnkn/olivetti][Olivetti]] (named for the typewriter) provides a buffer-local minor mode
@@ -8868,8 +8790,6 @@ Static UI customizations should go here to optimize startup time.
 <<remove-decorations>>
 
 <<load-custom-theme>>
-
-<<set-display-face-fonts>>
 
 <<generate-footer(feature="early-init")>>
 #+end_src

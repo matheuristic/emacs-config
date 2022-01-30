@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jan 30 12:20:30 2022
+;; Generated: Sun Jan 30 12:31:08 2022
 
 ;;; Commentary:
 
@@ -86,33 +86,6 @@
              (file-name-as-directory
               (expand-file-name "themes" user-emacs-directory)))
 (load-theme 'ereader t)
-
-;; set typefaces for graphical Emacs
-;; main fonts
-;; - note that the default face must specify :height using an integer
-;;   in units of 1/10 point but other faces can use a float specifying
-;;   height relative to its underlying face if desired
-(set-face-attribute 'default nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 150 110)
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'fixed-pitch nil :family "Iosevka Term"
-                    :height 1.0
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'variable-pitch nil :family "Iosevka Aile"
-                    :height 1.0
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 120 90)
-                    :weight 'normal :width 'normal)
-(set-face-attribute 'mode-line-inactive nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 120 90)
-                    :weight 'normal :width 'normal)
-;; fallback font
-(set-fontset-font t nil "Symbola" nil 'append)
-;; increase min underline offset for more readable underlined words
-(setq underline-minimum-offset 5)
-;; uncomment below if using a large font to not compact it duing GC
-(setq inhibit-compacting-font-caches t)
 
 (provide 'early-init)
 ;;; early-init.el ends here

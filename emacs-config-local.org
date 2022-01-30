@@ -8,6 +8,28 @@
 Snippets that can be copied into ~$HOME/.emacs.d/lisp/init-local.el~
 for machine-local configuration.
 
+The following is a template for local configuration.
+
+#+begin_src emacs-lisp
+;;; init-local.el --- Emacs local config file -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
+;; Emacs configuration that is machine-local, typically loaded before
+;; the Customize file.
+
+;; This file should be located at lisp/init-local.el within
+;; `user-emacs-directory', typically ~/.emacs.d/lisp/init-local.el
+
+;;; Code:
+
+;; ... machine-local configuration goes here ...
+
+(provide 'init-local)
+;;; init-local.el ends here
+
+#+end_src
+
 * Display face fonts
 
 Set the fonts used for display faces.

@@ -27,7 +27,6 @@ The following is a template for local configuration.
 
 (provide 'init-local)
 ;;; init-local.el ends here
-
 #+end_src
 
 * Display face fonts
@@ -176,8 +175,12 @@ It is more lightweight than [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]],
 * Python
 
 - Enable Flymake mode when editing Python files.
-- Use [[https://github.com/microsoft/DevSkim][DevSkim]] for code security analysis if it is installed.
 - Add Imenu entry to the menubar in ~python-mode~ buffers.
+- Use ~jedi-language-server~ ([[https://github.com/pappasam/jedi-language-server][link]]) in Eglot for Python buffers. Since
+  ~jedi-language-server~ smartly handles virtual environments, it is
+  fine to install it outside of a development environment (e.g., for
+  conda it can be installed in some ~jedi-ls~ environment with the
+  ~jedi-language-server~ binary symlinked to a directory in ~$PATH~).
 
 #+begin_src emacs-lisp
 ;; enable `flymake-mode' in `python-mode' buffers
@@ -186,6 +189,10 @@ It is more lightweight than [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]],
 ;; add Imenu index to menubar
 (with-eval-after-load 'imenu
   (add-hook 'python-mode-hook 'imenu-add-menubar-index))
+
+;; use jedi-language-server for Python buffers when using eglot
+(with-eval-after-load 'eglot
+  (setf (alist-get 'python-mode eglot-server-programs) '("jedi-language-server")))
 #+end_src
 
 * R

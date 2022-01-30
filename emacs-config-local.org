@@ -91,7 +91,7 @@ slow down the redisplay.
 (set-fontset-font t nil "Symbola" nil 'append)
 ;; increase min underline offset for more readable underlined words
 (setq underline-minimum-offset 5)
-;; uncomment below if using a large font to not compact it duing GC
+;; uncomment below if using a large font to not compact it during GC
 (setq inhibit-compacting-font-caches t)
 #+end_src
 

@@ -58,6 +58,7 @@ The key observations here are that:
 
 For a list of good free or open-source fonts, see this [[https://github.com/matheuristic/dotfiles/blob/master/font_notes.org][link]].
 For more information about fonts and fontsets in Emacs, see this [[https://idiocy.org/emacs-fonts-and-fontsets.html][link]].
+Run ~(font-family-list)~ to get a list of available font families.
 
 If using a large font, it is also a good idea to set
 ~inhibit-compacting-font-caches~ to ~t~ which avoids garbage

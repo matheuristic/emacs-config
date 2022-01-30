@@ -73,7 +73,7 @@ slow down the redisplay.
 ;;   in units of 1/10 point but other faces can use a float specifying
 ;;   height relative to its underlying face if desired
 (set-face-attribute 'default nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 150 110)
+                    :height (if (eq system-type 'darwin) 160 110)
                     :weight 'normal :width 'normal)
 (set-face-attribute 'fixed-pitch nil :family "Iosevka Term"
                     :height 1.0
@@ -82,10 +82,10 @@ slow down the redisplay.
                     :height 1.0
                     :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 120 90)
+                    :height (if (eq system-type 'darwin) 130 90)
                     :weight 'normal :width 'normal)
 (set-face-attribute 'mode-line-inactive nil :family "Iosevka Term"
-                    :height (if (eq system-type 'darwin) 120 90)
+                    :height (if (eq system-type 'darwin) 130 90)
                     :weight 'normal :width 'normal)
 ;; fallback font
 (set-fontset-font t nil "Symbola" nil 'append)

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Jan 27 13:54:18 2022
+;; Generated: Sun Jan 30 12:20:30 2022
 
 ;;; Commentary:
 
@@ -2298,52 +2298,6 @@ Lisp function does not specify a special indentation."
               (goto-char (+ 2 (elt state 1)))
               (current-column)))
            (t $else)))))))
-
-;; Programming / J
-
-;; load support for editing J scripts
-(use-package j-mode
-  :ensure nil ; in site-lisp directory
-  :pin manual ; in site-lisp directory
-  :init (setq j-help-browser-function #'eww-browse-url)
-  :config
-  ;; setup J buffer-specific editing environment
-  (defun j-mode--setup ()
-    "Setup code to run when entering a `j-mode' buffer."
-    ;; use different font
-    (my-set-buffer-face-mode-font-family "Iosevka Term Slab"))
-  ;; run `j-mode--setup' in J and J REPL buffers
-  (add-hook 'j-mode-hook #'j-mode--setup)
-  (add-hook 'inferior-j-mode-hook #'j-mode--setup)
-  ;; setup Flymake
-  (with-eval-after-load 'flymake-quickdef
-    (flymake-quickdef-backend flymake-j-console-debug-lint-backend
-      :pre-let ((j-console-exec (executable-find j-console-cmd)))
-      :pre-check (unless j-console-exec
-                   (error "Cannot find J executable"))
-      :write-type 'file
-      :proc-form (list j-console-exec
-                       "-js"
-                       "require 'debug/lint'"
-                       (concat "echo lint '" fmqd-temp-file "'")
-                       "exit''")
-      :search-regexp
-      "│\\([[:digit:]]+\\)│\\(.+\\) *│$"
-      :prep-diagnostic
-      (let* ((lnum (1+ (string-to-number (match-string 1)))) ; lint output linenums are 0-indexed, but Emacs linenums are 1-indexed
-             (msg (match-string 2))
-             (pos (flymake-diag-region fmqd-source lnum))
-             (beg (car pos))
-             (end (cdr pos))
-             (type :error))
-        (list fmqd-source beg end type msg)))
-    (defun flymake-j-console-debug-lint-setup ()
-      "Enable jconsole debug/lint backend for Flymake."
-      (add-hook 'flymake-diagnostic-functions #'flymake-j-console-debug-lint-backend nil t))
-    ;; enable Flymake with j-console backend when editing J files
-    (add-hook 'j-mode-hook #'flymake-j-console-debug-lint-setup)
-    ;; (add-hook 'j-mode-hook #'flymake-mode t)
-    ))
 
 ;; Programming / Python
 

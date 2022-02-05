@@ -7112,7 +7112,7 @@ Transient providing entry points into Eshell and Ansi-Term.
     ("l" "Line" my-eshell-send-line)
     ("r" "Region" my-eshell-send-region)
     ]
-   ["Tmux"
+   ["Send to Tmux"
     ("tl" "Line" tmux-send-line)
     ("tr" "Region" tmux-send-region)
     ]

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Feb  5 12:36:59 2022
+;; Generated: Sat Feb  5 12:45:55 2022
 
 ;;; Commentary:
 
@@ -3450,7 +3450,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("l" "Line" my-eshell-send-line)
     ("r" "Region" my-eshell-send-region)
     ]
-   ["Tmux"
+   ["Send to Tmux"
     ("tl" "Line" tmux-send-line)
     ("tr" "Region" tmux-send-region)
     ]

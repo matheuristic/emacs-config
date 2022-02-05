@@ -567,3 +567,13 @@ and `racket-repl-documentation' otherwise."
   (define-key go-mode-map (kbd "C-c m") #'transient/go-mode))
 #+end_src
 
+* Common Lisp
+
+#+begin_src emacs-lisp
+;; support for Common Lisp
+(use-package sly
+  :config (setq inferior-lisp-program (cond ((executable-find "ros") "ros -Q run")
+                                            ((executable-find "sbcl") "sbcl")
+                                            ((executable-find "ccl64") "ccl64")
+                                            (t "lisp"))))
+#+end_src

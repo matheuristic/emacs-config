@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jan 30 12:31:08 2022
+;; Generated: Sat Feb  5 12:36:59 2022
 
 ;;; Commentary:
 
@@ -722,22 +722,23 @@ provided, the default interactive `eshell' command is run."
 ;; convenience functions for sent commands to an active tmux session
 ;; adapted from https://explog.in/notes/tmux.html
 
-;; track previously sent tmux commands on per-buffer basis
-(setq tmux-send--last-command nil)
-(make-variable-buffer-local 'tmux-send--last-command)
-
 (defun tmux-send (command)
-  "Sends the specified COMMAND to the currently active tmux pane."
-  (interactive "sCommand: ")
-  (setq tmux-send--last-command command)
-  (call-process "tmux" nil nil nil "send-keys" command "Enter"))
+  "Execute COMMAND in the most recently active tmux pane."
+  (when command
+    (call-process "tmux" nil nil nil "send-keys" command "Enter")))
 
-(defun tmux-resend ()
-  "Resends previously sent command to currently active tmux pane."
+(defun tmux-send-region ()
+  "Execute region in the most recently active tmux pane."
   (interactive)
-  (if tmux-send--last-command
-      (call-process "tmux" nil nil nil "send-keys" tmux-send--last-command "Enter")
-    (message "No previously sent command from the current buffer!")))
+  (cond
+   ((use-region-p)
+    (tmux-send (buffer-substring-no-properties (region-beginning) (region-end))))
+   (t (message "No region selected"))))
+
+(defun tmux-send-line ()
+  "Execute line in the most recently active tmux pane."
+  (interactive)
+  (tmux-send (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
 
 ;; Comparison tools
 
@@ -3447,10 +3448,11 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ]
    ["Send to Eshell"
     ("l" "Line" my-eshell-send-line)
-    ("r" "Region" my-eshell-send-region)]
+    ("r" "Region" my-eshell-send-region)
+    ]
    ["Tmux"
-    ("ts" "Send" tmux-send)
-    ("tr" "Resend" tmux-resend)
+    ("tl" "Line" tmux-send-line)
+    ("tr" "Region" tmux-send-region)
     ]
    ]
   )

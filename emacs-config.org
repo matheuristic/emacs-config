@@ -215,6 +215,11 @@ through a shell command and print its output to the minibuffer.
 a prefix arg) will pipe the selected region through a shell command
 and replace the selected region with its output.
 
+*** Completion at point ("C-M-i")
+
+~C-M-i~ completes the word at point using the active completion
+mechanism.
+
 ** Random useful Emacs links
 
 Literate configs, package lists, and so on and so forth.

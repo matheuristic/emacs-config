@@ -572,8 +572,61 @@ and `racket-repl-documentation' otherwise."
 #+begin_src emacs-lisp
 ;; support for Common Lisp
 (use-package sly
-  :config (setq inferior-lisp-program (cond ((executable-find "ros") "ros -Q run")
-                                            ((executable-find "sbcl") "sbcl")
-                                            ((executable-find "ccl64") "ccl64")
-                                            (t "lisp"))))
+  :config
+  (setq inferior-lisp-program (cond ((executable-find "ros") "ros -Q run")
+                                    ((executable-find "sbcl") "sbcl")
+                                    ((executable-find "ccl64") "ccl64")
+                                    (t "lisp")))
+  ;; major-mode specific transient for Common Lisp buffers
+  (transient-define-prefix transient/sly-mode ()
+    "`sly-mode' commands."
+    ["Sly"
+     ["Actions"
+      ("z" "Connect" sly)
+      ("e" "Eval" sly-interactive-eval)
+      ("p" "Eval at point" sly-pprint-eval-last-expression)
+      ("r" "Eval region" sly-eval-region)
+      ("b" "Interrupt" sly-interrupt)
+      ("t" "Toggle trace" sly-toggle-trace-fdefinition)
+      ("I" "Inspect" sly-inspect)
+      ("M-d" "Disassemble" sly-disassemble-symbol)
+      ("C-u" "Undefine fn" sly-undefine-function)
+      ]
+     ["Who"
+      ("wa" "Specializes" sly-who-specializes)
+      ("wb" "Binds" sly-who-binds)
+      ("wc" "Calls" sly-who-calls)
+      ("wm" "Macro expands" sly-who-macroexpands)
+      ("wr" "References" sly-who-references)
+      ("ws" "Sets" sly-who-sets)
+      ("ww" "Is called by" sly-calls-who)
+      ]
+     ["Show"
+      ("xc" "Connections" sly-list-connections)
+      ("xt" "Threads" sly-list-threads)
+      ("x<" "Callers" sly-list-callers)
+      ("x>" "Callees" sly-list-callees)
+      ("xm" "Macroexpand-1" sly-expand-1)
+      ("xM" "Macroexpand-*" sly-macroexpand-all)
+      ]
+     ["Selector"
+      ("xd" "Debugger" sly-db-pop-to-debugger-maybe)
+      ("xe" "Events" sly-pop-to-events-buffer)
+      ("xi" "REPL" sly-inferior-lisp-buffer)
+      ("xl" "Last buf" sly-switch-to-most-recent)
+      ("xn" "Next conn" sly-next-connection)
+      ("xp" "Prev conn" sly-prev-connection)
+      ]
+     ]
+    [
+     ["Doc"
+      ("da" "Apropos" sly-apropos)
+      ("dd" "Lookup" sly-documentation-lookup)
+      ("df" "Function" sly-describe-function)
+      ("ds" "Symbol" sly-describe-symbol)
+      ("d~" "Hyperspec" hyperspec-lookup)
+      ]
+     ]
+    )
+  (define-key sly-mode-map (kbd "C-c m") #'transient/sly-mode))
 #+end_src

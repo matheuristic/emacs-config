@@ -577,10 +577,14 @@ and `racket-repl-documentation' otherwise."
   manager), [[http://www.sbcl.org/][SBCL]] and [[https://ccl.clozure.com/][Clozure CL]] is used
 - When in a Common Lisp buffer, ~C-c m~ invokes a mode-specific
   transient.
+- TODO
+  - [[https://github.com/mmgeorge/sly-asdf][sly-asdf]] (support for editing [[https://asdf.common-lisp.dev/][ASDF]] systems)
+  - [[https://github.com/joaotavora/sly-quicklisp][sly-quicklisp]] ([[https://www.quicklisp.org/][Quicklisp]] support)
 
 #+begin_src emacs-lisp
 ;; support for Common Lisp
 (use-package sly
+  :hook ((lisp-mode sly-mrepl-mode) . enable-paredit-mode)
   :config
   (setq inferior-lisp-program (cond ((executable-find "ros") "ros -Q run")
                                     ((executable-find "sbcl") "sbcl")
@@ -637,5 +641,21 @@ and `racket-repl-documentation' otherwise."
       ]
      ]
     )
+  (with-eval-after-load 'sly-stickers
+    (transient-append-suffix 'transient/sly-mode '(-1 -1)
+      ["Stickers"
+       ("ss" "DWIM" sly-stickers-dwim)
+       ("sr" "Replay" sly-stickers-replay)
+       ("sS" "Fetch" sly-stickers-fetch)
+       ("sF" "Forget" sly-stickers-forget)
+       ("sd" "Clear defun" sly-stickers-clear-defun-stickers)
+       ("sk" "Clear buf" sly-stickers-clear-buffer-stickers)
+       ("sR" "Clear region" sly-stickers-clear-region-stickers)
+       ]
+      ))
+  (with-eval-after-load 'sly-trace-dialog
+    (transient-append-suffix 'transient/sly-mode '(0 3 -1)
+      '("xT" "Trace dialog" sly-trace-dialog)
+      ))
   (define-key sly-mode-map (kbd "C-c m") #'transient/sly-mode))
 #+end_src

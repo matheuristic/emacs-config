@@ -580,6 +580,7 @@ and `racket-repl-documentation' otherwise."
 - TODO
   - [[https://github.com/mmgeorge/sly-asdf][sly-asdf]] (support for editing [[https://asdf.common-lisp.dev/][ASDF]] systems)
   - [[https://github.com/joaotavora/sly-quicklisp][sly-quicklisp]] ([[https://www.quicklisp.org/][Quicklisp]] support)
+  - [[https://github.com/joaotavora/sly-macrostep][sly-macrostep]] (expand macros within the source file, may not be needed)
 
 #+begin_src emacs-lisp
 ;; support for Common Lisp

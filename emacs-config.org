@@ -222,29 +222,47 @@ mechanism.
 
 *** Mouse commands for easy select, copy and paste
 
-~Drag-mouse-1~ (left-click drag) will put the selection in the primary
-selection.
+~Mouse-1~ (left-click) sets the point to the click position.
 
-~Mouse-2~ (middle-click) yanks (pastes) the contents of the primary
-selection.
+~Drag-mouse-1~ (left-click drag) will select a region and put it in the [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Primary-Selection.html][primary selection]].
+
+~Mouse-2~ (middle-click) yanks (pastes) the latest content from the
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Kill-Ring.html][kill-ring]], [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Clipboard.html][clipboard]] or primary selection.
 
 ~Mouse-3~ (right-click) moves the nearer end of the region to the
 click position if a region is active or selects a region from the
 previous point to the new click position, then saves the resulting
-region to the kill-ring. An additional ~Mouse-3~ (right-click) will
-kill the region.
+region to the kill-ring. An additional ~Mouse-3~ (right-click) in the
+same position will kill the region.
 
 ~Double-mouse-1~ (double left-click) selects the word under the point,
-or the S-expression if the point is on a delimiter, but does put it in
-the primary selection. ~Mouse-3~ (right-click) will then copy it to
-the primary selection, and ~Mouse-2~ (middle-click) will then yank
-(paste) the contents of the primary selection.
+or the S-expression if the point is on a delimiter, and puts it in the
+primary selection.
 
-~Triple-mouse-1~ (triple left-click) selects the line under the point.
+~Triple-mouse-1~ (triple left-click) selects the line under the point,
+and puts it in the primary selection.
 
 ~C-M-mouse-1~ (control-meta-left-click) does rectangular selection.
 
-See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mouse-Commands.html][here]] and [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Word-and-Line-Mouse.html][here]] for more information.
+~M-mouse-1~, ~M-drag-mouse-1~, ~M-mouse-2~, ~M-mouse-3~,
+~M-Double-mouse-1~ and ~M-Triple-mouse-1~ act like their non-~M~
+counterparts except they operate on the secondary selection. This can
+be cleared by killing the secondary selection region (e.g. by double
+~M-mouse-3~) or using ~(delete-overlay mouse-secondary-overlay)~.
+
+To not use the secondary selection at all via the mouse, add the
+following to the config.
+
+#+begin_src emacs-lisp
+;; disable mouse bindings for secondary selection
+(global-unset-key [M-mouse-1])
+(global-unset-key [M-drag-mouse-1])
+(global-unset-key [M-down-mouse-1])
+(global-unset-key [M-mouse-3])
+(global-unset-key [M-mouse-2])
+#+end_src
+
+See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mouse-Commands.html][here]], [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Word-and-Line-Mouse.html][here]] and [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Secondary-Selection.html][here]] for more information.
 
 ** Random useful Emacs links
 

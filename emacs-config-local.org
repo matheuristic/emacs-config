@@ -277,7 +277,7 @@ by its abbreviation ESS ([[https://github.com/emacs-ess/ESS][Github]]).
   top-level objects) along with the local minor mode
   ~r-styler-format-on-save-mode~ that uses [[https://github.com/r-lib/styler][styler]] to format the code
   in the buffer.
-- When in an R buffer, ~C-c m~ invokes a mode-specific transient.
+- When in an R buffer, ~C-c m~ invokes a mode-specific transient
 
 #+begin_src emacs-lisp
 ;; support for R language using Emacs Speaks Statistics
@@ -421,7 +421,7 @@ Formatting a selected region only works on top-level objects."
 
 [[https://github.com/greghendershott/racket-mode][racket-mode]] provides a major mode for editing [[https://racket-lang.org/][Racket]] buffers.
 
-- When in a Racket buffer, ~C-c m~ invokes a mode-specific transient.
+- When in a Racket buffer, ~C-c m~ invokes a mode-specific transient
 
 #+begin_src emacs-lisp
 ;; support for Racket buffers
@@ -527,7 +527,7 @@ and `racket-repl-documentation' otherwise."
 - Add Imenu entry to the menubar in ~go-mode~ buffers
 - Install ~gopls~ which is usable with Eglot by running
   ~GO111MODULE=on go get golang.org/x/tools/gopls@latest~
-- When in a Go buffer, ~C-c m~ invokes a mode-specific transient.
+- When in a Go buffer, ~C-c m~ invokes a mode-specific transient
 
 #+begin_src emacs-lisp
 ;; support for Go buffers
@@ -576,7 +576,7 @@ and `racket-repl-documentation' otherwise."
 - The first available implementation among [[https://github.com/roswell/roswell][Roswell]] (an implementation
   manager), [[http://www.sbcl.org/][SBCL]] and [[https://ccl.clozure.com/][Clozure CL]] is used
 - When in a Common Lisp buffer, ~C-c m~ invokes a mode-specific
-  transient.
+  transient
 - TODO
   - [[https://github.com/mmgeorge/sly-asdf][sly-asdf]] (support for editing [[https://asdf.common-lisp.dev/][ASDF]] systems)
   - [[https://github.com/joaotavora/sly-quicklisp][sly-quicklisp]] ([[https://www.quicklisp.org/][Quicklisp]] support)
@@ -662,6 +662,10 @@ and `racket-repl-documentation' otherwise."
 #+end_src
 
 * Julia
+
+- Support for Julia buffers
+- Julia REPL integration using [[https://github.com/gcv/julia-snail][julia-snail]]
+- When in a Julia buffer, ~C-c m~ invokes a mode-specific transient
 
 #+begin_src emacs-lisp
 ;; provides a Julia IDE

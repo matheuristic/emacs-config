@@ -660,3 +660,37 @@ and `racket-repl-documentation' otherwise."
       ))
   (define-key sly-mode-map (kbd "C-c m") #'transient/sly-mode))
 #+end_src
+
+* Julia
+
+#+begin_src emacs-lisp
+;; provides a Julia IDE
+(use-package julia-snail
+  :after vterm
+  :hook (julia-mode . julia-snail-mode)
+  :config
+  ;; enable Julia multimedia integration if images are supported
+  (when (display-images-p)
+    (setq julia-snail-multimedia-enable t))
+  ;; major-mode specific transient for Julia buffers
+  (transient-define-prefix transient/julia-snail-mode ()
+    "`julia-snail-mode' commands."
+    ["Julia Snail"
+     ["Actions"
+      ("z" "Connect" julia-snail)
+      ("a" "Activate pkg" julia-snail-package-activate)
+      ("d" "Documentation lookup" julia-snail-doc-lookup)
+      ("m" "Toggle multimedia" julia-snail-multimedia-toggle-display-in-emacs)
+      ("R" "Update module cache" julia-snail-update-module-cache)
+      ]
+     ["Send"
+      ("k" "Buffer" julia-snail-send-buffer-file)
+      ("c" "Top-level form" julia-snail-send-top-level-form)
+      ("r" "Region" julia-snail-send-region)
+      ("l" "Line" julia-snail-send-line)
+      ("e" "DWIM" julia-snail-send-dwim)
+      ]
+     ]
+    )
+  (define-key julia-snail-mode-map (kbd "C-c m") #'transient/julia-snail-mode))
+#+end_src

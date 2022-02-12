@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Feb 11 21:40:15 2022
+;; Generated: Fri Feb 11 22:05:18 2022
 
 ;;; Commentary:
 
@@ -718,6 +718,10 @@ provided, the default interactive `eshell' command is run."
                          (kill-buffer (current-buffer))))
                      keymap))))
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
+
+;; add 256-color support to `term' and `ansi-term'
+(use-package eterm-256color
+  :hook (term-mode . eterm-256color-mode))
 
 ;; convenience functions for sent commands to an active tmux session
 ;; adapted from https://explog.in/notes/tmux.html

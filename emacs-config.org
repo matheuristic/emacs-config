@@ -1705,6 +1705,18 @@ Kill term buffers after session end on a "q" keypress.
 (advice-add 'term-handle-exit :after #'term-handle-exit--close-buffer-on-cmd)
 #+end_src
 
+*** Add ability to handle more colors to term/ansi-term
+
+The [[https://github.com/dieggsy/eterm-256color][eterm-256color]] package adds support for 256 colors in ~term-mode~
+and ~ansi-term-mode~ buffers.
+
+#+name: eterm-256color
+#+begin_src emacs-lisp
+;; add 256-color support to `term' and `ansi-term'
+(use-package eterm-256color
+  :hook (term-mode . eterm-256color-mode))
+#+end_src
+
 ** tmux interaction convenenience functions
 
 Define some convenience functions for interaction with the currently active tmux session.
@@ -8979,6 +8991,8 @@ The main configuration file.
 <<comint-prompt-read-only>>
 
 <<kill-term-buffers-with-q-after-end>>
+
+<<eterm-256color>>
 
 <<tmux-send>>
 

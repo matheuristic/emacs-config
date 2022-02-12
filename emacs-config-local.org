@@ -964,17 +964,19 @@ Version using ~julia-repl~ to provide Julia REPL support in Emacs.
   ;; julia-repl-mode transient
   (transient-define-prefix transient/julia-repl-mode ()
     "`julia-repl-mode' commands."
-    ["Julia Snail"
-     [("z" "Connect" julia-repl)
+    ["Julia REPL"
+     [
+      ("z" "Connect" julia-repl)
       ("a" "Activate" julia-repl-activate-parent)
+      ("b" "Send buffer" julia-repl-send-buffer)
+      ("c" "Send region/line" julia-repl-send-region-or-line)]
+     [
       ("p" "Change dir" julia-repl-cd)
       ("s" "Set REPL suffix" julia-repl-prompt-set-inferior-buffer-name-suffix)
-      ("t" "Includet buffer" julia-repl-includet-buffer)
       ("v" "Set Julia exe" julia-repl-prompt-set-executable-key)
+      ("t" "Includet buffer" julia-repl-includet-buffer)
       ]
-     [("b" "Send buffer" julia-repl-send-buffer)
-      ("c" "Send region/line" julia-repl-send-region-or-line)
-      ("d" "@doc" julia-repl-doc)
+     [("d" "@doc" julia-repl-doc)
       ("e" "@edit" julia-repl-edit)
       ("l" "List methods" julia-repl-list-methods)
       ("m" "Macroexpand" julia-repl-macroexpand)

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Thu Feb 10 22:02:09 2022
+;; Generated: Fri Feb 11 21:40:15 2022
 
 ;;; Commentary:
 
@@ -739,64 +739,6 @@ provided, the default interactive `eshell' command is run."
   "Execute line in the most recently active tmux pane."
   (interactive)
   (tmux-send (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
-
-;; vterm
-(when (and module-file-suffix
-           (executable-find "cmake")
-           (executable-find "libtool"))
-  (use-package vterm
-    :init
-    (setq vterm-buffer-name-string "vterm %s"
-          vterm-clear-scrollback-when-clearing t
-          vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
-          vterm-kill-buffer-on-exit t)))
-
-(defun my-vterm-send (command)
-  "Select a vterm buffer and execute COMMAND."
-  (interactive)
-  (let* ((my-vt-bufs (seq-filter
-                      (lambda (buf)
-                        (string-match-p vterm-buffer-name (buffer-name buf)))
-                      (buffer-list)))
-         (my-vt-buf-name-list (mapcar #'buffer-name my-vt-bufs)))
-    (if my-vt-buf-name-list
-        (let* ((my-vt-buf-name (completing-read
-                                (concat "Send to vterm buffer ("
-                                        (car my-vt-buf-name-list)
-                                        ") : ")
-                                my-vt-buf-name-list nil t
-                                nil nil my-vt-buf-name-list)))
-          (with-current-buffer my-vt-buf-name
-            (goto-char (point-max))
-            (message command)
-            (vterm-send-string command)
-            (vterm-send-return)))
-      (message "No vterm buffers"))))
-
-(defun my-vterm-send-region ()
-  "Select a vterm buffer and execute the current region."
-  (interactive)
-  (cond
-   ((use-region-p)
-    (my-vterm-send (buffer-substring-no-properties
-                    (region-beginning)
-                    (region-end))))
-   (t (message "No region selected"))))
-
-(defun my-vterm-send-line ()
-  "Select a vterm buffer and execute the current line."
-  (interactive)
-  (my-vterm-send
-   (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
-
-(defun vterm-switchb ()
-  "Call `switch-to-buffer' but only for vterm buffers."
-  (interactive)
-  (let ((completion-regexp-list '("\\`vterm .*")))
-    (call-interactively #'switch-to-buffer)))
-
-(with-eval-after-load 'vterm
-  (define-key vterm-mode-map (kbd "C-c C-b") #'vterm-switchb))
 
 ;; Comparison tools
 
@@ -3513,18 +3455,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("tr" "Region" tmux-send-region)
     ]
    ]
-  )
-(when (featurep 'vterm)
-  (transient-append-suffix 'transient/shell '(0 0 -1)
-    '("v" "vterm" vterm))
-  (transient-append-suffix 'transient/shell '(0 0 -1)
-    '("V" "vterm (other)" vterm-other-window))
-  (transient-append-suffix 'transient/shell '(0 1)
-    ["Send to vterm"
-     ("L" "Line" my-vterm-send-line)
-     ("R" "Region" my-vterm-send-region)
-     ]
-    )
   )
 (global-set-key (kbd "C-c t") #'transient/shell)
 

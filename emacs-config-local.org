@@ -158,6 +158,7 @@ An example is shown below.
                      "ⓝ" "ⓞ" "ⓟ" "ⓠ" "ⓡ" "ⓢ" "ⓣ" "ⓤ" "ⓥ" "ⓦ" "ⓧ" "ⓨ"
                      "ⓩ" "⓪"))))
 #+end_src
+
 * vterm                                                               :melpa:
 
 [[https://github.com/akermu/emacs-libvterm][emacs-libvterm]] (vterm) is full terminal emulator run inside Emacs
@@ -167,25 +168,24 @@ Note this requires Emacs be compiled with modules support enabled
 (using the ~--with-modules~ option). If so, ~module-fix-suffix~ will
 be non-nil.
 
-The default behavior of emacs-libvterm is to compile libvterm from
-source on the first run.
-
-The following instructions show steps needed on macOS to set up the
-compile dependencies using MacPorts.
+~cmake~ and ~libtool~ are needed. On macOS, this can be installed
+using MacPorts (shown below) or Homebrew.
 
 #+begin_example
 $ sudo port install cmake libtool
 #+end_example
 
-Alternatively, install in a Conda environment and symlink to the binaries in a ~$PATH~ directory (modify below commands as needed).
+The emacs-libvterm package requires libvterm and its headers be
+installed on the system (~libvterm-dev~ on Debian). On macOS, this can
+be installed using MacPorts (shown below) or Homebrew.
 
 #+begin_example
-$ conda activate someenv
-$ conda install cmake libtool
-$ cd $HOME/.local/bin
-$ ln -s $HOME/miniforge/envs/someenv/bin/cmake .
-$ conda deactivate
+$ sudo port install libvterm
 #+end_example
+
+If libvterm and its headers are not installed on the system,
+emacs-libvterm will try to clone the libvterm source onto the local
+machine and compile it.
 
 *Configuration*:
 - Use shell title to populate buffer name.
@@ -193,6 +193,12 @@ $ conda deactivate
 - Limit the automatically eval'ed vterm commands in shell output to
   further limit attack vectors for arbitrary code execution.
 - Kill vterm buffer automatically on exit.
+- Define functions for sending lines and regions to a vterm buffer.
+- Define a ~switch-to-buffer~ variant restricted to vterm buffers and
+  the most recently selected buffer besides the current one (this is
+  the buffer return by ~other-buffer~, and allows for toggling between
+  the code and vterm), and bind it to ~C-c C-b~ when in ~vterm-mode~.
+- Modify shell transient (~C-c t~) to include vterm suffixes.
 
 #+name: vterm
 #+begin_src emacs-lisp
@@ -205,7 +211,69 @@ $ conda deactivate
     (setq vterm-buffer-name-string "vterm %s"
           vterm-clear-scrollback-when-clearing t
           vterm-eval-cmds '(("vterm-clear-scrollback" vterm-clear-scrollback))
-          vterm-kill-buffer-on-exit t)))
+          vterm-kill-buffer-on-exit t)
+    :config
+    ;; interactive funcs for sending lines/regions to a vterm buffer
+    (defun my-vterm-send (command)
+      "Select a vterm buffer and execute COMMAND."
+      (interactive)
+      (let* ((my-vt-bufs (seq-filter
+                          (lambda (buf)
+                            (string-match-p vterm-buffer-name (buffer-name buf)))
+                          (buffer-list)))
+             (my-vt-buf-name-list (mapcar #'buffer-name my-vt-bufs)))
+        (if my-vt-buf-name-list
+            (let* ((my-vt-buf-name (completing-read
+                                    (concat "Send to vterm buffer ("
+                                            (car my-vt-buf-name-list)
+                                            ") : ")
+                                    my-vt-buf-name-list nil t
+                                    nil nil my-vt-buf-name-list)))
+              (with-current-buffer my-vt-buf-name
+                (goto-char (point-max))
+                (message command)
+                (vterm-send-string command)
+                (vterm-send-return)))
+          (message "No vterm buffers"))))
+    (defun my-vterm-send-region ()
+      "Select a vterm buffer and execute the current region."
+      (interactive)
+      (cond
+       ((use-region-p)
+        (my-vterm-send (buffer-substring-no-properties
+                        (region-beginning)
+                        (region-end))))
+       (t (message "No region selected"))))
+    (defun my-vterm-send-line ()
+      "Select a vterm buffer and execute the current line."
+      (interactive)
+      (my-vterm-send
+       (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
+
+    ;; interactive func and binding for switching to vterm buffers
+    (defun vterm-switchb ()
+      "Call `switch-to-buffer' but only for vterm buffers."
+      (interactive)
+      (let ((completion-regexp-list '("\\`vterm .*")))
+        (call-interactively #'switch-to-buffer)))
+    (define-key vterm-mode-map (kbd "C-c C-b") #'vterm-switchb)
+
+    ;; add vterm suffixes to shell transient
+    (with-eval-after-load 'init
+      (transient-append-suffix 'transient/shell '(0 0 -1)
+        '("v" "vterm" vterm))
+      (transient-append-suffix 'transient/shell '(0 0 -1)
+        '("V" "vterm (other)" vterm-other-window))
+      (transient-append-suffix 'transient/shell '(0 0 -1)
+        '("C-v" "vterm recompile" vterm-module-compile))
+      (transient-append-suffix 'transient/shell '(0 1)
+        ["Send to vterm"
+         ("L" "Line" my-vterm-send-line)
+         ("R" "Region" my-vterm-send-region)
+         ]
+        )
+      )
+    ))
 #+end_src
 
 *Updating compiled modules*: ~M-x vterm-module-compile~ recompiles
@@ -361,85 +429,6 @@ if [ "$INSIDE_EMACS" = "vterm" ]
     end
 end
 #+end_example
-
-** vterm send region as command
-
-#+name: vterm-send
-#+begin_src emacs-lisp
-(defun my-vterm-send (command)
-  "Select a vterm buffer and execute COMMAND."
-  (interactive)
-  (let* ((my-vt-bufs (seq-filter
-                      (lambda (buf)
-                        (string-match-p vterm-buffer-name (buffer-name buf)))
-                      (buffer-list)))
-         (my-vt-buf-name-list (mapcar #'buffer-name my-vt-bufs)))
-    (if my-vt-buf-name-list
-        (let* ((my-vt-buf-name (completing-read
-                                (concat "Send to vterm buffer ("
-                                        (car my-vt-buf-name-list)
-                                        ") : ")
-                                my-vt-buf-name-list nil t
-                                nil nil my-vt-buf-name-list)))
-          (with-current-buffer my-vt-buf-name
-            (goto-char (point-max))
-            (message command)
-            (vterm-send-string command)
-            (vterm-send-return)))
-      (message "No vterm buffers"))))
-
-(defun my-vterm-send-region ()
-  "Select a vterm buffer and execute the current region."
-  (interactive)
-  (cond
-   ((use-region-p)
-    (my-vterm-send (buffer-substring-no-properties
-                    (region-beginning)
-                    (region-end))))
-   (t (message "No region selected"))))
-
-(defun my-vterm-send-line ()
-  "Select a vterm buffer and execute the current line."
-  (interactive)
-  (my-vterm-send
-   (buffer-substring-no-properties (point-at-bol) (point-at-eol))))
-#+end_src
-
-** vterm-specific switch-to-buffer
-
-Define a ~switch-to-buffer~ variant restricted to vterm buffers and
-the most recently selected buffer besides the current one (this is the
-buffer return by ~other-buffer~, and allows for toggling between the
-code and vterm), and bind it to ~C-c C-b~ when in ~vterm-mode~.
-
-#+name: vterm-switchb
-#+begin_src emacs-lisp
-(defun vterm-switchb ()
-  "Call `switch-to-buffer' but only for vterm buffers."
-  (interactive)
-  (let ((completion-regexp-list '("\\`vterm .*")))
-    (call-interactively #'switch-to-buffer)))
-
-(with-eval-after-load 'vterm
-  (define-key vterm-mode-map (kbd "C-c C-b") #'vterm-switchb))
-#+end_src
-
-** Add vterm suffixes to shell global transient
-
-#+begin_src emacs-lisp
-(with-eval-after-load 'init
-  (transient-append-suffix 'transient/shell '(0 0 -1)
-    '("v" "vterm" vterm))
-  (transient-append-suffix 'transient/shell '(0 0 -1)
-    '("V" "vterm (other)" vterm-other-window))
-  (transient-append-suffix 'transient/shell '(0 1)
-    ["Send to vterm"
-     ("L" "Line" my-vterm-send-line)
-     ("R" "Region" my-vterm-send-region)
-     ]
-    )
-  )
-#+end_src
 
 * Language Server Protocol
 
@@ -1020,4 +1009,29 @@ Note that ~julia-snail~ uses ~vterm~ so install that as well.
      ]
     )
   (define-key julia-snail-mode-map (kbd "C-c m") #'transient/julia-snail-mode))
+#+end_src
+
+Version using ESS (not quite as well-integrated).
+
+#+begin_src emacs-lisp
+;; support for editing Julia buffers
+(use-package julia-mode)
+
+;; support for interacting with Julia buffers using ESS
+(use-package ess
+  :init (setq ess-eval-visibly 'nowait
+              ;; ess-default-style 'RStudio
+              ;; use Flymake only when buffer has an inferior process
+              ess-use-flymake 'process)
+  :config
+  (setq inferior-julia-program (executable-find "julia"))
+  (setq inferior-julia-args "--color=yes")
+  (require 'ess-julia)
+  ;; workaround for https://github.com/emacs-ess/ESS/issues/1151
+  ;; ess-julia.el line 292 which is
+  ;;   (ess-local-customize-alist     . ess-julia-customize-alist)
+  ;; should be
+  ;;   (ess-local-customize-alist     . 'ess-julia-customize-alist)
+  (setf (alist-get 'ess-local-customize-alist ess-julia-customize-alist) '(quote ess-julia-customize-alist))
+  (add-hook 'julia-mode-hook #'ess-julia-mode))
 #+end_src

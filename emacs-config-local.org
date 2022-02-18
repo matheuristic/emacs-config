@@ -950,6 +950,27 @@ Version using ~julia-repl~ to provide Julia REPL support in Emacs.
   :after julia-mode
   :hook (julia-mode . julia-repl-mode)
   :config
+  ;; interactive function for showing completions in attached REPL
+  (defun my-julia-repl-completions ()
+    "Show completions in attached `julia-repl' REPL."
+    (interactive)
+    (if (thing-at-point 'word)
+        (julia-repl--send-string (concat "using REPL;"
+                                         "println(\"\");"
+                                         "println(\"Completions\");"
+                                         "println(\"-----------\");"
+                                         "for c in REPL.REPLCompletions.completions(\""
+                                         (thing-at-point 'line t)
+                                         "\","
+                                         (number-to-string (current-column))
+                                         ")[1];"
+                                         "println("
+                                         "c isa REPL.REPLCompletions.KeywordCompletion ? c.keyword : c.mod"
+                                         ");"
+                                         "end"
+                                         ))
+      (message "Nothing to complete at point")))
+  (define-key julia-repl-mode-map (kbd "C-c TAB") #'my-julia-repl-completions)
   ;; julia-repl-mode transient
   (transient-define-prefix transient/julia-repl-mode ()
     "`julia-repl-mode' commands."
@@ -969,6 +990,8 @@ Version using ~julia-repl~ to provide Julia REPL support in Emacs.
       ("e" "@edit" julia-repl-edit)
       ("l" "List methods" julia-repl-list-methods)
       ("m" "Macroexpand" julia-repl-macroexpand)
+      ]
+     [("TAB" "complete" my-julia-repl-completions)
       ]
      ]
     )

@@ -970,7 +970,7 @@ Version using ~julia-repl~ to provide Julia REPL support in Emacs.
                                          "end"
                                          ))
       (message "Nothing to complete at point")))
-  (define-key julia-repl-mode-map (kbd "C-c i") #'my-julia-repl-completions)
+  (define-key julia-repl-mode-map (kbd "C-c TAB") #'my-julia-repl-completions) ; "C-c C-i" also works as "C-i" is the same as "TAB"
   ;; julia-repl-mode transient
   (transient-define-prefix transient/julia-repl-mode ()
     "`julia-repl-mode' commands."
@@ -991,7 +991,7 @@ Version using ~julia-repl~ to provide Julia REPL support in Emacs.
       ("l" "List methods" julia-repl-list-methods)
       ("m" "Macroexpand" julia-repl-macroexpand)
       ]
-     [("i" "complete" my-julia-repl-completions)
+     [("TAB" "complete" my-julia-repl-completions)
       ]
      ]
     )

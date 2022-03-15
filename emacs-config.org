@@ -2550,8 +2550,6 @@ is covered here.
 When done, move the client secret file (replace ~CLIENT_ID~ with the
 actual client id) to the local mailbox directory and use it to
 authenticate.
-If there's a need to change client IDs in the future, it is possible to
-use something like ~gmi auth -f -c client_secrets.json~ (untested).
 
 #+begin_example
 $ mv ~/Downloads/client_secret_CLIENTID.json
@@ -2562,6 +2560,13 @@ Now retrieve email using ~gmi~.
 
 #+begin_example
 $ gmi pull
+#+end_example
+
+If there's a need to change client IDs or reset the client secret, it
+is possible to reauthenticate using a new client secret file.
+
+#+begin_example
+$ gmi auth -f -c new_client_secret_CLIENTID.json
 #+end_example
 
 *Aside*

@@ -2427,7 +2427,7 @@ $ cat > ~/.local/bin/gmi <<EOF
 
 # Wrapper script for running gmi
 
-CONDA_INSTALL_DIR=${HOME}/miniforge3
+CONDA_INSTALL_DIR=${HOME}/mambaforge
 CONDA_PYNVIM_ENV=${CONDA_DEFAULT_ENV:-email}
 
 source "${CONDA_INSTALL_DIR}/etc/profile.d/conda.sh"
@@ -2448,7 +2448,7 @@ set to MacPort's library directory at =/opt/local/lib= so it can find
 the ~notmuch~ libraries, for example:
 
 #+begin_example
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniforge3/envs/email/bin/gmi
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/mambaforge/envs/email/bin/gmi
 #+end_example
 
 To avoid having to specify this every time ~gmi~ needs to be called,
@@ -2459,7 +2459,7 @@ a wrapper script can be used (change the paths as appropriate).
 
 # Wrapper script for running gmi
 
-DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/miniforge3/envs/email/bin/gmi "$@"
+DYLD_FALLBACK_LIBRARY_PATH=/opt/local/lib ~/mambaforge/envs/email/bin/gmi "$@"
 #+end_example
 
 Run the following to create such a file in a directory on the system
@@ -2472,7 +2472,7 @@ $ cat > ~/.local/bin/gmi <<EOF
 
 # Wrapper script for running gmi
 
-CONDA_INSTALL_DIR=${HOME}/miniforge3
+CONDA_INSTALL_DIR=${HOME}/mambaforge
 CONDA_PYNVIM_ENV=${CONDA_DEFAULT_ENV:-email}
 
 source "${CONDA_INSTALL_DIR}/etc/profile.d/conda.sh"
@@ -3114,7 +3114,7 @@ $ cat > ~/.local/bin/gmi-send <<EOF
 
 # Wrapper script for running gmi
 
-CONDA_INSTALL_DIR=${HOME}/miniforge3
+CONDA_INSTALL_DIR=${HOME}/mambaforge
 CONDA_PYNVIM_ENV=${CONDA_DEFAULT_ENV:-email}
 
 source "${CONDA_INSTALL_DIR}/etc/profile.d/conda.sh"
@@ -3133,7 +3133,7 @@ $ cat > ~/.local/bin/gmi-send <<EOF
 
 # Wrapper script for running gmi
 
-CONDA_INSTALL_DIR=${HOME}/miniforge3
+CONDA_INSTALL_DIR=${HOME}/mambaforge
 CONDA_PYNVIM_ENV=${CONDA_DEFAULT_ENV:-email}
 
 source "${CONDA_INSTALL_DIR}/etc/profile.d/conda.sh"
@@ -4651,17 +4651,17 @@ mode's hook by appending instead of pushing, for example by doing
 
 [[https://docs.conda.io/][Conda]] is a cross-platform package and environment manager, enabling
 easy creation, saving, loading and switching of environments. For most
-purposes it is usually recommended to install [[https://github.com/conda-forge/miniforge][miniforge]] which defaults
-to the the [[https://conda-forge.org/][conda-forge]] channel.
+purposes it is usually recommended to install [[https://github.com/conda-forge/miniforge][miniforge]] (MambaForge
+variant) which defaults to the the [[https://conda-forge.org/][conda-forge]] channel.
 
 Conda was initially created to target Python development, but has
 expanded beyond just that and now includes R and other software
 packages.
 
 *Customizations*:
-- Set the conda home directory to =~/miniforge3/=, =~/miniconda3/= or
-  =~/anaconda3/= (these are the three default install paths for the
-  different conda distributions).
+- Set the conda home directory to =~/mambaforge=, =~/miniforge3/=,
+  =~/miniconda3/= or =~/anaconda3/= (these are the default install
+  paths for the different conda distributions).
 - Support Eshell and term-mode buffers.
 - Show current conda environment in the mode line.
 

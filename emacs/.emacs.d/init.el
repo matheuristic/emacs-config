@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Feb 11 22:05:18 2022
+;; Generated: Sun May  1 22:24:50 2022
 
 ;;; Commentary:
 
@@ -3491,7 +3491,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 ;; add transient popup for system process management and info, and
 ;; Emacs build and runtime info
 (transient-define-prefix transient/system ()
-  "System process managment, general info and Emacs runtime commands."
+  "System process management, general info and Emacs runtime commands."
   ["System, process and Emacs runtime"
    ["Emacs"
     ("eb" "Build config" transient/system--display-emacs-build-config)
@@ -3509,6 +3509,54 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ]
   )
 (global-set-key (kbd "C-c S y") #'transient/system)
+
+;; add transient popup for system process management and info, and
+;; Emacs build and runtime info
+(transient-define-prefix transient/vc ()
+  "Version control commands."
+  ["Version control"
+   ["Commit log"
+    ("L" "Root log" vc-print-root-log)
+    ("l" "File log" vc-print-log)
+    ("g" "File annotate" vc-annotate)
+    ("h" "Region history" vc-region-history)
+    ("/" "Search" vc-log-search)
+    ]
+   ["Revision"
+    ("D" "Root diff" vc-root-diff)
+    ("=" "File diff" vc-diff)
+    ("_" "File Ediff" vc-ediff)
+    ("~" "File rev other" vc-revision-other-window)
+    ]
+   ["Other"
+    ("d" "Dir" vc-dir)
+    ("a" "Update changelog" vc-update-change-log)
+    ("SPC" "Refresh file state" vc-refresh-state)
+    ("M-c" "Create repo" vc-create-repo)
+    ("M-r" "Resolve conflicts" vc-resolve-conflicts)
+    ]
+   ]
+  [
+   ["Operations"
+    ("v" "Next file action" vc-next-action)
+    ("i" "Register file" vc-register)
+    ("G" "Ignore file" vc-ignore)
+    ("-" "Delete file" vc-delete-file)
+    ("R" "Rename file" vc-rename-file)
+    ]
+   ["Branch"
+    ("I" "Pull preview" vc-log-incoming)
+    ("O" "Push preview" vc-log-outgoing)
+    ("P" "Push" vc-push)
+    ("+" "Pull" vc-pull)
+    ("m" "Merge" vc-merge)
+    ("r" "Switch tag/branch" vc-retrieve-tag)
+    ("s" "Create tag/branch" vc-create-tag)
+    ("u" "Revert" vc-revert)
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c v") #'transient/vc)
 
 ;; make sure functions used by visual transient are loaded
 (require 'follow)

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun May  1 22:24:50 2022
+;; Generated: Sat May  7 11:35:21 2022
 
 ;;; Commentary:
 
@@ -3418,7 +3418,8 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("rr" "Regexp" query-replace-regexp)
     ]
    ["Other"
-    ("." "Find definition" xref-find-definitions)
+    ("." "Find defn" xref-find-definitions)
+    ("M-." "Apropos defn" xref-find-apropos)
     ("w" "EWW web search" eww)
     ]
    ]

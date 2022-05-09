@@ -169,7 +169,8 @@ Note this requires Emacs be compiled with modules support enabled
 be non-nil.
 
 ~cmake~ and ~libtool~ are needed. On macOS, this can be installed
-using MacPorts (shown below) or Homebrew.
+using MacPorts (shown below) or Homebrew or conda. On Debian, install
+the ~cmake~ and ~libtool-bin~ APT packages.
 
 #+begin_example
 $ sudo port install cmake libtool

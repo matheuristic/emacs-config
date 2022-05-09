@@ -7128,7 +7128,8 @@ Transient for accessing Emacs [[https://www.gnu.org/software/emacs/manual/html_n
     ("rr" "Regexp" query-replace-regexp)
     ]
    ["Other"
-    ("." "Find definition" xref-find-definitions)
+    ("." "Find defn" xref-find-definitions)
+    ("M-." "Apropos defn" xref-find-apropos)
     ("w" "EWW web search" eww)
     ]
    ]

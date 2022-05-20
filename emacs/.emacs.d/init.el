@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat May  7 11:35:21 2022
+;; Generated: Sat May 14 10:38:06 2022
 
 ;;; Commentary:
 
@@ -2547,6 +2547,10 @@ Formatting a selected region only works on top-level objects."
          ("C-c T i" . hl-todo-insert))
   :hook (prog-mode . hl-todo-mode))
 
+;; enable `hs-minor-mode' in programming code files
+(with-eval-after-load 'prog-mode
+    (add-hook 'prog-mode-hook 'hs-minor-mode))
+
 ;; Web
 
 ;; built-in Emacs text web browser
@@ -3690,6 +3694,11 @@ Currently only works for Emacs Mac port."
                      " ")
                    "]"))
      set-selective-display)
+    ("f" (lambda ()
+           (transient--make-description
+            "Hideshow (folding)"
+            hs-minor-mode))
+     hs-minor-mode)
     ("P" (lambda ()
            (transient--make-description
             "Prettify symbols"

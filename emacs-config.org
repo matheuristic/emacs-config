@@ -264,6 +264,18 @@ following to the config.
 
 See [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Mouse-Commands.html][here]], [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Word-and-Line-Mouse.html][here]] and [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Secondary-Selection.html][here]] for more information.
 
+*** Code folding commands using Hideshow minor mode
+
+The ~hs-minor-mode~ package provides code folding capabilities.
+Enabling the minor mode provides a number of capabilities that are
+accessible via the menubar and also some default bindings that have the ~C-c @~ prefix.
+
+- ~C-c @ C-d~ and ~C-c @ C-s~ hides and shows the current block, and
+  ~C-c @ C-c~ or ~S-mouse-2~ toggles between hiding and showing
+- ~C-c @ C-t~ and ~C-c @ C-a~ hides and shows all top-level blocks
+- ~C-c @ C-l~ hides all blocks 1 or the given prefix levels below the
+  current level in the subtree
+
 ** Random useful Emacs links
 
 Literate configs, package lists, and so on and so forth.
@@ -5572,6 +5584,21 @@ to control which keywords get highlighted.
   :hook (prog-mode . hl-todo-mode))
 #+end_src
 
+** Enable hideshow minor mode in code files for code folding
+
+[[https://www.gnu.org/software/emacs/manual/html_node/emacs/Hideshow.html][Hideshow minor mode]] (~hs-minor-mode~) allows code folding, or
+selectively showing and hiding code blocks.
+
+See the Notes section for default bindings when this mode is enabled,
+or use the menu bar.
+
+#+name: hs-minor-mode
+#+begin_src emacs-lisp
+;; enable `hs-minor-mode' in programming code files
+(with-eval-after-load 'prog-mode
+    (add-hook 'prog-mode-hook 'hs-minor-mode))
+#+end_src
+
 * Web
 
 ** Browsing
@@ -7437,6 +7464,11 @@ Currently only works for Emacs Mac port."
                      " ")
                    "]"))
      set-selective-display)
+    ("f" (lambda ()
+           (transient--make-description
+            "Hideshow (folding)"
+            hs-minor-mode))
+     hs-minor-mode)
     ("P" (lambda ()
            (transient--make-description
             "Prettify symbols"
@@ -9306,6 +9338,8 @@ The main configuration file.
 <<too-long-lines-mode>>
 
 <<hl-todo>>
+
+<<hs-minor-mode>>
 
 ;; Web
 

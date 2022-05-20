@@ -159,7 +159,7 @@ An example is shown below.
                      "ⓩ" "⓪"))))
 #+end_src
 
-* vterm                                                               :melpa:
+* vterm
 
 [[https://github.com/akermu/emacs-libvterm][emacs-libvterm]] (vterm) is full terminal emulator run inside Emacs
 using [[https://launchpad.net/libvterm][libvterm]].
@@ -908,9 +908,11 @@ and `racket-repl-documentation' otherwise."
     [
      ["Doc"
       ("da" "Apropos" sly-apropos)
-      ("dd" "Lookup" sly-documentation-lookup)
+      ("dd" "Describe" sly-describe-symbol)
       ("df" "Function" sly-describe-function)
-      ("ds" "Symbol" sly-describe-symbol)
+      ("dh" "Lookup" sly-documentation-lookup)
+      ("dp" "Apropos pkg" sly-apropos-package)
+      ("dz" "Apropos all" sly-apropos-all)
       ("d~" "Hyperspec" hyperspec-lookup)
       ]
      ]
@@ -932,6 +934,181 @@ and `racket-repl-documentation' otherwise."
       '("xT" "Trace dialog" sly-trace-dialog)
       ))
   (define-key sly-mode-map (kbd "C-c m") #'transient/sly-mode))
+#+end_src
+
+* Clojure
+
+- [[https://github.com/clojure-emacs/clojure-mode][clojure-mode]] provides a major mode for editing Clojure buffers
+- [[https://docs.cider.mx/cider/index.html][CIDER]] (Clojure(Script) Interactive Development Environment that
+  Rocks!) complements ~clojure-mode~, providing additional
+  functionality for Clojure development including compiling,
+  debugging, running tests, definition and documentation lookup, and
+  so on
+- Add a Flymake backend for [[https://github.com/borkdude/clj-kondo][clj-kondo]], a linter for Clojure code.
+  Enable this backend automatically when editing Clojure buffers.
+
+#+begin_src emacs-lisp
+;; basic support for Clojure files
+(use-package clojure-mode
+  :hook ((clojure-mode . paredit-mode)
+         (clojure-mode . subword-mode)))
+
+;; set up Clojure IDE
+(use-package cider
+  :after clojure-mode
+  :hook ((cider-mode . eldoc-mode)
+         (cider-repl-mode . eldoc-mode)
+         (cider-repl-mode . paredit-mode))
+  :init (setq nrepl-log-messages t))
+
+;; linting for Clojure, requires clj-kondo be installed on the system
+;; see https://github.com/borkdude/clj-kondo for install instructions
+(when (executable-find "clj-kondo")
+  ;; Flymake config, adapted from https://github.com/turbo-cafe/flymake-kondor
+  (with-eval-after-load 'flymake-quickdef
+    (flymake-quickdef-backend flymake-clj-kondo-backend
+      :pre-let ((clj-kondo-exec (executable-find "clj-kondo")))
+      :pre-check (unless clj-kondo-exec (error "Cannot find clj-kondo executable"))
+      :write-type 'pipe
+      :proc-form (list clj-kondo-exec "--lint" "-")
+      :search-regexp "^.+:\\([[:digit:]]+\\):\\([[:digit:]]+\\): \\([[:alpha:]]+\\): \\(.+\\)$"
+      :prep-diagnostic (let* ((lnum (string-to-number (match-string 1)))
+                              (lcol (string-to-number (match-string 2)))
+                              (severity (match-string 3))
+                              (msg (match-string 4))
+                              (pos (flymake-diag-region fmqd-source lnum lcol))
+                              (beg (car pos))
+                              (end (cdr pos))
+                              (type (cond
+                                     ((string= severity "error") :error)
+                                     ((string= severity "warning") :warning)
+                                     ((string= severity "info") :note)
+                                     (t :note))))
+                         (list fmqd-source beg end type msg)))
+    (defun flymake-clj-kondo-setup ()
+      "Enable clj-kondo backend for Flymake."
+      (add-hook 'flymake-diagnostic-functions #'flymake-clj-kondo-backend nil t))
+    ;; enable Flymake with clj-kondo backend when editing Clojure
+    (with-eval-after-load 'clojure-mode
+      (add-hook 'clojure-mode-hook 'flymake-clj-kondo-setup)
+      (add-hook 'clojure-mode-hook 'flymake-mode t))))
+
+;; major-mode specific transient for clojure-mode
+(with-eval-after-load 'clojure-mode
+  (with-eval-after-load 'cider
+    (transient-define-prefix transient/clojure-mode/eval ()
+      "`clojure-mode' CIDER evaluation commands."
+      ["CIDER → Run"
+       ["Eval"
+        ("r" "Region" cider-eval-region)
+        ("n" "Namespace form" cider-eval-ns-form)
+        ("e" "Last sexp" cider-eval-last-sexp)
+        ("P" "Last sexp (pprint)" cider-pprint-eval-last-sexp)
+        ("w" "Last sexp replace" cider-eval-last-sexp-and-replace)
+        ("E" "Last sexp to REPL" cider-eval-last-sexp-to-repl)
+        ("d" "Defun at point" cider-eval-defun-at-point)
+        ("f" "Defun at point (pprint)" cider-pprint-eval-defun-at-point)
+        (":" "Minibuffer input" cider-read-and-eval)
+        ]
+       ["Load"
+        ("k" "Buffer" cider-load-buffer)
+        ("l" "File" cider-load-file)
+        ("p" "All proj ns" cider-load-all-project-ns)
+        ]
+       ["Other"
+        ("i" "Inspect" cider-inspect)
+        ("m" "Macroexpand (single level)" cider-macroexpand-1)
+        ("M" "Macroexpand (all levels)" cider-macroexpand-all)
+        ]
+       ]
+      )
+
+    (transient-define-prefix transient/clojure-mode/test ()
+      "`clojure-mode' CIDER testing commands."
+      ["CIDER → Test"
+       ("t" "Run" cider-test-run-test)
+       ("l" "Run loaded" cider-test-run-loaded-tests)
+       ("p" "Run project" cider-test-run-project-tests)
+       ("n" "Run namespace" cider-test-run-ns-tests)
+       ("r" "Rerun failed" cider-test-rerun-failed-tests)
+       ("s" "Show report" cider-test-show-report)
+       ]
+      )
+
+    (transient-define-prefix transient/clojure-mode/help ()
+      "`clojure-mode' CIDER help/documentation commands."
+      ["CIDER → Help"
+       ("d" "CIDER docs" cider-doc)
+       ("c" "Clojure docs" cider-clojuredocs)
+       ("C" "Clojure docs (web)" cider-clojuredocs-web)
+       ("j" "Java docs (web)" cider-javadoc)
+       ("a" "Search symbols" cider-apropos)
+       ("s" "Select symbols" cider-apropos-select)
+       ("A" "Search docs" cider-apropos-documentation)
+       ("S" "Select docs" cider-apropos-documentation-select)
+       ]
+      )
+
+    (defun transient/clojure-mode/debug--eval-defun-at-point ()
+      "Debug version of `cider-eval-defun-at-point'."
+      (interactive)
+      (cider-eval-defun-at-point t))
+
+    (transient-define-prefix transient/clojure-mode/debug ()
+      "`clojure-mode' CIDER debug/documentation commands."
+      ["CIDER → Debug"
+       ("x" "Eval at point" transient/clojure-mode/debug--eval-defun-at-point)
+       ("v" "Toggle trace variable" cider-toggle-trace-var)
+       ("n" "Toggle trace namespace" cider-toggle-trace-ns)
+       ]
+      )
+
+    (defun transient/clojure-mode/repl--clear-output-all ()
+      "Clear all output in CIDER REPL buffer."
+      (interactive)
+      (cider-find-and-clear-repl-output t))
+
+    (transient-define-prefix transient/clojure-mode/repl ()
+      "`clojure-mode' CIDER REPL commands."
+      ["CIDER → REPL"
+       ["Input"
+        ("z" "Switch to buffer" cider-switch-to-repl-buffer)
+        ("n" "Set namespace" cider-repl-set-ns)
+        ("p" "Insert last sexp" cider-insert-last-sexp-in-repl)
+        ("x" "Refresh" cider-ns-refresh)
+        ]
+       ["Output"
+        ("o" "Clear" cider-find-and-clear-repl-output)
+        ("O" "Clear all" transient/clojure-mode/repl--clear-output-all)
+        ]
+       [
+        "Other"
+        ("d" "Describe conn" cider-describe-connection)
+        ("b" "Interrupt" cider-interrupt)
+        ("Q" "Quit CIDER" cider-quit)
+        ]
+       ]
+      )
+
+    (transient-define-prefix transient/clojure-mode ()
+      "`clojure-mode' CIDER commands."
+      ["CIDER"
+       ["Session"
+        ("jc" "Jack-in (Clojure)" cider-jack-in-clj)
+        ("js" "Jack-in (ClojureScript)" cider-jack-in-cljs)
+        ("jb" "Jack-in (Both)" cider-jack-in-clj&cljs)
+        ]
+       ["Submenus"
+        ("r" "→ REPL" transient/clojure-mode/repl)
+        ("e" "→ Run" transient/clojure-mode/eval)
+        ("t" "→ Test" transient/clojure-mode/test)
+        ("d" "→ Debug" transient/clojure-mode/debug)
+        ("h" "→ Help" transient/clojure-mode/help)
+        ]
+       ]
+      )
+
+    (define-key clojure-mode-map (kbd "C-c m") #'transient/clojure-mode)))
 #+end_src
 
 * Julia

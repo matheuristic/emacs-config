@@ -2129,7 +2129,8 @@ a tree and can be navigated using the regular movement keys.
 #+begin_src emacs-lisp
 ;; traverse undo history as a tree, default binding is "C-x u"
 (use-package undo-tree
-  :init (setq undo-tree-visualizer-relative-timestamps nil)
+  :init (setq undo-tree-visualizer-relative-timestamps nil
+              undo-tree-auto-save-history nil) ; don't autosave history
   :config
   ;; hide mode line lighter
   (add-to-list 'my-mode-lighter-abbrev-alist '(undo-tree-mode . ""))

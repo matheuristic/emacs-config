@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat May 14 10:38:06 2022
+;; Generated: Mon May 23 22:30:46 2022
 
 ;;; Commentary:
 
@@ -939,7 +939,8 @@ Uses `completing-read' for selection, which is set by Ido, Ivy, etc."
 
 ;; traverse undo history as a tree, default binding is "C-x u"
 (use-package undo-tree
-  :init (setq undo-tree-visualizer-relative-timestamps nil)
+  :init (setq undo-tree-visualizer-relative-timestamps nil
+              undo-tree-auto-save-history nil) ; don't autosave history
   :config
   ;; hide mode line lighter
   (add-to-list 'my-mode-lighter-abbrev-alist '(undo-tree-mode . ""))

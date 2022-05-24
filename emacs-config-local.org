@@ -1237,3 +1237,31 @@ Version using ESS (not quite as well-integrated).
   (setf (alist-get 'ess-local-customize-alist ess-julia-customize-alist) '(quote ess-julia-customize-alist))
   (add-hook 'julia-mode-hook #'ess-julia-mode))
 #+end_src
+
+* Zig
+
+- [[https://github.com/ziglang/zig-mode][zig-mode]] for syntax highlighting and indentation
+- Eglot has built-in support for [[https://github.com/zigtools/zls][zls]] (Zig language server)
+- When in a Zig buffer, ~C-c m~ invokes a mode-specific transient
+
+#+begin_src emacs-lisp
+;; support for editing Zig buffers
+(use-package zig-mode
+  :config
+  ;; major-mode specific transient for Zig buffers
+  (transient-define-prefix transient/zig-mode ()
+    "`zig-mode' commands."
+    ["Zig"
+     ("F" (lambda ()
+             (transient--make-description
+              "Format on save"
+              zig-format-on-save))
+       zig-toggle-format-on-save :transient t)
+     ("f" "Format buffer" zig-format-buffer)
+     ("t" "Test buffer" zig-test-buffer)
+     ("r" "Run" zig-run)
+     ("b" "Compile" zig-compile)
+     ]
+    )
+  (define-key zig-mode-map (kbd "C-c m") #'transient/zig-mode))
+#+end_src

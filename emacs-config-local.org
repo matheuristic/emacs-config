@@ -1269,3 +1269,45 @@ Version using ESS (not quite as well-integrated).
     )
   (define-key zig-mode-map (kbd "C-c m") #'transient/zig-mode))
 #+end_src
+
+* Rust
+
+- [[https://github.com/brotzeit/rustic][rustic]] provides a Rust development environment
+- Eglot has built-in support for [[https://github.com/rust-lang/rust-analyzer][rust-analyzer]] (default, needs to be installed manually) and [[https://github.com/rust-lang/rls][rls]]
+
+Note:
+- May want to increase ~eglot-send-changes-idle-time~ if automatic syntax checking is causing lags
+
+#+begin_src emacs-lisp
+;; support for Rust development
+(use-package rust-mode)
+(use-package rustic
+  :after rust-mode
+  :config
+  (setq rustic-lsp-client 'eglot         ; use Eglot as LSP client
+        rustic-lsp-server 'rust-analyzer ; use rust-analyzer for LSP server
+        rustic-format-on-save nil)       ; don't autoformat buffer on save
+  )
+
+;; major-mode specific transient for `rust-mode'
+(with-eval-after-load 'rust-mode
+  (defun transient/rust-mode--rustic-popup ()
+    "Show `rustic-popup' if `rustic-mode' is enabled."
+    (interactive)
+    (require 'rustic)
+    (funcall-interactively #'rustic-popup))
+  (transient-define-prefix transient/rust-mode ()
+    "`rust-mode' commands and `rustic-mode' popup entrypoint"
+    ["Rust"
+     ("u" "Compile" rust-compile)
+     ("k" "Check" rust-check)
+     ("t" "Test" rust-test)
+     ("r" "Run" rust-run)
+     ("l" "Run Clippy" rust-run-clippy)
+     ("f" "Format buffer" rust-format-buffer)
+     ("n" "Goto fmt prob" rust-goto-format-problem)
+     ("p" "`rustic-mode' popup" transient/rust-mode--rustic-popup)
+     ]
+    )
+  (define-key rust-mode-map (kbd "C-c m") #'transient/rust-mode))
+#+end_src

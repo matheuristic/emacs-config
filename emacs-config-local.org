@@ -446,7 +446,11 @@ It is more lightweight than [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]],
   :config
   ;; increase wait time after last change before asking for
   ;; completions from 0.5s to 2s to reduce request rate
-  (setq eglot-send-changes-idle-time 2))
+  (setq eglot-send-changes-idle-time 2)
+  ;; don't let Eglot manage Flymake backends, so that multiple ones
+  ;; can be used, see https://github.com/joaotavora/eglot/issues/268
+  (setq eglot-stay-out-of '(flymake))
+  (add-hook 'eglot--managed-mode-hook (lambda () (add-hook 'flymake-diagnostic-functions 'eglot-flymake-backend nil t))))
 
 ;; compose outputs from eldoc doc functions in Eglot managed buffers
 (with-eval-after-load 'eldoc

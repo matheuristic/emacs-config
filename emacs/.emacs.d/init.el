@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon May 23 22:30:46 2022
+;; Generated: Sat Jul 23 22:22:54 2022
 
 ;;; Commentary:
 
@@ -43,6 +43,7 @@ Usually \"xdg-open\" on Linux and \"open\" on Mac."
                                           (eldoc-mode . "")
                                           (paredit-mode . " ⁽⁾")
                                           (too-long-lines-mode . " ⋯")
+                                          (tree-sitter-mode . " ¥")
                                           (visual-line-mode . " ⇌")
                                           ;; Major modes
                                           ;; (lisp-interaction-mode . "λ")
@@ -311,6 +312,9 @@ cache before processing."
 
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
+
+;; incremental parser
+(use-package tree-sitter)
 
 ;; notifications backend
 (use-package alert
@@ -2552,6 +2556,9 @@ Formatting a selected region only works on top-level objects."
 (with-eval-after-load 'prog-mode
     (add-hook 'prog-mode-hook 'hs-minor-mode))
 
+;; fine-grained highlighting when `tree-sitter-hl-mode' is enabled
+(use-package tree-sitter-langs)
+
 ;; Web
 
 ;; built-in Emacs text web browser
@@ -3579,6 +3586,8 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (require 'prism)
 (require 'too-long-lines-mode)
 
+(require 'tree-sitter-langs)
+
 (defvar-local transient/visual--face-remap-cookies '()
   "Alist storing cookies for `face-remap-add-relative' calls.")
 
@@ -3710,6 +3719,11 @@ Currently only works for Emacs Mac port."
             "Buffer-specific face"
             buffer-face-mode))
      buffer-face-mode)
+    ("C-t" (lambda ()
+             (transient--make-description
+              "Tree-sitter highlighting"
+              tree-sitter-hl-mode))
+     tree-sitter-hl-mode)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"

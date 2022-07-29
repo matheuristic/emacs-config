@@ -1150,8 +1150,7 @@ Version using ~julia-repl~ to provide Julia REPL support in Emacs.
                    (number-to-string (current-column))
                    ")[1];"
                    "println("
-                   "c isa REPL.REPLCompletions.KeywordCompletion"
-                   " ? c.keyword : c.mod"
+                   "REPL.REPLCompletions.completion_text(c)"
                    ");"
                    "end"
                    )))

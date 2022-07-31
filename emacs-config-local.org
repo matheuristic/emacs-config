@@ -169,8 +169,8 @@ Note this requires Emacs be compiled with modules support enabled
 be non-nil.
 
 ~cmake~ and ~libtool~ are needed. On macOS, this can be installed
-using MacPorts (shown below) or Homebrew or conda. On Debian, install
-the ~cmake~ and ~libtool-bin~ APT packages.
+using MacPorts (shown below) or Homebrew or Spack or conda. On Debian,
+install the ~cmake~ and ~libtool-bin~ APT packages.
 
 #+begin_example
 $ sudo port install cmake libtool
@@ -178,7 +178,7 @@ $ sudo port install cmake libtool
 
 The emacs-libvterm package requires libvterm and its headers be
 installed on the system (~libvterm-dev~ on Debian). On macOS, this can
-be installed using MacPorts (shown below) or Homebrew.
+be installed using MacPorts (shown below) or Homebrew or Spack.
 
 #+begin_example
 $ sudo port install libvterm
@@ -1121,6 +1121,46 @@ and `racket-repl-documentation' otherwise."
 - Julia REPL integration using [[https://github.com/tpapp/julia-repl][julia-repl]] or [[https://github.com/gcv/julia-snail][julia-snail]]
 - When in a Julia buffer, ~C-c m~ invokes a mode-specific transient
 
+** Version using ~julia-snail~ to provide Julia REPL support in Emacs.
+
+Note that ~julia-snail~ uses ~vterm~ so install that as well.
+
+#+begin_src emacs-lisp
+;;; support for editing Julia buffers
+(use-package julia-mode)
+
+;;; provides a Julia IDE
+(use-package julia-snail
+  ;; julia-mode is automatically installed by this package
+  :after vterm
+  :hook (julia-mode . julia-snail-mode)
+  :config
+  ;; enable Julia multimedia integration if images are supported
+  (when (display-images-p)
+    (setq julia-snail-multimedia-enable t))
+  ;; major-mode specific transient for Julia buffers
+  (transient-define-prefix transient/julia-snail-mode ()
+    "`julia-snail-mode' commands."
+    ["Julia Snail"
+     ["Actions"
+      ("z" "Connect" julia-snail)
+      ("a" "Activate pkg" julia-snail-package-activate)
+      ("d" "Documentation lookup" julia-snail-doc-lookup)
+      ("m" "Toggle multimedia" julia-snail-multimedia-toggle-display-in-emacs)
+      ("R" "Update module cache" julia-snail-update-module-cache)
+      ]
+     ["Send"
+      ("k" "Buffer" julia-snail-send-buffer-file)
+      ("c" "Top-level form" julia-snail-send-top-level-form)
+      ("r" "Region" julia-snail-send-region)
+      ("l" "Line" julia-snail-send-line)
+      ("e" "DWIM" julia-snail-send-dwim)
+      ]
+     ]
+    )
+  (define-key julia-snail-mode-map (kbd "C-c m") #'transient/julia-snail-mode))
+#+end_src
+
 ** Version using ~julia-repl~ to provide Julia REPL support in Emacs.
 
 #+begin_src emacs-lisp
@@ -1191,43 +1231,6 @@ macOS). One workaround is to add the following to the
 #+begin_src julia
 # Reset erase and line-kill keys in TTY to their default values
 run(`stty ek`)
-#+end_src
-
-** Version using ~julia-snail~ to provide Julia REPL support in Emacs.
-
-Note that ~julia-snail~ uses ~vterm~ so install that as well.
-
-#+begin_src emacs-lisp
-;; provides a Julia IDE
-(use-package julia-snail
-  ;; julia-mode is automatically installed by this package
-  :after vterm
-  :hook (julia-mode . julia-snail-mode)
-  :config
-  ;; enable Julia multimedia integration if images are supported
-  (when (display-images-p)
-    (setq julia-snail-multimedia-enable t))
-  ;; major-mode specific transient for Julia buffers
-  (transient-define-prefix transient/julia-snail-mode ()
-    "`julia-snail-mode' commands."
-    ["Julia Snail"
-     ["Actions"
-      ("z" "Connect" julia-snail)
-      ("a" "Activate pkg" julia-snail-package-activate)
-      ("d" "Documentation lookup" julia-snail-doc-lookup)
-      ("m" "Toggle multimedia" julia-snail-multimedia-toggle-display-in-emacs)
-      ("R" "Update module cache" julia-snail-update-module-cache)
-      ]
-     ["Send"
-      ("k" "Buffer" julia-snail-send-buffer-file)
-      ("c" "Top-level form" julia-snail-send-top-level-form)
-      ("r" "Region" julia-snail-send-region)
-      ("l" "Line" julia-snail-send-line)
-      ("e" "DWIM" julia-snail-send-dwim)
-      ]
-     ]
-    )
-  (define-key julia-snail-mode-map (kbd "C-c m") #'transient/julia-snail-mode))
 #+end_src
 
 ** Version using ESS (not quite as well-integrated).

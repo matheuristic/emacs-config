@@ -1140,10 +1140,18 @@ Note that ~julia-snail~ uses ~vterm~ so install that as well.
   ;; through a stored desktop, which will cause a stack overflow
   ;; "Error in menu-bar-update-hook (imenu-update-menubar): (error
   ;; Lisp nesting exceeds `max-lisp-eval-depth')"
+  (defun my-julia-snail-fix-imenu-fallback-index-function ()
+    "Make sure `julia-snail--imenu-fallback-index-function' is a safe value.
+
+If `julia-snail--imenu-fallback-index-function' is
+`julia-snail-imenu', that can create an infinite loop, so in that
+scenario revert it to `imenu-default-create-index-function'."
+    (if (eq julia-snail--imenu-fallback-index-function
+            'julia-snail-imenu)
+        (setq julia-snail--imenu-fallback-index-function
+              #'imenu-default-create-index-function)))
   (add-hook 'julia-snail-mode-hook
-            (lambda ()
-              (setq julia-snail--imenu-fallback-index-function
-                    #'imenu-default-create-index-function)))
+            #'my-julia-snail-fix-imenu-fallback-index-function)
   ;; enable Julia multimedia integration if images are supported
   (when (display-images-p)
     (setq julia-snail-multimedia-enable t))

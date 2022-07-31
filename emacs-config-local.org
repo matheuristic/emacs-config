@@ -1135,6 +1135,15 @@ Note that ~julia-snail~ uses ~vterm~ so install that as well.
   :after vterm
   :hook (julia-mode . julia-snail-mode)
   :config
+  ;; hacky workaround for infinite loop due to `julia-snail-imenu'
+  ;; calling itself when updating imenu in a Julia buffer loaded
+  ;; through a stored desktop, which will cause a stack overflow
+  ;; "Error in menu-bar-update-hook (imenu-update-menubar): (error
+  ;; Lisp nesting exceeds `max-lisp-eval-depth')"
+  (add-hook 'julia-snail-mode-hook
+            (lambda ()
+              (setq julia-snail--imenu-fallback-index-function
+                    #'imenu-default-create-index-function)))
   ;; enable Julia multimedia integration if images are supported
   (when (display-images-p)
     (setq julia-snail-multimedia-enable t))

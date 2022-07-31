@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Jul 23 22:22:54 2022
+;; Generated: Sun Jul 31 12:56:37 2022
 
 ;;; Commentary:
 
@@ -518,8 +518,10 @@ This minor mode has no effect when the buffer is not visiting a file."
 ;; enable winner-mode at end of initialization
 (add-hook 'after-init-hook #'winner-mode)
 
-;; more convenient bindings for `other-window' and `other-frame'
+;;; more convenient bindings for `other-window' and `other-frame'
 (global-set-key (kbd "M-o") #'other-window)
+(with-eval-after-load 'term
+  (define-key term-raw-map (kbd "M-o") (global-key-binding (kbd "M-o"))))
 
 (defun my-rotate-window-buffers (rotations)
   "Rotate buffers in the windows of the current frame ROTATIONS times.
@@ -726,6 +728,12 @@ provided, the default interactive `eshell' command is run."
 ;; add 256-color support to `term' and `ansi-term'
 (use-package eterm-256color
   :hook (term-mode . eterm-256color-mode))
+
+;;; pass through M-x and M-: keys in term/ansi-term inferior buffers
+(with-eval-after-load 'term
+  (dolist (keyseq (list (kbd "M-x")
+                        (kbd "M-:")))
+    (define-key term-raw-map keyseq (global-key-binding keyseq))))
 
 ;; convenience functions for sent commands to an active tmux session
 ;; adapted from https://explog.in/notes/tmux.html

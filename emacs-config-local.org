@@ -1121,13 +1121,13 @@ and `racket-repl-documentation' otherwise."
 - Julia REPL integration using [[https://github.com/tpapp/julia-repl][julia-repl]] or [[https://github.com/gcv/julia-snail][julia-snail]]
 - When in a Julia buffer, ~C-c m~ invokes a mode-specific transient
 
-Version using ~julia-repl~ to provide Julia REPL support in Emacs.
+** Version using ~julia-repl~ to provide Julia REPL support in Emacs.
 
 #+begin_src emacs-lisp
-;; support for editing Julia buffers
+;;; support for editing Julia buffers
 (use-package julia-mode)
 
-;; support for running the Julia REPL inside Emacs
+;;; support for running the Julia REPL inside Emacs
 (use-package julia-repl
   :after julia-mode
   :hook (julia-mode . julia-repl-mode)
@@ -1183,7 +1183,18 @@ Version using ~julia-repl~ to provide Julia REPL support in Emacs.
   (define-key julia-repl-mode-map (kbd "C-c m") #'transient/julia-repl-mode))
 #+end_src
 
-Version using ~julia-snail~ to provide Julia REPL support in Emacs.
+When using ~ansi-term~ as the inferior buffer, there can be issues
+using backspace when running ~readline()~ inside the REPL (e.g., on
+macOS). One workaround is to add the following to the
+=~/.julia/config/startup.jl= file:
+
+#+begin_src julia
+# Reset erase and line-kill keys in TTY to their default values
+run(`stty ek`)
+#+end_src
+
+** Version using ~julia-snail~ to provide Julia REPL support in Emacs.
+
 Note that ~julia-snail~ uses ~vterm~ so install that as well.
 
 #+begin_src emacs-lisp
@@ -1219,7 +1230,7 @@ Note that ~julia-snail~ uses ~vterm~ so install that as well.
   (define-key julia-snail-mode-map (kbd "C-c m") #'transient/julia-snail-mode))
 #+end_src
 
-Version using ESS (not quite as well-integrated).
+** Version using ESS (not quite as well-integrated).
 
 #+begin_src emacs-lisp
 ;; support for editing Julia buffers

@@ -1382,8 +1382,10 @@ frame.
 
 #+name: more-convenient-other-window-binding
 #+begin_src emacs-lisp
-;; more convenient bindings for `other-window' and `other-frame'
+;;; more convenient bindings for `other-window' and `other-frame'
 (global-set-key (kbd "M-o") #'other-window)
+(with-eval-after-load 'term
+  (define-key term-raw-map (kbd "M-o") (global-key-binding (kbd "M-o"))))
 #+end_src
 
 *** Rotate window buffers
@@ -1739,6 +1741,21 @@ and ~ansi-term-mode~ buffers.
 ;; add 256-color support to `term' and `ansi-term'
 (use-package eterm-256color
   :hook (term-mode . eterm-256color-mode))
+#+end_src
+
+*** Pass through M-x and M-: key sequences in term/ansi-term
+
+Pass through ~M-x~ and ~M-:~ key sequences in ~term~ and ~ansi-term~
+inferior buffers to their global bindings (by default, running an
+interactive command and evaluating an Elisp expression respectively).
+
+#+name: term-passthrough
+#+begin_src emacs-lisp
+;;; pass through M-x and M-: keys in term/ansi-term inferior buffers
+(with-eval-after-load 'term
+  (dolist (keyseq (list (kbd "M-x")
+                        (kbd "M-:")))
+    (define-key term-raw-map keyseq (global-key-binding keyseq))))
 #+end_src
 
 ** tmux interaction convenenience functions
@@ -9119,6 +9136,8 @@ The main configuration file.
 <<kill-term-buffers-with-q-after-end>>
 
 <<eterm-256color>>
+
+<<term-passthrough>>
 
 <<tmux-send>>
 

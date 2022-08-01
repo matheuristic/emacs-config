@@ -504,11 +504,35 @@ To avoid the ~M-x customize~ settings clobbering the tangled
 initialization files (which it does by default), set ~custom-file~ to
 to something that is not the Emacs init file.
 
-Other local configuration should go into a =lisp/init-local.el= file
-in ~user-emacs-directory~ (usually =~/.emacs.d/lisp/init-local.el=).
-This file should provide the ~init-local~ feature when it is loaded.
-In the below configuration, this is loaded after initialization but
-before ~custom-file~ is loaded.
+Other local configuration should go into =lisp/early-init-local.el= or
+=lisp/init-local.el= in ~user-emacs-directory~ (i.e.,
+=~/.emacs.d/lisp/early-init-local.el= and
+=~/.emacs.d/lisp/init-local.el=). These files should provide the
+~early-init-local~ and ~init-local~ features respectively when they
+are loaded. In the below configuration, ~early-init-local~ is loaded
+when required from the main =early-init.el= and ~init-local~ is loaded
+after initialization but before ~custom-file~ is loaded.
+
+Template for =early-init-local.el= file.
+#+begin_example
+;;; early-init-local.el --- Emacs local config file -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
+;; Emacs configuration that is machine-local, typically loaded after
+;; early-init.el but before init.el
+
+;; This file should be located at lisp/early-init-local.el within
+;; `user-emacs-directory', typically
+;; ~/.emacs.d/lisp/early-init-local.el
+
+;;; Code:
+
+;; Local configuration code goes here ...
+
+(provide 'early-init-local)
+;;; early-init-local.el ends here
+#+end_example
 
 Template for =init-local.el= file.
 #+begin_example
@@ -529,6 +553,12 @@ Template for =init-local.el= file.
 (provide 'init-local)
 ;;; init-local.el ends here
 #+end_example
+
+#+name: early-init-local
+#+begin_src emacs-lisp
+;; load local early init configuration
+(require 'early-init-local nil t)       ; don't raise errors
+#+end_src
 
 #+name: custom-file-and-init-local
 #+begin_src emacs-lisp
@@ -7408,24 +7438,21 @@ Transient for visual commands and toggles.
                  transient/visual--face-remap-cookies)))
       (let* ((light-color (color-lighten-name
                            (face-attribute face :foreground)
-                           50)) ;; lighten color by 50 percent
+                           50))         ; lighten color by 50 percent
              (face-remap-cookie-new (face-remap-add-relative
                                      face
                                      :foreground light-color)))
         (push `(,face . ,face-remap-cookie-new)
               transient/visual--face-remap-cookies)))))
 
-(defun transient/visual--toggle-lighten-font-lock-comment-face ()
-  "Toggle brightness of `font-lock-comment-face'."
-  (interactive)
-  (transient/visual--toggle-lighten-face
-   'font-lock-comment-face))
+(defun transient/visual--toggle-lighten-font-lock-comment-faces ()
+  "Toggle brightness of font-lock comment faces.
 
-(defun transient/visual--toggle-lighten-font-lock-comment-delimiter-face ()
-  "Toggle brightness of `font-lock-comment-delimiter-face'."
+Font-lock comment faces are `font-lock-comment-face' and
+`font-lock-comment-delimiter-face'."
   (interactive)
-  (transient/visual--toggle-lighten-face
-   'font-lock-comment-delimiter-face))
+  (transient/visual--toggle-lighten-face 'font-lock-comment-face)
+  (transient/visual--toggle-lighten-face 'font-lock-comment-delimiter-face))
 
 (defun transient/visual--toggle-lighten-font-lock-doc-face ()
   "Toggle brightness of `font-lock-doc-face'."
@@ -7522,11 +7549,6 @@ Currently only works for Emacs Mac port."
             "Buffer-specific face"
             buffer-face-mode))
      buffer-face-mode)
-    ("C-t" (lambda ()
-             (transient--make-description
-              "Tree-sitter highlighting"
-              tree-sitter-hl-mode))
-     tree-sitter-hl-mode)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"
@@ -7560,15 +7582,11 @@ Currently only works for Emacs Mac port."
     ("cc" (lambda ()
             (transient--make-description
              "Comments"
-             (null (assq 'font-lock-comment-face
-                         transient/visual--face-remap-cookies))))
-     transient/visual--toggle-lighten-font-lock-comment-face)
-    ("cC" (lambda ()
-            (transient--make-description
-             "Comment delims"
-             (null (assq 'font-lock-comment-delimiter-face
-                         transient/visual--face-remap-cookies))))
-     transient/visual--toggle-lighten-font-lock-comment-delimiter-face)
+             (and (null (assq 'font-lock-comment-face
+                              transient/visual--face-remap-cookies))
+                  (null (assq 'font-lock-comment-delimiter-face
+                              transient/visual--face-remap-cookies)))))
+     transient/visual--toggle-lighten-font-lock-comment-faces)
     ("cd" (lambda ()
             (transient--make-description
              "Docstrings"
@@ -7585,10 +7603,15 @@ Currently only works for Emacs Mac port."
              "Prism whitespace"
              prism-whitespace-mode))
      prism-whitespace-mode)
+    ("ct" (lambda ()
+            (transient--make-description
+             "Tree-sitter highlighting"
+             tree-sitter-hl-mode))
+     tree-sitter-hl-mode)
     ("cT" (lambda ()
-             (transient--make-description
-              "Highlight TODOs"
-              hl-todo-mode))
+            (transient--make-description
+             "Highlight TODOs"
+             hl-todo-mode))
      hl-todo-mode)
     ]
    ]
@@ -8994,6 +9017,8 @@ Static UI customizations should go here to optimize startup time.
 <<remove-decorations>>
 
 <<load-custom-theme>>
+
+<<early-init-local>>
 
 <<generate-footer(feature="early-init")>>
 #+end_src

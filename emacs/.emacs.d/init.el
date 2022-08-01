@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul 31 12:56:37 2022
+;; Generated: Mon Aug  1 13:13:18 2022
 
 ;;; Commentary:
 
@@ -3613,24 +3613,21 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
                  transient/visual--face-remap-cookies)))
       (let* ((light-color (color-lighten-name
                            (face-attribute face :foreground)
-                           50)) ;; lighten color by 50 percent
+                           50))         ; lighten color by 50 percent
              (face-remap-cookie-new (face-remap-add-relative
                                      face
                                      :foreground light-color)))
         (push `(,face . ,face-remap-cookie-new)
               transient/visual--face-remap-cookies)))))
 
-(defun transient/visual--toggle-lighten-font-lock-comment-face ()
-  "Toggle brightness of `font-lock-comment-face'."
-  (interactive)
-  (transient/visual--toggle-lighten-face
-   'font-lock-comment-face))
+(defun transient/visual--toggle-lighten-font-lock-comment-faces ()
+  "Toggle brightness of font-lock comment faces.
 
-(defun transient/visual--toggle-lighten-font-lock-comment-delimiter-face ()
-  "Toggle brightness of `font-lock-comment-delimiter-face'."
+Font-lock comment faces are `font-lock-comment-face' and
+`font-lock-comment-delimiter-face'."
   (interactive)
-  (transient/visual--toggle-lighten-face
-   'font-lock-comment-delimiter-face))
+  (transient/visual--toggle-lighten-face 'font-lock-comment-face)
+  (transient/visual--toggle-lighten-face 'font-lock-comment-delimiter-face))
 
 (defun transient/visual--toggle-lighten-font-lock-doc-face ()
   "Toggle brightness of `font-lock-doc-face'."
@@ -3727,11 +3724,6 @@ Currently only works for Emacs Mac port."
             "Buffer-specific face"
             buffer-face-mode))
      buffer-face-mode)
-    ("C-t" (lambda ()
-             (transient--make-description
-              "Tree-sitter highlighting"
-              tree-sitter-hl-mode))
-     tree-sitter-hl-mode)
     ("C-l" "Ligatures" transient/visual--toggle-ligatures)
     ]
    ["Cursor"
@@ -3765,15 +3757,11 @@ Currently only works for Emacs Mac port."
     ("cc" (lambda ()
             (transient--make-description
              "Comments"
-             (null (assq 'font-lock-comment-face
-                         transient/visual--face-remap-cookies))))
-     transient/visual--toggle-lighten-font-lock-comment-face)
-    ("cC" (lambda ()
-            (transient--make-description
-             "Comment delims"
-             (null (assq 'font-lock-comment-delimiter-face
-                         transient/visual--face-remap-cookies))))
-     transient/visual--toggle-lighten-font-lock-comment-delimiter-face)
+             (and (null (assq 'font-lock-comment-face
+                              transient/visual--face-remap-cookies))
+                  (null (assq 'font-lock-comment-delimiter-face
+                              transient/visual--face-remap-cookies)))))
+     transient/visual--toggle-lighten-font-lock-comment-faces)
     ("cd" (lambda ()
             (transient--make-description
              "Docstrings"
@@ -3790,10 +3778,15 @@ Currently only works for Emacs Mac port."
              "Prism whitespace"
              prism-whitespace-mode))
      prism-whitespace-mode)
+    ("ct" (lambda ()
+            (transient--make-description
+             "Tree-sitter highlighting"
+             tree-sitter-hl-mode))
+     tree-sitter-hl-mode)
     ("cT" (lambda ()
-             (transient--make-description
-              "Highlight TODOs"
-              hl-todo-mode))
+            (transient--make-description
+             "Highlight TODOs"
+             hl-todo-mode))
      hl-todo-mode)
     ]
    ]

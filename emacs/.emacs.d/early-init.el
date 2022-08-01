@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Jul 31 12:56:36 2022
+;; Generated: Mon Aug  1 13:13:18 2022
 
 ;;; Commentary:
 
@@ -86,6 +86,9 @@
              (file-name-as-directory
               (expand-file-name "themes" user-emacs-directory)))
 (load-theme 'ereader t)
+
+;; load local early init configuration
+(require 'early-init-local nil t)       ; don't raise errors
 
 (provide 'early-init)
 ;;; early-init.el ends here

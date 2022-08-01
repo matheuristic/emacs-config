@@ -5,10 +5,35 @@
 
 * About
 
-Snippets that can be copied into ~$HOME/.emacs.d/lisp/init-local.el~
-for machine-local configuration.
+Snippets that can be copied into
+=$HOME/.emacs.d/lisp/early-init-local.el= or
+=$HOME/.emacs.d/lisp/init-local.el= for machine-local configuration.
 
-The following is a template for local configuration.
+Configuration to be set early (e.g., font faces) should go into
+=early-init-local.el= and headings for these are tagged ~early~ below.
+Otherwise they should go into =init-local.el=.
+
+The following are templates for local configuration.
+
+#+begin_src emacs-lisp
+;;; early-init-local.el --- Emacs local config file -*- lexical-binding: t; -*-
+
+;;; Commentary:
+
+;; Emacs configuration that is machine-local, typically loaded after
+;; early-init.el but before init.el
+
+;; This file should be located at lisp/early-init-local.el within
+;; `user-emacs-directory', typically
+;; ~/.emacs.d/lisp/early-init-local.el
+
+;;; Code:
+
+;; Local configuration code goes here ...
+
+(provide 'early-init-local)
+;;; early-init-local.el ends here
+#+end_src
 
 #+begin_src emacs-lisp
 ;;; init-local.el --- Emacs local config file -*- lexical-binding: t; -*-
@@ -29,7 +54,7 @@ The following is a template for local configuration.
 ;;; init-local.el ends here
 #+end_src
 
-* Display face fonts
+* Display face fonts                                                  :early:
 
 Set the fonts used for display faces.
 
@@ -66,11 +91,11 @@ removed from the cache and reloaded again during redisplay which can
 slow down the redisplay.
 
 #+begin_src emacs-lisp
-;; set typefaces for graphical Emacs
-;; main fonts
-;; - note that the default face must specify :height using an integer
-;;   in units of 1/10 point but other faces can use a float specifying
-;;   height relative to its underlying face if desired
+;;; set typefaces for graphical Emacs
+;;; main fonts
+;;; - note that the default face must specify :height using an integer
+;;;   in units of 1/10 point but other faces can use a float specifying
+;;;   height relative to its underlying face if desired
 (set-face-attribute 'default nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 160 110)
                     :weight 'normal :width 'normal)
@@ -86,11 +111,11 @@ slow down the redisplay.
 (set-face-attribute 'mode-line-inactive nil :family "Iosevka Term"
                     :height (if (eq system-type 'darwin) 130 90)
                     :weight 'normal :width 'normal)
-;; fallback font
+;;; fallback font
 (set-fontset-font t nil "Symbola" nil 'append)
-;; increase min underline offset for more readable underlined words
+;;; increase min underline offset for more readable underlined words
 (setq underline-minimum-offset 5)
-;; uncomment below if using a large font to not compact it during GC
+;;; uncomment below if using a large font to not compact it during GC
 (setq inhibit-compacting-font-caches t)
 #+end_src
 

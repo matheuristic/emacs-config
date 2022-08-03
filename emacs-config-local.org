@@ -299,7 +299,23 @@ machine and compile it.
          ]
         )
       )
-    ))
+    ;; major-mode specific transient for vterm-mode and vterm-copy-mode
+    (transient-define-prefix transient/vterm-mode ()
+      "`term-mode' commands."
+      ["Vterm"
+       ("n" "Next prompt" vterm-next-prompt :transient t)
+       ("p" "Prev prompt" vterm-previous-prompt :transient t)
+       ("r" "Reset cursor" vterm-reset-cursor-point :transient t)
+       ("t" (lambda ()
+              (interactive)
+              (transient--make-description
+               "Copy mode"
+               vterm-copy-mode))
+        vterm-copy-mode :transient t)
+       ]
+      )
+    (define-key vterm-mode-map (kbd "C-c m") #'transient/vterm-mode)
+    (define-key vterm-copy-mode-map (kbd "C-c m") #'transient/vterm-mode)))
 #+end_src
 
 *Updating compiled modules*: ~M-x vterm-module-compile~ recompiles
@@ -311,47 +327,17 @@ If desired, vterm also has a number of Emacs and shell integration
 features (directory tracking, prompt tracking, message parsing, etc)
 that require some [[https://github.com/akermu/emacs-libvterm#shell-side-configuration][shell-side configuration]].
 
-Most of these shell-side configurations require a ~vterm_printf~
-helper function.
-
-For Bash or Zsh, add the following in the =~/.bashrc= or =~/.zshrc= file.
+These configurations are combined into a file (there are different
+ones for Bash, ZSH and Fish) in vterm's =etc/= directory (see [[https://github.com/akermu/emacs-libvterm/tree/master/etc][link]])
+that can be sourced in the main shell config file. For example, for
+Bash, add the following to the =~/.bashrc= file.
 
 #+begin_example
-if [ "$INSIDE_EMACS" = "vterm" ]; then
-    vterm_printf () {
-        if [ -n "$TMUX" ] && ([ "${TERM%%-*}" = "tmux" ] || [ "${TERM%%-*}" = "screen" ] ); then
-            # Tell tmux to pass the escape sequences through
-            printf "\ePtmux;\e\e]%s\007\e\\" "$1"
-        elif [ "${TERM%%-*}" = "screen" ]; then
-            # GNU screen (screen, screen-256color, screen-256color-bce)
-            printf "\eP\e]%s\007\e\\" "$1"
-        else
-            printf "\e]%s\e\\" "$1"
-        fi
-    }
+if [[ "$INSIDE_EMACS" = 'vterm' ]] \
+    && [[ -n ${EMACS_VTERM_PATH} ]] \
+    && [[ -f ${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh ]]; then
+	source ${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh
 fi
-#+end_example
-
-For fish, put the following in a
-=~/.config/fish/functions/vterm_printf= file.
-
-#+begin_example
-# Helper function for sending info from shell to vterm using escape sequences.
-# https://github.com/akermu/emacs-libvterm#shell-side-configuration
-if [ "$INSIDE_EMACS" = "vterm" ]
-    function vterm_printf
-        if [ -n "$TMUX" ]
-            # tell tmux to pass the escape sequences through
-            # (Source: http://permalink.gmane.org/gmane.comp.terminal-emulators.tmux.user/1324)
-            printf "\ePtmux;\e\e]%s\007\e\\" "$argv"
-        else if string match -q -- "screen*" "$TERM"
-            # GNU screen (screen, screen-256color, screen-256color-bce)
-            printf "\eP\e]%s\007\e\\" "$argv"
-        else
-            printf "\e]%s\e\\" "$argv"
-        end
-    end
-end
 #+end_example
 
 *** Directory and prompt tracking

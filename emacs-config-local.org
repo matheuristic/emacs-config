@@ -329,14 +329,25 @@ that require some [[https://github.com/akermu/emacs-libvterm#shell-side-configur
 
 These configurations are combined into a file (there are different
 ones for Bash, ZSH and Fish) in vterm's =etc/= directory (see [[https://github.com/akermu/emacs-libvterm/tree/master/etc][link]])
-that can be sourced in the main shell config file. For example, for
-Bash, add the following to the =~/.bashrc= file.
+that can be sourced in the main shell config file.
+
+For Bash, add the following to the =~/.bashrc= file.
 
 #+begin_example
 if [[ "$INSIDE_EMACS" = 'vterm' ]] \
     && [[ -n ${EMACS_VTERM_PATH} ]] \
     && [[ -f ${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh ]]; then
 	source ${EMACS_VTERM_PATH}/etc/emacs-vterm-bash.sh
+fi
+#+end_example
+
+For ZSH, add the following to the =~/.zshrc= file.
+
+#+begin_example
+if [[ "$INSIDE_EMACS" = 'vterm' ]] \
+    && [[ -n ${EMACS_VTERM_PATH} ]] \
+    && [[ -f ${EMACS_VTERM_PATH}/etc/emacs-vterm-zsh.sh ]]; then
+	source ${EMACS_VTERM_PATH}/etc/emacs-vterm-zsh.sh
 fi
 #+end_example
 

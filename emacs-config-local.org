@@ -325,7 +325,7 @@ vterm-module, so run it to update to newer versions of libvterm.
 
 If desired, vterm also has a number of Emacs and shell integration
 features (directory tracking, prompt tracking, message parsing, etc)
-that require some [[https://github.com/akermu/emacs-libvterm#shell-side-configuration][shell-side configuration]].
+that require some [[https://github.com/akermu/emacs-libvterm#shell-side-configuration][shell-side]] [[https://github.com/akermu/emacs-libvterm#shell-side-configuration-files][configuration]].
 
 These configurations are combined into a file (there are different
 ones for Bash, ZSH and Fish) in vterm's =etc/= directory (see [[https://github.com/akermu/emacs-libvterm/tree/master/etc][link]])
@@ -1157,6 +1157,15 @@ Note that ~julia-snail~ uses ~vterm~ so install that as well.
   :after vterm
   :hook (julia-mode . julia-snail-mode)
   :config
+  ;; enable Julia multimedia integration if images are supported
+  (when (display-images-p)
+    (setq julia-snail-multimedia-enable t))
+  ;; set prompt regexp so that `vterm-next-prompt' and
+  ;; `vterm-previous-prompt' work properly (the possible prompts are
+  ;; "julia> ", "pkg> ", "shell> " and "help?> ")
+  (add-hook 'julia-snail-repl-mode-hook
+            (lambda ()
+              (setq-local term-prompt-regexp "^[^>\n]*> ")))
   ;; hacky workaround for infinite loop due to `julia-snail-imenu'
   ;; calling itself when updating imenu in a Julia buffer loaded
   ;; through a stored desktop, which will cause a stack overflow
@@ -1174,9 +1183,6 @@ scenario revert it to `imenu-default-create-index-function'."
               #'imenu-default-create-index-function)))
   (add-hook 'julia-snail-mode-hook
             #'my-julia-snail-fix-imenu-fallback-index-function)
-  ;; enable Julia multimedia integration if images are supported
-  (when (display-images-p)
-    (setq julia-snail-multimedia-enable t))
   ;; major-mode specific transient for Julia buffers
   (transient-define-prefix transient/julia-snail-mode ()
     "`julia-snail-mode' commands."

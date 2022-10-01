@@ -3427,7 +3427,7 @@ Load the [[https://github.com/emacsmirror/org/blob/master/lisp/ox-md.el][built-i
   (require 'ox-md))
 #+end_src
 
-** org-superstar for nicer headings and plain lists
+** org-superstar for nicer headings and plain lists                   :melpa:
 
 [[https://github.com/integral-dw/org-superstar-mode][org-superstar]] provides a minor mode that replaces header stars and
 plain lists in Org-mode with UTF-8 characters.

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Sep 19 12:23:04 2022
+;; Generated: Fri Oct 28 12:30:43 2022
 
 ;;; Commentary:
 
@@ -295,21 +295,6 @@ cache before processing."
 (with-eval-after-load 'minibuffer
   (add-to-list 'completion-styles 'flex t))
 
-;; text completion framework
-(use-package company
-  :defer t
-  :init
-  (with-eval-after-load 'prog-mode
-    (add-hook 'prog-mode-hook 'company-mode))
-  (setq company-dabbrev-downcase nil
-        company-idle-delay 0.5
-        company-minimum-prefix-length 2
-        company-selection-wrap-around t
-        company-show-numbers t ;; use M-<num> to directly choose completion
-        company-tooltip-align-annotations t)
-  :config
-  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
-
 ;; edit regions in separate buffers, used by other packages like markdown-mode
 (use-package edit-indirect)
 
@@ -370,12 +355,12 @@ cache before processing."
 (add-to-list 'recentf-exclude "^/var/folders")
 ;; exclude files in `org-agenda-files'
 ;; these files are quickly accessible from their respective tooling
-(add-hook 'after-init-hook
-          (lambda ()
-            (dolist (file-list (list org-agenda-files))
-              (dolist (exclude-file file-list)
-                (add-to-list 'recentf-exclude
-                             (concat "^" exclude-file))))))
+;; (add-hook 'after-init-hook
+;;           (lambda ()
+;;             (dolist (file-list (list org-agenda-files))
+;;               (dolist (exclude-file file-list)
+;;                 (add-to-list 'recentf-exclude
+;;                              (concat "^" exclude-file))))))
 ;; exclude files in conda environments
 (add-hook 'after-init-hook
           (lambda ()
@@ -431,20 +416,20 @@ cache before processing."
 
 ;; configure Ibuffer filter groups
 (with-eval-after-load 'ibuffer
-  (defun my-ibuffer-org-agenda-files-filter ()
-    "Ibuffer filter for checking if current buffer is an Org agenda file.
+;;   (defun my-ibuffer-org-agenda-files-filter ()
+;;     "Ibuffer filter for checking if current buffer is an Org agenda file.
 
-Specifically, the current buffer is checked to see if it is in
-`org-agenda-files', is the agenda inbox file
-`my-org-agenda-inbox', or is the someday inbox file
-`my-org-someday-inbox'."
-    (let* ((bufname (buffer-file-name))
-           (fname (and bufname (file-truename bufname))) ; filename if a file buffer, nil otherwise
-           (agenda-fnames (mapcar #'file-truename (append (org-agenda-files) ; agenda and inbox filenames
-                                                          (list my-org-agenda-inbox
-                                                                my-org-someday-inbox)))))
-      (and fname
-           (member fname agenda-fnames))))
+;; Specifically, the current buffer is checked to see if it is in
+;; `org-agenda-files', is the agenda inbox file
+;; `my-org-agenda-inbox', or is the someday inbox file
+;; `my-org-someday-inbox'."
+;;     (let* ((bufname (buffer-file-name))
+;;            (fname (and bufname (file-truename bufname))) ; filename if a file buffer, nil otherwise
+;;            (agenda-fnames (mapcar #'file-truename (append (org-agenda-files) ; agenda and inbox filenames
+;;                                                           (list my-org-agenda-inbox
+;;                                                                 my-org-someday-inbox)))))
+;;       (and fname
+;;            (member fname agenda-fnames))))
   (setq ibuffer-saved-filter-groups
         ;; files are grouped by the first matching filter group in the list
         '(("default"
@@ -465,8 +450,8 @@ Specifically, the current buffer is checked to see if it is in
            ;; ("Analytics" (or (mode . ess-r-mode)
            ;;                  (mode . inferior-ess-r-mode)))
            ("Programming" (derived-mode . prog-mode))
-           ("Agenda" (or (mode . org-agenda-mode)
-                         (predicate . (my-ibuffer-org-agenda-files-filter))))
+           ;; ("Agenda" (or (mode . org-agenda-mode)
+           ;;               (predicate . (my-ibuffer-org-agenda-files-filter))))
            ("Org" (derived-mode . org-mode))
            ("Text" (derived-mode . text-mode))
            ("Fundamental" (mode . fundamental-mode))
@@ -1272,472 +1257,6 @@ Formatting a selected region only works on top-level objects."
   :commands yaml-mode
   :mode ("\\.ya?ml\\'" . yaml-mode))
 
-;; Org-mode
-
-;; ;; install ELPA version of Org
-;; (my-install-elpa-package 'org)
-
-;; rebind `org-force-cycle-archived' in older Org versions to not
-;; conflict with the `tab-next' default binding
-(with-eval-after-load 'org
-  (when (version< (org-version) "9.4")
-    (define-key org-mode-map (kbd "<C-tab>") nil)
-    (org-defkey org-mode-map (kbd "C-c C-<tab>") #'org-force-cycle-archived)))
-
-;; set Org directory and inbox file
-(setq org-directory (file-truename (file-name-as-directory (expand-file-name "~/org"))))
-(defvar my-org-agenda-inbox (concat org-directory "agenda/inbox.org")
-  "Path to Org agenda inbox.")
-(defvar my-org-someday-inbox (concat org-directory "agenda/someday.org")
-  "Path to Org someday inbox.")
-(defvar my-org-journal-file (concat org-directory "agenda/journal.org")
-  "Path to Org journal file.")
-(defvar my-org-scratch-file (concat org-directory "agenda/scratch.org")
-  "Path to Org scratch file.")
-(defvar my-org-websnippet-file (concat org-directory "agenda/websnippets.org")
-  "Path to Org websnippet file.")
-
-;; basic Org-mode settings
-(setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
-      org-attach-dir-relative t ; use relative directories when setting DIR property using `org-attach-set-directory'
-      ;; org-blank-before-new-entry '((heading . nil) ; don't auto-add new lines
-      ;;                              (plain-list-item . nil)) ; same as above
-      org-catch-invisible-edits 'show-and-error
-      org-confirm-babel-evaluate nil ; don't confirm before evaluating code blocks in Org documents
-      org-cycle-separator-lines 2 ; collapse single item separator lines when cycling
-      org-deadline-warning-days 3 ; warn starting 3 days before deadline
-      org-edit-src-content-indentation 2
-      org-enforce-todo-checkbox-dependencies t
-      org-enforce-todo-dependencies t
-      org-fontify-done-headline t
-      org-fontify-quote-and-verse-blocks t
-      org-fontify-whole-heading-line t
-      org-goto-interface 'outline-path-completion
-      org-hide-emphasis-markers nil
-      org-hide-leading-stars nil
-      org-highlight-latex-and-related '(latex script entities) ; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
-      org-image-actual-width (list (/ (display-pixel-width) 3)) ; auto-resize displayed images to one-third of display width
-      org-link-file-path-type 'adaptive ; use relative paths for links to files in Org file dir or subdirs, absolute otherwise
-      org-log-done 'time ; log time that task was marked DONE
-      org-log-into-drawer t
-      org-outline-path-complete-in-steps nil
-      org-pretty-entities t
-      org-pretty-entities-include-sub-superscripts nil ; don't render sub/superscripts in-buffer
-      org-return-follows-link t
-      org-src-fontify-natively nil ; don't syntax color org source blocks
-      org-src-preserve-indentation t ; preserve src code block indentation on export and when switching btw org buffer and edit buffer
-      org-src-strip-leading-and-trailing-blank-lines t
-      org-src-tab-acts-natively t
-      org-src-window-setup 'current-window ; reuse Org file window for editing source blocks when using "C-c '"
-      org-startup-folded t
-      org-startup-indented nil
-      org-treat-S-cursor-todo-selection-as-state-change nil
-      org-use-fast-todo-selection t
-      org-use-speed-commands t)
-
-;; make sure UUIDs generated for Org usage are alway upcased, which
-;; solves issues with synced directories, for example Linux generates
-;; lower case UUIDs while Mac generates upper case UUIDs.
-(with-eval-after-load 'org-id
-  (defun org-id-uuid--around-upcase (orig-fun &rest args)
-    "Advice for `org-id-uuid' to upcase the uuids it outputs.
-ORIG-FUN is the original function.
-ARGS are the arguments provided to ORIG-FUN."
-    (let ((uuid (apply orig-fun args)))
-      (upcase uuid)))
-  (advice-add 'org-id-uuid :around
-              'org-id-uuid--around-upcase))
-
-(defun my-org-open-line-below (n)
-  "Insert a new row in tables, call `my-open-line-below' elsewhere.
-If `org-special-ctrl-o' is nil, call `my-open-line-below' everywhere.
-As a special case, when a document starts with a table, allow to
-call `open-line' on the very first character."
-  (interactive "*p")
-  (if (and org-special-ctrl-o (/= (point) 1) (org-at-table-p))
-      (org-table-insert-row)
-    (my-open-line-below n)))
-
-;; bind over `org-open-line' to call `my-org-open-line-below' instead
-;; making it consistent with customized global-mode-map "C-o"
-(with-eval-after-load 'org-keys
-  (define-key org-mode-map (kbd "C-o") #'my-org-open-line-below))
-
-;; Set possible Org task states
-;; Diagram of possible task state transitions
-;;      ---------------------
-;;      |                   |
-;;      |                   V
-;; --> TODO.. -> NEXT... -> DONE ----->
-;;     | Λ  |    |   | Λ    Λ      |
-;;     V |  |    |   V |    |      |
-;;     HOLD |    |   WAIT ---      |
-;;      |   |    |   |             |
-;;      V   V    V   V             |
-;;     CANX........... -------------
-;;      (note records why it was cancelled)
-(setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
-                          (sequence "HOLD(h@/!)" "WAIT(w@/!)" "|" "CANX(c@/!)")))
-
-;; Org capture templates
-(defun my-org-goto-end-of-org-file ()
-  "Goto end of selected user file starting from `org-directory'."
-  (let ((path (read-file-name
-               "File: " org-directory nil nil nil
-               (lambda (x) (string-suffix-p ".org" x)))))
-    (find-file path)
-    (goto-char (point-max))))
-
-(setq org-capture-templates '(("t" "New Task" entry (file my-org-agenda-inbox)
-                               "* TODO %i%?\n%U")
-                              ("l" "Linked Task" entry (file my-org-agenda-inbox)
-                               "* TODO %a%?\n%U")
-                              ("s" "Someday Task" entry (file my-org-someday-inbox)
-                               "* TODO %i%?\n%U")
-                              ("i" "Interrupt Task" entry (function my-org-goto-end-of-org-file)
-                               "* NEXT %i%?\n%U"
-                               :jump-to-captured t :clock-in t :clock-resume t)
-                              ("j" "Journal Entry" entry
-                               (file+olp+datetree my-org-journal-file)
-                               "**** %?\n%T"
-                               :tree-type week :clock-in t :clock-resume t)
-                              ("J" "Schedule Journal Entry" entry
-                               (file+olp+datetree my-org-journal-file)
-                               "**** %?\n%T"
-                               :tree-type week :time-prompt t)))
-
-(with-eval-after-load 'org
-  ;; maximize org-capture buffer
-  (defun my-org-capture-setup (&rest args)
-    "Save window configuration prior to `org-capture'."
-    (set-frame-parameter
-     nil
-     'my-org-capture-prior-config
-     (current-window-configuration)))
-  (defun my-org-capture-teardown ()
-    "Restore window configuration prior to `org-capture'."
-    (let ((prior-window-configuration (frame-parameter
-                                       nil
-                                       'my-org-capture-prior-config)))
-      (when prior-window-configuration
-        (set-window-configuration prior-window-configuration))))
-  (advice-add 'org-capture :before 'my-org-capture-setup)
-  (add-hook 'org-capture-mode-hook 'delete-other-windows)
-  (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown))
-
-;; tags (note that tags within the same group are mutually exclusive)
-(setq org-tag-alist '((:startgroup) ;; export
-                      ("export" . ?9)
-                      ("noexport" . ?0)
-                      (:endgroup)
-                      ;; prioritization (e.g. Eisenhower matrix)
-                      ("important" . ?1)
-                      ("urgent" . ?2)
-                      (:newline)
-                      ;; entry context, in addition to category
-                      ("@work" . ?w)
-                      ("@life" . ?l)
-                      ("@learn" . ?e)
-                      (:startgroup) ;; special meeting types
-                      ("hiring" . ?h)
-                      ("managing" . ?m)
-                      ("vendor" . ?v)
-                      ("sales" . ?s)
-                      ("strategy" . ?t)
-                      (:endgroup)))
-
-;; `org-export' macros
-(with-eval-after-load 'ox
-  ;; color macro, {{{color(colorname, text)}}} to use
-  (push `("color"
-          .
-          ,(concat "@@latex:\\textcolor{$1}{$2}@@"
-                   "@@html:<span style=\"color:$1\">$2</span>@@"))
-        org-export-global-macros)
-  ;; placeholder text, {{{loremipsum}}} to use
-  (push `("loremipsum"
-          .
-          ,(mapconcat 'identity
-                      '("Lorem ipsum dolor sit amet, consectetur"
-                        "adipisicing elit, sed do eiusmod tempor"
-                        "incididunt ut labore et dolore magna"
-                        "aliqua. Ut enim ad minim veniam, quis"
-                        "nostrud exercitation ullamco laboris nisi"
-                        "ut aliquip ex ea commodo consequat. Duis"
-                        "aute irure dolor in reprehenderit in"
-                        "voluptate velit esse cillum dolore eu"
-                        "fugiat nulla pariatur. Excepteur sint"
-                        "occaecat cupidatat non proident, sunt in"
-                        "culpa qui officia deserunt mollit anim id"
-                        "est laborum."
-                        "\n\n"
-                        "Curabitur pretium tincidunt lacus. Nulla"
-                        "gravida orci a odio. Nullam varius, turpis"
-                        "et commodo pharetra, est eros bibendum elit,"
-                        "nec luctus magna felis sollicitudin mauris."
-                        "Integer in mauris eu nibh euismod gravida."
-                        "Duis ac tellus et risus vulputate vehicula."
-                        "Donec lobortis risus a elit. Etiam tempor."
-                        "Ut ullamcorper, ligula eu tempor congue,"
-                        "eros est euismod turpis, id tincidunt sapien"
-                        "risus a quam. Maecenas fermentum consequat"
-                        "mi. Donec fermentum. Pellentesque malesuada"
-                        "nulla a mi. Duis sapien sem, aliquet nec,"
-                        "commodo eget, consequat quis, neque. Aliquam"
-                        "faucibus, elit ut dictum aliquet, felis nisl"
-                        "adipiscing sapien, sed malesuada diam lacus"
-                        "eget erat. Cras mollis scelerisque nunc."
-                        "Nullam arcu. Aliquam consequat. Curabitur"
-                        "augue lorem, dapibus quis, laoreet et,"
-                        "pretium ac, nisi. Aenean magna nisl, mollis"
-                        "quis, molestie eu, feugiat in, orci. In hac"
-                        "habitasse platea dictumst.")
-                      " "))
-        org-export-global-macros)
-  ;; flow control for latex-specific text and otherwise
-  ;; {{{if-latex-else(latex text, other text)}}} to use
-  (push '("if-latex-else"
-          .
-          "(eval (if (org-export-derived-backend-p
-                     org-export-current-backend
-                     'latex)
-                    $1
-                  $2))")
-        org-export-global-macros))
-
-;; have Org mode open PDF files within Emacs
-(with-eval-after-load 'org
-  (push '("\\.pdf\\'" . emacs) org-file-apps))
-
-;; org-agenda settings:
-;; - narrow to subtree in org-agenda-follow-mode ("F" in agenda)
-;; - full-frame Agenda view
-;; - use ~/ORG-DIRECTORY/*.org files as Org agenda files
-;; - de-duplicate entries with both a scheduled and deadline date
-;; - don't show entries with scheduled or deadline dates that are done
-(setq org-agenda-follow-indirect t
-      org-agenda-restore-windows-after-quit t
-      org-agenda-skip-deadline-if-done t
-      org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled
-      org-agenda-skip-scheduled-delay-if-deadline nil
-      org-agenda-skip-scheduled-if-deadline-is-shown t
-      org-agenda-skip-scheduled-if-done t
-      org-agenda-start-on-weekday nil
-      org-agenda-window-setup 'only-window
-      org-agenda-files (seq-filter
-                        (lambda (x)
-                          (and
-                           (not (string-suffix-p my-org-agenda-inbox x))
-                           (not (string-suffix-p my-org-someday-inbox x))
-                           (not (string-suffix-p my-org-scratch-file x))
-                           (not (string-suffix-p my-org-websnippet-file x))))
-                        (file-expand-wildcards (concat org-directory "agenda/*.org"))))
-
-;; add separator between each day in agenda view
-(setq org-agenda-format-date
-      (lambda (date)
-        (let* ((datestr (org-agenda-format-date-aligned date))
-               (separator-width (- (window-width)
-                                   (string-width datestr)
-                                   1)))
-          (concat "\n" datestr " " (make-string separator-width ?_)))))
-
-;; helper functions for custom agenda commands
-(defun my-org-agenda-to-deadline-prefix-str ()
-  "Descriptor string for days to deadline for Org entry at point."
-  (let ((deadline (org-get-deadline-time (point))))
-    (when deadline
-      (let ((days-left (org-time-stamp-to-now (format-time-string "%F" deadline))))
-        (cond ((< days-left (- 1)) (format "%3d d. ago" (- days-left)))
-              ((= days-left (- 1)) (format " Yesterday" days-left))
-              ((= days-left 0)     (format "     Today" days-left))
-              ((= days-left 1)     (format "  Tomorrow" days-left))
-              ((> days-left 1)     (format " In %3d d." days-left)))))))
-
-;; custom agenda commands
-(setq org-agenda-custom-commands
-      `(("." "Today's agenda and all TODO entries"
-         ((agenda "" ((org-agenda-span 1)))
-          (todo "NEXT" ((org-agenda-todo-ignore-with-date nil)
-                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
-          (todo "WAIT" ((org-agenda-todo-ignore-with-date nil)
-                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
-          (todo "TODO" ((org-agenda-todo-ignore-with-date nil)
-                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
-          (todo "HOLD" ((org-agenda-todo-ignore-with-date nil)
-                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))))
-        ("u" "Undated TODO entries"
-         ((todo "NEXT" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
-          (todo "WAIT" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
-          (todo "TODO" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
-          (todo "HOLD" ((org-agenda-todo-ignore-with-date t)
-                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))
-        ("d" "Deadlines"
-         ((tags-todo "DEADLINE<\"<today>\"" ; tasks that are past deadline
-                     ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
-                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))
-          (tags-todo "DEADLINE>=\"<today>\"" ; tasks with upcoming deadlines
-                     ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
-                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))))
-        ("i" "Inbox entries"
-         ((alltodo "" ((org-agenda-files '(,my-org-agenda-inbox))
-                       (org-agenda-sorting-strategy '(priority-down deadline-up scheduled-up effort-up category-keep alpha-up))))))
-        ("o" "Someday entries"
-         ((alltodo "" ((org-agenda-files '(,my-org-someday-inbox))
-                       (org-agenda-sorting-strategy '(priority-down deadline-up scheduled-up effort-up category-keep alpha-up))))))))
-
-;; allow refiling up to 9 levels deep in the current buffer
-;; and 3 levels deep in Org agenda files
-;; allow refiling to the top level
-(setq org-refile-targets `((nil . (:maxlevel . 9)) ;; current buffer
-                           ;; top-level of regular `org-agenda-files' files
-                           (,(seq-filter
-                              'file-regular-p
-                              org-agenda-files) . (:level . 0)))
-      org-refile-use-outline-path 'file
-      org-refile-allow-creating-parent-nodes 'confirm)
-
-(add-hook 'org-mode-hook #'visual-line-mode)
-
-;; compile Org documents to PDF with LuaTeX and Biber
-(when (executable-find "lualatex")
-  (with-eval-after-load 'org
-    (setq org-latex-pdf-process
-          '("lualatex -interaction nonstopmode -output-directory %o %f"
-            "lualatex -interaction nonstopmode -output-directory %o %f"))
-    (if (executable-find "biber")
-        (push "biber %b" org-latex-pdf-process))
-    (push "lualatex -interaction nonstopmode -output-directory %o %f"
-          org-latex-pdf-process)))
-
-;; use LuaTeX for previewing LaTeX math formula as images
-(when (and (executable-find "lualatex")
-           (executable-find "dvipng"))
-  (with-eval-after-load 'org
-    (add-to-list 'org-preview-latex-process-alist
-                 '(dvipng :programs ("lualatex" "dvipng")
-                          :description "dvi > png"
-                          :message "you need to install lualatex and dvipng."
-                          :image-input-type "dvi"
-                          :image-output-type "png"
-                          :image-size-adjust (1.0 . 1.0)
-                          :latex-compiler
-                          (concat "lualatex -output-format dvi"
-                                  " -interaction nonstopmode"
-                                  " -output-directory %o %f")
-                          :image-converter ("dvipng -D %D -T tight -o %O %f")))))
-
-;; preview LaTeX fragments scaled to font size, requires dvipng from TexLive
-(when (and (display-graphic-p)
-           (executable-find "dvipng"))
-  (with-eval-after-load 'org
-    (defvar my-org-latex-scale-base (plist-get org-format-latex-options :scale)
-      "Base LaTeX fragment scale.")
-    (defun my-org-display-latex-fragments ()
-      "Previews LaTeX fragments in the buffer scaled to match font size."
-      (interactive)
-      (let* ((curr-text-scale (condition-case nil
-                                  text-scale-mode-amount
-                                (error 0)))
-             (new-latex-scale (+ my-org-latex-scale-base curr-text-scale)))
-        (when (eq major-mode 'org-mode)
-          ;; modify LaTeX scale in a local copy of `org-format-latex-options'
-          (if (not (assoc 'org-format-latex-options (buffer-local-variables)))
-              (setq-local org-format-latex-options
-                          (copy-tree org-format-latex-options)))
-          (setq-local org-format-latex-options
-                      (plist-put org-format-latex-options :scale new-latex-scale))
-          ;; preview LaTeX fragments
-          (org--latex-preview-region (point-min) (point-max)))))
-    ;; preview LaTeX fragments when opening Org documents ...
-    (add-hook 'org-mode-hook (lambda (&optional arg)
-                               (my-org-display-latex-fragments)))
-    ;; ... and regenerate after changing font size
-    (advice-add 'text-scale-mode :after (lambda (&optional arg)
-                                          (my-org-display-latex-fragments)))))
-
-;; add mouse support and use variable pitch fonts in graphical Emacs org-mode
-(when (display-graphic-p)
-  (with-eval-after-load 'org
-    (require 'org-mouse) ;; mouse support
-    ;; use variable pitch fonts ...
-    (add-hook 'org-mode-hook #'variable-pitch-mode)
-    (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1)))
-    ;; ... but keep some faces fixed-pitch
-    (require 'org-indent) ;; ensure `org-indent' face is defined
-    (let ((fixed-pitch-family (face-attribute 'fixed-pitch :family nil 'default)))
-      (dolist (curr-face '(org-block
-                           org-block-begin-line
-                           org-block-end-line
-                           org-code
-                           org-date
-                           org-document-info-keyword
-                           org-done
-                           org-indent ;; properly align indentation
-                           org-latex-and-related
-                           org-meta-line
-                           org-property-value
-                           org-special-keyword
-                           org-table
-                           org-todo
-                           org-verbatim))
-        (set-face-attribute curr-face nil :family fixed-pitch-family)))))
-
-;; insert urls from clipboard as links with title of page
-(when (display-graphic-p)
-  (use-package org-cliplink
-    :after org
-    :bind (:map org-mode-map
-           ("C-c C-S-l" . org-cliplink))))
-
-;; drag and drop images into Org buffers
-(use-package org-download
-  :after org
-  :config
-  ;; Mac screenshot command
-  (setq org-download-screenshot-method
-        (cond ((memq window-system '(mac ns)) "screencapture -i %s")
-              (t "gnome-screenshot -a -f %s"))) ; default to GNOME screenshot tool
-  (setq org-download-method 'attach ; use `org-attach' machinery
-        org-download-timestamp "%Y%m%d%H%M%S-"))
-
-;; load Org backend for exporting to Markdown
-(with-eval-after-load 'org
-  (require 'ox-md))
-
-(use-package org-superstar
-  :hook (org-mode . org-superstar-mode)
-  :init (setq org-superstar-headline-bullets-list '("◉" "◇" "○" "▷")
-              ;; don't prettify plain lists, which can be slow
-              org-superstar-prettify-item-bullets nil))
-
-;; load org-protocol
-(require 'org-protocol)
-
-;; add capture template for web snippets
-(setq org-websnippet-capture-file my-org-websnippet-file)
-(add-to-list 'org-capture-templates
-             `("W" "Websnippet" entry
-               (file+headline ,org-websnippet-capture-file "Unsorted")
-               "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
-             t)
-
-;; send notifications for Org agenda deadlines and scheduled tasks
-(use-package org-wild-notifier
-  :hook (after-init . org-wild-notifier-mode))
-
-(when (executable-find "pikchr")
-  (with-eval-after-load 'org
-    (setq org-babel-pikchr-cmd (executable-find "pikchr"))
-    (require 'ob-pikchr)))
-
-;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
-(with-eval-after-load 'org
-  (require 'org-tempo nil :noerror))
-
 ;; Programming / Buffer reformatter macro
 
 ;; defines the `reformatter-define' macro that allows definition of
@@ -2257,6 +1776,14 @@ Formatting a selected region only works on top-level objects."
     (message "Images are now %s" (if shr-inhibit-images "off" "on")))
   (define-key eww-mode-map "I" #'eww--toggle-images))
 
+;; client for Gopher and Gemini protocol
+(use-package elpher
+  :config
+  ;; work around TLS verification issues for Gemini sites
+  (add-hook 'elpher-mode-hook
+            (lambda ()
+              (setq-local gnutls-verify-error nil))))
+
 (defun open-gnutls-stream--after-sleep-250ms (&rest args)
   "Workaround for race condition bug in `open-gnutls-stream'.
 
@@ -2283,40 +1810,6 @@ for more information."
 (setq url-cookie-untrusted-urls '(".*")) ;; no cookies
 (setq url-privacy-level 'paranoid) ;; more private HTTP requests
 (url-setup-privacy-info) ;; apply `url-privacy-level'
-
-;; read-it-later functionality in Org mode
-;; use an archive date string format that is safe for Windows systems
-(setq org-readitlater-archive-date-format-string
-      "%Y-%m-%d-%a-%H-%M-%S-%Z") ; 2016-08-18-Thu-20-50-02-PDT
-;; load custom package in the lisp subfolder of the user emacs directory
-(require 'org-readitlater)
-;; uncomment if not accessing org-readitlater commands via a transient
-;; (define-key org-mode-map (kbd "C-c O") org-readitlater-keymap)
-
-;; add capture template for org-readitlater
-(with-eval-after-load 'org
-  (defvar org-readitlater-capture-file (concat org-directory "readitlater/readitlater.org")
-    "Path to Org file containing org-readitlater entries.")
-  (add-to-list 'org-capture-templates
-               `("a" "Archive Webpage" entry
-                 (file+headline ,org-readitlater-capture-file "Unsorted")
-                 "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:READITLATER_BACKEND_OPTIONS: --isolate --no-css --no-fonts --no-frames --no-images --no-js\n:ADDED: %U\n:END:\n%:initial\n")
-               t)
-  ;; auto-download page after capturing with org-readitlater template
-  (defun do-org-readitlater-dl-hook ()
-    (when (equal (buffer-name)
-                 (concat "CAPTURE-"
-                         (file-name-nondirectory org-readitlater-capture-file)))
-      (org-readitlater-archive)))
-  (add-hook 'org-capture-before-finalize-hook #'do-org-readitlater-dl-hook))
-
-;; client for Gopher and Gemini protocol
-(use-package elpher
-  :config
-  ;; work around TLS verification issues for Gemini sites
-  (add-hook 'elpher-mode-hook
-            (lambda ()
-              (setq-local gnutls-verify-error nil))))
 
 ;; Writing
 
@@ -2796,7 +2289,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
   ["Edit"
    ["Completion"
     ("/" "Dyn. abbrev" dabbrev-expand :transient t) ; built-in
-    ("TAB" "Company" company-complete) ; autoloaded from company-mode.el
+    ;; ("TAB" "Company" company-complete) ; autoloaded from company-mode.el
     ]
    ["Line"
     ("O" "New line above" my-open-line-above :transient t)
@@ -2977,55 +2470,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ]
   )
 (global-set-key (kbd "C-c M") #'transient/marks-and-markers)
-
-;; add transient for accessing Org entry points
-(with-eval-after-load 'org
-  ;; file launchers
-  (defun transient/org-launcher--find-my-org-agenda-inbox ()
-    "Open a file buffer for `my-org-agenda-inbox'."
-    (interactive)
-    (find-file my-org-agenda-inbox))
-  (defun transient/org-launcher--find-my-org-someday-inbox ()
-    "Open a file buffer for `my-org-someday-inbox'."
-    (interactive)
-    (find-file my-org-someday-inbox))
-  (defun transient/org-launcher--find-my-org-journal-file ()
-    "Open a file buffer for `my-org-journal-file'."
-    (interactive)
-    (find-file my-org-journal-file))
-  (defun transient/org-launcher--find-org-readitlater-capture-file ()
-    "Open a file buffer for `org-readitlater-capture-file'."
-    (interactive)
-    (find-file org-readitlater-capture-file))
-  (defun transient/org-launcher--find-org-websnippet-capture-file ()
-    "Open a file buffer for `org-websnippet-capture-file'."
-    (interactive)
-    (find-file org-websnippet-capture-file))
-  (defun transient/org-launcher--find-my-org-scratch-file ()
-    "Open a file buffer for `my-org-scratch-file'."
-    (interactive)
-    (find-file my-org-scratch-file))
-
-  (transient-define-prefix transient/org-launcher ()
-    "Launcher for Org entry points."
-    ["Org launcher"
-     ["Main"
-      ("a" "Agenda" org-agenda)
-      ("c" "Capture" org-capture)
-      ("b" "Switchb" org-switchb)
-      ("l" "Store link" org-store-link)
-      ]
-     ["Find-file"
-      ("fi" "Inbox" transient/org-launcher--find-my-org-agenda-inbox)
-      ("fs" "Someday" transient/org-launcher--find-my-org-someday-inbox)
-      ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
-      ("fr" "Read-it-later" transient/org-launcher--find-org-readitlater-capture-file)
-      ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
-      ("fx" "Scratch" transient/org-launcher--find-my-org-scratch-file)
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c o") #'transient/org-launcher))
 
 ;; add transient popup for Emacs package management
 (transient-define-prefix transient/package ()
@@ -4213,212 +3657,6 @@ not support restricting to a region."
       )
     (define-key gfm-mode-map (kbd "C-c m") #'transient/markdown-mode)
     (define-key markdown-mode-map (kbd "C-c m") #'transient/markdown-mode)))
-
-;; major-mode specific transient for org-agenda-mode
-(with-eval-after-load 'org-agenda
-  (defun transient/org-agenda-mode--hide-done ()
-    "Hide items with DONE state in `org-agenda-mode' buffer."
-    (interactive)
-    (setq org-agenda-skip-scheduled-if-done
-          (not org-agenda-skip-scheduled-if-done))
-    (org-agenda-redo-all t))
-
-  (transient-define-prefix transient/org-agenda-mode ()
-    "`org-agenda-mode' commands."
-    :transient-suffix 'transient--do-stay
-    ["Org agenda"
-     ["Agenda view"
-      ("d" "Day" org-agenda-day-view)
-      ("w" "Week" org-agenda-week-view)
-      ("f" "Later" org-agenda-later)
-      ("b" "Earlier" org-agenda-earlier)
-      ]
-     ["Navigate"
-      ("n" "Next line" org-agenda-next-line)
-      ("p" "Prev line" org-agenda-previous-line)
-      ("N" "Next item" org-agenda-next-item)
-      ("P" "Prev item" org-agenda-previous-item)
-      ]
-     ["Visit"
-      ("SPC" "Show" org-agenda-show-and-scroll-up :transient nil)
-      ("TAB" "Goto" org-agenda-goto :transient nil)
-      ("RET" "Switch to" org-agenda-switch-to :transient nil)
-      ("C-c C-o" "Link" org-agenda-open-link :transient nil)
-      ]
-     ["Other"
-      ("r" "Redisplay" org-agenda-redo)
-      ("j" "Goto date" org-agenda-goto-date)
-      ("." "Goto today" org-agenda-goto-today)
-      ("(" (lambda ()
-             (transient--make-description
-              "Hide DONE"
-              org-agenda-skip-scheduled-if-done))
-       transient/org-agenda-mode--hide-done)
-      ]
-     ]
-    [
-     ["Filter"
-      ("<" "By category" org-agenda-filter-by-category)
-      ("_" "By effort" org-agenda-filter-by-effort)
-      ("=" "By regexp" org-agenda-filter-by-regexp)
-      ("\\" "By tag" org-agenda-filter-by-tag)
-      ("^" "By top headline" org-agenda-filter-by-top-headline)
-      ("|" "Remove all" org-agenda-filter-remove-all)
-      ]
-     ["Clock"
-      ("I" "In" org-agenda-clock-in)
-      ("O" "Out" org-agenda-clock-out)
-      ("X" "Cancel" org-agenda-clock-cancel)
-      ("J" "Current task" org-agenda-clock-goto)
-      ("R" (lambda ()
-             (transient--make-description
-              "Clocktable"
-              org-agenda-clockreport-mode))
-       org-agenda-clockreport-mode)
-      ]
-     ["Modify"
-      ("t" "Status" org-agenda-todo)
-      (":" "Tags" org-agenda-set-tags)
-      ("," "Priority" org-agenda-priority)
-      ("z" "Add note" org-agenda-add-note)
-      ("C-c C-x p" "Property" org-agenda-set-property)
-      ]
-     ]
-    [
-     ["Date"
-      (">" "Prompt" org-agenda-date-prompt)
-      ("C-c C-s" "Schedule" org-agenda-schedule)
-      ("C-c C-d" "Deadline" org-agenda-deadline)
-      ]
-     ["Node ops"
-      ("$" "Archive" org-agenda-archive)
-      ("C-c C-w" "Refile" org-agenda-refile)
-      ("C-k" "Kill" org-agenda-kill)
-      ]
-     ]
-    )
-
-  (define-key org-agenda-mode-map (kbd "C-c m") #'transient/org-agenda-mode))
-
-;; major-mode specific transient for org-mode
-(with-eval-after-load 'org
-  (require 'org-download)
-  (require 'org-readitlater)
-  (defun transient/org-mode--toggle-display-image-width ()
-    "Toggle resizing of inline images in `org-mode' to one-third screen width."
-    (interactive)
-    (if org-image-actual-width
-        (setq org-image-actual-width nil)
-      (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
-    (org-redisplay-inline-images))
-
-  (defun transient/org-mode--next-heading-dwim (n)
-    "Go to N-th next occur highlight or visible heading otherwise."
-    (interactive "p")
-    (if org-occur-highlights
-        (next-error n)
-      (org-next-visible-heading n)))
-
-  (defun transient/org-mode--previous-heading-dwim (n)
-    "Go to N-th previous occur highlight or visible heading otherwise."
-    (interactive "p")
-    (if org-occur-highlights
-        (previous-error n)
-      (org-previous-visible-heading n)))
-
-  (transient-define-prefix transient/org-mode/readitlater ()
-    "org-readitlater commands."
-    ["Org → Read-it-later"
-     ("a" "Archive" org-readitlater-archive)
-     ("r" "Dry run" org-board-archive-dry-run)
-     ("n" "New entry" org-readitlater-new)
-     ("k" "Delete archives" org-readitlater-delete-all)
-     ("o" "Open archive" org-readitlater-open)
-     ("d" "Diff" org-readitlater-diff)
-     ("3" "Diff3" org-readitlater-diff3)
-     ("c" "Cancel in-progress archive" org-readitlater-cancel)
-     ("x" "Run post-archive functions" org-readitlater-run-after-archive-function)
-     ("O" "Open archive directory" org-attach-reveal-in-emacs)
-     ]
-    )
-
-  (transient-define-prefix transient/org-mode ()
-    "`org-mode' commands."
-    ["Org"
-     ["Toggle"
-      ("i" (lambda ()
-             (transient--make-description
-              "Images"
-              org-inline-image-overlays))
-       org-toggle-inline-images :transient t)
-      ("I" (lambda ()
-             (transient--make-description
-              "Indent"
-              org-indent-mode))
-       org-indent-mode :transient t)
-      ("P" (lambda ()
-             (transient--make-description
-              "Prettify entities"
-              org-pretty-entities))
-       org-toggle-pretty-entities :transient t)
-      ("M-l" (lambda ()
-               (transient--make-description
-                "Link display"
-                (not org-link-descriptive)))
-       org-toggle-link-display :transient t)
-      ("M-i" (lambda ()
-               (transient--make-description
-                "Image resize"
-                org-image-actual-width))
-       transient/org-mode--toggle-display-image-width :transient t)
-      ]
-     ["Search"
-      ("g" "Goto" org-goto)
-      ("o" "Occur" org-occur :transient t)
-      ("/" "Create sparse tree" org-sparse-tree :transient t)
-      ("c" "Clear search results" org-remove-occur-highlights :transient t)
-      ("n" "Next (sparse) node" transient/org-mode--next-heading-dwim :transient t)
-      ("p" "Previous (sparse) node" transient/org-mode--previous-heading-dwim :transient t)
-      ]
-     ["Modify"
-      ("t" "Todo state" org-todo)
-      (":" "Tags" org-set-tags-command)
-      ("," "Priority" org-priority)
-      ("D" "Insert drawer" org-insert-drawer)
-      ("P" "Set property" org-set-property)
-      ("N" "Add note" org-add-note)
-      ]
-     ]
-    [
-     ["Node ops"
-      ("a" "Archive" org-archive-subtree-default)
-      ("r" "Refile" org-refile)
-      ("s" "Sort" org-sort)
-      ]
-     ["Text ops"
-      ("F" "Add footnote" org-footnote-action)
-      ("<" "Insert structure" org-insert-structure-template)
-      ("'" "Edit special" org-edit-special)
-      ("e" "Emphasize" org-emphasize)
-      ]
-     [:description (lambda ()
-                     (transient--make-description
-                      "Narrow"
-                      (buffer-narrowed-p)))
-      ("M-s" "Subtree" org-narrow-to-subtree)
-      ("M-b" "Block" org-narrow-to-block)
-      ("M-w" "Widen" widen)
-      ]
-     ["Other"
-      ("<tab>" "Cycle node" org-cycle :transient t)
-      ("<S-tab>" "Cycle global" org-global-cycle :transient t)
-      ("ds" "Download screenshot" org-download-screenshot)
-      ("dy" "Download yank" org-download-yank)
-      ("R" "→ Read-it-later" transient/org-mode/readitlater)
-      ]
-     ]
-    )
-  (define-key org-mode-map (kbd "C-c m") #'transient/org-mode))
 
 ;; major-mode specific transient for python-mode
 (with-eval-after-load 'python

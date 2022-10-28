@@ -24,6 +24,40 @@ In Emacs versions before 27, we should load the ~early-init.el~ file explicitly 
 
 * Backend and frontend frameworks for building user interfaces
 
+** Text completion with Company                                       :melpa:
+
+[[https://company-mode.github.io/][Company]] is a text completion framework for Emacs that supports
+pluggable back-ends and front-ends for retrieving and displaying
+completion candidates.
+Many other Emacs packages support this.
+
+This can get in the way for non-programming modes, so it is
+enabled by default only in programming modes.
+
+#+name: company
+#+begin_src emacs-lisp
+;; text completion framework
+(use-package company
+  :defer t
+  :init
+  (with-eval-after-load 'prog-mode
+    (add-hook 'prog-mode-hook 'company-mode))
+  (setq company-dabbrev-downcase nil
+        company-idle-delay 0.5
+        company-minimum-prefix-length 2
+        company-selection-wrap-around t
+        company-show-numbers t ;; use M-<num> to directly choose completion
+        company-tooltip-align-annotations t)
+  :config
+  (add-to-list 'my-mode-lighter-abbrev-alist '(company-mode . " ℂ")))
+#+end_src
+
+*** init.el tangle code
+
+#+begin_src emacs-lisp
+<<company>>
+#+end_src
+
 ** Company front-end with icons                                       :melpa:
 
 [[https://github.com/sebastiencs/company-box][company-box]] provides a fancy front-end for Company with icons.
@@ -2122,6 +2156,1058 @@ Markdown mode hydra / Neuron mode hydra (_q_: quit)
 #+end_src
 
 * Org-mode
+
+[[https://orgmode.org/][Org-mode]] is a major mode for document editing, formatting and
+organizing, designed to help with taking notes, planning and authoring
+in Emacs.
+Org files typically have filenames with the ~.org~ suffix.
+
+*Note*: The version of Org packaged with a given Emacs version is
+typically adequate, but it is often better to install the newest
+version of ~org~ from ELPA or the Org repository through
+~list-packages~.
+
+Examples of good configurations include [[http://doc.norang.ca/org-mode.html][this]].
+
+** Use ELPA version of Org
+
+Use the [[https://elpa.gnu.org/packages/org.html][ELPA version]] of Org that more closely tracks master.
+
+#+name: org-elpa
+#+begin_src emacs-lisp
+;; install ELPA version of Org
+(my-install-elpa-package 'org)
+#+end_src
+
+** Rebind org-force-cycle-archived in older Org versions
+
+~org-force-cycle-archived~ in Org versions <9.4 is bound to ~C-TAB~ which shadows the default ~tab-bar-mode~ bindings for ~tab-next~.
+
+For these older versions, unbind ~C-TAB~ in ~org-mode-map~ and bind
+~org-force-cycle-archived~ to ~C-c C-TAB~ which matches the bindings
+in newer Org versions.
+
+#+name: rebind-org-force-cycle-archived-when-using-older-org-versions
+#+begin_src elisp
+;; rebind `org-force-cycle-archived' in older Org versions to not
+;; conflict with the `tab-next' default binding
+(with-eval-after-load 'org
+  (when (version< (org-version) "9.4")
+    (define-key org-mode-map (kbd "<C-tab>") nil)
+    (org-defkey org-mode-map (kbd "C-c C-<tab>") #'org-force-cycle-archived)))
+#+end_src
+
+** Base Org settings
+
+*Customizations*:
+- Use =~/org/= as the main Org directory.
+- Set =inbox.org= in ~org-directory~ as the default filing location to
+  be utilized later.
+- Enforce [[https://www.orgmode.org/manual/TODO-dependencies.html][task dependencies]]
+
+#+name: org-base-settings
+#+begin_src emacs-lisp
+;; set Org directory and inbox file
+(setq org-directory (file-truename (file-name-as-directory (expand-file-name "~/org"))))
+(defvar my-org-agenda-inbox (concat org-directory "agenda/inbox.org")
+  "Path to Org agenda inbox.")
+(defvar my-org-someday-inbox (concat org-directory "agenda/someday.org")
+  "Path to Org someday inbox.")
+(defvar my-org-journal-file (concat org-directory "agenda/journal.org")
+  "Path to Org journal file.")
+(defvar my-org-scratch-file (concat org-directory "agenda/scratch.org")
+  "Path to Org scratch file.")
+(defvar my-org-websnippet-file (concat org-directory "agenda/websnippets.org")
+  "Path to Org websnippet file.")
+
+;; basic Org-mode settings
+(setq org-adapt-indentation nil ; don't auto-indent when promoting/demoting
+      org-attach-dir-relative t ; use relative directories when setting DIR property using `org-attach-set-directory'
+      ;; org-blank-before-new-entry '((heading . nil) ; don't auto-add new lines
+      ;;                              (plain-list-item . nil)) ; same as above
+      org-catch-invisible-edits 'show-and-error
+      org-confirm-babel-evaluate nil ; don't confirm before evaluating code blocks in Org documents
+      org-cycle-separator-lines 2 ; collapse single item separator lines when cycling
+      org-deadline-warning-days 3 ; warn starting 3 days before deadline
+      org-edit-src-content-indentation 2
+      org-enforce-todo-checkbox-dependencies t
+      org-enforce-todo-dependencies t
+      org-fontify-done-headline t
+      org-fontify-quote-and-verse-blocks t
+      org-fontify-whole-heading-line t
+      org-goto-interface 'outline-path-completion
+      org-hide-emphasis-markers nil
+      org-hide-leading-stars nil
+      org-highlight-latex-and-related '(latex script entities) ; highlight LaTeX fragments with the `org-highlight-latex-and-related' face
+      org-image-actual-width (list (/ (display-pixel-width) 3)) ; auto-resize displayed images to one-third of display width
+      org-link-file-path-type 'adaptive ; use relative paths for links to files in Org file dir or subdirs, absolute otherwise
+      org-log-done 'time ; log time that task was marked DONE
+      org-log-into-drawer t
+      org-outline-path-complete-in-steps nil
+      org-pretty-entities t
+      org-pretty-entities-include-sub-superscripts nil ; don't render sub/superscripts in-buffer
+      org-return-follows-link t
+      org-src-fontify-natively nil ; don't syntax color org source blocks
+      org-src-preserve-indentation t ; preserve src code block indentation on export and when switching btw org buffer and edit buffer
+      org-src-strip-leading-and-trailing-blank-lines t
+      org-src-tab-acts-natively t
+      org-src-window-setup 'current-window ; reuse Org file window for editing source blocks when using "C-c '"
+      org-startup-folded t
+      org-startup-indented nil
+      org-treat-S-cursor-todo-selection-as-state-change nil
+      org-use-fast-todo-selection t
+      org-use-speed-commands t)
+
+;; make sure UUIDs generated for Org usage are alway upcased, which
+;; solves issues with synced directories, for example Linux generates
+;; lower case UUIDs while Mac generates upper case UUIDs.
+(with-eval-after-load 'org-id
+  (defun org-id-uuid--around-upcase (orig-fun &rest args)
+    "Advice for `org-id-uuid' to upcase the uuids it outputs.
+ORIG-FUN is the original function.
+ARGS are the arguments provided to ORIG-FUN."
+    (let ((uuid (apply orig-fun args)))
+      (upcase uuid)))
+  (advice-add 'org-id-uuid :around
+              'org-id-uuid--around-upcase))
+#+end_src
+
+** Bind over org-open-line with version calling my-org-open-line-below
+
+Bind over ~org-open-line~ with a variant that calls
+~my-open-line-below~ instead.
+
+#+name: my-org-open-line-below
+#+begin_src emacs-lisp
+(defun my-org-open-line-below (n)
+  "Insert a new row in tables, call `my-open-line-below' elsewhere.
+If `org-special-ctrl-o' is nil, call `my-open-line-below' everywhere.
+As a special case, when a document starts with a table, allow to
+call `open-line' on the very first character."
+  (interactive "*p")
+  (if (and org-special-ctrl-o (/= (point) 1) (org-at-table-p))
+      (org-table-insert-row)
+    (my-open-line-below n)))
+
+;; bind over `org-open-line' to call `my-org-open-line-below' instead
+;; making it consistent with customized global-mode-map "C-o"
+(with-eval-after-load 'org-keys
+  (define-key org-mode-map (kbd "C-o") #'my-org-open-line-below))
+#+end_src
+
+** Org TODO keywords and task states
+
+Possible Org task states:
+- *TODO*: Inactive task.
+- *NEXT*: Active task. Keep to just a few (less open loops).
+- *DONE*: Completed task.
+- *HOLD*: Paused inactive task.
+- *WAIT*: Paused active task, waiting for external action.
+- *CANX*: Canceled task.
+
+#+name: org-todo-keywords
+#+begin_src emacs-lisp
+;; Set possible Org task states
+;; Diagram of possible task state transitions
+;;      ---------------------
+;;      |                   |
+;;      |                   V
+;; --> TODO.. -> NEXT... -> DONE ----->
+;;     | Λ  |    |   | Λ    Λ      |
+;;     V |  |    |   V |    |      |
+;;     HOLD |    |   WAIT ---      |
+;;      |   |    |   |             |
+;;      V   V    V   V             |
+;;     CANX........... -------------
+;;      (note records why it was cancelled)
+(setq org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "|" "DONE(d!)")
+                          (sequence "HOLD(h@/!)" "WAIT(w@/!)" "|" "CANX(c@/!)")))
+#+end_src
+
+** Org basic capture templates
+
+#+name: org-capture-templates
+#+begin_src emacs-lisp
+;; Org capture templates
+(defun my-org-goto-end-of-org-file ()
+  "Goto end of selected user file starting from `org-directory'."
+  (let ((path (read-file-name
+               "File: " org-directory nil nil nil
+               (lambda (x) (string-suffix-p ".org" x)))))
+    (find-file path)
+    (goto-char (point-max))))
+
+(setq org-capture-templates '(("t" "New Task" entry (file my-org-agenda-inbox)
+                               "* TODO %i%?\n%U")
+                              ("l" "Linked Task" entry (file my-org-agenda-inbox)
+                               "* TODO %a%?\n%U")
+                              ("s" "Someday Task" entry (file my-org-someday-inbox)
+                               "* TODO %i%?\n%U")
+                              ("i" "Interrupt Task" entry (function my-org-goto-end-of-org-file)
+                               "* NEXT %i%?\n%U"
+                               :jump-to-captured t :clock-in t :clock-resume t)
+                              ("j" "Journal Entry" entry
+                               (file+olp+datetree my-org-journal-file)
+                               "**** %?\n%T"
+                               :tree-type week :clock-in t :clock-resume t)
+                              ("J" "Schedule Journal Entry" entry
+                               (file+olp+datetree my-org-journal-file)
+                               "**** %?\n%T"
+                               :tree-type week :time-prompt t)))
+#+end_src
+
+** Maximize Org capture buffers
+
+Have Org capture buffers always be maximized.
+Restore the window configuration after capturing the task.
+
+#+name: org-maximize-capture-buffers
+#+begin_src emacs-lisp
+(with-eval-after-load 'org
+  ;; maximize org-capture buffer
+  (defun my-org-capture-setup (&rest args)
+    "Save window configuration prior to `org-capture'."
+    (set-frame-parameter
+     nil
+     'my-org-capture-prior-config
+     (current-window-configuration)))
+  (defun my-org-capture-teardown ()
+    "Restore window configuration prior to `org-capture'."
+    (let ((prior-window-configuration (frame-parameter
+                                       nil
+                                       'my-org-capture-prior-config)))
+      (when prior-window-configuration
+        (set-window-configuration prior-window-configuration))))
+  (advice-add 'org-capture :before 'my-org-capture-setup)
+  (add-hook 'org-capture-mode-hook 'delete-other-windows)
+  (add-hook 'org-capture-after-finalize-hook 'my-org-capture-teardown))
+#+end_src
+
+** Org tags
+
+#+name: org-tags
+#+begin_src emacs-lisp
+;; tags (note that tags within the same group are mutually exclusive)
+(setq org-tag-alist '((:startgroup) ;; export
+                      ("export" . ?9)
+                      ("noexport" . ?0)
+                      (:endgroup)
+                      ;; prioritization (e.g. Eisenhower matrix)
+                      ("important" . ?1)
+                      ("urgent" . ?2)
+                      (:newline)
+                      ;; entry context, in addition to category
+                      ("@work" . ?w)
+                      ("@life" . ?l)
+                      ("@learn" . ?e)
+                      (:startgroup) ;; special meeting types
+                      ("hiring" . ?h)
+                      ("managing" . ?m)
+                      ("vendor" . ?v)
+                      ("sales" . ?s)
+                      ("strategy" . ?t)
+                      (:endgroup)))
+#+end_src
+
+** Org export global macros
+
+Useful Org export macros that are enabled globally.
+
+To color text (works with LaTeX and HTML exports):
+#+begin_example
+{{{color(colorname, text)}}}
+#+end_example
+
+To insert [[https://en.wikipedia.org/wiki/Lorem_ipsum][filler]] text:
+#+begin_example
+{{{loremipsum}}}
+#+end_example
+
+To export different text for LaTeX and for other formats:
+#+begin_example
+{{{if-latex-else(latex-specific text,other text)}}}
+#+end_example
+
+#+name: org-export-global-macros
+#+begin_src emacs-lisp
+;; `org-export' macros
+(with-eval-after-load 'ox
+  ;; color macro, {{{color(colorname, text)}}} to use
+  (push `("color"
+          .
+          ,(concat "@@latex:\\textcolor{$1}{$2}@@"
+                   "@@html:<span style=\"color:$1\">$2</span>@@"))
+        org-export-global-macros)
+  ;; placeholder text, {{{loremipsum}}} to use
+  (push `("loremipsum"
+          .
+          ,(mapconcat 'identity
+                      '("Lorem ipsum dolor sit amet, consectetur"
+                        "adipisicing elit, sed do eiusmod tempor"
+                        "incididunt ut labore et dolore magna"
+                        "aliqua. Ut enim ad minim veniam, quis"
+                        "nostrud exercitation ullamco laboris nisi"
+                        "ut aliquip ex ea commodo consequat. Duis"
+                        "aute irure dolor in reprehenderit in"
+                        "voluptate velit esse cillum dolore eu"
+                        "fugiat nulla pariatur. Excepteur sint"
+                        "occaecat cupidatat non proident, sunt in"
+                        "culpa qui officia deserunt mollit anim id"
+                        "est laborum."
+                        "\n\n"
+                        "Curabitur pretium tincidunt lacus. Nulla"
+                        "gravida orci a odio. Nullam varius, turpis"
+                        "et commodo pharetra, est eros bibendum elit,"
+                        "nec luctus magna felis sollicitudin mauris."
+                        "Integer in mauris eu nibh euismod gravida."
+                        "Duis ac tellus et risus vulputate vehicula."
+                        "Donec lobortis risus a elit. Etiam tempor."
+                        "Ut ullamcorper, ligula eu tempor congue,"
+                        "eros est euismod turpis, id tincidunt sapien"
+                        "risus a quam. Maecenas fermentum consequat"
+                        "mi. Donec fermentum. Pellentesque malesuada"
+                        "nulla a mi. Duis sapien sem, aliquet nec,"
+                        "commodo eget, consequat quis, neque. Aliquam"
+                        "faucibus, elit ut dictum aliquet, felis nisl"
+                        "adipiscing sapien, sed malesuada diam lacus"
+                        "eget erat. Cras mollis scelerisque nunc."
+                        "Nullam arcu. Aliquam consequat. Curabitur"
+                        "augue lorem, dapibus quis, laoreet et,"
+                        "pretium ac, nisi. Aenean magna nisl, mollis"
+                        "quis, molestie eu, feugiat in, orci. In hac"
+                        "habitasse platea dictumst.")
+                      " "))
+        org-export-global-macros)
+  ;; flow control for latex-specific text and otherwise
+  ;; {{{if-latex-else(latex text, other text)}}} to use
+  (push '("if-latex-else"
+          .
+          "(eval (if (org-export-derived-backend-p
+                     org-export-current-backend
+                     'latex)
+                    $1
+                  $2))")
+        org-export-global-macros))
+#+end_src
+
+** Set applications used by Org for opening different file types
+
+By default, Org mode uses the system defaults for several file types.
+Have Org mode open PDF files within Emacs instead of using the default
+(which is using the system viewer).
+
+#+name: org-file-apps
+#+begin_src emacs-lisp
+;; have Org mode open PDF files within Emacs
+(with-eval-after-load 'org
+  (push '("\\.pdf\\'" . emacs) org-file-apps))
+#+end_src
+
+** Org Agenda
+
+Org-mode provides [[https://orgmode.org/manual/Agenda-Views.html][agenda views]] that give an overview of open action
+items or events with specific scheduled or deadline dates in Org files
+specified by ~org-agenda-files~.
+
+A number of customizations are done here, including defining
+a view that displays 3-day agenda and undated ~TODO~ entries.
+
+*Important*: Don't add scheduled dates or deadlines unless necessary,
+it clutters up the agenda view.
+
+*Note*: Archiving ~DONE~ and ~CANX~ items every so often helps to keep
+Org agenda parsing and operations speedy ([[https://www.gnu.org/software/emacs/manual/html_node/org/Speeding-up-your-agendas.html][link]]):
+- ~M-x org-agenda~ to bring up the agenda menu.
+- ~t~ to list ~TODO~ items.
+- ~N r~ (where ~N~ is the number corresponding to a task state) to
+  select the ~DONE~ (~N=3~ in this configuration) or the ~CANX~ (~N=6~
+  in this configuration) task state.
+- ~*~ to select all listed items.
+- ~B $~ to bulk archive the selected items to their respective
+  =<filename>.org_archive= files.
+
+*Workflow*:
+- Add new items to inbox.
+- Periodically refile inbox items into appropriate agenda project file.
+- Process the refiled items as per normal TODO task workflow.
+
+*Additional notes*:
+- =inbox.org= and =someday.org= are not part of the Agenda files, but are
+  accessed via specific agenda views.
+
+#+name: org-agenda
+#+begin_src emacs-lisp
+;; org-agenda settings:
+;; - narrow to subtree in org-agenda-follow-mode ("F" in agenda)
+;; - full-frame Agenda view
+;; - use ~/ORG-DIRECTORY/*.org files as Org agenda files
+;; - de-duplicate entries with both a scheduled and deadline date
+;; - don't show entries with scheduled or deadline dates that are done
+(setq org-agenda-follow-indirect t
+      org-agenda-restore-windows-after-quit t
+      org-agenda-skip-deadline-if-done t
+      org-agenda-skip-deadline-prewarning-if-scheduled 'pre-scheduled
+      org-agenda-skip-scheduled-delay-if-deadline nil
+      org-agenda-skip-scheduled-if-deadline-is-shown t
+      org-agenda-skip-scheduled-if-done t
+      org-agenda-start-on-weekday nil
+      org-agenda-window-setup 'only-window
+      org-agenda-files (seq-filter
+                        (lambda (x)
+                          (and
+                           (not (string-suffix-p my-org-agenda-inbox x))
+                           (not (string-suffix-p my-org-someday-inbox x))
+                           (not (string-suffix-p my-org-scratch-file x))
+                           (not (string-suffix-p my-org-websnippet-file x))))
+                        (file-expand-wildcards (concat org-directory "agenda/*.org"))))
+
+;; add separator between each day in agenda view
+(setq org-agenda-format-date
+      (lambda (date)
+        (let* ((datestr (org-agenda-format-date-aligned date))
+               (separator-width (- (window-width)
+                                   (string-width datestr)
+                                   1)))
+          (concat "\n" datestr " " (make-string separator-width ?_)))))
+
+;; helper functions for custom agenda commands
+(defun my-org-agenda-to-deadline-prefix-str ()
+  "Descriptor string for days to deadline for Org entry at point."
+  (let ((deadline (org-get-deadline-time (point))))
+    (when deadline
+      (let ((days-left (org-time-stamp-to-now (format-time-string "%F" deadline))))
+        (cond ((< days-left (- 1)) (format "%3d d. ago" (- days-left)))
+              ((= days-left (- 1)) (format " Yesterday" days-left))
+              ((= days-left 0)     (format "     Today" days-left))
+              ((= days-left 1)     (format "  Tomorrow" days-left))
+              ((> days-left 1)     (format " In %3d d." days-left)))))))
+
+;; custom agenda commands
+(setq org-agenda-custom-commands
+      `(("." "Today's agenda and all TODO entries"
+         ((agenda "" ((org-agenda-span 1)))
+          (todo "NEXT" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
+          (todo "WAIT" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
+          (todo "TODO" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))
+          (todo "HOLD" ((org-agenda-todo-ignore-with-date nil)
+                        (org-agenda-sorting-strategy '(ts-up priority-down effort-up category-keep alpha-up))))))
+        ("u" "Undated TODO entries"
+         ((todo "NEXT" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "WAIT" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "TODO" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))
+          (todo "HOLD" ((org-agenda-todo-ignore-with-date t)
+                        (org-agenda-sorting-strategy '(priority-down effort-up category-keep alpha-up))))))
+        ("d" "Deadlines"
+         ((tags-todo "DEADLINE<\"<today>\"" ; tasks that are past deadline
+                     ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
+                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))
+          (tags-todo "DEADLINE>=\"<today>\"" ; tasks with upcoming deadlines
+                     ((org-agenda-prefix-format " %(my-org-agenda-to-deadline-prefix-str) %i %-12:c%?-12t% s")
+                      (org-agenda-sorting-strategy '(deadline-up priority-down scheduled-up effort-up category-keep alpha-up))))))
+        ("i" "Inbox entries"
+         ((alltodo "" ((org-agenda-files '(,my-org-agenda-inbox))
+                       (org-agenda-sorting-strategy '(priority-down deadline-up scheduled-up effort-up category-keep alpha-up))))))
+        ("o" "Someday entries"
+         ((alltodo "" ((org-agenda-files '(,my-org-someday-inbox))
+                       (org-agenda-sorting-strategy '(priority-down deadline-up scheduled-up effort-up category-keep alpha-up))))))))
+#+end_src
+
+** Org refiling of tasks and subtrees
+
+Set up Org refile targets:
+- Current buffer up to a max depth of 9 levels.
+- Org Agenda files corresponding to non-directory entries of
+  ~org-agenda-files~ at the top-level of each file.
+
+#+name: org-refile
+#+begin_src emacs-lisp
+;; allow refiling up to 9 levels deep in the current buffer
+;; and 3 levels deep in Org agenda files
+;; allow refiling to the top level
+(setq org-refile-targets `((nil . (:maxlevel . 9)) ;; current buffer
+                           ;; top-level of regular `org-agenda-files' files
+                           (,(seq-filter
+                              'file-regular-p
+                              org-agenda-files) . (:level . 0)))
+      org-refile-use-outline-path 'file
+      org-refile-allow-creating-parent-nodes 'confirm)
+#+end_src
+
+** Automatic text wrapping in Org-mode documents
+
+#+name: org-visual-line-mode
+#+begin_src emacs-lisp
+(add-hook 'org-mode-hook #'visual-line-mode)
+#+end_src
+
+** Compile Org documents to PDF with LaTeX                         :external:
+
+Org-mode supports an Org \to LaTeX \to PDF build chain for compiling Org
+documents to PDF files.
+
+By default, this build process utilizes the base ~latex~ compiler and
+does not handle [[http://tug.org/bibtex/][BibTeX]] bibliography database files (~.bib~ files).
+
+It is better change to this to a more modern compiler like [[http://www.luatex.org/][LuaTeX]] for
+better font and unicode support, and add a BibTeX compiler like [[http://biblatex-biber.sourceforge.net/][Biber]]
+to the build chain.
+
+#+name: org-latex-pdf-process
+#+begin_src emacs-lisp
+;; compile Org documents to PDF with LuaTeX and Biber
+(when (executable-find "lualatex")
+  (with-eval-after-load 'org
+    (setq org-latex-pdf-process
+          '("lualatex -interaction nonstopmode -output-directory %o %f"
+            "lualatex -interaction nonstopmode -output-directory %o %f"))
+    (if (executable-find "biber")
+        (push "biber %b" org-latex-pdf-process))
+    (push "lualatex -interaction nonstopmode -output-directory %o %f"
+          org-latex-pdf-process)))
+#+end_src
+
+** Use LuaTeX to generate LaTeX fragment previews in Org-mode      :external:
+
+Use [[http://www.luatex.org/][LuaTeX]] to generate previews of [[https://orgmode.org/manual/LaTeX-fragments.html][LaTeX fragments]] as images in
+~org-mode~.
+
+The build chain converts LaTeX \to DVI \to PNG, so ~lualatex~ (LuaTeX
+binary) and ~dvipng~ (which should come installed with most TeX
+distributions) are needed.
+
+For more information on LaTeX fragment previews, see [[https://orgmode.org/manual/Previewing-LaTeX-fragments.html#Previewing-LaTeX-fragments][here]].
+
+#+name: org-preview-latex-process
+#+begin_src emacs-lisp
+;; use LuaTeX for previewing LaTeX math formula as images
+(when (and (executable-find "lualatex")
+           (executable-find "dvipng"))
+  (with-eval-after-load 'org
+    (add-to-list 'org-preview-latex-process-alist
+                 '(dvipng :programs ("lualatex" "dvipng")
+                          :description "dvi > png"
+                          :message "you need to install lualatex and dvipng."
+                          :image-input-type "dvi"
+                          :image-output-type "png"
+                          :image-size-adjust (1.0 . 1.0)
+                          :latex-compiler
+                          (concat "lualatex -output-format dvi"
+                                  " -interaction nonstopmode"
+                                  " -output-directory %o %f")
+                          :image-converter ("dvipng -D %D -T tight -o %O %f")))))
+#+end_src
+
+** Automatically preview LaTeX fragments and resize them with text scaling :external:
+
+Automatically preview LaTeX fragments and also scale them according
+the current text scale (font size modifier).
+
+#+name: org-preview-and-scale-latex-fragments
+#+begin_src emacs-lisp
+;; preview LaTeX fragments scaled to font size, requires dvipng from TexLive
+(when (and (display-graphic-p)
+           (executable-find "dvipng"))
+  (with-eval-after-load 'org
+    (defvar my-org-latex-scale-base (plist-get org-format-latex-options :scale)
+      "Base LaTeX fragment scale.")
+    (defun my-org-display-latex-fragments ()
+      "Previews LaTeX fragments in the buffer scaled to match font size."
+      (interactive)
+      (let* ((curr-text-scale (condition-case nil
+                                  text-scale-mode-amount
+                                (error 0)))
+             (new-latex-scale (+ my-org-latex-scale-base curr-text-scale)))
+        (when (eq major-mode 'org-mode)
+          ;; modify LaTeX scale in a local copy of `org-format-latex-options'
+          (if (not (assoc 'org-format-latex-options (buffer-local-variables)))
+              (setq-local org-format-latex-options
+                          (copy-tree org-format-latex-options)))
+          (setq-local org-format-latex-options
+                      (plist-put org-format-latex-options :scale new-latex-scale))
+          ;; preview LaTeX fragments
+          (org--latex-preview-region (point-min) (point-max)))))
+    ;; preview LaTeX fragments when opening Org documents ...
+    (add-hook 'org-mode-hook (lambda (&optional arg)
+                               (my-org-display-latex-fragments)))
+    ;; ... and regenerate after changing font size
+    (advice-add 'text-scale-mode :after (lambda (&optional arg)
+                                          (my-org-display-latex-fragments)))))
+#+end_src
+
+** Mouse support and variable pitch fonts in graphical Emacs Org-mode
+
+When using graphical emacs, enable mouse support (like clicking on the
+header stars to cycle visibility of the subtree) and use variable
+pitch fonts with a little extra line spacing except for certain parts of
+Org documents like code and tables.
+
+#+name: org-graphical-customizations
+#+begin_src emacs-lisp
+;; add mouse support and use variable pitch fonts in graphical Emacs org-mode
+(when (display-graphic-p)
+  (with-eval-after-load 'org
+    (require 'org-mouse) ;; mouse support
+    ;; use variable pitch fonts ...
+    (add-hook 'org-mode-hook #'variable-pitch-mode)
+    (add-hook 'org-mode-hook (lambda () (setq line-spacing 0.1)))
+    ;; ... but keep some faces fixed-pitch
+    (require 'org-indent) ;; ensure `org-indent' face is defined
+    (let ((fixed-pitch-family (face-attribute 'fixed-pitch :family nil 'default)))
+      (dolist (curr-face '(org-block
+                           org-block-begin-line
+                           org-block-end-line
+                           org-code
+                           org-date
+                           org-document-info-keyword
+                           org-done
+                           org-indent ;; properly align indentation
+                           org-latex-and-related
+                           org-meta-line
+                           org-property-value
+                           org-special-keyword
+                           org-table
+                           org-todo
+                           org-verbatim))
+        (set-face-attribute curr-face nil :family fixed-pitch-family)))))
+#+end_src
+
+** org-cliplink for inserting URLs from the clipboard as Org-mode links :melpa:
+
+[[https://github.com/rexim/org-cliplink][org-cliplink]] provides support for inserting URLs from the clipboard as
+links in Org-mode documents with the URL page titles as link
+descriptions.
+
+#+name: org-cliplink
+#+begin_src emacs-lisp
+;; insert urls from clipboard as links with title of page
+(when (display-graphic-p)
+  (use-package org-cliplink
+    :after org
+    :bind (:map org-mode-map
+           ("C-c C-S-l" . org-cliplink))))
+#+end_src
+
+** org-download for dragging and dropping images into Org-mode        :melpa:
+
+[[https://github.com/abo-abo/org-download][org-download]] enables support for downloading images to Org-mode
+documents, either by running an external command to capture a
+screenshot or by dragging and dropping an image onto the document.
+
+#+name: org-download
+#+begin_src emacs-lisp
+;; drag and drop images into Org buffers
+(use-package org-download
+  :after org
+  :config
+  ;; Mac screenshot command
+  (setq org-download-screenshot-method
+        (cond ((memq window-system '(mac ns)) "screencapture -i %s")
+              (t "gnome-screenshot -a -f %s"))) ; default to GNOME screenshot tool
+  (setq org-download-method 'attach ; use `org-attach' machinery
+        org-download-timestamp "%Y%m%d%H%M%S-"))
+#+end_src
+
+** ox-md for Org export backend to Markdown
+
+Load the [[https://github.com/emacsmirror/org/blob/master/lisp/ox-md.el][built-in Org backend]] for exporting Org documents to Markdown.
+
+#+name: ox-md
+#+begin_src emacs-lisp
+;; load Org backend for exporting to Markdown
+(with-eval-after-load 'org
+  (require 'ox-md))
+#+end_src
+
+** org-superstar for nicer headings and plain lists                   :melpa:
+
+[[https://github.com/integral-dw/org-superstar-mode][org-superstar]] provides a minor mode that replaces header stars and
+plain lists in Org-mode with UTF-8 characters.
+
+Replace plain list bullets can be slow when lists are long, so only
+header star replacements are configured.
+
+#+name: org-superstar
+#+begin_src emacs-lisp
+(use-package org-superstar
+  :hook (org-mode . org-superstar-mode)
+  :init (setq org-superstar-headline-bullets-list '("◉" "◇" "○" "▷")
+              ;; don't prettify plain lists, which can be slow
+              org-superstar-prettify-item-bullets nil))
+#+end_src
+
+** org-protocol
+
+Enable [[https://orgmode.org/worg/org-contrib/org-protocol.html][org-protocol]] to allow intercepting calls to emacsclient and
+triggering custom actions.
+
+~emacsclient~ will need to be set up as the ~org-protocol~ URL
+handler. See the following sections for instructions.
+
+#+name: org-protocol
+#+begin_src emacs-lisp
+;; load org-protocol
+(require 'org-protocol)
+#+end_src
+
+*** Setting up org-protocol
+
+**** Linux
+
+Create the file =~/.local/share/applications/org-protocol.desktop=
+with the following contents. Change the paths in the ~Exec~ and ~Icon~
+entries as appropriate.
+#+begin_example
+[Desktop Entry]
+Name=Org-Protocol
+Exec=/path/to/emacsclient %u
+Type=Application
+Terminal=false
+Category=System;
+MimeType=x-scheme-handler/org-protocol;
+Icon=/path/to/icons/emacs.png
+#+end_example
+
+Run the following to have ~emacsclient~ be the default handler for
+~org-protocol://~ URLs. This will add the appropriate entry to
+=~/.config/mimeapps.list= or =~/.local/share/applications.mimeapps.list=.
+#+begin_example
+xdg-mime default org-protocol.desktop x-scheme-handler/org-protocol
+#+end_example
+
+*References*:
+- [[https://github.com/alphapapa/org-protocol-capture-html#1-add-protocol-handler][GitHub - alphapapa/org-protocol-capture-html]]
+
+**** macOS
+
+If using Emacs Mac Port, it automatically registers itself as the handler
+for ~org-protocol://~ URLs. Otherwise, do the following.
+
+Create a new document using the /Script Editor/ app. The new document
+should have the following contents. Change the path to the
+~emacsclient~ binary as needed. Save the document in the *Application*
+file format (not Script). The name of the saved document does not
+matter, it can be say =OrgProtocol.app= or =org-protocol.app= or
+something else.
+
+#+begin_example
+on open location this_URL
+    do shell script "/Applications/Emacs.app/Contents/MacOS/bin/emacsclient \"" & this_URL & "\" && open -a Emacs"
+end open location
+#+end_example
+
+Add the following to the =Contents/Info.plist= file in the newly saved
+app (an app is a folder in the filesystem). Suppose the app was saved
+to =/path/to/OrgProtocol.app= then open the
+=/path/to/OrgProtocol.app/Contents/Info.plist= file in some editor
+and add the following to the main ~/plist/dict~ block.
+
+#+begin_example
+<key>CFBundleURLTypes</key>
+<array>
+  <dict>
+    <key>CFBundleURLName</key>
+    <string>org-protocol handler</string>
+    <key>CFBundleURLSchemes</key>
+    <array>
+      <string>org-protocol</string>
+    </array>
+  </dict>
+</array>
+#+end_example
+
+Move =OrgProtocol.app= (or whatever the new app was named) to the
+=/Applications/= folder, and the system should pick up the new app as
+the ~org-protocol~ URL handler.
+
+*References*:
+- [[https://github.com/xuchunyang/setup-org-protocol-on-mac][GitHub - xuchunyang/setup-org-protocol-on-mac: Setting Up org-protocol on Mac]]
+
+*** org-protocol-capture
+
+The org-protocol-capture API can accessed by calling the URL starting
+with ~org-protocol://capture~ and passing information through query
+parameters.
+
+org-protocol-capture supports a few URL query parameters:
+- ~url~ corresponding to ~%:link~ in the capture template.
+- ~title~ corresponding to ~%:description~ in the capture template.
+- ~body~ corresponding to ~%:initial~ in the capture template. Note
+  that in the bookmarklet below this is the selected text in the page.
+  For the entire page's text, use ~document.body.innerText~ instead of
+  ~window.getSelection()~.
+- ~template~ which automatically loads the template associated with
+  the parameter character, for example
+  ~javascript:location.href='org-protocol://capture?template=b'+ ...~
+  uses the template ?b automatically. Note that the template character
+  must be unquoted.
+For more info, see the docstring and code for ~org-protocol-capture~.
+
+As an example, the following bookmarklet can be created in any web
+browser and when clicked will send details about the current page to
+the org-protocol capture API. This will bring into focus the Emacs
+window and call `org-capture' with the query parameters.
+
+#+begin_example
+javascript:location.href='org-protocol://capture?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
+#+end_example
+
+*** Capturing web snippets
+
+One useful org-protocol use is to capture snippets from the web.
+
+Add the following bookmarklet to a web browser.
+
+#+begin_example
+javascript:location.href='org-protocol://capture?template=W&url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
+#+end_example
+
+Next configure the capture template used by the org-protocol bookmarklet.
+
+#+name: org-capture-websnippet
+#+begin_src emacs-lisp
+;; add capture template for web snippets
+(setq org-websnippet-capture-file my-org-websnippet-file)
+(add-to-list 'org-capture-templates
+             `("W" "Websnippet" entry
+               (file+headline ,org-websnippet-capture-file "Unsorted")
+               "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:ADDED: %U\n:END:\n%:initial\n")
+             t)
+#+end_src
+
+Clicking the bookmarklet will capture the selected text to the
+websnippets Org file.
+
+** org-wild-notifier for Org agenda event notifications               :melpa:
+
+[[https://github.com/akhramov/org-wild-notifier.el][org-wild-notifier.el]] adds notification support for Org agenda views,
+specifically it sends notifications for upcoming ~TODO~ entries.
+
+#+name: org-wild-notifier
+#+begin_src emacs-lisp
+;; send notifications for Org agenda deadlines and scheduled tasks
+(use-package org-wild-notifier
+  :hook (after-init . org-wild-notifier-mode))
+#+end_src
+
+** Org Babel support for evaluating pikchr diagramming code        :external:
+
+[[https://pikchr.org/][Pikchr]] is a [[https://en.wikipedia.org/wiki/Pic_language][PIC]]-like markup language for diagramming, and is designed
+to be embedded in fenced code blocks in other markup languages.
+
+Download the source code from the pikchr website, compile and put the
+~lemon~ and ~pikchr~ binaries (or symlink to them) in some ~$PATH~
+directory. Only base GCC is needed for compilation (install using
+~build-essential~ in Debian; Xcode in macOS comes with ~llvm-gcc~
+instead which should also work).
+
+#+name: ob-pikchr
+#+begin_src emacs-lisp
+(when (executable-find "pikchr")
+  (with-eval-after-load 'org
+    (setq org-babel-pikchr-cmd (executable-find "pikchr"))
+    (require 'ob-pikchr)))
+#+end_src
+
+** Generating an Org agenda clock table by tag
+
+Copy and evaluate (using ~C-c C-c~) the following block to an Org mode
+buffer, modify the ~:match~ option parameters to include/exclude tags
+of interest and add/remove/change the other options as appropriate.
+See the Org docs for [[https://orgmode.org/manual/The-clock-table.html][using the clock table]] and the [[https://orgmode.org/manual/Matching-tags-and-properties.html][tag match syntax]].
+
+#+begin: clocktable :maxlevel 2 :scope agenda-with-archives :tstart "<-2w>" :tend "<now>" :match "+@work+important-sales"
+#+end
+
+** Old-style structure expansions using Org Tempo
+
+Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB.
+See [[https://orgmode.org/manual/Structure-Templates.html][Org documentation]] for more info.
+
+#+name: org-tempo
+#+begin_src emacs-lisp
+;; Enable Org pre-9.2 structure expansions, e.g. ~<s~ followed by TAB
+(with-eval-after-load 'org
+  (require 'org-tempo nil :noerror))
+#+end_src
+
+** Add read-it-later functionality to Org mode
+
+Add read-it-later functionality (bookmarking and archiving a webpage
+for later offline reading) to Org mode, with keybindings bound to the
+prefix ~C-c O~ (use ~C-c O ?~ for the full set of available bindings).
+
+By default this is configured to use [[https://github.com/Y2Z/monolith][monolith]] which can bundle a web
+page into single HTML file.
+
+This custom package is forked from [[https://github.com/scallywag/org-board][org-board]] and modified as follows:
+1. Simplify the user interaction model---only one URL per header.
+2. Support ~monolith~ or another tool by having an API that is less
+   specific to ~wget~. This also means less ~wget~ specific magic like
+   option completions when editing the entry's properties in Org mode.
+
+#+name: org-readitlater
+#+begin_src emacs-lisp
+;; read-it-later functionality in Org mode
+;; use an archive date string format that is safe for Windows systems
+(setq org-readitlater-archive-date-format-string
+      "%Y-%m-%d-%a-%H-%M-%S-%Z") ; 2016-08-18-Thu-20-50-02-PDT
+;; load custom package in the lisp subfolder of the user emacs directory
+(require 'org-readitlater)
+;; uncomment if not accessing org-readitlater commands via a transient
+;; (define-key org-mode-map (kbd "C-c O") org-readitlater-keymap)
+#+end_src
+
+*** Monolith                                                       :external:
+
+[[https://github.com/Y2Z/monolith][Monolith]] is a CLI tool for saving complete webpages into a single HTML
+file with embedded images, CSS and JS.
+
+**** Installing monolith
+
+***** Pre-built binaries
+
+[[https://github.com/Y2Z/monolith/releases][Pre-built binaries]] are available for Linux (~x86_64~), Raspberry Pi
+(~armhf~) and Windows.
+
+***** Building from source
+
+Install dependencies. The following example instructions are for
+MacPorts.
+
+#+begin_example
+$ sudo port install openssl
+$ sudo port install cargo
+$ sudo port install pkgconfig
+#+end_example
+
+Make sure =~/.cargo/bin= is in the shell ~$PATH~ ([[https://unix.stackexchange.com/questions/26047/how-to-correctly-add-a-path-to-path][bash]], [[https://fishshell.com/docs/current/tutorial.html#path][fish]]).
+
+Clone the monolith repo and build it.
+
+#+begin_example
+$ cd /path/to/build
+$ git clone https://github.com/Y2Z/monolith.git
+$ cd monolith
+$ make install
+#+end_example
+
+Test the built binary.
+
+#+begin_example
+$ monolith --help
+#+end_example
+
+*** Configure org-capture template for org-readitlater
+
+Configure an [[https://orgmode.org/manual/Capture.html][org-capture]] template for capturing org-readitlater
+entries to the =readitlater/readitlater.org= file in ~org-directory~,
+filing it under the "Unsorted" heading and automatically downloading
+the article.
+
+If org-protocol is enabled, the following bookmarklet can be added to
+a web browser to send the current page details (and any selected text)
+to the org-readitlater capture template associated with key ~a~ (the
+~template='a'~ query parameter triggers the automatic dispatch).
+
+#+begin_example
+javascript:location.href='org-protocol://capture?template=a&url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title)+'&body='+encodeURIComponent(window.getSelection())
+#+end_example
+
+The capture template below has default options for ~monolith~.
+For usage with other applications for saving webpages, remove
+or modify the ~READITLATER_BACKEND_OPTIONS~ property.
+
+#+name: org-capture-readitlater
+#+begin_src emacs-lisp
+;; add capture template for org-readitlater
+(with-eval-after-load 'org
+  (defvar org-readitlater-capture-file (concat org-directory "readitlater/readitlater.org")
+    "Path to Org file containing org-readitlater entries.")
+  (add-to-list 'org-capture-templates
+               `("a" "Archive Webpage" entry
+                 (file+headline ,org-readitlater-capture-file "Unsorted")
+                 "* %?%:description\n:PROPERTIES:\n:URL: %:link\n:READITLATER_BACKEND_OPTIONS: --isolate --no-css --no-fonts --no-frames --no-images --no-js\n:ADDED: %U\n:END:\n%:initial\n")
+               t)
+  ;; auto-download page after capturing with org-readitlater template
+  (defun do-org-readitlater-dl-hook ()
+    (when (equal (buffer-name)
+                 (concat "CAPTURE-"
+                         (file-name-nondirectory org-readitlater-capture-file)))
+      (org-readitlater-archive)))
+  (add-hook 'org-capture-before-finalize-hook #'do-org-readitlater-dl-hook))
+#+end_src
+
+** init.el tangle code
+
+Add to tangle code for ~init.el~.
+
+#+begin_src emacs-lisp
+;; Org-mode
+
+;; <<org-elpa>>
+
+<<rebind-org-force-cycle-archived-when-using-older-org-versions>>
+
+<<org-base-settings>>
+
+<<my-org-open-line-below>>
+
+<<org-todo-keywords>>
+
+<<org-capture-templates>>
+
+<<org-maximize-capture-buffers>>
+
+<<org-tags>>
+
+<<org-export-global-macros>>
+
+<<org-file-apps>>
+
+<<org-agenda>>
+
+<<org-refile>>
+
+<<org-visual-line-mode>>
+
+<<org-latex-pdf-process>>
+
+<<org-preview-latex-process>>
+
+<<org-preview-and-scale-latex-fragments>>
+
+<<org-graphical-customizations>>
+
+<<org-cliplink>>
+
+<<org-download>>
+
+<<ox-md>>
+
+<<org-superstar>>
+
+<<org-protocol>>
+
+<<org-capture-websnippet>>
+
+<<org-wild-notifier>>
+
+<<ob-pikchr>>
+
+<<org-tempo>>
+
+<<org-readitlater>>
+
+<<org-capture-readitlater>>
+#+end_src
+
+* Org-mode (old)
 
 ** org-bullets for nicer header bullets in Org-mode                   :melpa:
 
@@ -6293,6 +7379,70 @@ Transient for interfacing with neuron Zettelkasten.
     )
   (global-set-key (kbd "C-c C-M-z") #'transient/neuron))
 #+end_src
+*** Org launcher transient
+
+Transient for accessing Org entry points.
+
+#+name: org-launcher-transient
+#+begin_src emacs-lisp
+;; add transient for accessing Org entry points
+(with-eval-after-load 'org
+  ;; file launchers
+  (defun transient/org-launcher--find-my-org-agenda-inbox ()
+    "Open a file buffer for `my-org-agenda-inbox'."
+    (interactive)
+    (find-file my-org-agenda-inbox))
+  (defun transient/org-launcher--find-my-org-someday-inbox ()
+    "Open a file buffer for `my-org-someday-inbox'."
+    (interactive)
+    (find-file my-org-someday-inbox))
+  (defun transient/org-launcher--find-my-org-journal-file ()
+    "Open a file buffer for `my-org-journal-file'."
+    (interactive)
+    (find-file my-org-journal-file))
+  (defun transient/org-launcher--find-org-readitlater-capture-file ()
+    "Open a file buffer for `org-readitlater-capture-file'."
+    (interactive)
+    (find-file org-readitlater-capture-file))
+  (defun transient/org-launcher--find-org-websnippet-capture-file ()
+    "Open a file buffer for `org-websnippet-capture-file'."
+    (interactive)
+    (find-file org-websnippet-capture-file))
+  (defun transient/org-launcher--find-my-org-scratch-file ()
+    "Open a file buffer for `my-org-scratch-file'."
+    (interactive)
+    (find-file my-org-scratch-file))
+
+  (transient-define-prefix transient/org-launcher ()
+    "Launcher for Org entry points."
+    ["Org launcher"
+     ["Main"
+      ("a" "Agenda" org-agenda)
+      ("c" "Capture" org-capture)
+      ("b" "Switchb" org-switchb)
+      ("l" "Store link" org-store-link)
+      ]
+     ["Find-file"
+      ("fi" "Inbox" transient/org-launcher--find-my-org-agenda-inbox)
+      ("fs" "Someday" transient/org-launcher--find-my-org-someday-inbox)
+      ("fj" "Journal" transient/org-launcher--find-my-org-journal-file)
+      ("fr" "Read-it-later" transient/org-launcher--find-org-readitlater-capture-file)
+      ("fw" "Websnippets" transient/org-launcher--find-org-websnippet-capture-file)
+      ("fx" "Scratch" transient/org-launcher--find-my-org-scratch-file)
+      ]
+     ]
+    )
+  (global-set-key (kbd "C-c o") #'transient/org-launcher))
+#+end_src
+
+**** init.el tangle code
+
+Add to tangle code for ~init.el~
+
+#+begin_src emacs-lisp
+<<org-launcher-transient>>
+#+end_src
+
 *** Password store transient
 
 Transient for accessing password-store.el commands.
@@ -6741,6 +7891,242 @@ Neuron major mode transient.
      ]
     )
   (define-key neuron-mode-map (kbd "C-c C-M-m") #'transient/neuron-mode))
+#+end_src
+
+*** org-agenda-mode transient
+
+Org-agenda major mode transient.
+
+#+name: org-agenda-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for org-agenda-mode
+(with-eval-after-load 'org-agenda
+  (defun transient/org-agenda-mode--hide-done ()
+    "Hide items with DONE state in `org-agenda-mode' buffer."
+    (interactive)
+    (setq org-agenda-skip-scheduled-if-done
+          (not org-agenda-skip-scheduled-if-done))
+    (org-agenda-redo-all t))
+
+  (transient-define-prefix transient/org-agenda-mode ()
+    "`org-agenda-mode' commands."
+    :transient-suffix 'transient--do-stay
+    ["Org agenda"
+     ["Agenda view"
+      ("d" "Day" org-agenda-day-view)
+      ("w" "Week" org-agenda-week-view)
+      ("f" "Later" org-agenda-later)
+      ("b" "Earlier" org-agenda-earlier)
+      ]
+     ["Navigate"
+      ("n" "Next line" org-agenda-next-line)
+      ("p" "Prev line" org-agenda-previous-line)
+      ("N" "Next item" org-agenda-next-item)
+      ("P" "Prev item" org-agenda-previous-item)
+      ]
+     ["Visit"
+      ("SPC" "Show" org-agenda-show-and-scroll-up :transient nil)
+      ("TAB" "Goto" org-agenda-goto :transient nil)
+      ("RET" "Switch to" org-agenda-switch-to :transient nil)
+      ("C-c C-o" "Link" org-agenda-open-link :transient nil)
+      ]
+     ["Other"
+      ("r" "Redisplay" org-agenda-redo)
+      ("j" "Goto date" org-agenda-goto-date)
+      ("." "Goto today" org-agenda-goto-today)
+      ("(" (lambda ()
+             (transient--make-description
+              "Hide DONE"
+              org-agenda-skip-scheduled-if-done))
+       transient/org-agenda-mode--hide-done)
+      ]
+     ]
+    [
+     ["Filter"
+      ("<" "By category" org-agenda-filter-by-category)
+      ("_" "By effort" org-agenda-filter-by-effort)
+      ("=" "By regexp" org-agenda-filter-by-regexp)
+      ("\\" "By tag" org-agenda-filter-by-tag)
+      ("^" "By top headline" org-agenda-filter-by-top-headline)
+      ("|" "Remove all" org-agenda-filter-remove-all)
+      ]
+     ["Clock"
+      ("I" "In" org-agenda-clock-in)
+      ("O" "Out" org-agenda-clock-out)
+      ("X" "Cancel" org-agenda-clock-cancel)
+      ("J" "Current task" org-agenda-clock-goto)
+      ("R" (lambda ()
+             (transient--make-description
+              "Clocktable"
+              org-agenda-clockreport-mode))
+       org-agenda-clockreport-mode)
+      ]
+     ["Modify"
+      ("t" "Status" org-agenda-todo)
+      (":" "Tags" org-agenda-set-tags)
+      ("," "Priority" org-agenda-priority)
+      ("z" "Add note" org-agenda-add-note)
+      ("C-c C-x p" "Property" org-agenda-set-property)
+      ]
+     ]
+    [
+     ["Date"
+      (">" "Prompt" org-agenda-date-prompt)
+      ("C-c C-s" "Schedule" org-agenda-schedule)
+      ("C-c C-d" "Deadline" org-agenda-deadline)
+      ]
+     ["Node ops"
+      ("$" "Archive" org-agenda-archive)
+      ("C-c C-w" "Refile" org-agenda-refile)
+      ("C-k" "Kill" org-agenda-kill)
+      ]
+     ]
+    )
+
+  (define-key org-agenda-mode-map (kbd "C-c m") #'transient/org-agenda-mode))
+#+end_src
+
+**** init.el tangle code
+
+Add to tangle code for ~init.el~
+
+#+begin_src emacs-lisp
+<<org-agenda-mode-transient>>
+#+end_src
+
+*** org-mode transient
+
+Org major mode transient.
+
+#+name: org-mode-transient
+#+begin_src emacs-lisp
+;; major-mode specific transient for org-mode
+(with-eval-after-load 'org
+  (require 'org-download)
+  (require 'org-readitlater)
+  (defun transient/org-mode--toggle-display-image-width ()
+    "Toggle resizing of inline images in `org-mode' to one-third screen width."
+    (interactive)
+    (if org-image-actual-width
+        (setq org-image-actual-width nil)
+      (setq org-image-actual-width (list (/ (display-pixel-width) 3))))
+    (org-redisplay-inline-images))
+
+  (defun transient/org-mode--next-heading-dwim (n)
+    "Go to N-th next occur highlight or visible heading otherwise."
+    (interactive "p")
+    (if org-occur-highlights
+        (next-error n)
+      (org-next-visible-heading n)))
+
+  (defun transient/org-mode--previous-heading-dwim (n)
+    "Go to N-th previous occur highlight or visible heading otherwise."
+    (interactive "p")
+    (if org-occur-highlights
+        (previous-error n)
+      (org-previous-visible-heading n)))
+
+  (transient-define-prefix transient/org-mode/readitlater ()
+    "org-readitlater commands."
+    ["Org → Read-it-later"
+     ("a" "Archive" org-readitlater-archive)
+     ("r" "Dry run" org-board-archive-dry-run)
+     ("n" "New entry" org-readitlater-new)
+     ("k" "Delete archives" org-readitlater-delete-all)
+     ("o" "Open archive" org-readitlater-open)
+     ("d" "Diff" org-readitlater-diff)
+     ("3" "Diff3" org-readitlater-diff3)
+     ("c" "Cancel in-progress archive" org-readitlater-cancel)
+     ("x" "Run post-archive functions" org-readitlater-run-after-archive-function)
+     ("O" "Open archive directory" org-attach-reveal-in-emacs)
+     ]
+    )
+
+  (transient-define-prefix transient/org-mode ()
+    "`org-mode' commands."
+    ["Org"
+     ["Toggle"
+      ("i" (lambda ()
+             (transient--make-description
+              "Images"
+              org-inline-image-overlays))
+       org-toggle-inline-images :transient t)
+      ("I" (lambda ()
+             (transient--make-description
+              "Indent"
+              org-indent-mode))
+       org-indent-mode :transient t)
+      ("P" (lambda ()
+             (transient--make-description
+              "Prettify entities"
+              org-pretty-entities))
+       org-toggle-pretty-entities :transient t)
+      ("M-l" (lambda ()
+               (transient--make-description
+                "Link display"
+                (not org-link-descriptive)))
+       org-toggle-link-display :transient t)
+      ("M-i" (lambda ()
+               (transient--make-description
+                "Image resize"
+                org-image-actual-width))
+       transient/org-mode--toggle-display-image-width :transient t)
+      ]
+     ["Search"
+      ("g" "Goto" org-goto)
+      ("o" "Occur" org-occur :transient t)
+      ("/" "Create sparse tree" org-sparse-tree :transient t)
+      ("c" "Clear search results" org-remove-occur-highlights :transient t)
+      ("n" "Next (sparse) node" transient/org-mode--next-heading-dwim :transient t)
+      ("p" "Previous (sparse) node" transient/org-mode--previous-heading-dwim :transient t)
+      ]
+     ["Modify"
+      ("t" "Todo state" org-todo)
+      (":" "Tags" org-set-tags-command)
+      ("," "Priority" org-priority)
+      ("D" "Insert drawer" org-insert-drawer)
+      ("P" "Set property" org-set-property)
+      ("N" "Add note" org-add-note)
+      ]
+     ]
+    [
+     ["Node ops"
+      ("a" "Archive" org-archive-subtree-default)
+      ("r" "Refile" org-refile)
+      ("s" "Sort" org-sort)
+      ]
+     ["Text ops"
+      ("F" "Add footnote" org-footnote-action)
+      ("<" "Insert structure" org-insert-structure-template)
+      ("'" "Edit special" org-edit-special)
+      ("e" "Emphasize" org-emphasize)
+      ]
+     [:description (lambda ()
+                     (transient--make-description
+                      "Narrow"
+                      (buffer-narrowed-p)))
+      ("M-s" "Subtree" org-narrow-to-subtree)
+      ("M-b" "Block" org-narrow-to-block)
+      ("M-w" "Widen" widen)
+      ]
+     ["Other"
+      ("<tab>" "Cycle node" org-cycle :transient t)
+      ("<S-tab>" "Cycle global" org-global-cycle :transient t)
+      ("ds" "Download screenshot" org-download-screenshot)
+      ("dy" "Download yank" org-download-yank)
+      ("R" "→ Read-it-later" transient/org-mode/readitlater)
+      ]
+     ]
+    )
+  (define-key org-mode-map (kbd "C-c m") #'transient/org-mode))
+#+end_src
+
+**** init.el tangle code
+
+Add to tangle code for ~init.el~
+
+#+begin_src emacs-lisp
+<<org-mode-transient>>
 #+end_src
 
 *** racket-mode transient

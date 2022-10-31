@@ -100,12 +100,13 @@ Examples:
         (logand acme-mode--buttons
                 (- acme-mode--allbuttons button))))
 (defun acme-mode--maybe-reset-state ()
+  "Set `acme-mode--state' to 'noselect if no buttons are pressed."
   (when (acme-mode--down-p acme-mode--nobuttons)
     (setq acme-mode--state 'noselect)))
 
 ;; Button 1 down-press
 (defun acme-mode--down-mouse-1 (event)
-  "Handler for down-mouse-1 event."
+  "Handler for down-mouse-1 EVENT."
   (interactive "e")
   (acme-mode--button-down acme-mode--lbutton)
   (cond ((eq acme-mode--state 'noselect)

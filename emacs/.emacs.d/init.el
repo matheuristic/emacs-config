@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Oct 28 12:30:43 2022
+;; Generated: Sun Oct 30 22:09:50 2022
 
 ;;; Commentary:
 
@@ -416,20 +416,20 @@ cache before processing."
 
 ;; configure Ibuffer filter groups
 (with-eval-after-load 'ibuffer
-;;   (defun my-ibuffer-org-agenda-files-filter ()
-;;     "Ibuffer filter for checking if current buffer is an Org agenda file.
+  ;;   (defun my-ibuffer-org-agenda-files-filter ()
+  ;;     "Ibuffer filter for checking if current buffer is an Org agenda file.
 
-;; Specifically, the current buffer is checked to see if it is in
-;; `org-agenda-files', is the agenda inbox file
-;; `my-org-agenda-inbox', or is the someday inbox file
-;; `my-org-someday-inbox'."
-;;     (let* ((bufname (buffer-file-name))
-;;            (fname (and bufname (file-truename bufname))) ; filename if a file buffer, nil otherwise
-;;            (agenda-fnames (mapcar #'file-truename (append (org-agenda-files) ; agenda and inbox filenames
-;;                                                           (list my-org-agenda-inbox
-;;                                                                 my-org-someday-inbox)))))
-;;       (and fname
-;;            (member fname agenda-fnames))))
+  ;; Specifically, the current buffer is checked to see if it is in
+  ;; `org-agenda-files', is the agenda inbox file
+  ;; `my-org-agenda-inbox', or is the someday inbox file
+  ;; `my-org-someday-inbox'."
+  ;;     (let* ((bufname (buffer-file-name))
+  ;;            (fname (and bufname (file-truename bufname))) ; filename if a file buffer, nil otherwise
+  ;;            (agenda-fnames (mapcar #'file-truename (append (org-agenda-files) ; agenda and inbox filenames
+  ;;                                                           (list my-org-agenda-inbox
+  ;;                                                                 my-org-someday-inbox)))))
+  ;;       (and fname
+  ;;            (member fname agenda-fnames))))
   (setq ibuffer-saved-filter-groups
         ;; files are grouped by the first matching filter group in the list
         '(("default"
@@ -1916,6 +1916,9 @@ for more information."
 ;; alternative binding for opening the menu bar
 (global-set-key (kbd "C-c B o") #'menu-bar-open)
 
+;; support for mouse bindings to emulate Acme mouse interface
+(require 'acme-mode)
+
 ;; OS-specific / macOS
 
 ;; on macOS, use Option keys as Meta and file polling for auto-revert
@@ -2284,6 +2287,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (global-set-key (kbd "C-c d e") #'transient/ediff)
 
 ;; add transient popup for various editing commands
+(require 'acme-mode)
 (transient-define-prefix transient/edit ()
   "Editing commands."
   ["Edit"
@@ -2296,14 +2300,19 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("o" "New line below" my-open-line-below :transient t)
     ("J" "Join lines" my-join-next-line :transient t)
     ]
-   ["Multi-cursor" ; functions autoloaded from multiple-cursors.el
+   ["Multi-cursor"     ; functions autoloaded from multiple-cursors.el
     ("C" "Edit lines" mc/edit-lines)
     ("V" "Rect select" set-rectangular-region-anchor)
     ("<" "Previous" mc/mark-previous-like-this :transient t)
     (">" "Next" mc/mark-next-like-this :transient t)
     ]
    ["Other"
-    (";" "Iedit" iedit-mode) ; autoloaded from iedit.el
+    ("A" (lambda ()
+           (transient--make-description
+            "Acme mouse"
+            acme-mode))
+     acme-mode :transient t)            ; emulate Acme mouse user interface
+    (";" "Iedit" iedit-mode)            ; autoloaded from iedit.el
     ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
     ]
    ]

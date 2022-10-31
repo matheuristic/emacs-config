@@ -1139,49 +1139,49 @@ opened files.
 
 #+name: recentf
 #+begin_src emacs-lisp
-  ;; recently opened files
-  (setq recentf-max-menu-items 10
-        recentf-max-saved-items 100
-        recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
-  (recentf-mode 1)
-  ;; exclude compressed files
-  (add-to-list 'recentf-exclude ".gz")
-  (add-to-list 'recentf-exclude ".xz")
-  (add-to-list 'recentf-exclude ".zip")
-  ;; exclude source code files in installed packages from ELPA-compatible repos
-  (add-to-list 'recentf-exclude
-               (concat "^" (expand-file-name "elpa/" user-emacs-directory)))
-  ;; exclude files opened with SSH so TRAMP is not spammed with stat calls
-  ;; exclude files opened as the superuser with su or sudo
-  (add-to-list 'recentf-exclude "^/\\(?:scp\\|ssh\\|su\\|sudo\\)?:")
-  ;; exclude files from /var/folder as these are temp files
-  (add-to-list 'recentf-exclude "^/var/folders")
-  ;; exclude files in `org-agenda-files'
-  ;; these files are quickly accessible from their respective tooling
-  ;; (add-hook 'after-init-hook
-  ;;           (lambda ()
-  ;;             (dolist (file-list (list org-agenda-files))
-  ;;               (dolist (exclude-file file-list)
-  ;;                 (add-to-list 'recentf-exclude
-  ;;                              (concat "^" exclude-file))))))
-  ;; exclude files in conda environments
-  (add-hook 'after-init-hook
-            (lambda ()
-              (with-eval-after-load 'conda
-                (add-to-list 'recentf-exclude
-                             (concat "^" conda-anaconda-home)))))
+;; recently opened files
+(setq recentf-max-menu-items 10
+      recentf-max-saved-items 100
+      recentf-auto-cleanup 'mode) ;; clean up recent list when turning on mode
+(recentf-mode 1)
+;; exclude compressed files
+(add-to-list 'recentf-exclude ".gz")
+(add-to-list 'recentf-exclude ".xz")
+(add-to-list 'recentf-exclude ".zip")
+;; exclude source code files in installed packages from ELPA-compatible repos
+(add-to-list 'recentf-exclude
+             (concat "^" (expand-file-name "elpa/" user-emacs-directory)))
+;; exclude files opened with SSH so TRAMP is not spammed with stat calls
+;; exclude files opened as the superuser with su or sudo
+(add-to-list 'recentf-exclude "^/\\(?:scp\\|ssh\\|su\\|sudo\\)?:")
+;; exclude files from /var/folder as these are temp files
+(add-to-list 'recentf-exclude "^/var/folders")
+;; exclude files in `org-agenda-files'
+;; these files are quickly accessible from their respective tooling
+;; (add-hook 'after-init-hook
+;;           (lambda ()
+;;             (dolist (file-list (list org-agenda-files))
+;;               (dolist (exclude-file file-list)
+;;                 (add-to-list 'recentf-exclude
+;;                              (concat "^" exclude-file))))))
+;; exclude files in conda environments
+(add-hook 'after-init-hook
+          (lambda ()
+            (with-eval-after-load 'conda
+              (add-to-list 'recentf-exclude
+                           (concat "^" conda-anaconda-home)))))
 
-  ;; binding for recentf
-  (global-set-key (kbd "C-c f") #'recentf-open-files)
+;; binding for recentf
+(global-set-key (kbd "C-c f") #'recentf-open-files)
 
-  ;; select file to open from `recentf-list' using `completing-read'
-  (defun my-recentf-find-file ()
-    "Use `completing-read' to find a recent file."
-    (interactive)
-    (find-file (completing-read "Find recent file: " recentf-list)))
+;; select file to open from `recentf-list' using `completing-read'
+(defun my-recentf-find-file ()
+  "Use `completing-read' to find a recent file."
+  (interactive)
+  (find-file (completing-read "Find recent file: " recentf-list)))
 
-  ;; binding for `my-recentf-open-files' when in recentf dialog buffers
-  (define-key recentf-dialog-mode-map (kbd "f") #'my-recentf-find-file)
+;; binding for `my-recentf-open-files' when in recentf dialog buffers
+(define-key recentf-dialog-mode-map (kbd "f") #'my-recentf-find-file)
 #+end_src
 
 ** Save location in file
@@ -1266,8 +1266,8 @@ like Org journal files, by default.
 
 #+name: ibuffer-filter-groups
 #+begin_src emacs-lisp
-  ;; configure Ibuffer filter groups
-  (with-eval-after-load 'ibuffer
+;; configure Ibuffer filter groups
+(with-eval-after-load 'ibuffer
   ;;   (defun my-ibuffer-org-agenda-files-filter ()
   ;;     "Ibuffer filter for checking if current buffer is an Org agenda file.
 
@@ -1282,41 +1282,41 @@ like Org journal files, by default.
   ;;                                                                 my-org-someday-inbox)))))
   ;;       (and fname
   ;;            (member fname agenda-fnames))))
-    (setq ibuffer-saved-filter-groups
-          ;; files are grouped by the first matching filter group in the list
-          '(("default"
-             ("Emacs" (or (name . "^\\*scratch\\*$")
-                          (name . "^\\*Messages\\*$")))
-             ("Calendar" (or (name . "^\\*?[Cc]alendar.*$")
-                             (name . "^diary$")))
-             ("DocView" (mode . doc-view-mode))
-             ("Images" (mode . image-mode))
-             ("Web" (or (mode . eww-mode)
-                        (mode . eww-bookmark-mode)))
-             ("Shell" (or (mode . eshell-mode)
-                          (mode . shell-mode)
-                          (mode . term-mode)))
-             ("Data" (or (mode . csv-mode)
-                         (mode . json-mode)
-                         (mode . nxml-mode)))
-             ;; ("Analytics" (or (mode . ess-r-mode)
-             ;;                  (mode . inferior-ess-r-mode)))
-             ("Programming" (derived-mode . prog-mode))
-             ;; ("Agenda" (or (mode . org-agenda-mode)
-             ;;               (predicate . (my-ibuffer-org-agenda-files-filter))))
-             ("Org" (derived-mode . org-mode))
-             ("Text" (derived-mode . text-mode))
-             ("Fundamental" (mode . fundamental-mode))
-             ("Dired" (mode . dired-mode))
-             ("Magit" (derived-mode . magit-mode))
-             ("Help" (or (derived-mode . apropos-mode)
-                         (derived-mode . help-mode)
-                         (derived-mode . Info-mode))))))
-    (defun my-ibuffer-filter-groups-setup ()
-      "Custom configuration to load when a new Ibuffer buffer gets created."
-      ;; use "default" saved filter groups list by default
-      (ibuffer-switch-to-saved-filter-groups "default"))
-    (add-hook 'ibuffer-mode-hook #'my-ibuffer-filter-groups-setup))
+  (setq ibuffer-saved-filter-groups
+        ;; files are grouped by the first matching filter group in the list
+        '(("default"
+           ("Emacs" (or (name . "^\\*scratch\\*$")
+                        (name . "^\\*Messages\\*$")))
+           ("Calendar" (or (name . "^\\*?[Cc]alendar.*$")
+                           (name . "^diary$")))
+           ("DocView" (mode . doc-view-mode))
+           ("Images" (mode . image-mode))
+           ("Web" (or (mode . eww-mode)
+                      (mode . eww-bookmark-mode)))
+           ("Shell" (or (mode . eshell-mode)
+                        (mode . shell-mode)
+                        (mode . term-mode)))
+           ("Data" (or (mode . csv-mode)
+                       (mode . json-mode)
+                       (mode . nxml-mode)))
+           ;; ("Analytics" (or (mode . ess-r-mode)
+           ;;                  (mode . inferior-ess-r-mode)))
+           ("Programming" (derived-mode . prog-mode))
+           ;; ("Agenda" (or (mode . org-agenda-mode)
+           ;;               (predicate . (my-ibuffer-org-agenda-files-filter))))
+           ("Org" (derived-mode . org-mode))
+           ("Text" (derived-mode . text-mode))
+           ("Fundamental" (mode . fundamental-mode))
+           ("Dired" (mode . dired-mode))
+           ("Magit" (derived-mode . magit-mode))
+           ("Help" (or (derived-mode . apropos-mode)
+                       (derived-mode . help-mode)
+                       (derived-mode . Info-mode))))))
+  (defun my-ibuffer-filter-groups-setup ()
+    "Custom configuration to load when a new Ibuffer buffer gets created."
+    ;; use "default" saved filter groups list by default
+    (ibuffer-switch-to-saved-filter-groups "default"))
+  (add-hook 'ibuffer-mode-hook #'my-ibuffer-filter-groups-setup))
 #+end_src
 
 **** Group by version-controlled project in Ibuffer                   :melpa:
@@ -4340,6 +4340,37 @@ keyboard does not have an ~F10~ key.
 (global-set-key (kbd "C-c B o") #'menu-bar-open)
 #+end_src
 
+** Acme mouse emulation
+
+[[http://acme.cat-v.org/][Acme]] (ported to non-Plan 9 systems, see [[https://9fans.github.io/plan9port/][link]]) has a different but nice
+mouse interface for working with text. ~acme-mode~ attempts to emulate
+this interface.
+
+If the ~acme-mode~ minor mode is enabled, the following mouse bindings
+are available (1 is for left button, 2 is for middle-button and 3 is
+for right button; 1-2 is a chord where 1 is pressed the 2 without
+releasing 1):
+
+- 1: select text as usual
+- 2: execute symbol at point or selected region
+- 3: look for next occurrence of symbol at point or selected region
+- 1-2: cut selected text
+- 1-3: paste selected text
+
+See [[http://acme.cat-v.org/mouse][link]] for a more detailed description of the Acme mouse interface.
+
+Best used with a physical mouse rather than a trackpad, as it is not
+easy to set up chording using Control, Meta/Option and Super/Command
+keys like in plan9port Acme (see [[https://lists.gnu.org/archive/html/help-gnu-emacs/2015-01/msg00330.html][link]]). On trackpads, it is possible
+to bind unused Fn keys to mouse button presses, but that is still
+a little unwieldy.
+
+#+name: acme-mode
+#+begin_src emacs-lisp
+;; support for mouse bindings to emulate Acme mouse interface
+(require 'acme-mode)
+#+end_src
+
 * OS-specific
 
 ** macOS
@@ -4923,32 +4954,38 @@ the terminal.
 
 #+name: edit-transient
 #+begin_src emacs-lisp
-  ;; add transient popup for various editing commands
-  (transient-define-prefix transient/edit ()
-    "Editing commands."
-    ["Edit"
-     ["Completion"
-      ("/" "Dyn. abbrev" dabbrev-expand :transient t) ; built-in
-      ;; ("TAB" "Company" company-complete) ; autoloaded from company-mode.el
-      ]
-     ["Line"
-      ("O" "New line above" my-open-line-above :transient t)
-      ("o" "New line below" my-open-line-below :transient t)
-      ("J" "Join lines" my-join-next-line :transient t)
-      ]
-     ["Multi-cursor" ; functions autoloaded from multiple-cursors.el
-      ("C" "Edit lines" mc/edit-lines)
-      ("V" "Rect select" set-rectangular-region-anchor)
-      ("<" "Previous" mc/mark-previous-like-this :transient t)
-      (">" "Next" mc/mark-next-like-this :transient t)
-      ]
-     ["Other"
-      (";" "Iedit" iedit-mode) ; autoloaded from iedit.el
-      ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
-      ]
-     ]
-    )
-  (global-set-key (kbd "C-c e") #'transient/edit)
+;; add transient popup for various editing commands
+(require 'acme-mode)
+(transient-define-prefix transient/edit ()
+  "Editing commands."
+  ["Edit"
+   ["Completion"
+    ("/" "Dyn. abbrev" dabbrev-expand :transient t) ; built-in
+    ;; ("TAB" "Company" company-complete) ; autoloaded from company-mode.el
+    ]
+   ["Line"
+    ("O" "New line above" my-open-line-above :transient t)
+    ("o" "New line below" my-open-line-below :transient t)
+    ("J" "Join lines" my-join-next-line :transient t)
+    ]
+   ["Multi-cursor"     ; functions autoloaded from multiple-cursors.el
+    ("C" "Edit lines" mc/edit-lines)
+    ("V" "Rect select" set-rectangular-region-anchor)
+    ("<" "Previous" mc/mark-previous-like-this :transient t)
+    (">" "Next" mc/mark-next-like-this :transient t)
+    ]
+   ["Other"
+    ("A" (lambda ()
+           (transient--make-description
+            "Acme mouse"
+            acme-mode))
+     acme-mode :transient t)            ; emulate Acme mouse user interface
+    (";" "Iedit" iedit-mode)            ; autoloaded from iedit.el
+    ("=" "Expand region" er/expand-region) ; autoloaded from expand-region.el
+    ]
+   ]
+  )
+(global-set-key (kbd "C-c e") #'transient/edit)
 #+end_src
 
 *** Frame transient
@@ -7178,6 +7215,8 @@ The main configuration file.
 
 <<menu-bar-open-alternate-binding>>
 
+<<acme-mode>>
+
 ;; OS-specific / macOS
 
 <<mac>>
@@ -7296,8 +7335,9 @@ Autocaption source blocks with their names when exporting so that
 their source blocks.
 
 #+begin_src org
-  Local Variables:
-  eval: (setq-local org-babel-exp-code-template (concat "\n#+caption:=%name=\n" org-babel-exp-code-template))
-  eval: (setq-local org-confirm-babel-evaluate nil)
-  End:
+Local Variables:
+eval: (setq-local org-babel-exp-code-template (concat "\n#+caption:=%name=\n" org-babel-exp-code-template))
+eval: (setq-local org-confirm-babel-evaluate nil)
+eval: (setq-local org-src-preserve-indentation t)
+End:
 #+end_src

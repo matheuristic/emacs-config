@@ -146,7 +146,7 @@ That is, if it matches any of the `censor-include' checks."
 ;;;###autoload
 (define-minor-mode censor-mode
   "Buffer-local minor mode to censor content in specific buffers."
-  :lighter "Censor"
+  :lighter " Censor"
   :init-value nil
   :global nil
   (if censor-mode (censor-mode-enable) (censor-mode-disable)))

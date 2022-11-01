@@ -490,7 +490,8 @@ Emulate Acme mouse behavior.
          (define-key acme-mode-map [M-mouse-3] #'acme-mode--mouse-3)
          (define-key acme-mode-map [M-drag-mouse-3] #'acme-mode--drag-mouse-3)))
   ;; customization options
-  (setq acme-mode-enable-trackpad-chording t)
+  (setq acme-mode-enable-trackpad-chording t
+        acme-mode-plumb-file-can-switch-frames nil)
   ;; enable `acme-mode'
   (acme-mode 1))
 #+end_src

@@ -140,6 +140,10 @@ Examples:
 
 ;; CUSTOMIZATION VARIABLES
 
+(defcustom acme-mode-plumb-file-can-switch-frames nil
+  "Controls whether plumbing a file visible on another frame will switch to it."
+  :type 'boolean)
+
 (defcustom acme-mode-plumbing-rules acme-mode-default-plumbing-rules
   "Association list ((REGEXP . FUNCTION) ...) for plumb dispatch.
 
@@ -573,6 +577,24 @@ if one exists."
   ;; warp the mouse to the result
   (acme-mode--move-mouse-to-point))
 
+(defun acme-mode--pop-window (filename &optional all-frames)
+  "Switch to window with FILENAME if visible, and if not open in new window.
+
+If ALL-FRAMES is t, switching can be across frames. If it is nil,
+then switching is only on the same frame.
+
+When opening FILENAME in a new window, open it in a new buf,
+split a new window below, switch to it, and switch the displayed
+buf to that of FILENAME."
+  (let* ((buf (find-file-noselect filename))
+         (win (and buf
+                   (get-buffer-window buf all-frames))))
+    (if win
+        (select-window win)
+      (split-window-below)
+      (other-window 1)
+      (switch-to-buffer buf))))
+
 (defun acme-mode--find-file (filename)
   "Find given FILENAME in another window if it exists.
 
@@ -598,7 +620,7 @@ If the given file does not exist, the function returns nil."
             (setq filepath (match-string 1 filename))))
      (when (and filepath
                 (file-readable-p filepath))
-       (find-file-other-window filepath)
+       (acme-mode--pop-window filepath acme-mode-plumb-file-can-switch-frames)
        (when linenum
          (goto-char (point-min))
          (forward-line (1- linenum)))

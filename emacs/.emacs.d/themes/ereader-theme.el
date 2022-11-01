@@ -44,7 +44,7 @@
       (bg-highlight-2 "light cyan")
       (bg-highlight-3 "light green")
       (fg-dim "#909090")
-      (bg-region "#eeeee8")
+      (bg-region "#f4f09b")
       (bg-search "#ffb347"))
 
   (custom-theme-set-faces

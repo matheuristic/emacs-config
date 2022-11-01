@@ -173,7 +173,11 @@ Useful when using Acme mode on laptops with trackpads."
                                            dired-mode
                                            ibuffer-mode
                                            info-mode)
-  "List of major modes for which to not use Acme mode mouse interace."
+  "List of major modes for which to not use Acme mode mouse interace.
+
+Leverages approach from https://emacs.stackexchange.com/a/59509
+for https://emacs.stackexchange.com/questions/59494 that shows
+how to wrap/intercept commands bound to a given key in Emacs."
   :type '(list :tag "Major modes"
            (symbol :tag "Major mode")))
 
@@ -483,7 +487,6 @@ will insert a z character as normal."
   (interactive)
   (cond ((or (member major-mode acme-mode-exclude-major-modes)
              (eq acme-mode--state 'noselect))
-         ;; See https://emacs.stackexchange.com/questions/59494/how-to-wrap-intercept-commands-bound-to-a-given-key
          (let ((acme-trackpad-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -501,7 +504,6 @@ will insert a x character as normal."
   (interactive)
   (cond ((or (member major-mode acme-mode-exclude-major-modes)
              (eq acme-mode--state 'noselect))
-         ;; See https://emacs.stackexchange.com/questions/59494/how-to-wrap-intercept-commands-bound-to-a-given-key
          (let ((acme-trackpad-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -520,7 +522,6 @@ kill ring entry when doing a 1-3 chord."
   (interactive "P")
   (cond ((or (member major-mode acme-mode-exclude-major-modes)
              (eq acme-mode--state 'noselect))
-         ;; See https://emacs.stackexchange.com/questions/59494/how-to-wrap-intercept-commands-bound-to-a-given-key
          (let ((acme-trackpad-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t

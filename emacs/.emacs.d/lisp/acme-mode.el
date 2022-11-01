@@ -176,7 +176,9 @@ Useful when using Acme mode on laptops with trackpads."
 (defcustom acme-mode-exclude-major-modes '(completion-list-mode
                                            dired-mode
                                            ibuffer-mode
-                                           info-mode)
+                                           info-mode
+                                           minibuffer-inactive-mode
+                                           minibuffer-mode)
   "List of major modes for which to not use Acme mode mouse interace.
 
 Leverages approach from https://emacs.stackexchange.com/a/59509

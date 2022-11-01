@@ -86,7 +86,7 @@
 ;; Default plumbing rules
 (defvar acme-mode-default-plumbing-rules
   '(("https?://.*" . browse-url)
-    (" *File \"[a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error))
+    (" *File \"[~a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error))
   "Default plumbing rules for Acme mode.
 
 See `acme-mode-plumbing-rules'.")
@@ -587,14 +587,14 @@ If the given file does not exist, the function returns nil."
         (linenum)
         (colnum))
    (save-match-data
-     (cond ((string-match "\\([.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
+     (cond ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
             (setq filepath (match-string 1 filename)
                   linenum (string-to-number (match-string 2 filename))
                   colnum (string-to-number (match-string 3 filename))))
-           ((string-match "\\([.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
+           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
             (setq filepath (match-string 1 filename)
                   linenum (string-to-number (match-string 2 filename))))
-           ((string-match "\\([.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
+           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
             (setq filepath (match-string 1 filename))))
      (when (and filepath
                 (file-readable-p filepath))
@@ -647,7 +647,7 @@ Specifically, this parses lines like
   File \"somefile.py\", line 5
 and opens the relevant file at the appropriate line in a new window."
   (save-match-data
-    (and (string-match " *File \"\\([a-zA-Z¡-￿0-9_./-]+\\)\", line \\([0-9]+\\).*" error-line)
+    (and (string-match " *File \"\\([~a-zA-Z¡-￿0-9_./-]+\\)\", line \\([0-9]+\\).*" error-line)
          (acme-mode--find-file
           (concat (match-string 1 error-line)
                   ":"

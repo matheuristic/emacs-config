@@ -169,10 +169,18 @@ take effect.
 Useful when using Acme mode on laptops with trackpads."
   :type 'boolean)
 
+(defcustom acme-mode-exclude-major-modes '(completion-list-mode
+                                           dired-mode
+                                           ibuffer-mode
+                                           info-mode)
+  "List of major modes for which to not use Acme mode mouse interace."
+  :type '(list :tag "Major modes"
+           (symbol :tag "Major mode")))
+
 ;; MODE DEFINITIONS AND FUNCTIONS
 
 (defun acme-mode--enable ()
-  "Setup for Acme mode'."
+  "Setup for Acme mode."
   (setq acme-mode--prior-delete-selection-mode (symbol-value delete-selection-mode))
   (setq acme-mode--prior-transient-mark-mode (symbol-value transient-mark-mode))
   (when acme-mode-enable-trackpad-chording
@@ -181,7 +189,7 @@ Useful when using Acme mode on laptops with trackpads."
   (transient-mark-mode 1))
 
 (defun acme-mode--disable ()
-  "Teardown for Acme mode'."
+  "Teardown for Acme mode."
   (acme-trackpad-mode 0)
   (delete-selection-mode acme-mode--prior-delete-selection-mode)
   (transient-mark-mode acme-mode--prior-transient-mark-mode))
@@ -306,83 +314,102 @@ is pressed twice and using last tracked mouse event position."
 (defun acme-mode--down-mouse-1 (event)
   "Acme mode handler for left-button press EVENT."
   (interactive "e")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-down acme-mode--lbutton)
-  (cond ((eq acme-mode--state 'noselect)
-         (setq acme-mode--state 'textselect)
-         (mouse-set-mark event)
-         (mouse-drag-region event))))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-down acme-mode--lbutton)
+         (cond ((eq acme-mode--state 'noselect)
+                (setq acme-mode--state 'textselect)
+                (mouse-set-mark event)
+                (mouse-drag-region event))))))
 
 ;; Button 1 release, no mouse pointer movement since down-mouse-1
 (defun acme-mode--mouse-1 (event)
   "Acme mode handler for left-button release EVENT."
   (interactive "e")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-up acme-mode--lbutton)
-  (cond ((eq acme-mode--state 'textselect)
-         (setq deactivate-mark nil)
-         (mouse-set-point event)
-         (setq transient-mark-mode (cons 'only t))))
-  (acme-mode--maybe-reset-state))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-up acme-mode--lbutton)
+         (cond ((eq acme-mode--state 'textselect)
+                (setq deactivate-mark nil)
+                (mouse-set-point event)
+                (setq transient-mark-mode (cons 'only t))))
+         (acme-mode--maybe-reset-state))))
 
 ;; Double button 1 release, no mouse pointer movement since down-mouse-1
 (defun acme-mode--double-mouse-1 (event)
   "Acme mode handler for double or triple left-click EVENT."
   (interactive "e")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-up acme-mode--lbutton)
-  (cond ((eq acme-mode--state 'textselect)
-         (setq deactivate-mark nil)
-         (mouse-set-point event)
-         (acme-mode--select-region)
-         (setq transient-mark-mode (cons 'only t))))
-  (acme-mode--maybe-reset-state))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-up acme-mode--lbutton)
+         (cond ((eq acme-mode--state 'textselect)
+                (setq deactivate-mark nil)
+                (mouse-set-point event)
+                (acme-mode--select-region)
+                (setq transient-mark-mode (cons 'only t))))
+         (acme-mode--maybe-reset-state))))
 
 ;; Button 1 release, mouse pointer moved since down-mouse-1
 (defun acme-mode--drag-mouse-1 (event)
   "Acme mode handler for left-button drag release EVENT."
   (interactive "e")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-up acme-mode--lbutton)
-  (cond ((eq acme-mode--state 'textselect)
-         (setq deactivate-mark nil)
-         (mouse-set-region event)
-         (setq transient-mark-mode (cons 'only t))))
-  (acme-mode--maybe-reset-state))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-up acme-mode--lbutton)
+         (cond ((eq acme-mode--state 'textselect)
+                (setq deactivate-mark nil)
+                (mouse-set-region event)
+                (setq transient-mark-mode (cons 'only t))))
+         (acme-mode--maybe-reset-state))))
 
 ;; Button 2 down-press
 (defun acme-mode--down-mouse-2 (event)
   "Acme mode handler for middle-button press EVENT."
   (interactive "e")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-down acme-mode--mbutton)
-  (cond ((eq acme-mode--state 'noselect)
-         (setq acme-mode--state 'textselect2))
-        ((eq acme-mode--state 'textselect)
-         (setq acme-mode--state 'textselect-cut)
-         (mouse-set-point event)
-         (acme-mode--select-region)
-         (kill-region (mark) (point)))
-        ((eq acme-mode--state 'textselect-paste)
-         (setq acme-mode--state 'textselect-cut)
-         (call-interactively 'undo))
-        ((eq acme-mode--state 'textselect3)
-         (setq acme-mode--state 'donothing))))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-down acme-mode--mbutton)
+         (cond ((eq acme-mode--state 'noselect)
+                (setq acme-mode--state 'textselect2))
+               ((eq acme-mode--state 'textselect)
+                (setq acme-mode--state 'textselect-cut)
+                (mouse-set-point event)
+                (acme-mode--select-region)
+                (kill-region (mark) (point)))
+               ((eq acme-mode--state 'textselect-paste)
+                (setq acme-mode--state 'textselect-cut)
+                (call-interactively 'undo))
+               ((eq acme-mode--state 'textselect3)
+                (setq acme-mode--state 'donothing))))))
 
 ;; Button 2 release, no mouse movement since down-mouse-2
 (defun acme-mode--mouse-2 (event)
-  "Acme mode handler for middle-button release EVENT.
-
-Includes special casing for `completion-list-mode', where
-clicking on a completion option will choose that option."
+  "Acme mode handler for middle-button release EVENT."
   (interactive "e")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-up acme-mode--mbutton)
-  (cond ((eq major-mode 'completion-list-mode)
-         (choose-completion event))
-        ((eq acme-mode--state 'textselect2)
-         (acme-mode--execute event)))
-  (acme-mode--maybe-reset-state))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-up acme-mode--mbutton)
+         (cond ((eq acme-mode--state 'textselect2)
+                (acme-mode--execute event)))
+         (acme-mode--maybe-reset-state))))
 
 ;; Button 3 down-press
 (defun acme-mode--down-mouse-3 (event arg)
@@ -393,42 +420,54 @@ Specify a prefix ARG to insert a specific kill ring entry.
 For example, '<down-mouse-left> Control-u 3 <down-mouse-right>'
 will insert the 3rd most recent entry in the kill ring."
   (interactive "e\nP")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-down acme-mode--rbutton)
-  (cond ((eq acme-mode--state 'noselect)
-         (setq acme-mode--state 'textselect3))
-        ((eq acme-mode--state 'textselect)
-         (setq acme-mode--state 'textselect-paste)
-         (mouse-set-point event)
-         (acme-mode--select-region)
-         (delete-region (mark) (point))
-         (yank arg)
-         (setq deactivate-mark nil)
-         (activate-mark))
-        ((eq acme-mode--state 'textselect-cut)
-         (setq acme-mode--state 'textselect-paste)
-         (call-interactively 'undo)
-         (set-mark acme-mode--region-start)
-         (goto-char acme-mode--region-end))
-        ((eq acme-mode--state 'textselect2)
-         (setq acme-mode--state 'donothing))))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-down acme-mode--rbutton)
+         (cond ((eq acme-mode--state 'noselect)
+                (setq acme-mode--state 'textselect3))
+               ((eq acme-mode--state 'textselect)
+                (setq acme-mode--state 'textselect-paste)
+                (mouse-set-point event)
+                (acme-mode--select-region)
+                (delete-region (mark) (point))
+                (yank arg)
+                (setq deactivate-mark nil)
+                (activate-mark))
+               ((eq acme-mode--state 'textselect-cut)
+                (setq acme-mode--state 'textselect-paste)
+                (call-interactively 'undo)
+                (set-mark acme-mode--region-start)
+                (goto-char acme-mode--region-end))
+               ((eq acme-mode--state 'textselect2)
+                (setq acme-mode--state 'donothing))))))
 
 ;; Button 3 release
 (defun acme-mode--mouse-3 (event)
   "Acme mode handler for right-button release EVENT."
   (interactive "e")
-  (acme-mode--update-last-mouse-events event)
-  (acme-mode--button-up acme-mode--rbutton)
-  (cond ((eq acme-mode--state 'textselect3)
-         (acme-mode--plumb event)))
-  (acme-mode--maybe-reset-state))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--update-last-mouse-events event)
+         (acme-mode--button-up acme-mode--rbutton)
+         (cond ((eq acme-mode--state 'textselect3)
+                (acme-mode--plumb event)))
+         (acme-mode--maybe-reset-state))))
 
 ;; Same as mouse-3, no drag-mouse-3 select and look currently, so just
 ;; perform a normal drag-mouse-1 select then mouse-3 instead
 (defun acme-mode--drag-mouse-3 (event)
   "Acme mode handler for right-button drag release EVENT."
   (interactive "e")
-  (acme-mode--mouse-3 event))
+  (cond ((member major-mode acme-mode-exclude-major-modes)
+         (let ((acme-mode nil))
+           (call-interactively (key-binding (this-command-keys)))))
+        (t
+         (acme-mode--mouse-3 event))))
 
 ;; KEYBOARD FUNCTIONS
 
@@ -442,7 +481,8 @@ If `acme-mode--state' is not 'noselect, this will simulate
 effects of down mouse 1 then mouse 1 at point, otherwise it
 will insert a z character as normal."
   (interactive)
-  (cond ((eq acme-mode--state 'noselect)
+  (cond ((or (member major-mode acme-mode-exclude-major-modes)
+             (eq acme-mode--state 'noselect))
          ;; See https://emacs.stackexchange.com/questions/59494/how-to-wrap-intercept-commands-bound-to-a-given-key
          (let ((acme-trackpad-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
@@ -459,7 +499,8 @@ If `acme-mode--state' is not 'noselect, this will simulate
 effects of down mouse 2 then mouse 2 at point, otherwise it
 will insert a x character as normal."
   (interactive)
-  (cond ((eq acme-mode--state 'noselect)
+  (cond ((or (member major-mode acme-mode-exclude-major-modes)
+             (eq acme-mode--state 'noselect))
          ;; See https://emacs.stackexchange.com/questions/59494/how-to-wrap-intercept-commands-bound-to-a-given-key
          (let ((acme-trackpad-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
@@ -477,7 +518,8 @@ will insert a x character as normal.
 Can be optionally specified with prefix ARG to insert a specific
 kill ring entry when doing a 1-3 chord."
   (interactive "P")
-  (cond ((eq acme-mode--state 'noselect)
+  (cond ((or (member major-mode acme-mode-exclude-major-modes)
+             (eq acme-mode--state 'noselect))
          ;; See https://emacs.stackexchange.com/questions/59494/how-to-wrap-intercept-commands-bound-to-a-given-key
          (let ((acme-trackpad-mode nil))
            (call-interactively (key-binding (this-command-keys)))))

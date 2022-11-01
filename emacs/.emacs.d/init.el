@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Nov  1 12:51:10 2022
+;; Generated: Tue Nov  1 13:52:31 2022
 
 ;;; Commentary:
 
@@ -2182,10 +2182,10 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
     ("gw" "Git copy URL" browse-at-remote-kill)
     ]
    ["Hygiene"
-    ("cr" "Whitespace report" whitespace-report)
-    ("cw" "Whitespace cleanup" whitespace-cleanup)
     ("ci" "Indent" transient/buffer--indent-region-or-buffer)
     ("ct" "Untabify" transient/buffer--untabify-region-or-buffer)
+    ("cr" "Whitespace report" whitespace-report)
+    ("cw" "Whitespace cleanup" whitespace-cleanup)
     ("ca" "All hygiene ops" transient/buffer--apply-all-hygiene-ops-region-or-buffer)
     ]
    ["File operations"
@@ -2203,6 +2203,8 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
    ]
   [
    ["Other"
+    ("C" "Count words" count-words)
+    ("W" "What line" what-line)
     ("M" "Minor modes" transient/buffer--print-minor-modes)
     ("R" (lambda ()
            (transient--make-description

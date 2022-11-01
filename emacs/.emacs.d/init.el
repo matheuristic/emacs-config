@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Nov  1 12:38:22 2022
+;; Generated: Tue Nov  1 12:51:10 2022
 
 ;;; Commentary:
 
@@ -617,17 +617,18 @@ ROTATIONS can be negative, which rotates in the opposite direction."
       tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
       tab-bar-new-button-show t ; show new button
       tab-bar-close-button-show t) ; show close button
-(tab-bar-mode 1) ; enable mode
 ;; use text instead of default XPM image (better for high DPI) for
 ;; new and close buttons for tab bar entries, see
 ;; https://debbugs.gnu.org/db/51/51648.html
 ;; https://lists.gnu.org/archive/html/bug-gnu-emacs/2021-11/msg00529.html
-(with-eval-after-load 'tab-bar
-  (setq tab-bar-new-button (propertize " ⧉ "
-                                       :help "Click to add tab")
-        tab-bar-close-button (propertize " ⮾"
-                                         'close-tab t
-                                         :help "Click to close tab")))
+(add-hook 'tab-bar-mode-hook
+          (lambda ()
+            (setq tab-bar-new-button (propertize " ⧉ "
+                                                 :help "Click to add tab")
+                  tab-bar-close-button (propertize " ⮾"
+                                                   'close-tab t
+                                                   :help "Click to close tab"))))
+(tab-bar-mode 1) ; enable mode
 
 ;; Command-line interaction
 

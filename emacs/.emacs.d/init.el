@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Oct 30 22:09:50 2022
+;; Generated: Tue Nov  1 12:38:22 2022
 
 ;;; Commentary:
 
@@ -611,13 +611,23 @@ ROTATIONS can be negative, which rotates in the opposite direction."
 ;; prefix, and C-TAB and S-C-TAB to switch to next and previous tabs
 ;; respectively, requires Emacs 27+
 (setq tab-bar-show t ; always show tab bar, set to 1 to hide bar when there's only 1 tab
-      tab-bar-close-last-tab-choice 'delete-frame ; deleting the last frame deletes the frame
+      tab-bar-close-last-tab-choice 'delete-frame ; deleting the last tab deletes the frame
       tab-bar-select-tab-modifiers '(super) ; super-<num> goes to tab<num>
       tab-bar-tab-hints t ; show tab numbers
       tab-bar-tab-name-truncated-max 20 ; truncate name if exceed 20 chars
-      tab-bar-new-button-show nil ; don't show new button
-      tab-bar-close-button-show nil) ; don't show close button
+      tab-bar-new-button-show t ; show new button
+      tab-bar-close-button-show t) ; show close button
 (tab-bar-mode 1) ; enable mode
+;; use text instead of default XPM image (better for high DPI) for
+;; new and close buttons for tab bar entries, see
+;; https://debbugs.gnu.org/db/51/51648.html
+;; https://lists.gnu.org/archive/html/bug-gnu-emacs/2021-11/msg00529.html
+(with-eval-after-load 'tab-bar
+  (setq tab-bar-new-button (propertize " ⧉ "
+                                       :help "Click to add tab")
+        tab-bar-close-button (propertize " ⮾"
+                                         'close-tab t
+                                         :help "Click to close tab")))
 
 ;; Command-line interaction
 

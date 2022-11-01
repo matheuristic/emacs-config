@@ -590,7 +590,10 @@ buf to that of FILENAME."
          (win (and buf
                    (get-buffer-window buf all-frames))))
     (if win
-        (select-window win)
+        (progn
+          (select-window win)
+          (raise-frame)
+          win)
       (split-window-below)
       (other-window 1)
       (switch-to-buffer buf))))

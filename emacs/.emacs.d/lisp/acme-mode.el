@@ -31,8 +31,8 @@
 ;; See http://acme.cat-v.org/mouse for more about the Acme mouse
 ;; interface.
 ;;
-;; Note that Acme's 2-1 chords are not implemented. This is because
-;; its major purpose is selecting text in a guide file and sending it
+;; Note that Acme's 2-1 chords are not implemented. This is because it
+;; seems mostly used for selecting text in a guide file and sending it
 ;; as an argument to a command in another window's tag to modify text
 ;; in the window, and Emacs has no concept like Acme window tags.
 ;;
@@ -186,6 +186,15 @@ for https://emacs.stackexchange.com/questions/59494 that shows
 how to wrap/intercept commands bound to a given key in Emacs."
   :type '(list :tag "Major modes"
            (symbol :tag "Major mode")))
+
+(defcustom acme-mode-pop-to-buffer-function 'acme-mode--pop-to-buffer
+  "Function for creating, if needed, and selecting plumbed file buffer window.
+
+This function should take two parameters BUFFER and ALL-FRAMES in
+that order, where BUFFER is the buffer to pop to, and ALL-FRAMES
+is a boolean that indicates whether switching should also
+consider frames other than the current one."
+  :type 'function)
 
 ;; MODE DEFINITIONS AND FUNCTIONS
 
@@ -579,18 +588,22 @@ if one exists."
   ;; warp the mouse to the result
   (acme-mode--move-mouse-to-point))
 
-(defun acme-mode--pop-window (filename &optional all-frames)
-  "Switch to window with FILENAME if visible, and if not open in new window.
+(defun acme-mode--pop-to-buffer (buffer &optional all-frames)
+  "Switch to window with BUFFER if visible, and if not open in new window.
 
-If ALL-FRAMES is t, switching can be across frames. If it is nil,
-then switching is only on the same frame.
+If BUFFER is in a visible window, select that window and focus on
+it.
 
-When opening FILENAME in a new window, open it in a new buf,
-split a new window below, switch to it, and switch the displayed
-buf to that of FILENAME."
-  (let* ((buf (find-file-noselect filename))
-         (win (and buf
-                   (get-buffer-window buf all-frames))))
+If BUFFER is not in a visible window, split a new window below
+the current one, switch to it, and switch the displayed buffer to
+that of BUFFER.
+
+By default, only windows in the current frame are considered.
+However, if ALL-FRAMES is t and BUFFER is visible in some window
+on another frame, that window is selected and its frame is
+raised."
+  (let ((win (and buffer
+                  (get-buffer-window buffer all-frames))))
     (if win
         (progn
           (select-window win)
@@ -598,7 +611,7 @@ buf to that of FILENAME."
           win)
       (split-window-below)
       (other-window 1)
-      (switch-to-buffer buf))))
+      (switch-to-buffer buffer))))
 
 (defun acme-mode--find-file (filename)
   "Find given FILENAME in another window if it exists.
@@ -613,25 +626,27 @@ If the given file does not exist, the function returns nil."
   (let ((filepath)
         (linenum)
         (colnum))
-   (save-match-data
-     (cond ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
-            (setq filepath (match-string 1 filename)
-                  linenum (string-to-number (match-string 2 filename))
-                  colnum (string-to-number (match-string 3 filename))))
-           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
-            (setq filepath (match-string 1 filename)
-                  linenum (string-to-number (match-string 2 filename))))
-           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
-            (setq filepath (match-string 1 filename))))
-     (when (and filepath
-                (file-readable-p filepath))
-       (acme-mode--pop-window filepath acme-mode-plumb-file-can-switch-frames)
-       (when linenum
-         (goto-char (point-min))
-         (forward-line (1- linenum)))
-       (when colnum
-         (forward-char (1- colnum)))
-       t))))
+    (save-match-data
+      (cond ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
+             (setq filepath (match-string 1 filename)
+                   linenum (string-to-number (match-string 2 filename))
+                   colnum (string-to-number (match-string 3 filename))))
+            ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
+             (setq filepath (match-string 1 filename)
+                   linenum (string-to-number (match-string 2 filename))))
+            ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
+             (setq filepath (match-string 1 filename))))
+      (when (and filepath
+                 (file-readable-p filepath))
+        (funcall acme-mode-pop-to-buffer-function
+                 (find-file-noselect filename)
+                 acme-mode-plumb-file-can-switch-frames)
+        (when linenum
+          (goto-char (point-min))
+          (forward-line (1- linenum)))
+        (when colnum
+          (forward-char (1- colnum)))
+        t))))
 
 (defun acme-mode--find-file-or-search (sym)
   "Open SYM if it is a file path, else search forward for its next occurence.

@@ -33,8 +33,9 @@
 ;; For text execution, the Acme keywords Del (kill buffer and its
 ;; window), Snarf (copy region into kill ring), Get (revert the buffer
 ;; to the saved version), Undo, Redo (requires undo-tree-mode), Put,
-;; Zerox (create new window with the same buffer) and Look are
-;; supported. Acme pipes <, | and > are implemented but not ranges:
+;; Zerox (create new window with the same buffer) and Look (but no
+;; support for arguments) are supported. Acme pipes <, | and > are
+;; implemented but not ranges:
 ;; - Selecting "abcdef" and executing "|tr '[abc]' '[123]' to replace
 ;;   the selected "abcdef" with "123def" will work.
 ;; - Executing ",|tr '[abc]' '[123]'" to change all a, b and c chars
@@ -559,8 +560,8 @@ occupies a frame by itself."
   "Update `acme-mode--most-recent-windows' with the current window."
   (let ((this-window (selected-window))
         (most-recent-window (if (ring-empty-p acme-mode--most-recent-windows)
-			        nil
-			      (ring-ref acme-mode--most-recent-windows 0))))
+                                nil
+                              (ring-ref acme-mode--most-recent-windows 0))))
     ;; Only update most recent windows ring if current window is
     ;; neither a minibuffer window nor the most recent window
     (unless (or (eq this-window most-recent-window)
@@ -978,7 +979,7 @@ and opens the relevant file at the appropriate line in a new window."
   "Set the secondary selection to the text that the mouse is dragged over.
 Highlight the drag area as you move the mouse.
 This must be bound to a button-down mouse event that is START-EVENT.
-The function returns a non-nil value if it creates a secondary selection.
+vThe function returns a non-nil value if it creates a secondary selection.
 
 This is a duplicated `mouse-drag-secondary' but modified to use
 `set-transient-map' like `'mouse-drag-track' (the original
@@ -989,31 +990,31 @@ region (e.g., a click without dragging)."
   (interactive "e")
   (mouse-minibuffer-check start-event)
   (let* ((echo-keystrokes 0)
-	 (start-posn (event-start start-event))
-	 (start-point (posn-point start-posn))
-	 (start-window (posn-window start-posn))
-	 (bounds (window-edges start-window))
-	 (top (nth 1 bounds))
-	 (bottom (if (window-minibuffer-p start-window)
-		     (nth 3 bounds)
-		   ;; Don't count the mode line.
-		   (1- (nth 3 bounds))))
+         (start-posn (event-start start-event))
+         (start-point (posn-point start-posn))
+         (start-window (posn-window start-posn))
+         (bounds (window-edges start-window))
+         (top (nth 1 bounds))
+         (bottom (if (window-minibuffer-p start-window)
+                     (nth 3 bounds)
+                   ;; Don't count the mode line.
+                   (1- (nth 3 bounds))))
          (click-count (1- (event-click-count start-event)))
          (old-track-mouse track-mouse))
     (with-current-buffer (window-buffer start-window)
       (setq mouse-secondary-click-count click-count)
       (if (> (mod click-count 3) 0)
-	  ;; Double or triple press: make an initial selection
-	  ;; of one word or line.
-	  (let ((range (mouse-start-end start-point start-point click-count)))
-	    (set-marker mouse-secondary-start nil)
-	    (move-overlay mouse-secondary-overlay (car range) (nth 1 range)
-			  (window-buffer start-window)))
-	;; Single-press: cancel any preexisting secondary selection.
-	(or mouse-secondary-start
-	    (setq mouse-secondary-start (make-marker)))
-	(set-marker mouse-secondary-start start-point)
-	(delete-overlay mouse-secondary-overlay))
+          ;; Double or triple press: make an initial selection
+          ;; of one word or line.
+          (let ((range (mouse-start-end start-point start-point click-count)))
+            (set-marker mouse-secondary-start nil)
+            (move-overlay mouse-secondary-overlay (car range) (nth 1 range)
+                          (window-buffer start-window)))
+        ;; Single-press: cancel any preexisting secondary selection.
+        (or mouse-secondary-start
+            (setq mouse-secondary-start (make-marker)))
+        (set-marker mouse-secondary-start start-point)
+        (delete-overlay mouse-secondary-overlay))
       ;; Use a transient map like in `mouse-drag-track'
       (setq track-mouse 'drag-tracking)
       (set-transient-map
@@ -1049,13 +1050,13 @@ region (e.g., a click without dragging)."
          (setq track-mouse old-track-mouse)
          (if (marker-position mouse-secondary-start)
              (progn
-	       (delete-overlay mouse-secondary-overlay)
-	       (gui-set-selection 'SECONDARY nil)
-	       nil)
+               (delete-overlay mouse-secondary-overlay)
+               (gui-set-selection 'SECONDARY nil)
+               nil)
            (gui-set-selection
-	    'SECONDARY
-	    (buffer-substring (overlay-start mouse-secondary-overlay)
-	        	      (overlay-end mouse-secondary-overlay)))))))))
+            'SECONDARY
+            (buffer-substring (overlay-start mouse-secondary-overlay)
+                              (overlay-end mouse-secondary-overlay)))))))))
 
 (provide 'acme)
 

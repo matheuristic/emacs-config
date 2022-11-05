@@ -95,6 +95,7 @@
    `(mode-line-minor-mode ((t (:weight ultra-light))))
    `(query-replace ((t (:background ,bg-search :strike-through t))))
    `(region ((t (:background ,bg-region :foreground ,fg))))
+   `(secondary-selection ((t (:background "#b4e7a0"))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
    `(tab-bar ((t (:background ,bg-light :foreground ,fg))))
    `(tab-bar-tab ((t (:background ,bg-light :foreground "midnight blue" :underline t :weight extra-bold))))

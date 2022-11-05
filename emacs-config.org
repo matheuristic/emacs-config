@@ -4403,10 +4403,10 @@ keys like in plan9port Acme (see [[https://lists.gnu.org/archive/html/help-gnu-e
 to bind unused Fn keys to mouse button presses, but that is still
 a little unwieldy.
 
-#+name: acme-mode
+#+name: acme
 #+begin_src emacs-lisp
 ;; support for mouse bindings to emulate Acme mouse interface
-(require 'acme-mode)
+(require 'acme)
 #+end_src
 
 * OS-specific
@@ -4995,7 +4995,7 @@ the terminal.
 #+name: edit-transient
 #+begin_src emacs-lisp
 ;; add transient popup for various editing commands
-(require 'acme-mode)
+(require 'acme)
 (transient-define-prefix transient/edit ()
   "Editing commands."
   ["Edit"
@@ -7255,7 +7255,7 @@ The main configuration file.
 
 <<menu-bar-open-alternate-binding>>
 
-<<acme-mode>>
+<<acme>>
 
 ;; OS-specific / macOS
 

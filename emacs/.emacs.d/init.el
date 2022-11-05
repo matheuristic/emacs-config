@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Tue Nov  1 13:52:31 2022
+;; Generated: Fri Nov  4 21:05:06 2022
 
 ;;; Commentary:
 
@@ -1928,7 +1928,7 @@ for more information."
 (global-set-key (kbd "C-c B o") #'menu-bar-open)
 
 ;; support for mouse bindings to emulate Acme mouse interface
-(require 'acme-mode)
+(require 'acme)
 
 ;; OS-specific / macOS
 
@@ -2300,7 +2300,7 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (global-set-key (kbd "C-c d e") #'transient/ediff)
 
 ;; add transient popup for various editing commands
-(require 'acme-mode)
+(require 'acme)
 (transient-define-prefix transient/edit ()
   "Editing commands."
   ["Edit"

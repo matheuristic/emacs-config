@@ -221,7 +221,12 @@
 ;; Default plumbing rules
 (defvar acme-mode-default-plumbing-rules
   '(("https?://.*" . browse-url)
-    (" *File \"[~a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error))
+    ;; Python error locations
+    (" *File \"[~a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error)
+    ;; EPUB files (open generically)
+    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Ee][Pp][Uu][Bb]" . acme-mode--plumb-file-generic)
+    ;; PDF files (open generically)
+    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Pp][Dd][Ff]" . acme-mode--plumb-file-generic))
   "Default plumbing rules for Acme mode.
 
 See `acme-mode-plumbing-rules'.")
@@ -266,6 +271,9 @@ Examples:
 
 (defvar acme-mode--last-mouse-event nil
   "Last button 1, 2 or 3 mouse event.")
+
+(defvar acme-mode--argtext nil
+  "Cached argument for 2-1 chords.")
 
 (defvar acme-mode--prior-delete-selection-mode nil
   "Whether Delete Selection mode was enabled prior to Acme mode.")
@@ -333,7 +341,12 @@ how to wrap/intercept commands bound to a given key in Emacs."
   (setq acme-mode--prior-transient-mark-mode (symbol-value transient-mark-mode))
   (delete-selection-mode 1)
   (transient-mark-mode 1)
-  (setq highlight-nonselected-windows t))
+  (setq highlight-nonselected-windows t)
+  (setq acme-mode--state 'noselect
+        acme-mode--buttons acme-mode--nobuttons
+        acme-mode--region-start nil
+        acme-mode--last-mouse-event nil
+        acme-mode--argtext nil))
 
 (defun acme-mode--disable ()
   "Teardown for Acme mode."
@@ -430,9 +443,6 @@ nil or positive. If ARG is `toggle', toggle `acme-mode'.
   "Clears the secondary selection."
   (gui-set-selection 'SECONDARY nil)
   (delete-overlay mouse-secondary-overlay))
-
-(defvar acme-mode--argtext nil
-  "Cached argument for 2-1 chords.")
 
 (defun acme-mode--get-active-region-text ()
   "Return selected text without properties, if any."
@@ -1064,6 +1074,14 @@ THING-at-point."
     (acme-mode--execute-dispatch (string-join (list sym arg) " "))))
 
 ;; PLUMBING FUNCTIONS
+
+(defun acme-mode--plumb-file-generic (filename)
+  "Function to generically open given FILENAME using system 'xdg-open' or 'open'."
+  (let ((system-open-command (or (executable-find "xdg-open")
+                                 (executable-find "open"))))
+    (if system-open-command
+        (start-process "default-app" nil system-open-command filename)
+      (message "No xdg-open or open on the system to generically open file."))))
 
 (defun acme-mode--plumb-python-error (error-line)
   "Function to plumb a Python ERROR-LINE.

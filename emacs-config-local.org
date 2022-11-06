@@ -458,42 +458,50 @@ end
 Emulate Acme mouse behavior.
 
 #+begin_src emacs-lisp
-;; emulate Acme mouse interface (buttons 1, 2, 3; chords 1-2 and 1-3)
+;; emulate Acme mouse interface (buttons 1, 2, 3; chords 1-2, 1-3, 2-1)
 (with-eval-after-load 'acme
+  ;; customize options
+  (setq acme-mode-use-frames nil
+        acme-mode-per-dir-shell-output nil)
   ;; open tag buffer key binding
   (define-key acme-mode-map [C-M-return] #'acme-mode-pop-tag-buffer)
-  ;; trackpad support, note that trackpads don't support mouse chords
+  ;; trackpad support
   (cond ((eq system-type 'darwin)
          ;; middle-click
-         (define-key acme-mode-map [s-down-mouse-1] #'acme-mode--down-mouse-2)
-         (define-key acme-mode-map [s-mouse-1] #'acme-mode--mouse-2)
-         (define-key acme-mode-map [s-drag-mouse-1] #'acme-mode--drag-mouse-2)
+         (define-key acme-mode-map [M-down-mouse-1] #'acme-mode--down-mouse-2)
+         (define-key acme-mode-map [M-mouse-1] #'acme-mode--mouse-2)
+         (define-key acme-mode-map [M-drag-mouse-1] #'acme-mode--mouse-2)
          ;; right-click
-         (define-key acme-mode-map [C-down-mouse-1] #'acme-mode--down-mouse-3)
-         (define-key acme-mode-map [C-double-down-mouse-1] #'acme-mode--down-mouse-3)
-         (define-key acme-mode-map [C-triple-down-mouse-1] #'acme-mode--down-mouse-3)
-         (define-key acme-mode-map [C-mouse-1] #'acme-mode--mouse-3)
-         (define-key acme-mode-map [C-drag-mouse-1] #'acme-mode--down-mouse-3))
+         (define-key acme-mode-map [s-down-mouse-1] #'acme-mode--down-mouse-3)
+         (define-key acme-mode-map [s-double-down-mouse-1] #'acme-mode--down-mouse-3)
+         (define-key acme-mode-map [s-triple-down-mouse-1] #'acme-mode--down-mouse-3)
+         (define-key acme-mode-map [s-mouse-1] #'acme-mode--mouse-3)
+         (define-key acme-mode-map [s-drag-mouse-1] #'acme-mode--mouse-3)
+         (setq acme-mode-keyboard-chord-keylist
+               '(("1" . 1) ("s-1" . 1) ("M-1" . 1)
+                 ("2" . 2) ("s-2" . 2) ("M-2" . 2)
+                 ("3" . 3) ("s-3" . 3) ("M-3" . 3))))
         ((eq system-type 'gnu/linux)
          ;; middle-click
          (define-key acme-mode-map [C-down-mouse-1] #'acme-mode--down-mouse-2)
          (define-key acme-mode-map [C-mouse-1] #'acme-mode--mouse-2)
-         (define-key acme-mode-map [C-drag-mouse-1] #'acme-mode--drag-mouse-2)
+         (define-key acme-mode-map [C-drag-mouse-1] #'acme-mode--mouse-2)
          ;; right-click
          (define-key acme-mode-map [M-down-mouse-1] #'acme-mode--down-mouse-3)
          (define-key acme-mode-map [M-double-down-mouse-1] #'acme-mode--down-mouse-3)
          (define-key acme-mode-map [M-triple-down-mouse-1] #'acme-mode--down-mouse-3)
          (define-key acme-mode-map [M-mouse-1] #'acme-mode--mouse-3)
-         (define-key acme-mode-map [M-drag-mouse-1] #'acme-mode--drag-mouse-3)
+         (define-key acme-mode-map [M-drag-mouse-1] #'acme-mode--mouse-3)
          ;; in ChromeOS, Alt-left-click gets auto-translated to right-click
          (define-key acme-mode-map [M-down-mouse-3] #'acme-mode--down-mouse-3)
          (define-key acme-mode-map [M-double-down-mouse-3] #'acme-mode--down-mouse-3)
          (define-key acme-mode-map [M-triple-down-mouse-3] #'acme-mode--down-mouse-3)
          (define-key acme-mode-map [M-mouse-3] #'acme-mode--mouse-3)
-         (define-key acme-mode-map [M-drag-mouse-3] #'acme-mode--drag-mouse-3)))
-  ;; customization options
-  (setq acme-mode-enable-trackpad-chording t
-        acme-mode-plumb-file-can-switch-frames nil)
+         (define-key acme-mode-map [M-drag-mouse-3] #'acme-mode--mouse-3)
+         (setq acme-mode-keyboard-chord-keylist
+               '(("1" . 1) ("C-1" . 1) ("M-1" . 1)
+                 ("2" . 2) ("C-2" . 2) ("M-2" . 2)
+                 ("3" . 3) ("C-3" . 3) ("M-3" . 3)))))
   ;; enable `acme-mode'
   (acme-mode 1))
 #+end_src

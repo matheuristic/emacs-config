@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Fri Nov  4 21:05:06 2022
+;; Generated: Sat Nov  5 21:16:55 2022
 
 ;;; Commentary:
 
@@ -628,6 +628,9 @@ ROTATIONS can be negative, which rotates in the opposite direction."
                   tab-bar-close-button (propertize " ⮾"
                                                    'close-tab t
                                                    :help "Click to close tab"))))
+(with-eval-after-load 'tab-bar
+  (with-eval-after-load 'org
+    (define-key org-mode-map [C-tab] #'tab-next)))
 (tab-bar-mode 1) ; enable mode
 
 ;; Command-line interaction
@@ -3057,6 +3060,13 @@ Currently only works for Emacs Mac port."
   (interactive)
   (transient/window--transpose-windows 'windmove-right))
 
+(defun transient/window--toggle-dedicated-p ()
+  "Toggle whether selected window is dedicated to its displayed buffer."
+  (interactive)
+  (let* ((win (selected-window))
+         (flag (not (window-dedicated-p win))))
+    (set-window-dedicated-p win flag)))
+
 ;; add transient popup for window commands
 (transient-define-prefix transient/window ()
   "Window management commands."
@@ -3098,6 +3108,13 @@ Currently only works for Emacs Mac port."
     ("+" "Balance" balance-windows)
     ]
    ]
+  [
+   ["Other"
+    ("d" (lambda ()
+           (transient--make-description
+            "Dedicate"
+            (window-dedicated-p (selected-window))))
+     transient/window--toggle-dedicated-p)]]
   )
 (global-set-key (kbd "C-c W n") #'transient/window)
 

@@ -1617,6 +1617,9 @@ macOS although all other functionality works.
                   tab-bar-close-button (propertize " ⮾"
                                                    'close-tab t
                                                    :help "Click to close tab"))))
+(with-eval-after-load 'tab-bar
+  (with-eval-after-load 'org
+    (define-key org-mode-map [C-tab] #'tab-next)))
 (tab-bar-mode 1) ; enable mode
 #+end_src
 
@@ -5860,6 +5863,13 @@ Transient for window management.
   (interactive)
   (transient/window--transpose-windows 'windmove-right))
 
+(defun transient/window--toggle-dedicated-p ()
+  "Toggle whether selected window is dedicated to its displayed buffer."
+  (interactive)
+  (let* ((win (selected-window))
+         (flag (not (window-dedicated-p win))))
+    (set-window-dedicated-p win flag)))
+
 ;; add transient popup for window commands
 (transient-define-prefix transient/window ()
   "Window management commands."
@@ -5901,6 +5911,13 @@ Transient for window management.
     ("+" "Balance" balance-windows)
     ]
    ]
+  [
+   ["Other"
+    ("d" (lambda ()
+           (transient--make-description
+            "Dedicate"
+            (window-dedicated-p (selected-window))))
+     transient/window--toggle-dedicated-p)]]
   )
 (global-set-key (kbd "C-c W n") #'transient/window)
 #+end_src

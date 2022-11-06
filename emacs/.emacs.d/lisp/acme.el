@@ -30,26 +30,53 @@
 ;; See http://acme.cat-v.org/mouse for more about the Acme mouse
 ;; interface.
 ;;
-;; For text execution, the Acme keywords Del (kill buffer and its
-;; window), Snarf (copy region into kill ring), Get (revert the buffer
-;; to the saved version), Undo, Redo (requires undo-tree-mode), Put,
-;; Zerox (create new window with the same buffer) and Look (but no
-;; support for arguments) are supported. Acme pipes <, | and > are
-;; implemented but not ranges:
+;; For text execution, the following Acme keywords are supported:
+;; - Del (kill window but no the buffer)
+;; - Get (revert the buffer to the saved version)
+;; - Indent (needs to be called with an arg, which can be on or off to
+;;   enable or disable `electric-indent-local-mode', or ON or OFF to
+;;   enable or disable `electric-indent-mode')
+;; - Look (search for next occurrence optional arguments, treated as
+;;   literal search strings, or if no arg then the highlighted region
+;;   or word at point)
+;; - Put (save buffer)
+;; - Redo (requires undo-tree-mode)
+;; - Snarf (copy region into kill ring)
+;; - Spaces (needs to be called with an arg, which can be on or off to
+;;   set `indent-tabs-mode' to t or nil locally, or ON or OFF for the
+;;   same but also set the default value of `indent-tabs-mode')
+;; - Tab (needs to be called with an arg, which should be a number
+;;   that `tab-width' will be set to)
+;; - Undo
+;; - Zerox (create new window with the same buffer)
+;;
+;; Acme pipes <, | and > are implemented but not ranges:
 ;; - Selecting "abcdef" and executing "|tr '[abc]' '[123]' to replace
 ;;   the selected "abcdef" with "123def" will work.
 ;; - Executing ",|tr '[abc]' '[123]'" to change all a, b and c chars
 ;;   in the buffer to 1, 2 and 3 will not work.
 ;;
-;; There is a window tag implementation that functions more like the
-;; root window tag in Acme. When text is searched (using mouse 3) or
-;; executed (mouse 2) there, the search or execution is done in the
-;; last selected window. For example, if text "abcdef" is selected in
-;; a file window and after that "|sed -e 's/abc/123/g'" is executed in
-;; a tag buffer, then the text "abcdef" is changed to "123def". Use
-;; the minor mode menu or the `acme-mode-pop-tag-buffer' function to
-;; open a tag buffer. Additional tag buffers may be opened by
-;; prefixing a numeric argument when calling that function with "C-u".
+;; There is a limited tag implementation, in the form of a global tag
+;; buffer that can be opened with the minor mode menu or by calling
+;; `acme-mode-pop-buffer' (optionally with a prefix numeric argument
+;; to open additional tag buffers). This is a regular buffer named
+;; according to `acme-mode-tag-buffer-name' and it is automatically
+;; populated with some executable keywords when created. It is
+;; designed to be used in the following manner: select a target window
+;; (where the operations are to be applied) and click or highlight in
+;; in it as needed, then mouse 2 (execute) or mouse 3 (search) a word
+;; or highlighted region in the global tag buffer without selecting
+;; its window to the apply the corresponding operation on the selected
+;; window. For example, if text "abcdef" is selected in a file window
+;; and after that "|sed -e 's/abc/123/g'" is executed in a tag buffer
+;; without selecting the tag buffer, then the text "abcdef" is changed
+;; to "123def". To 2-1 chord in the tag buffer but apply the operation
+;; on another selected window, highlight the argument text in the tag
+;; buffer, then select the target window by clicking on its _modeline_
+;; (important so argument text is not reset), then 2-1 chord the tag
+;; buffer keyword without selecting the tag buffer. Note that the
+;; above behavior holds for any buffer. It is just the tag buffer is
+;; more convenient (easy to open, transient and sized appropriately).
 ;;
 ;; On trackpads, clicks with modifier keys pressed can be used to
 ;; simulate middle- and right-clicks, and keyboard keys can be used to
@@ -57,13 +84,18 @@
 ;; (at least one mouse button held down), allowing for 1-2 and 1-3
 ;; chords. This can be enabled by adding the appropriate bindings to
 ;; `acme-mode-map' and customizing `acme-mode-keyboard-chord-keylist'
-;; prior to enabling Acme mode, e.g.,
+;; prior to enabling Acme mode (see sample configuration below).
+;;
+;; Sample configuration:
 ;;
 ;;   (require 'acme)
 ;;   (with-eval-after-load 'acme
-;;     ;; open tag buffer key binding
+;;     ;; Customize options
+;;     (setq acme-mode-use-frames nil
+;;           acme-mode-per-dir-shell-output nil)
+;;     ;; Open tag buffer key binding
 ;;     (define-key acme-mode-map [C-M-return] #'acme-mode-pop-tag-buffer)
-;;     ;; trackpad support
+;;     ;; Trackpad support
 ;;     (cond ((eq system-type 'darwin)
 ;;            ;; middle-click
 ;;            (define-key acme-mode-map [M-down-mouse-1] #'acme-mode--down-mouse-2)
@@ -132,27 +164,38 @@
 ;; accommodations for trackpad use.
 ;;
 ;; TODO:
+;; - Delcol, Newcol and New (useful for window management)
 ;; - Ranges for pipes like "12,23-/[Aa]bc/|tr '[abc]' '[123]'"
+;;   (for now select manually, e.g., "C-x h" for the whole buffer)
 ;;
-;; Caveats:
+;; Differences versus Plan 9 Acme:
+;; - Window tags (see above description of tag buffer)
+;; - Execution output is not streaming, only displays on shell return
+;; - Indent ON and Indent OFF do not automatically apply its settings
+;;   to already open buffers aside from the currently selected one,
+;;   and these settings may be superceded by other major-mode or
+;;   minor-mode bindings (e.g., in markdown-mode <return> is bound
+;;   to `markdown-enter-key')
+;; - Spaces keyword
+;; - Del keyword closes the window but not the buffer (in Plan 9 Acme,
+;;   when a file's last window is closed the file is closed too)
+;; - Many others, in all likelihood
+;;
+;; Limitations:
 ;; - Redo is only supported when undo-tree-mode is enabled, see
 ;;   https://elpa.gnu.org/packages/undo-tree.html
 ;;
 ;; Out-of-scope for now:
-;; - Edit (i.e., no structural regexps)
+;; - Edit (need to implement structural regexps)
 ;; - Cut and Paste (use 1-2 and 1-3 chords)
-;; - Delcol and Newcol (window management in Emacs is involved)
-;; - Delete (use Del, or revert using Get then Del)
+;; - Delete (keep to Emacs way of separating windows and buffers)
 ;; - Dump and Load (use `desktop-save' and `desktop-load-file')
 ;; - Exit (close using the menubar or title bar close button)
 ;; - Font (use the menubar)
 ;; - ID (window IDs as strings are not helpful for the user)
-;; - Indent (use standard Emacs controls for this)
 ;; - Kill (use `kill-process')
-;; - New (less useful without in-window Acme C-f path completion)
 ;; - Send (term implementations each have their own mechanism)
 ;; - Sort (window management in Emacs is involved)
-;; - Tab (maybe later)
 ;;
 ;; Known bugs:
 ;; - When the same buffer is visible in multiple windows, the
@@ -233,9 +276,6 @@ Examples:
 (defvar acme-mode--prior-transient-mark-mode nil
   "Whether Transient Mark mode was enabled prior to Acme mode.")
 
-(defvar acme-mode--most-recent-windows (make-ring 2)
-  "Most recently visited windows.")
-
 ;; CUSTOMIZATION VARIABLES
 
 (defcustom acme-mode-use-frames nil
@@ -280,6 +320,10 @@ how to wrap/intercept commands bound to a given key in Emacs."
   "Base name of Acme mode tag buffer."
   :type 'string)
 
+(defcustom acme-mode-per-dir-shell-output nil
+  "Use a buffer per directory for Acme text execution shell output."
+  :type 'boolean)
+
 ;; MODE DEFINITIONS AND FUNCTIONS
 
 (defun acme-mode--enable ()
@@ -289,16 +333,13 @@ how to wrap/intercept commands bound to a given key in Emacs."
   (setq acme-mode--prior-transient-mark-mode (symbol-value transient-mark-mode))
   (delete-selection-mode 1)
   (transient-mark-mode 1)
-  (setq highlight-nonselected-windows t)
-  (add-hook 'post-command-hook 'acme-mode--update-most-recent-windows)
-  (acme-mode--update-most-recent-windows))
+  (setq highlight-nonselected-windows t))
 
 (defun acme-mode--disable ()
   "Teardown for Acme mode."
   (delete-selection-mode acme-mode--prior-delete-selection-mode)
   (setq highlight-nonselected-windows acme-mode--prior-highlight-nonselected-windows)
-  (transient-mark-mode acme-mode--prior-transient-mark-mode)
-  (remove-hook 'post-command-hook 'acme-mode--update-most-recent-windows))
+  (transient-mark-mode acme-mode--prior-transient-mark-mode))
 
 ;; See https://emacs.stackexchange.com/questions/64964/difference-between-mouse-1-and-down-mouse-1
 (defvar acme-mode-map
@@ -324,7 +365,7 @@ how to wrap/intercept commands bound to a given key in Emacs."
 
 ;; Mode-line and menu
 (easy-menu-define acme-mode-menu acme-mode-map "Acme mode menu."
-  '("Acme mode"
+  '("Acme"
     [ "Open tag buffer" acme-mode-pop-tag-buffer t ]
     "--"
     [ "Turn off Acme mode" acme-mode t ]))
@@ -471,7 +512,7 @@ is pressed twice and using last tracked mouse event position."
        map)
      t nil)))
 
-(defun acme-mode--pop-buffer-window (buffer-or-name &optional use-frames pop-above size)
+(defun acme-mode--pop-buffer-window (buffer-or-name &optional use-frames size side window)
   "Switch to buffer BUFFER-OR-NAME if visible, and if not open in new window.
 
 If USE-FRAMES is t, switching can be across frames. If it is nil,
@@ -481,10 +522,18 @@ When opening BUFFER-OR-NAME in a new window, split a new window
 below, switch to it, and switch the displayed buf to that of
 BUFFER-OR-NAME.
 
-If POP-ABOVE is non-nil, new windows are split above, not below.
+If a new window is created, if SIZE is positive then the window
+used for split will be SIZE lines tall after the split, if SIZE
+is negative then split is so the new window is -SIZE lines tall,
+and if SIZE is nil then the window split is done evenly. See
+`split-window' for more about this parameter.
 
-SIZE is the size in rows of the new window, if any, that
-follows the same convention as `split-window-vertically'."
+SIDE controls on which side the new window is opened if in the
+same frame, and can be 'above , 'below , 'left , 'right or nil.
+See `split-window' for more about this parameter.
+
+If WINDOW is non-nil, split it instead of the current window if
+creating a new window."
   (let* ((win (get-buffer-window buffer-or-name use-frames)))
     (cond (win
            (progn
@@ -497,11 +546,10 @@ follows the same convention as `split-window-vertically'."
            (raise-frame)
            (selected-window))
           (t
-           (split-window-vertically size)
-           (unless pop-above              ; same buffer is shown in split windows,
-             (other-window 1))          ; so only switch if popping above
-           (switch-to-buffer buffer-or-name)
-           (selected-window)))))
+           (let ((new-win (split-window window size side)))
+             (select-window new-win)
+             (switch-to-buffer buffer-or-name)
+             new-win)))))
 
 (defun acme-mode--pop-file-window (file-name &optional use-frames)
   "Switch to window with FILE-NAME if visible, and if not open in new window.
@@ -538,35 +586,31 @@ is in a frame with two windows or more, or close the frame if it
 occupies a frame by itself."
   (interactive "P")
   (let* ((this-frame (selected-frame))
+         (this-win (selected-window))
          (buffer-name (concat acme-mode-tag-buffer-name
                               (when (integerp arg)
                                 (concat "<" (number-to-string arg) ">"))))
          (maybe-buffer (get-buffer buffer-name))
          (buffer (or maybe-buffer
                      (generate-new-buffer buffer-name))))
-    (acme-mode--pop-buffer-window buffer acme-mode-use-frames t 3)
+    ;; Pop tag buffer in a small window and dedicate it to the tag buffer
+    (let ((tag-win (acme-mode--pop-buffer-window buffer
+                                                 acme-mode-use-frames
+                                                 -3
+                                                 'above
+                                                 (frame-root-window))))
+      (unless (window-dedicated-p tag-win)
+        (set-window-dedicated-p tag-win t)))
     ;; Insert base tag keywords for new tag buffers
     (unless maybe-buffer
       (with-current-buffer buffer
         (insert "Del Snarf Get Undo Redo Put Zerox | Look ")))
     (when (eq this-frame (selected-frame))
-      (other-window 1))))
+      (select-window this-win))))
 
 (defun acme-mode--tag-buffer-p ()
   "Return t if the current buffer is the tag buffer, else nil."
   (string-prefix-p acme-mode-tag-buffer-name (buffer-name)))
-
-(defun acme-mode--update-most-recent-windows ()
-  "Update `acme-mode--most-recent-windows' with the current window."
-  (let ((this-window (selected-window))
-        (most-recent-window (if (ring-empty-p acme-mode--most-recent-windows)
-                                nil
-                              (ring-ref acme-mode--most-recent-windows 0))))
-    ;; Only update most recent windows ring if current window is
-    ;; neither a minibuffer window nor the most recent window
-    (unless (or (eq this-window most-recent-window)
-                (window-minibuffer-p this-window))
-      (ring-insert acme-mode--most-recent-windows this-window))))
 
 ;; MOUSE FUNCTIONS
 
@@ -808,13 +852,13 @@ If the given file does not exist, the function returns nil."
          (forward-char (1- colnum)))
        t))))
 
-(defun acme-mode--find-file-or-search (sym)
-  "Open SYM if it is a file path, else search forward for its next occurence.
+(defun acme-mode--find-file-or-search (seltext)
+  "Open SELTEXT if it is a file path, else search forward for next occurrence.
 
 When searching forward, the mouse is warped to the search result
 if one exists."
-  (or (acme-mode--find-file sym)
-      (acme-mode--search sym)))
+  (or (acme-mode--find-file seltext)
+      (acme-mode--search seltext)))
 
 (defun acme-mode--get-seltext (event thing)
   "Get text for plumbing based on EVENT, THING, and selections.
@@ -854,25 +898,46 @@ THING-at-point."
 
 (defun acme-mode--execute-special-command (command)
   "Acme mode executor for special COMMAND keywords."
-  (cond ((string-equal command "Del")
-         (if (buffer-modified-p)
-             (message "Buffer modified. Save before closing.")
-           (kill-buffer-and-window))
+  (cond ((string-equal command "Del")   ; delete window but not buffer
+         (when (or (not (buffer-modified-p))
+                   (y-or-n-p "Buffer modified. Delete window anyway? "))
+           (delete-window))
+         ;; Kludge, wait to update so users are guided into
+         ;; clicking slower, else events have incorrect position
          (sleep-for 0.2)
          t)
         ((string-equal command "Get")
          (revert-buffer)
          (sleep-for 0.2)
          t)
+        ((string-prefix-p "Indent " command)
+         (let ((arg (substring command 5)))
+           (when (> (length arg) 0)
+             (cond ((string-equal arg "on")
+                    (electric-indent-local-mode 1))
+                   ((string-equal arg "ON")
+                    (electric-indent-local-mode 1)
+                    (electric-indent-mode 1))
+                   ((string-equal arg "off")
+                    (electric-indent-local-mode 0))
+                   ((string-equal arg "OFF")
+                    (electric-indent-local-mode 0)
+                    (electric-indent-mode 0))))
+           (sleep-for 0.2)
+           t))
         ((string-equal command "Look")
          (let ((event (list 'mouse-3 (posn-at-point))))
-           (let ((sym (acme-mode--get-seltext event 'filename)))
+           (let ((seltext (acme-mode--get-seltext event 'filename)))
              (acme-mode--clear-secondary-selection)
-             (when sym
-               (acme-mode--search sym t)
-               ;; Kludge, wait to update so users are guided into
-               ;; clicking slower, else events have incorrect position
-               (sleep-for 0.2)))
+             (when seltext
+               (acme-mode--search seltext t)))
+           (sleep-for 0.2)
+           t))
+        ((string-prefix-p "Look " command)
+         (let ((seltext (substring command 5)))
+           (when (> (length seltext) 0)
+             (acme-mode--search seltext t))
+           (sleep-for 0.2)
            t))
         ((string-equal command "Put")
          (save-buffer)
@@ -888,15 +953,35 @@ THING-at-point."
                (deactivate-mark)
                (undo-tree-redo))
            (message "Redo is supported only when undo-tree-mode is enabled."))
-         (undo-more 1)
          (sleep-for 0.2)
          t)
         ((string-equal command "Snarf")
          (when (region-active-p)
            (setq deactivate-mark nil)
-           (kill-ring-save (mark) (point))
-           (sleep-for 0.2))
+           (kill-ring-save (mark) (point)))
+         (sleep-for 0.2)
          t)
+        ((string-prefix-p "Spaces " command)
+         (let ((arg (substring command 5)))
+           (when (> (length arg) 0)
+             (cond ((string-equal arg "on")
+                    (setq indent-tabs-mode nil))
+                   ((string-equal arg "ON")
+                    (setq indent-tabs-mode nil)
+                    (setq-default indent-tabs-mode nil))
+                   ((string-equal arg "off")
+                    (setq indent-tabs-mode t))
+                   ((string-equal arg "OFF")
+                    (setq indent-tabs-mode t)
+                    (setq-default indent-tabs-mode nil))))
+           (sleep-for 0.2)
+           t))
+        ((string-prefix-p "Tab " command)
+         (let ((arg (substring command 5)))
+           (when (> (length arg) 0)
+             (setq tab-width (string-to-number arg)))
+           (sleep-for 0.2)
+           t))
         ((string-equal command "Undo")
          (if (fboundp 'undo-tree-undo)
              (undo-tree-undo)
@@ -927,7 +1012,21 @@ THING-at-point."
                         command))
              ;; Append to instead of overwriting output buffer
              (shell-command-dont-erase-buffer t)
-             ;; Use a temp buffer as needed
+             ;; Make sure shell command output does resize the minibuffer
+             (max-mini-window-height 0.01)
+             ;; Use directory specific output buffer
+             (disp-buffer-name
+              (let ((bname (buffer-name))
+                    (fname (buffer-file-name)))
+                (cond ((and acme-mode-per-dir-shell-output fname)
+                       (concat "*Acme Shell Output*<" (file-name-directory fname) ">"))
+                      ((string-prefix-p "*Acme Shell Output*" bname)
+                       bname)
+                      (t
+                       "*Acme Shell Output*"))))
+             (disp-buffer (or (get-buffer disp-buffer-name)
+                              (generate-new-buffer disp-buffer-name)))
+             ;; Use a temp buffer to cache output for insert or replace region
              (temp-buffer (generate-new-buffer "*Acme mode temp buffer*")))
         (unwind-protect
             (cond ((eq command-type 'insert)
@@ -937,25 +1036,32 @@ THING-at-point."
                        (setq start left)
                        (setq end right)))
                    (delete-region start end)
-                   (shell-command-on-region start start command temp-buffer t))
+                   (shell-command-on-region start start command temp-buffer t disp-buffer t))
                   ((eq command-type 'replace)
-                   (shell-command-on-region start end command temp-buffer t))
+                   (shell-command-on-region start end command temp-buffer t disp-buffer t))
                   ((eq command-type 'pipe)
-                   (shell-command-on-region start end command nil nil))
+                   (unless (get-buffer-window disp-buffer)
+                     (let ((win (selected-window)))
+                       (acme-mode--pop-buffer-window disp-buffer nil)
+                       (select-window win)))
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max)))
+                   (shell-command-on-region start end command disp-buffer nil))
                   (t
-                   (shell-command command)))
+                   (unless (get-buffer-window disp-buffer)
+                     (let ((win (selected-window)))
+                       (acme-mode--pop-buffer-window disp-buffer nil)
+                       (select-window win)))
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max)))
+                   (shell-command command disp-buffer)))
           (kill-buffer temp-buffer))))))
 
 (defun acme-mode--execute (event &optional arg)
   "Execute selected text or sexp at EVENT posn, with optional ARG."
   (let ((sym (acme-mode--get-seltext event 'sexp))) ; sexp to get leading <, | or >
     (acme-mode--clear-secondary-selection)
-    (if (acme-mode--tag-buffer-p)
-        (when (> (ring-length acme-mode--most-recent-windows) 1)
-          (let ((apply-window (ring-ref acme-mode--most-recent-windows 1)))
-            (with-selected-window apply-window
-              (acme-mode--execute-dispatch (string-join (list sym arg) " ")))))
-      (acme-mode--execute-dispatch (string-join (list sym arg) " ")))))
+    (acme-mode--execute-dispatch (string-join (list sym arg) " "))))
 
 ;; PLUMBING FUNCTIONS
 
@@ -993,6 +1099,7 @@ region (e.g., a click without dragging)."
          (start-posn (event-start start-event))
          (start-point (posn-point start-posn))
          (start-window (posn-window start-posn))
+         (start-buffer (window-buffer start-window))
          (bounds (window-edges start-window))
          (top (nth 1 bounds))
          (bottom (if (window-minibuffer-p start-window)
@@ -1001,7 +1108,7 @@ region (e.g., a click without dragging)."
                    (1- (nth 3 bounds))))
          (click-count (1- (event-click-count start-event)))
          (old-track-mouse track-mouse))
-    (with-current-buffer (window-buffer start-window)
+    (with-current-buffer start-buffer
       (setq mouse-secondary-click-count click-count)
       (if (> (mod click-count 3) 0)
           ;; Double or triple press: make an initial selection
@@ -1009,7 +1116,7 @@ region (e.g., a click without dragging)."
           (let ((range (mouse-start-end start-point start-point click-count)))
             (set-marker mouse-secondary-start nil)
             (move-overlay mouse-secondary-overlay (car range) (nth 1 range)
-                          (window-buffer start-window)))
+                          start-buffer))
         ;; Single-press: cancel any preexisting secondary selection.
         (or mouse-secondary-start
             (setq mouse-secondary-start (make-marker)))
@@ -1033,7 +1140,8 @@ region (e.g., a click without dragging)."
                             (progn
                               (set-marker mouse-secondary-start nil)
                               (move-overlay mouse-secondary-overlay
-                                            (car range) (nth 1 range))))))
+                                            (car range) (nth 1 range)
+                                            start-buffer)))))
                      (t
                       (let ((mouse-row (cdr (cdr (mouse-position)))))
                         (cond
@@ -1048,15 +1156,16 @@ region (e.g., a click without dragging)."
        t
        (lambda ()
          (setq track-mouse old-track-mouse)
-         (if (marker-position mouse-secondary-start)
-             (progn
-               (delete-overlay mouse-secondary-overlay)
-               (gui-set-selection 'SECONDARY nil)
-               nil)
-           (gui-set-selection
-            'SECONDARY
-            (buffer-substring (overlay-start mouse-secondary-overlay)
-                              (overlay-end mouse-secondary-overlay)))))))))
+         (with-current-buffer start-buffer
+           (if (marker-position mouse-secondary-start)
+               (progn
+                 (delete-overlay mouse-secondary-overlay)
+                 (gui-set-selection 'SECONDARY nil)
+                 nil)
+             (gui-set-selection
+              'SECONDARY
+              (buffer-substring (overlay-start mouse-secondary-overlay)
+                                (overlay-end mouse-secondary-overlay))))))))))
 
 (provide 'acme)
 

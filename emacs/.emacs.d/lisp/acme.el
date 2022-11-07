@@ -179,6 +179,10 @@
 ;; tag implementation, Acme pipes (though no range selection), and
 ;; accommodations for trackpad use.
 ;;
+;; TODO:
+;; - Moving the mouse after plumbing sometimes inputs a prefix arg C-u
+;;   on ChromeOS so look into why that happens
+;;
 ;; Differences versus Plan 9 Acme:
 ;; - Window tags (see above description of tag buffer)
 ;; - Execution output is not streaming, only displays on shell return
@@ -1247,12 +1251,13 @@ region (e.g., a click without dragging)."
         (t
          (acme-mode--update-last-mouse-events event)
          (acme-mode--button-up acme-mode--lbutton)
-         (cond ((eq acme-mode--state 'textselect)
-                (setq deactivate-mark nil)
-                (mouse-set-point event)
-                (setq transient-mark-mode (cons 'only t))
-                (acme-mode--update-argtext)))
-         (acme-mode--maybe-reset-state))))
+         (unwind-protect
+             (cond ((eq acme-mode--state 'textselect)
+                    (setq deactivate-mark nil)
+                    (mouse-set-point event)
+                    (setq transient-mark-mode (cons 'only t))
+                    (acme-mode--update-argtext)))
+           (acme-mode--maybe-reset-state)))))
 
 ;; Double button 1 release, no mouse pointer movement since down-mouse-1
 (defun acme-mode--double-mouse-1 (event)
@@ -1264,13 +1269,14 @@ region (e.g., a click without dragging)."
         (t
          (acme-mode--update-last-mouse-events event)
          (acme-mode--button-up acme-mode--lbutton)
-         (cond ((eq acme-mode--state 'textselect)
-                (setq deactivate-mark nil)
-                (mouse-set-point event)
-                (acme-mode--select-region)
-                (setq transient-mark-mode (cons 'only t))
-                (acme-mode--update-argtext)))
-         (acme-mode--maybe-reset-state))))
+         (unwind-protect
+             (cond ((eq acme-mode--state 'textselect)
+                    (setq deactivate-mark nil)
+                    (mouse-set-point event)
+                    (acme-mode--select-region)
+                    (setq transient-mark-mode (cons 'only t))
+                    (acme-mode--update-argtext)))
+           (acme-mode--maybe-reset-state)))))
 
 ;; Button 1 release, mouse pointer moved since down-mouse-1
 (defun acme-mode--drag-mouse-1 (event)
@@ -1282,12 +1288,13 @@ region (e.g., a click without dragging)."
         (t
          (acme-mode--update-last-mouse-events event)
          (acme-mode--button-up acme-mode--lbutton)
-         (cond ((eq acme-mode--state 'textselect)
-                (setq deactivate-mark nil)
-                (mouse-set-region event)
-                (setq transient-mark-mode (cons 'only t))
-                (acme-mode--update-argtext)))
-         (acme-mode--maybe-reset-state))))
+         (unwind-protect
+             (cond ((eq acme-mode--state 'textselect)
+                    (setq deactivate-mark nil)
+                    (mouse-set-region event)
+                    (setq transient-mark-mode (cons 'only t))
+                    (acme-mode--update-argtext)))
+           (acme-mode--maybe-reset-state)))))
 
 ;; Button 2 down-press
 (defun acme-mode--down-mouse-2 (event)
@@ -1325,9 +1332,10 @@ region (e.g., a click without dragging)."
         (t
          (acme-mode--update-last-mouse-events event)
          (acme-mode--button-up acme-mode--mbutton)
-         (cond ((eq acme-mode--state 'textselect2)
-                (acme-mode--execute event)))
-         (acme-mode--maybe-reset-state))))
+         (unwind-protect
+             (cond ((eq acme-mode--state 'textselect2)
+                    (acme-mode--execute event)))
+           (acme-mode--maybe-reset-state)))))
 
 ;; Button 3 down-press
 (defun acme-mode--down-mouse-3 (event arg)
@@ -1375,9 +1383,10 @@ will insert the 3rd most recent entry in the kill ring."
         (t
          (acme-mode--update-last-mouse-events event)
          (acme-mode--button-up acme-mode--rbutton)
-         (cond ((eq acme-mode--state 'textselect3)
-                (acme-mode--plumb event)))
-         (acme-mode--maybe-reset-state))))
+         (unwind-protect
+             (cond ((eq acme-mode--state 'textselect3)
+                    (acme-mode--plumb event)))
+           (acme-mode--maybe-reset-state)))))
 
 ;; PLUMBING FUNCTIONS
 

@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sat Nov  5 21:16:55 2022
+;; Generated: Sun Nov  6 22:02:29 2022
 
 ;;; Commentary:
 
@@ -1618,28 +1618,6 @@ Formatting a selected region only works on top-level objects."
   (setq xref-backend-functions (remq 'etags--xref-backend
                                      xref-backend-functions))
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
-
-;; jump to visible text using char-based decision tree
-(use-package avy
-  :config
-  ;; bind over `goto-line' since it can be invoked by entering numbers
-  ;; for `avy-goto-line' input instead characters in the decision tree
-  (global-set-key [remap goto-line] #'avy-goto-line)
-  ;; jump to location of any text that is visible in the current frame
-  ;; bind over "M-g M-g" (use "M-g g" for `goto-line' instead)
-  (global-set-key (kbd "M-g M-g") #'avy-goto-char-timer))
-
-;; display, select and jump to links in various major modes
-(use-package ace-link
-  :config
-  ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
-  ;; eww-mode, help-mode, Info-mode and woman-mode
-  (ace-link-setup-default)
-  ;; bind "C-c M-o" to jump to link in Org mode
-  (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "C-c M-o") #'ace-link-org))
-  (with-eval-after-load 'org-agenda
-    (define-key org-agenda-mode-map (kbd "C-c M-o") #'ace-link-org-agenda)))
 
 (setq imenu-auto-rescan t)
 

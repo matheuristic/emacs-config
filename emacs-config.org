@@ -3476,56 +3476,6 @@ It is configured here as a fallback backend for
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate t))
 #+end_src
 
-** avy                                                                :melpa:
-
-[[https://github.com/abo-abo/avy][Avy]] provides support for jumping to visible text by traversing a
-character-based decision tree.
-
-*Configuration*:
-- Remap ~goto-line~ bindings to call ~avy-goto-line~ instead.
-  ~goto-line~ can be invoked by entering numbers for ~avy-goto-line~
-  input instead of characters in the decision tree.
-- Pulse line after jump via ~avy-goto-char-timer~.
-
-#+name: avy
-#+begin_src emacs-lisp
-;; jump to visible text using char-based decision tree
-(use-package avy
-  :config
-  ;; bind over `goto-line' since it can be invoked by entering numbers
-  ;; for `avy-goto-line' input instead characters in the decision tree
-  (global-set-key [remap goto-line] #'avy-goto-line)
-  ;; jump to location of any text that is visible in the current frame
-  ;; bind over "M-g M-g" (use "M-g g" for `goto-line' instead)
-  (global-set-key (kbd "M-g M-g") #'avy-goto-char-timer))
-#+end_src
-
-** ace-link                                                           :melpa:
-
-[[https://github.com/abo-abo/ace-link][ace-link]] provides support for displaying, selecting and jumping to links
-in a number of major modes using [[https://github.com/abo-abo/avy][avy]] as the backend.
-
-*Configuration*:
-- Call default setup code, which binds ~o~ in ~compilation-mode~,
-  ~Custom-mode~, ~eww-mode~, ~help-mode~, ~Info-mode~ and ~woman-mode~
-  to the corresponding ace-link command.
-- ~M-O~ in ~org-mode-map~ calls the corresponding ace-link function.
-
-#+name: ace-link
-#+begin_src emacs-lisp
-;; display, select and jump to links in various major modes
-(use-package ace-link
-  :config
-  ;; bind "o" to calling ace-link in compilation-mode, Custom-mode,
-  ;; eww-mode, help-mode, Info-mode and woman-mode
-  (ace-link-setup-default)
-  ;; bind "C-c M-o" to jump to link in Org mode
-  (with-eval-after-load 'org
-    (define-key org-mode-map (kbd "C-c M-o") #'ace-link-org))
-  (with-eval-after-load 'org-agenda
-    (define-key org-agenda-mode-map (kbd "C-c M-o") #'ace-link-org-agenda)))
-#+end_src
-
 ** Imenu
 
 [[https://www.gnu.org/software/emacs/manual/html_node/emacs/Imenu.html][Imenu]] allows jumping to major definitions in a file by name.
@@ -7169,10 +7119,6 @@ The main configuration file.
 <<ripgrep>>
 
 <<dumb-jump>>
-
-<<avy>>
-
-<<ace-link>>
 
 <<imenu-auto-rescan>>
 

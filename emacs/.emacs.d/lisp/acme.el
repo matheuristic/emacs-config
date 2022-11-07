@@ -336,6 +336,10 @@ When a mouse button is held down in Acme mode, each specified KEY
 will trigger a press-down and release of its associated MOUSEBUTTON."
   :type '(alist :key-type (string :tag "Key") :value-type (integer :tag "Mouse button")))
 
+(defcustom acme-mode-no-warp-mouse nil
+  "Don't warp the mouse when searching and opening files by plumbing in Acme mode."
+  :type 'boolean)
+
 (defcustom acme-mode-exclude-major-modes '(completion-list-mode
                                            dired-mode
                                            flymake-mode
@@ -715,8 +719,8 @@ buffer instead of usual one."
   "Check if there is an active head-line in the window."
   (not (null header-line-format)))
 
-(defun acme-mode--move-mouse-to-point ()
-  "Move mouse pointer to point in the current window."
+(defun acme-mode--warp-mouse-to-point ()
+  "Warp mouse pointer to point in the current window."
   (let* ((coords (posn-col-row (posn-at-point)))
          (window-coords (window-inside-edges))
          (x (+ (car coords) (car window-coords) -1)) ;the fringe is 0
@@ -753,9 +757,9 @@ if one exists, unless NO-WARP is non-nil."
     (recenter))
   ;; warp the mouse to the result
   (unless no-warp
-    (acme-mode--move-mouse-to-point)))
+    (acme-mode--warp-mouse-to-point)))
 
-(defun acme-mode--find-file (filename)
+(defun acme-mode--find-file (filename &optional no-warp)
   "Find given FILENAME in another window if it exists.
 
 FILENAME may be specified with a linenumber and a column number:
@@ -764,37 +768,42 @@ FILENAME may be specified with a linenumber and a column number:
   <filepath>:<linenum>:<colnum>
 
 If the given file is successfully opened, the function returns t.
-If the given file does not exist, the function returns nil."
+If the given file does not exist, the function returns nil.
+
+If successful and NO-WARP is nil, the mouse pointer is warped to
+the file window."
   (let ((filepath)
         (linenum)
         (colnum))
-   (save-match-data
-     (cond ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
-            (setq filepath (match-string 1 filename)
-                  linenum (string-to-number (match-string 2 filename))
-                  colnum (string-to-number (match-string 3 filename))))
-           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
-            (setq filepath (match-string 1 filename)
-                  linenum (string-to-number (match-string 2 filename))))
-           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
-            (setq filepath (match-string 1 filename))))
-     (when (and filepath
-                (file-readable-p filepath))
-       (acme-mode--pop-file-window filepath acme-mode-use-frames)
-       (when linenum
-         (goto-char (point-min))
-         (forward-line (1- linenum)))
-       (when colnum
-         (forward-char (1- colnum)))
-       t))))
+    (save-match-data
+      (cond ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
+             (setq filepath (match-string 1 filename)
+                   linenum (string-to-number (match-string 2 filename))
+                   colnum (string-to-number (match-string 3 filename))))
+            ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
+             (setq filepath (match-string 1 filename)
+                   linenum (string-to-number (match-string 2 filename))))
+            ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
+             (setq filepath (match-string 1 filename))))
+      (when (and filepath
+                 (file-readable-p filepath))
+        (acme-mode--pop-file-window filepath acme-mode-use-frames)
+        (when linenum
+          (goto-char (point-min))
+          (forward-line (1- linenum)))
+        (when colnum
+          (forward-char (1- colnum)))
+        (unless no-warp
+          (acme-mode--warp-mouse-to-point))
+        t))))
 
 (defun acme-mode--find-file-or-search (seltext)
   "Open SELTEXT if it is a file path, else search forward for next occurrence.
 
 When searching forward, the mouse is warped to the search result
 if one exists."
-  (or (acme-mode--find-file seltext)
-      (acme-mode--search seltext)))
+  (or (acme-mode--find-file seltext acme-mode-no-warp-mouse)
+      (acme-mode--search seltext acme-mode-no-warp-mouse)))
 
 (defun acme-mode--get-seltext (event thing)
   "Get text for plumbing based on EVENT, THING, and selections.

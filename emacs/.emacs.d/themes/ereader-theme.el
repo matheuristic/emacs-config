@@ -97,9 +97,9 @@
    `(region ((t (:background ,bg-region :foreground ,fg))))
    `(secondary-selection ((t (:background "#b4e7a0"))))
    `(slime-repl-inputed-output-face ((t (:foreground ,fg))))
-   `(tab-bar ((t (:background ,bg-light :foreground ,fg))))
-   `(tab-bar-tab ((t (:background ,bg-light :foreground "midnight blue" :underline t :weight extra-bold))))
-   `(tab-bar-tab-inactive ((t (:background ,bg-light :foreground ,fg))))
+   `(tab-bar ((t (:inherit variable-pitch :background ,bg-light :foreground ,fg :height 0.9))))
+   `(tab-bar-tab ((t (:inherit variable-pitch :background ,bg-light :foreground "midnight blue" :underline t :weight extra-bold :height 0.9))))
+   `(tab-bar-tab-inactive ((t (:inherit variable-pitch-family :background ,bg-light :foreground ,fg :height 0.9))))
    `(vertical-border ((t (:foreground ,bg-light))))
    `(whitespace-line ((t (:background ,bg-highlight-2 :foreground ,fg))))
 

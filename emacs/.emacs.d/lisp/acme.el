@@ -250,9 +250,9 @@
     ;; Python error locations
     (" *File \"[~a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error)
     ;; EPUB files (open generically)
-    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Ee][Pp][Uu][Bb]" . acme-mode--plumb-file-generic)
+    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Ee][Pp][Uu][Bb]" . acme-mode--plumb-file-system-open)
     ;; PDF files (open generically)
-    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Pp][Dd][Ff]" . acme-mode--plumb-file-generic))
+    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Pp][Dd][Ff]" . acme-mode--plumb-file-system-open))
   "Default plumbing rules for Acme mode.
 
 See `acme-mode-plumbing-rules'.")
@@ -1399,7 +1399,7 @@ will insert the 3rd most recent entry in the kill ring."
 
 ;; PLUMBING FUNCTIONS
 
-(defun acme-mode--plumb-file-generic (filename)
+(defun acme-mode--plumb-file-system-open (filename)
   "Function to generically open given FILENAME using system 'xdg-open' or 'open'."
   (let ((system-open-command (or (executable-find "xdg-open")
                                  (executable-find "open"))))

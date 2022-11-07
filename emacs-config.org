@@ -4541,30 +4541,6 @@ systems. It uses the system ~launchctl~ executable under the hood. The
     :bind ("C-c x l" . launchctl)))
 #+end_src
 
-*** Mode line indicator for tab-bar-mode
-
-As of Emacs 27.1, ~tab-bar-mode~ does not show visual tabs in macOS
-although all other functionality works. Work around that by showing
-the current tab number (and tab name if renamed) in the mode line.
-
-#+name: mac-tab-bar-mode-lighter
-#+begin_src emacs-lisp
-;; as of Emacs 27.1, `tab-bar-mode' does not show visual tabs in macOS
-;; so in macOS show tab number and name (if renamed) in the mode line
-(when (eq system-type 'darwin)
-  (add-to-list 'my-mode-lighter-abbrev-alist
-               '(tab-bar-mode . (:eval
-                                 (concat
-                                  " ↹["
-                                  ;; tab num, and tab name if explicitly renamed
-                                  (let* ((current-tab (tab-bar--current-tab))
-                                         (is-explicit-name (alist-get 'explicit-name current-tab)))
-                                    (concat (number-to-string (1+ (tab-bar--current-tab-index)))
-                                            (when is-explicit-name
-                                              (concat ":" (alist-get 'name current-tab)))))
-                                  "]")))))
-#+end_src
-
 * Transient commands                                              :transient:
 
 Temporary bindings that are shown in a popup window.
@@ -7195,8 +7171,6 @@ The main configuration file.
 <<mac-emacs-mac-doc-view-resolution>>
 
 <<mac-launchctl>>
-
-<<mac-tab-bar-mode-lighter>>
 
 ;; Transient commands
 

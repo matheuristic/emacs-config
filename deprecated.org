@@ -7393,6 +7393,32 @@ Add a head to the visual settings hydra for toggling this built-in support.
 #+end_src
 
 If using [[https://emacsformacosx.com/][Emacs for Mac OS X]], use the built-in [[https://github.com/emacs-mirror/emacs/blob/master/lisp/progmodes/prog-mode.el#L199-L238][Prettify Symbols mode]] and modify ~prettify-symbols-alist~ to configure the desired character compositions.
+*** Mode line indicator for tab-bar-mode
+
+As of Emacs 27.1, ~tab-bar-mode~ does not show visual tabs in macOS
+although all other functionality works. Work around that by showing
+the current tab number (and tab name if renamed) in the mode line.
+
+Update: As of Emacs 28.1, visual tabs are now supported in macOS
+
+#+name: mac-tab-bar-mode-lighter
+#+begin_src emacs-lisp
+;; as of Emacs 27.1, `tab-bar-mode' does not show visual tabs in macOS
+;; so in macOS show tab number and name (if renamed) in the mode line
+(when (eq system-type 'darwin)
+  (add-to-list 'my-mode-lighter-abbrev-alist
+               '(tab-bar-mode . (:eval
+                                 (concat
+                                  " ↹["
+                                  ;; tab num, and tab name if explicitly renamed
+                                  (let* ((current-tab (tab-bar--current-tab))
+                                         (is-explicit-name (alist-get 'explicit-name current-tab)))
+                                    (concat (number-to-string (1+ (tab-bar--current-tab-index)))
+                                            (when is-explicit-name
+                                              (concat ":" (alist-get 'name current-tab)))))
+                                  "]")))))
+#+end_src
+
 * Transient commands
 
 ** Global transients

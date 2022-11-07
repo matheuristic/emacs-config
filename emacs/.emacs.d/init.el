@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  6 22:54:45 2022
+;; Generated: Mon Nov  7 18:04:38 2022
 
 ;;; Commentary:
 
@@ -1973,21 +1973,6 @@ for more information."
   (use-package launchctl
     :mode ("\\.plist\\'" . nxml-mode)
     :bind ("C-c x l" . launchctl)))
-
-;; as of Emacs 27.1, `tab-bar-mode' does not show visual tabs in macOS
-;; so in macOS show tab number and name (if renamed) in the mode line
-(when (eq system-type 'darwin)
-  (add-to-list 'my-mode-lighter-abbrev-alist
-               '(tab-bar-mode . (:eval
-                                 (concat
-                                  " ↹["
-                                  ;; tab num, and tab name if explicitly renamed
-                                  (let* ((current-tab (tab-bar--current-tab))
-                                         (is-explicit-name (alist-get 'explicit-name current-tab)))
-                                    (concat (number-to-string (1+ (tab-bar--current-tab-index)))
-                                            (when is-explicit-name
-                                              (concat ":" (alist-get 'name current-tab)))))
-                                  "]")))))
 
 ;; Transient commands
 

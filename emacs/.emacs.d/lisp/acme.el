@@ -93,6 +93,8 @@
 ;; buffer keyword without selecting the tag buffer. Note that the
 ;; above behavior holds for any buffer. It is just the tag buffer is
 ;; more convenient (easy to open, transient and sized appropriately).
+;; For this particular workflow to work, `mouse-autoselect-window'
+;; should be set to nil.
 ;;
 ;; On trackpads, clicks with modifier keys pressed can be used to
 ;; simulate middle- and right-clicks, and keyboard keys can be used to
@@ -108,7 +110,8 @@
 ;;   (with-eval-after-load 'acme
 ;;     ;; Customize options
 ;;     (setq acme-mode-use-frames nil
-;;           acme-mode-per-dir-shell-output nil)
+;;           acme-mode-per-dir-shell-output nil
+;;           mouse-autoselect-window nil)
 ;;     ;; Open tag buffer key binding
 ;;     (define-key acme-mode-map [C-M-return] #'acme-mode-pop-tag-buffer)
 ;;     ;; Trackpad support

@@ -30,8 +30,14 @@
 ;; See http://acme.cat-v.org/mouse for more about the Acme mouse
 ;; interface.
 ;;
-;; For text execution, the following Acme keywords are supported:
+;; For text execution, the following keywords are supported (those
+;; marked with [*] are not in Plan 9 Acme):
 ;; - Del (kill window but no the buffer)
+;; - Delcol (deletes current column; note that Emacs has a notion of a
+;;   window tree where each step changes combination direction between
+;;   vertical and horizontal, so this actually deletes the nearest
+;;   ancestor vertical combination window)
+;; - Dir (set tag buffer `default-directory' to current buffer's) [*]
 ;; - Get (revert the buffer to the saved version)
 ;; - Indent (needs to be called with an arg, which can be on or off to
 ;;   enable or disable `electric-indent-local-mode', or ON or OFF to
@@ -39,12 +45,22 @@
 ;; - Look (search for next occurrence optional arguments, treated as
 ;;   literal search strings, or if no arg then the highlighted region
 ;;   or word at point)
+;; - New (needs to be called with an arg, opens a new window using the
+;;   argument as the file name)
+;; - Newcol (pops open a new window column; note that Emacs has a
+;;   notion of a window tree where each step changes combination
+;;   direction between vertical and horizontal, so the new window
+;;   column is actually the nearest ancestor non-vertical-combination
+;;   window split horizontally with special handling when the selected
+;;   window displays the tag buffer)
 ;; - Put (save buffer)
 ;; - Redo (requires undo-tree-mode)
+;; - Rename (needs to be called with an arg, renames buffer file to
+;;   the argument) [*]
 ;; - Snarf (copy region into kill ring)
 ;; - Spaces (needs to be called with an arg, which can be on or off to
 ;;   set `indent-tabs-mode' to t or nil locally, or ON or OFF for the
-;;   same but also set the default value of `indent-tabs-mode')
+;;   same but also set the default value of `indent-tabs-mode') [*]
 ;; - Tab (needs to be called with an arg, which should be a number
 ;;   that `tab-width' will be set to)
 ;; - Undo
@@ -163,11 +179,6 @@
 ;; tag implementation, Acme pipes (though no range selection), and
 ;; accommodations for trackpad use.
 ;;
-;; TODO:
-;; - Delcol, Newcol and New (useful for window management)
-;; - Ranges for pipes like "12,23-/[Aa]bc/|tr '[abc]' '[123]'"
-;;   (for now select manually, e.g., "C-x h" for the whole buffer)
-;;
 ;; Differences versus Plan 9 Acme:
 ;; - Window tags (see above description of tag buffer)
 ;; - Execution output is not streaming, only displays on shell return
@@ -176,14 +187,24 @@
 ;;   and these settings may be superceded by other major-mode or
 ;;   minor-mode bindings (e.g., in markdown-mode <return> is bound
 ;;   to `markdown-enter-key')
-;; - Spaces keyword
+;; - Dir, Rename and Spaces keywords
 ;; - Del keyword closes the window but not the buffer (in Plan 9 Acme,
 ;;   when a file's last window is closed the file is closed too)
+;; - Newcol and Delcol are attuned to how Emacs handles windows
+;;   in frames, which is not the same as Plan 9 Acme which
+;;   groups windows into columns
+;; - No drag-and-drop to move or reorder windows
 ;; - Many others, in all likelihood
 ;;
 ;; Limitations:
 ;; - Redo is only supported when undo-tree-mode is enabled, see
 ;;   https://elpa.gnu.org/packages/undo-tree.html
+;;
+;; Maybe later:
+;; - Ranges for pipes like "12,23-/[Aa]bc/|tr '[abc]' '[123]'"
+;;   (for now select manually, e.g., "C-x h" for the whole buffer)
+;; - Migrate button action logic fully to transient maps for better
+;;   robustness?
 ;;
 ;; Out-of-scope for now:
 ;; - Edit (need to implement structural regexps)
@@ -207,6 +228,7 @@
 
 ;;; Code:
 
+(require 'cl-extra)
 (require 'ring)
 (require 'subr-x)
 
@@ -312,6 +334,7 @@ will trigger a press-down and release of its associated MOUSEBUTTON."
 
 (defcustom acme-mode-exclude-major-modes '(completion-list-mode
                                            dired-mode
+                                           flymake-mode
                                            ibuffer-mode
                                            info-mode
                                            minibuffer-inactive-mode
@@ -380,6 +403,7 @@ how to wrap/intercept commands bound to a given key in Emacs."
 (easy-menu-define acme-mode-menu acme-mode-map "Acme mode menu."
   '("Acme"
     [ "Open tag buffer" acme-mode-pop-tag-buffer t ]
+    [ "Set tag buffer default-dir" acme-mode-set-tag-buffer-default-directory-to-current t ]
     "--"
     [ "Turn off Acme mode" acme-mode t ]))
 
@@ -614,13 +638,583 @@ occupies a frame by itself."
     ;; Insert base tag keywords for new tag buffers
     (unless maybe-buffer
       (with-current-buffer buffer
-        (insert "Del Snarf Get Undo Redo Put Zerox | Look ")))
+        (insert "Newcol Delcol Del Dir Snarf Get Undo Redo Put Zerox | Look ")))
     (when (eq this-frame (selected-frame))
       (select-window this-win))))
 
-(defun acme-mode--tag-buffer-p ()
-  "Return t if the current buffer is the tag buffer, else nil."
-  (string-prefix-p acme-mode-tag-buffer-name (buffer-name)))
+(defun acme-mode--tag-buffer-window-p (&optional window)
+  "Return t if the current window displays a tag buffer, else nil.
+
+If WINDOW is non-null, check that window's buffer instead."
+  (if window
+      (when (window-live-p window)
+        (with-selected-window window
+          (string-prefix-p acme-mode-tag-buffer-name (buffer-name))))
+    (string-prefix-p acme-mode-tag-buffer-name (buffer-name))))
+
+(defun acme-mode-set-tag-buffer-default-directory-to-current (&optional arg)
+  "Set `default-directory' of tag buffer to the current buffer's.
+
+If prefix ARG is an integer, set the `default-directory' of the
+specifically numbered tag buffer instead of the generic one."
+  (interactive "P")
+  (let* ((directory default-directory)
+         (tag-buffer-name (concat acme-mode-tag-buffer-name
+                                  (when (integerp arg)
+                                    (concat "<" (number-to-string arg) ">"))))
+         (tag-buffer (get-buffer tag-buffer-name)))
+    (cond (tag-buffer
+           (with-current-buffer tag-buffer
+             (setq default-directory directory)
+             (message (concat "Set default-directory to '"
+                              directory
+                              "' in tag buffer '"
+                              tag-buffer-name
+                              "'"))))
+          (t
+           (message (concat "Tag buffer "
+                            tag-buffer-name
+                            " does not exist"))))))
+
+(defun acme-mode--shell-output-buffer ()
+  "Get the output buffer for displaying shell execution output."
+  (let ((buffer-name
+         (let ((bname (buffer-name))
+               (fname (buffer-file-name)))
+           (cond ((and acme-mode-per-dir-shell-output fname)
+                  (concat "*Acme Shell Output*<" (file-name-directory fname) ">"))
+                 ((string-prefix-p "*Acme Shell Output*" bname)
+                  bname)
+                 (t
+                  "*Acme Shell Output*")))))
+    (or (get-buffer buffer-name)
+        (generate-new-buffer buffer-name))))
+
+(defun acme-mode-pop-shell-output-buffer (&optional buffer)
+  "Pop open the shell output buffer in a new window.
+
+Try splitting live windows in order given by `window-list' for
+the new window.
+
+If BUFFER is non-nil, it is used directly as the shell output
+buffer instead of usual one."
+  (let* ((buffer (or buffer (acme-mode--shell-output-buffer)))
+         (windows (window-list)))
+    (cl-some (lambda (win)
+               (condition-case nil
+                   (acme-mode--pop-buffer-window
+                    buffer nil nil nil win)
+                 (error nil)))
+             windows)))
+
+(defun acme-mode--header-line-active-p ()
+  "Check if there is an active head-line in the window."
+  (not (null header-line-format)))
+
+(defun acme-mode--move-mouse-to-point ()
+  "Move mouse pointer to point in the current window."
+  (let* ((coords (posn-col-row (posn-at-point)))
+         (window-coords (window-inside-edges))
+         (x (+ (car coords) (car window-coords) -1)) ;the fringe is 0
+         (y (+ (cdr coords) (cadr window-coords)
+               (if (acme-mode--header-line-active-p)
+                   -1
+                 0))))
+    (set-mouse-position (selected-frame) x y)))
+
+(defun acme-mode--highlight-search (text)
+  "Set the region to current search result for TEXT.
+
+Assumes point is at the end of the result."
+  (set-mark (point))
+  (search-backward text nil t)
+  (exchange-point-and-mark))
+
+(defun acme-mode--search (text &optional no-warp)
+  "Search forward for the next occurence of TEXT.
+
+When searching forward, the mouse is warped to the search result
+if one exists, unless NO-WARP is non-nil."
+  (if (search-forward text nil t)
+      (acme-mode--highlight-search text)
+    (let ((saved-point (point)))
+      (message "Wrapped search")
+      (goto-char (point-min))
+      (if (search-forward text nil t)
+          (acme-mode--highlight-search text)
+        (goto-char saved-point))))
+  ;; recenter screen if search result is beyond the viewport
+  (unless (posn-at-point)
+    (universal-argument)
+    (recenter))
+  ;; warp the mouse to the result
+  (unless no-warp
+    (acme-mode--move-mouse-to-point)))
+
+(defun acme-mode--find-file (filename)
+  "Find given FILENAME in another window if it exists.
+
+FILENAME may be specified with a linenumber and a column number:
+  <filepath>
+  <filepath>:<linenum>
+  <filepath>:<linenum>:<colnum>
+
+If the given file is successfully opened, the function returns t.
+If the given file does not exist, the function returns nil."
+  (let ((filepath)
+        (linenum)
+        (colnum))
+   (save-match-data
+     (cond ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
+            (setq filepath (match-string 1 filename)
+                  linenum (string-to-number (match-string 2 filename))
+                  colnum (string-to-number (match-string 3 filename))))
+           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
+            (setq filepath (match-string 1 filename)
+                  linenum (string-to-number (match-string 2 filename))))
+           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
+            (setq filepath (match-string 1 filename))))
+     (when (and filepath
+                (file-readable-p filepath))
+       (acme-mode--pop-file-window filepath acme-mode-use-frames)
+       (when linenum
+         (goto-char (point-min))
+         (forward-line (1- linenum)))
+       (when colnum
+         (forward-char (1- colnum)))
+       t))))
+
+(defun acme-mode--find-file-or-search (seltext)
+  "Open SELTEXT if it is a file path, else search forward for next occurrence.
+
+When searching forward, the mouse is warped to the search result
+if one exists."
+  (or (acme-mode--find-file seltext)
+      (acme-mode--search seltext)))
+
+(defun acme-mode--get-seltext (event thing)
+  "Get text for plumbing based on EVENT, THING, and selections.
+
+THING should be one of the choices from `thing-at-point'.
+
+Priority order is secondary selection if it exists, then selected
+text if EVENT position is within the selected text, then the
+THING-at-point."
+  (let* ((posn (event-end event))
+         (bufpos (posn-point posn))
+         (win (posn-window posn)))
+    (with-selected-window win
+      (cond ((secondary-selection-exist-p)
+             (gui-get-selection 'SECONDARY))
+            ((and (region-active-p)
+                  (>= bufpos (min (mark) (point)))
+                  (<= bufpos (max (mark) (point))))
+             (buffer-substring (mark) (point)))
+            (t
+             (let* ((restorepointevent (list 'mouse-1 (posn-at-point)))
+                    (_ (mouse-set-point event))
+                    (seltext (thing-at-point thing)))
+               (mouse-set-point restorepointevent)
+               seltext))))))
+
+(defun acme-mode--plumb (event)
+  "Plumb selected text or symbol at EVENT position."
+  (let ((seltext (acme-mode--get-seltext event 'filename)))
+    (acme-mode--clear-secondary-selection)
+    (when seltext
+      ;; See https://emacs.stackexchange.com/questions/69743/use-regex-as-key-car-in-alist
+      (let ((res (assoc seltext acme-mode-plumbing-rules 'string-match-p)))
+        (if res
+            (funcall (cdr res) seltext)
+          (acme-mode--find-file-or-search seltext))))))
+
+(defun acme-mode--pop-new-column ()
+  "Pop open a new column. Used for Newcol keyword."
+  ;; Assume tag buffer window is always on top and never elsewhere in the frame,
+  ;; and that there are no combination windows with only one child
+  (let ((root (frame-root-window))
+        (win (selected-window))
+        (apply-win nil))       ; apply-win will be the window to split
+    (while (not apply-win)
+      (if (eq win root)
+          (setq apply-win win)
+        (cond ((window-combined-p win t) ; once we traverse upward to a horizontal combo, split that
+               (setq apply-win (window-parent win)))
+              ((let* ((next-win (window-parent win))
+                      (next-win-child (window-child next-win)))
+                 (while (and next-win-child
+                             (not (acme-mode--tag-buffer-window-p next-win-child)))
+                   (setq next-win-child (window-next-sibling next-win-child)))
+                 next-win-child) ; t if parent window has a child that is a tag buffer window
+               (setq apply-win win))
+              (t
+               ;; Else, traverse upward
+               (setq win (window-parent win))))))
+    (let ((apply-win-tag-p (acme-mode--tag-buffer-window-p apply-win))
+          (apply-win-child (window-child apply-win))) ; instantiate a temporary variable for use below
+      (cond
+       ;; Case 1: apply-win is the root window and also a tag buffer window -> error
+       ((and (eq apply-win root)
+             apply-win-tag-p)
+        (message "Cannot add new column to a frame with only the tag buffer.")
+        nil)
+       ;; Case 2: apply-win is the root window and has a direct child tag buffer window -> split window after tag buffer window
+       ((and (eq apply-win root)
+             (progn
+               (while (and apply-win-child
+                           (not (acme-mode--tag-buffer-window-p apply-win-child)))
+                 (setq apply-win-child (window-next-sibling apply-win-child)))
+               apply-win-child))
+        (setq win (window-next-sibling apply-win-child))
+        (if win
+            (split-window win nil 'right)
+          (message "Tag buffer window has no next sibling.")
+          nil))
+       ;; Case 3: apply-win is not the root window but is a tag buffer window -> split window after tag buffer
+       ((and (not (eq apply-win root))
+             apply-win-tag-p)
+        (setq win (window-next-sibling apply-win))
+        (if win
+            (split-window win nil 'right)
+          (message "Tag buffer window has no next sibling.")
+          nil))
+       ;; Case 4: otherwise -> traverse to first non-horizontal combo window and split apply-win there
+       (t
+        (when (window-combined-p (window-child apply-win) t)
+          (setq apply-win (window-child apply-win))
+          (let ((next-win (window-next-sibling apply-win)))
+            (while next-win
+              (setq apply-win next-win)
+              (setq next-win (window-next-sibling apply-win)))))
+        (split-window apply-win nil 'right))))))
+
+(defun acme-mode--rename-buffer-file (file-name)
+  "Rename current buffer and file it is visiting to FILE-NAME.
+
+Return value is non-nil if renaming was done, and nil if not."
+  (interactive)
+  (let* ((current-buffer-name (buffer-name))
+         (current-file-name (buffer-file-name)))
+    (cond ((not current-file-name)
+           (message "Buffer '%s' is not a file buffer" current-buffer-name)
+           nil)
+          ((buffer-modified-p)
+           (message "Buffer '%s' file is modified, save before renaming" current-buffer-name)
+           nil)
+          ((file-exists-p file-name)
+           (message "Target file '%s' already exists" file-name))
+          (t
+           (rename-file current-file-name file-name nil)
+           (set-visited-file-name file-name)
+           (set-buffer-modified-p nil)
+           (message "Renamed file to '%s'" (buffer-file-name))
+           t))))
+
+(defun acme-mode--execute-special-command (command)
+  "Acme mode executor for special COMMAND keywords."
+  (cond ((string-equal command "Del")   ; delete window but not buffer
+         (when (or (not (buffer-modified-p))
+                   (y-or-n-p "Buffer modified. Delete window anyway? "))
+           (delete-window))
+         ;; Kludge, wait to update so users are guided into
+         ;; clicking slower, else events have incorrect position
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Delcol")
+         (let ((root (frame-root-window))
+               (win (selected-window)))
+           (while (and (not (eq win root))
+                       (not (window-combined-p win t)))
+             (setq win (window-parent win)))
+           (if (eq win root)
+               (message "Not deleting column as there is only one in the window frame.")
+             (delete-window win)))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Dir")
+         (acme-mode-set-tag-buffer-default-directory-to-current)
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Get")
+         (revert-buffer)
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Indent")
+         (message "Indent command requires an argument (on, off, ON or OFF).")
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "Indent " command)
+         (let ((arg (substring command 5)))
+           (when (> (length arg) 0)
+             (cond ((string-equal arg "on")
+                    (electric-indent-local-mode 1))
+                   ((string-equal arg "ON")
+                    (electric-indent-local-mode 1)
+                    (electric-indent-mode 1))
+                   ((string-equal arg "off")
+                    (electric-indent-local-mode 0))
+                   ((string-equal arg "OFF")
+                    (electric-indent-local-mode 0)
+                    (electric-indent-mode 0))))
+           (sleep-for 0.2)
+           t))
+        ((string-equal command "Look")
+         (let ((event (list 'mouse-3 (posn-at-point))))
+           (let ((seltext (acme-mode--get-seltext event 'filename)))
+             (acme-mode--clear-secondary-selection)
+             (when seltext
+               (acme-mode--search seltext t))))
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "Look " command)
+         (let ((seltext (substring command 5)))
+           (when (> (length seltext) 0)
+             (acme-mode--search seltext t)))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "New")
+         (message "New command requires a file name argument.")
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "New " command)
+         (let ((seltext (substring command 4))
+               (win (selected-window)))
+           (when (> (length seltext) 0)
+             (while (and win
+                         (acme-mode--tag-buffer-window-p win))
+               (setq win (window-next-sibling win)))
+             (when win
+               (let (new-win)
+                 (with-selected-window win
+                   (setq new-win (acme-mode--pop-file-window seltext acme-mode-use-frames)))
+                 (when new-win
+                   (select-window new-win))))))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Newcol") ; split horizontally on nearest ancestor vertical combination window
+         (let ((new-win (acme-mode--pop-new-column)))
+           (when new-win
+             (select-window new-win)))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Put")
+         (save-buffer)
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Putall")
+         (save-some-buffers)
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Redo")
+         (if (fboundp 'undo-tree-redo)
+             (progn
+               (deactivate-mark)
+               (undo-tree-redo))
+           (message "Redo is supported only when undo-tree-mode is enabled."))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Rename")
+         (message "Rename command requires a file name argument.")
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "Rename " command)
+         (let ((seltext (string-trim (substring command 7))))
+           (if (> (length seltext) 0)
+               (acme-mode--rename-buffer-file seltext)
+             (message "New file name is empty.")))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Snarf")
+         (when (region-active-p)
+           (setq deactivate-mark nil)
+           (kill-ring-save (mark) (point)))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Spaces")
+         (message "Spaces command requires an argument (on, off, ON or OFF).")
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "Spaces " command)
+         (let ((arg (substring command 7)))
+           (when (> (length arg) 0)
+             (cond ((string-equal arg "on")
+                    (setq indent-tabs-mode nil))
+                   ((string-equal arg "ON")
+                    (setq indent-tabs-mode nil)
+                    (setq-default indent-tabs-mode nil))
+                   ((string-equal arg "off")
+                    (setq indent-tabs-mode t))
+                   ((string-equal arg "OFF")
+                    (setq indent-tabs-mode t)
+                    (setq-default indent-tabs-mode nil))))
+           (sleep-for 0.2)
+           t))
+        ((string-equal command "Tab")
+         (message "Tab command requires a integer argument.")
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "Tab " command)
+         (let ((arg (substring command 5)))
+           (when (> (length arg) 0)
+             (setq tab-width (string-to-number arg)))
+           (sleep-for 0.2)
+           t))
+        ((string-equal command "Undo")
+         (if (fboundp 'undo-tree-undo)
+             (undo-tree-undo)
+           (undo-only))
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Zerox")
+         (if acme-mode-use-frames
+             (make-frame-command)
+           (split-window-below))
+         (sleep-for 0.2)
+         t)))
+
+(defun acme-mode--execute-dispatch (command)
+  "Acme mode dispatcher for executing a given COMMAND."
+  ;; Priority order: special command, execute in an external shell
+  (let ((command (string-trim command)))
+    (unless (acme-mode--execute-special-command command)
+      (let* ((seltext (acme-mode--get-active-region-text))
+             (end (point))
+             (start (if seltext (mark) end))
+             (command-type (cond ((string-prefix-p "<" command) 'insert)
+                                 ((string-prefix-p "|" command) 'replace)
+                                 ((string-prefix-p ">" command) 'pipe)
+                                 (t nil)))
+             (command (if command-type
+                          (string-trim (substring command 1))
+                        command))
+             ;; Append to instead of overwriting output buffer
+             (shell-command-dont-erase-buffer t)
+             ;; Make sure shell command output does resize the minibuffer
+             (max-mini-window-height 0.01)
+             ;; Shell output display buffer
+             (disp-buffer (acme-mode--shell-output-buffer))
+             ;; Use a temp buffer to cache output for insert or replace region
+             (temp-buffer (generate-new-buffer "*Acme mode temp buffer*")))
+        (unwind-protect
+            (cond ((eq command-type 'insert)
+                   (when seltext
+                     (let ((left (min start end))
+                           (right (max start end)))
+                       (setq start left)
+                       (setq end right)))
+                   (delete-region start end)
+                   (shell-command-on-region start start command temp-buffer t disp-buffer t))
+                  ((eq command-type 'replace)
+                   (shell-command-on-region start end command temp-buffer t disp-buffer t))
+                  ((eq command-type 'pipe)
+                   (unless (get-buffer-window disp-buffer)
+                     (let ((win (selected-window)))
+                       (acme-mode-pop-shell-output-buffer disp-buffer)
+                       (select-window win)))
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max)))
+                   (shell-command-on-region start end command disp-buffer nil))
+                  (t
+                   (unless (get-buffer-window disp-buffer)
+                     (let ((win (selected-window)))
+                       (acme-mode-pop-shell-output-buffer disp-buffer)
+                       (select-window win)))
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max)))
+                   (shell-command command disp-buffer)))
+          (kill-buffer temp-buffer))))))
+
+(defun acme-mode--execute (event &optional arg)
+  "Execute selected text or sexp at EVENT posn, with optional ARG."
+  (let ((seltext (acme-mode--get-seltext event 'sexp))) ; sexp to get leading <, | or >
+    (acme-mode--clear-secondary-selection)
+    (acme-mode--execute-dispatch (string-join (list seltext arg) " "))))
+
+(defun acme-mode--mouse-drag-secondary (start-event)
+  "Set the secondary selection to the text that the mouse is dragged over.
+Highlight the drag area as you move the mouse.
+This must be bound to a button-down mouse event that is START-EVENT.
+The function returns a non-nil value if it creates a secondary selection.
+
+This is a duplicated `mouse-drag-secondary' but modified to use
+`set-transient-map' like `'mouse-drag-track' (the original
+function eats the first non-movement event so a simple mouse 3
+press-drag-release will not result in an immediate forward
+search), and without the 1-second wait if there is no selected
+region (e.g., a click without dragging)."
+  (interactive "e")
+  (mouse-minibuffer-check start-event)
+  (let* ((echo-keystrokes 0)
+         (start-posn (event-start start-event))
+         (start-point (posn-point start-posn))
+         (start-window (posn-window start-posn))
+         (start-buffer (window-buffer start-window))
+         (bounds (window-edges start-window))
+         (top (nth 1 bounds))
+         (bottom (if (window-minibuffer-p start-window)
+                     (nth 3 bounds)
+                   ;; Don't count the mode line.
+                   (1- (nth 3 bounds))))
+         (click-count (1- (event-click-count start-event)))
+         (old-track-mouse track-mouse))
+    (with-current-buffer start-buffer
+      (setq mouse-secondary-click-count click-count)
+      (if (> (mod click-count 3) 0)
+          ;; Double or triple press: make an initial selection
+          ;; of one word or line.
+          (let ((range (mouse-start-end start-point start-point click-count)))
+            (set-marker mouse-secondary-start nil)
+            (move-overlay mouse-secondary-overlay (car range) (nth 1 range)
+                          start-buffer))
+        ;; Single-press: cancel any preexisting secondary selection.
+        (or mouse-secondary-start
+            (setq mouse-secondary-start (make-marker)))
+        (set-marker mouse-secondary-start start-point)
+        (delete-overlay mouse-secondary-overlay))
+      ;; Use a transient map like in `mouse-drag-track'
+      (setq track-mouse 'drag-tracking)
+      (set-transient-map
+       (let ((map (make-sparse-keymap)))
+         (define-key map [switch-frame] #'ignore)
+         (define-key map [select-window] #'ignore)
+         (define-key map [mouse-movement]
+           (lambda (event) (interactive "e")
+             (let* ((end (event-end event))
+                    (end-point (posn-point end)))
+               (cond ((and (eq (posn-window end) start-window)
+                           (integer-or-marker-p end-point))
+                      (let ((range (mouse-start-end start-point end-point click-count)))
+                        (if (or (/= start-point end-point)
+                                (null (marker-position mouse-secondary-start)))
+                            (progn
+                              (set-marker mouse-secondary-start nil)
+                              (move-overlay mouse-secondary-overlay
+                                            (car range) (nth 1 range)
+                                            start-buffer)))))
+                     (t
+                      (let ((mouse-row (cdr (cdr (mouse-position)))))
+                        (cond
+                         ((null mouse-row))
+                         ((< mouse-row top)
+                          (mouse-scroll-subr start-window (- mouse-row top)
+                                             mouse-secondary-overlay start-point))
+                         ((>= mouse-row bottom)
+                          (mouse-scroll-subr start-window (1+ (- mouse-row bottom))
+                                             mouse-secondary-overlay start-point)))))))))
+         map)
+       t
+       (lambda ()
+         (setq track-mouse old-track-mouse)
+         (with-current-buffer start-buffer
+           (if (marker-position mouse-secondary-start)
+               (progn
+                 (delete-overlay mouse-secondary-overlay)
+                 (gui-set-selection 'SECONDARY nil)
+                 nil)
+             (gui-set-selection
+              'SECONDARY
+              (buffer-substring (overlay-start mouse-secondary-overlay)
+                                (overlay-end mouse-secondary-overlay))))))))))
 
 ;; MOUSE FUNCTIONS
 
@@ -785,294 +1379,6 @@ will insert the 3rd most recent entry in the kill ring."
                 (acme-mode--plumb event)))
          (acme-mode--maybe-reset-state))))
 
-(defun acme-mode--header-line-active-p ()
-  "Check if there is an active head-line in the window."
-  (not (null header-line-format)))
-
-(defun acme-mode--move-mouse-to-point ()
-  "Move mouse pointer to point in the current window."
-  (let* ((coords (posn-col-row (posn-at-point)))
-         (window-coords (window-inside-edges))
-         (x (+ (car coords) (car window-coords) -1)) ;the fringe is 0
-         (y (+ (cdr coords) (cadr window-coords)
-               (if (acme-mode--header-line-active-p)
-                   -1
-                 0))))
-    (set-mouse-position (selected-frame) x y)))
-
-(defun acme-mode--highlight-search (sym)
-  "Set the region to current search result for SYM.
-
-Assumes point is at the end of the result."
-  (set-mark (point))
-  (search-backward sym nil t)
-  (exchange-point-and-mark))
-
-(defun acme-mode--search (sym &optional no-warp)
-  "Search forward for the next occurence of SYM.
-
-When searching forward, the mouse is warped to the search result
-if one exists, unless NO-WARP is non-nil."
-  (if (search-forward sym nil t)
-      (acme-mode--highlight-search sym)
-    (let ((saved-point (point)))
-      (message "Wrapped search")
-      (goto-char (point-min))
-      (if (search-forward sym nil t)
-          (acme-mode--highlight-search sym)
-        (goto-char saved-point))))
-  ;; recenter screen if search result is beyond the viewport
-  (unless (posn-at-point)
-    (universal-argument)
-    (recenter))
-  ;; warp the mouse to the result
-  (unless no-warp
-    (acme-mode--move-mouse-to-point)))
-
-(defun acme-mode--find-file (filename)
-  "Find given FILENAME in another window if it exists.
-
-FILENAME may be specified with a linenumber and a column number:
-  <filepath>
-  <filepath>:<linenum>
-  <filepath>:<linenum>:<colnum>
-
-If the given file is successfully opened, the function returns t.
-If the given file does not exist, the function returns nil."
-  (let ((filepath)
-        (linenum)
-        (colnum))
-   (save-match-data
-     (cond ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)[:.]\\([0-9]+\\)" filename)
-            (setq filepath (match-string 1 filename)
-                  linenum (string-to-number (match-string 2 filename))
-                  colnum (string-to-number (match-string 3 filename))))
-           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\):\\([0-9]+\\)" filename)
-            (setq filepath (match-string 1 filename)
-                  linenum (string-to-number (match-string 2 filename))))
-           ((string-match "\\([~.a-zA-Z¡-￿0-9_/@-]*[a-zA-Z¡-￿0-9_/-]\\)" filename)
-            (setq filepath (match-string 1 filename))))
-     (when (and filepath
-                (file-readable-p filepath))
-       (acme-mode--pop-file-window filepath acme-mode-use-frames)
-       (when linenum
-         (goto-char (point-min))
-         (forward-line (1- linenum)))
-       (when colnum
-         (forward-char (1- colnum)))
-       t))))
-
-(defun acme-mode--find-file-or-search (seltext)
-  "Open SELTEXT if it is a file path, else search forward for next occurrence.
-
-When searching forward, the mouse is warped to the search result
-if one exists."
-  (or (acme-mode--find-file seltext)
-      (acme-mode--search seltext)))
-
-(defun acme-mode--get-seltext (event thing)
-  "Get text for plumbing based on EVENT, THING, and selections.
-
-THING should be one of the choices from `thing-at-point'.
-
-Priority order is secondary selection if it exists, then selected
-text if EVENT position is within the selected text, then the
-THING-at-point."
-  (let* ((posn (event-end event))
-         (bufpos (posn-point posn))
-         (win (posn-window posn)))
-    (with-selected-window win
-      (cond ((secondary-selection-exist-p)
-             (gui-get-selection 'SECONDARY))
-            ((and (region-active-p)
-                  (>= bufpos (min (mark) (point)))
-                  (<= bufpos (max (mark) (point))))
-             (buffer-substring (mark) (point)))
-            (t
-             (let* ((restorepointevent (list 'mouse-1 (posn-at-point)))
-                    (_ (mouse-set-point event))
-                    (seltext (thing-at-point thing)))
-               (mouse-set-point restorepointevent)
-               seltext))))))
-
-(defun acme-mode--plumb (event)
-  "Plumb selected text or symbol at EVENT position."
-  (let ((sym (acme-mode--get-seltext event 'filename)))
-    (acme-mode--clear-secondary-selection)
-    (when sym
-      ;; See https://emacs.stackexchange.com/questions/69743/use-regex-as-key-car-in-alist
-      (let ((res (assoc sym acme-mode-plumbing-rules 'string-match-p)))
-        (if res
-            (funcall (cdr res) sym)
-          (acme-mode--find-file-or-search sym))))))
-
-(defun acme-mode--execute-special-command (command)
-  "Acme mode executor for special COMMAND keywords."
-  (cond ((string-equal command "Del")   ; delete window but not buffer
-         (when (or (not (buffer-modified-p))
-                   (y-or-n-p "Buffer modified. Delete window anyway? "))
-           (delete-window))
-         ;; Kludge, wait to update so users are guided into
-         ;; clicking slower, else events have incorrect position
-         (sleep-for 0.2)
-         t)
-        ((string-equal command "Get")
-         (revert-buffer)
-         (sleep-for 0.2)
-         t)
-        ((string-prefix-p "Indent " command)
-         (let ((arg (substring command 5)))
-           (when (> (length arg) 0)
-             (cond ((string-equal arg "on")
-                    (electric-indent-local-mode 1))
-                   ((string-equal arg "ON")
-                    (electric-indent-local-mode 1)
-                    (electric-indent-mode 1))
-                   ((string-equal arg "off")
-                    (electric-indent-local-mode 0))
-                   ((string-equal arg "OFF")
-                    (electric-indent-local-mode 0)
-                    (electric-indent-mode 0))))
-           (sleep-for 0.2)
-           t))
-        ((string-equal command "Look")
-         (let ((event (list 'mouse-3 (posn-at-point))))
-           (let ((seltext (acme-mode--get-seltext event 'filename)))
-             (acme-mode--clear-secondary-selection)
-             (when seltext
-               (acme-mode--search seltext t)))
-           (sleep-for 0.2)
-           t))
-        ((string-prefix-p "Look " command)
-         (let ((seltext (substring command 5)))
-           (when (> (length seltext) 0)
-             (acme-mode--search seltext t))
-           (sleep-for 0.2)
-           t))
-        ((string-equal command "Put")
-         (save-buffer)
-         (sleep-for 0.2)
-         t)
-        ((string-equal command "Putall")
-         (save-some-buffers)
-         (sleep-for 0.2)
-         t)
-        ((string-equal command "Redo")
-         (if (fboundp 'undo-tree-redo)
-             (progn
-               (deactivate-mark)
-               (undo-tree-redo))
-           (message "Redo is supported only when undo-tree-mode is enabled."))
-         (sleep-for 0.2)
-         t)
-        ((string-equal command "Snarf")
-         (when (region-active-p)
-           (setq deactivate-mark nil)
-           (kill-ring-save (mark) (point)))
-         (sleep-for 0.2)
-         t)
-        ((string-prefix-p "Spaces " command)
-         (let ((arg (substring command 5)))
-           (when (> (length arg) 0)
-             (cond ((string-equal arg "on")
-                    (setq indent-tabs-mode nil))
-                   ((string-equal arg "ON")
-                    (setq indent-tabs-mode nil)
-                    (setq-default indent-tabs-mode nil))
-                   ((string-equal arg "off")
-                    (setq indent-tabs-mode t))
-                   ((string-equal arg "OFF")
-                    (setq indent-tabs-mode t)
-                    (setq-default indent-tabs-mode nil))))
-           (sleep-for 0.2)
-           t))
-        ((string-prefix-p "Tab " command)
-         (let ((arg (substring command 5)))
-           (when (> (length arg) 0)
-             (setq tab-width (string-to-number arg)))
-           (sleep-for 0.2)
-           t))
-        ((string-equal command "Undo")
-         (if (fboundp 'undo-tree-undo)
-             (undo-tree-undo)
-           (undo-only))
-         (sleep-for 0.2)
-         t)
-        ((string-equal command "Zerox")
-         (if acme-mode-use-frames
-             (make-frame-command)
-           (split-window-below))
-         (sleep-for 0.2)
-         t)))
-
-(defun acme-mode--execute-dispatch (command)
-  "Acme mode dispatcher for executing a given COMMAND."
-  ;; Priority order: special command, execute in an external shell
-  (let ((command (string-trim command)))
-    (unless (acme-mode--execute-special-command command)
-      (let* ((seltext (acme-mode--get-active-region-text))
-             (end (point))
-             (start (if seltext (mark) end))
-             (command-type (cond ((string-prefix-p "<" command) 'insert)
-                                 ((string-prefix-p "|" command) 'replace)
-                                 ((string-prefix-p ">" command) 'pipe)
-                                 (t nil)))
-             (command (if command-type
-                          (string-trim (substring command 1))
-                        command))
-             ;; Append to instead of overwriting output buffer
-             (shell-command-dont-erase-buffer t)
-             ;; Make sure shell command output does resize the minibuffer
-             (max-mini-window-height 0.01)
-             ;; Use directory specific output buffer
-             (disp-buffer-name
-              (let ((bname (buffer-name))
-                    (fname (buffer-file-name)))
-                (cond ((and acme-mode-per-dir-shell-output fname)
-                       (concat "*Acme Shell Output*<" (file-name-directory fname) ">"))
-                      ((string-prefix-p "*Acme Shell Output*" bname)
-                       bname)
-                      (t
-                       "*Acme Shell Output*"))))
-             (disp-buffer (or (get-buffer disp-buffer-name)
-                              (generate-new-buffer disp-buffer-name)))
-             ;; Use a temp buffer to cache output for insert or replace region
-             (temp-buffer (generate-new-buffer "*Acme mode temp buffer*")))
-        (unwind-protect
-            (cond ((eq command-type 'insert)
-                   (when seltext
-                     (let ((left (min start end))
-                           (right (max start end)))
-                       (setq start left)
-                       (setq end right)))
-                   (delete-region start end)
-                   (shell-command-on-region start start command temp-buffer t disp-buffer t))
-                  ((eq command-type 'replace)
-                   (shell-command-on-region start end command temp-buffer t disp-buffer t))
-                  ((eq command-type 'pipe)
-                   (unless (get-buffer-window disp-buffer)
-                     (let ((win (selected-window)))
-                       (acme-mode--pop-buffer-window disp-buffer nil)
-                       (select-window win)))
-                   (with-current-buffer disp-buffer
-                     (goto-char (point-max)))
-                   (shell-command-on-region start end command disp-buffer nil))
-                  (t
-                   (unless (get-buffer-window disp-buffer)
-                     (let ((win (selected-window)))
-                       (acme-mode--pop-buffer-window disp-buffer nil)
-                       (select-window win)))
-                   (with-current-buffer disp-buffer
-                     (goto-char (point-max)))
-                   (shell-command command disp-buffer)))
-          (kill-buffer temp-buffer))))))
-
-(defun acme-mode--execute (event &optional arg)
-  "Execute selected text or sexp at EVENT posn, with optional ARG."
-  (let ((sym (acme-mode--get-seltext event 'sexp))) ; sexp to get leading <, | or >
-    (acme-mode--clear-secondary-selection)
-    (acme-mode--execute-dispatch (string-join (list sym arg) " "))))
-
 ;; PLUMBING FUNCTIONS
 
 (defun acme-mode--plumb-file-generic (filename)
@@ -1095,95 +1401,6 @@ and opens the relevant file at the appropriate line in a new window."
           (concat (match-string 1 error-line)
                   ":"
                   (match-string 2 error-line))))))
-
-
-;; OTHER HELPER FUNCTIONS (POTENTIALLY REPLACEABLE BY BUILT-IN EMACS FUNCTIONS)
-
-(defun acme-mode--mouse-drag-secondary (start-event)
-  "Set the secondary selection to the text that the mouse is dragged over.
-Highlight the drag area as you move the mouse.
-This must be bound to a button-down mouse event that is START-EVENT.
-vThe function returns a non-nil value if it creates a secondary selection.
-
-This is a duplicated `mouse-drag-secondary' but modified to use
-`set-transient-map' like `'mouse-drag-track' (the original
-function eats the first non-movement event so a simple mouse 3
-press-drag-release will not result in an immediate forward
-search), and without the 1-second wait if there is no selected
-region (e.g., a click without dragging)."
-  (interactive "e")
-  (mouse-minibuffer-check start-event)
-  (let* ((echo-keystrokes 0)
-         (start-posn (event-start start-event))
-         (start-point (posn-point start-posn))
-         (start-window (posn-window start-posn))
-         (start-buffer (window-buffer start-window))
-         (bounds (window-edges start-window))
-         (top (nth 1 bounds))
-         (bottom (if (window-minibuffer-p start-window)
-                     (nth 3 bounds)
-                   ;; Don't count the mode line.
-                   (1- (nth 3 bounds))))
-         (click-count (1- (event-click-count start-event)))
-         (old-track-mouse track-mouse))
-    (with-current-buffer start-buffer
-      (setq mouse-secondary-click-count click-count)
-      (if (> (mod click-count 3) 0)
-          ;; Double or triple press: make an initial selection
-          ;; of one word or line.
-          (let ((range (mouse-start-end start-point start-point click-count)))
-            (set-marker mouse-secondary-start nil)
-            (move-overlay mouse-secondary-overlay (car range) (nth 1 range)
-                          start-buffer))
-        ;; Single-press: cancel any preexisting secondary selection.
-        (or mouse-secondary-start
-            (setq mouse-secondary-start (make-marker)))
-        (set-marker mouse-secondary-start start-point)
-        (delete-overlay mouse-secondary-overlay))
-      ;; Use a transient map like in `mouse-drag-track'
-      (setq track-mouse 'drag-tracking)
-      (set-transient-map
-       (let ((map (make-sparse-keymap)))
-         (define-key map [switch-frame] #'ignore)
-         (define-key map [select-window] #'ignore)
-         (define-key map [mouse-movement]
-           (lambda (event) (interactive "e")
-             (let* ((end (event-end event))
-                    (end-point (posn-point end)))
-               (cond ((and (eq (posn-window end) start-window)
-                           (integer-or-marker-p end-point))
-                      (let ((range (mouse-start-end start-point end-point click-count)))
-                        (if (or (/= start-point end-point)
-                                (null (marker-position mouse-secondary-start)))
-                            (progn
-                              (set-marker mouse-secondary-start nil)
-                              (move-overlay mouse-secondary-overlay
-                                            (car range) (nth 1 range)
-                                            start-buffer)))))
-                     (t
-                      (let ((mouse-row (cdr (cdr (mouse-position)))))
-                        (cond
-                         ((null mouse-row))
-                         ((< mouse-row top)
-                          (mouse-scroll-subr start-window (- mouse-row top)
-                                             mouse-secondary-overlay start-point))
-                         ((>= mouse-row bottom)
-                          (mouse-scroll-subr start-window (1+ (- mouse-row bottom))
-                                             mouse-secondary-overlay start-point)))))))))
-         map)
-       t
-       (lambda ()
-         (setq track-mouse old-track-mouse)
-         (with-current-buffer start-buffer
-           (if (marker-position mouse-secondary-start)
-               (progn
-                 (delete-overlay mouse-secondary-overlay)
-                 (gui-set-selection 'SECONDARY nil)
-                 nil)
-             (gui-set-selection
-              'SECONDARY
-              (buffer-substring (overlay-start mouse-secondary-overlay)
-                                (overlay-end mouse-secondary-overlay))))))))))
 
 (provide 'acme)
 

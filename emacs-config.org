@@ -3607,37 +3607,6 @@ that resizes margins so text comfortably centered in the window.
 (use-package olivetti)
 #+end_src
 
-** Color coding by depth using prism                                  :melpa:
-
-[[https://github.com/alphapapa/prism.el][prism.el]] disperses Lisp and other forms in different colors by depth.
-There are two modes:
-- ~prism-mode~ for Lisp forms.
-- ~prism-whitespace-mode~ for languages where whitespace has semantic meaning.
-
-#+name: prism
-#+begin_src emacs-lisp
-;; color code by depth
-(use-package prism
-  :config
-  (prism-set-colors :num 16
-    :desaturations (cl-loop for i from 0 below 16
-                            collect (* i 2.5))
-    :lightens (cl-loop for i from 0 below 16
-                       collect (* i 2.5))
-    :colors (list "saddle brown"
-                  "midnight blue"
-                  "dark green")
-    :comments-fn
-    (lambda (color)
-      (prism-blend color
-                   (face-attribute 'font-lock-comment-face
-                                   :foreground)
-                   0.25))
-    :strings-fn
-    (lambda (color)
-      (prism-blend color "white" 0.5))))
-#+end_src
-
 ** Display line numbers when editing code
 
 Display line numbers by default when editing code.
@@ -5470,7 +5439,6 @@ Transient for visual commands and toggles.
 (require 'olivetti)
 (require 'highlight-indent-guides)
 (require 'hl-todo)
-(require 'prism)
 (require 'too-long-lines-mode)
 
 (require 'tree-sitter-langs)
@@ -5647,16 +5615,6 @@ Currently only works for Emacs Mac port."
              (null (assq 'font-lock-doc-face
                          transient/visual--face-remap-cookies))))
      transient/visual--toggle-lighten-font-lock-doc-face)
-    ("cp" (lambda ()
-            (transient--make-description
-             "Prism"
-             prism-mode))
-     prism-mode)
-    ("cP" (lambda ()
-            (transient--make-description
-             "Prism whitespace"
-             prism-whitespace-mode))
-     prism-whitespace-mode)
     ("ct" (lambda ()
             (transient--make-description
              "Tree-sitter highlighting"
@@ -7131,8 +7089,6 @@ The main configuration file.
 ;; Visual (part 2)
 
 <<olivetti>>
-
-<<prism>>
 
 <<display-line-numbers-when-editing-code>>
 

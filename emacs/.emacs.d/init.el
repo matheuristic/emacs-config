@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Sun Nov  6 22:02:29 2022
+;; Generated: Sun Nov  6 22:54:45 2022
 
 ;;; Commentary:
 
@@ -1648,27 +1648,6 @@ Formatting a selected region only works on top-level objects."
 ;; resize window margins for nicer writing environment
 (use-package olivetti)
 
-;; color code by depth
-(use-package prism
-  :config
-  (prism-set-colors :num 16
-    :desaturations (cl-loop for i from 0 below 16
-                            collect (* i 2.5))
-    :lightens (cl-loop for i from 0 below 16
-                       collect (* i 2.5))
-    :colors (list "saddle brown"
-                  "midnight blue"
-                  "dark green")
-    :comments-fn
-    (lambda (color)
-      (prism-blend color
-                   (face-attribute 'font-lock-comment-face
-                                   :foreground)
-                   0.25))
-    :strings-fn
-    (lambda (color)
-      (prism-blend color "white" 0.5))))
-
 ;; display line numbers by default when editing code
 (add-hook 'prog-mode-hook
           (lambda ()
@@ -2709,7 +2688,6 @@ name for the cloned indirect buffer ending with \"-INDIRECT\"."
 (require 'olivetti)
 (require 'highlight-indent-guides)
 (require 'hl-todo)
-(require 'prism)
 (require 'too-long-lines-mode)
 
 (require 'tree-sitter-langs)
@@ -2886,16 +2864,6 @@ Currently only works for Emacs Mac port."
              (null (assq 'font-lock-doc-face
                          transient/visual--face-remap-cookies))))
      transient/visual--toggle-lighten-font-lock-doc-face)
-    ("cp" (lambda ()
-            (transient--make-description
-             "Prism"
-             prism-mode))
-     prism-mode)
-    ("cP" (lambda ()
-            (transient--make-description
-             "Prism whitespace"
-             prism-whitespace-mode))
-     prism-whitespace-mode)
     ("ct" (lambda ()
             (transient--make-description
              "Tree-sitter highlighting"

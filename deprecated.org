@@ -6410,6 +6410,37 @@ highlights yanked text.
   (add-to-list 'my-mode-lighter-abbrev-alist '(volatile-highlights-mode . "")))
 #+end_src
 
+** Color coding by depth using prism                                  :melpa:
+
+[[https://github.com/alphapapa/prism.el][prism.el]] disperses Lisp and other forms in different colors by depth.
+There are two modes:
+- ~prism-mode~ for Lisp forms.
+- ~prism-whitespace-mode~ for languages where whitespace has semantic meaning.
+
+#+name: prism
+#+begin_src emacs-lisp
+;; color code by depth
+(use-package prism
+  :config
+  (prism-set-colors :num 16
+    :desaturations (cl-loop for i from 0 below 16
+                            collect (* i 2.5))
+    :lightens (cl-loop for i from 0 below 16
+                       collect (* i 2.5))
+    :colors (list "saddle brown"
+                  "midnight blue"
+                  "dark green")
+    :comments-fn
+    (lambda (color)
+      (prism-blend color
+                   (face-attribute 'font-lock-comment-face
+                                   :foreground)
+                   0.25))
+    :strings-fn
+    (lambda (color)
+      (prism-blend color "white" 0.5))))
+#+end_src
+
 * Web
 
 ** Browsing

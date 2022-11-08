@@ -1147,17 +1147,21 @@ THING-at-point."
                            (not (acme-mode--tag-buffer-window-p apply-win-child)))
                  (setq apply-win-child (window-next-sibling apply-win-child)))
                apply-win-child))
-        (setq win (window-next-sibling apply-win-child))
-        (if win
-            (split-window win nil 'right)
+        (setq apply-win (window-next-sibling apply-win-child))
+        (if apply-win
+            (split-window apply-win nil 'right)
           (message "Tag buffer window has no next sibling.")
           nil))
        ;; Case 3: apply-win is not the root window but is a tag buffer window -> split window after tag buffer
        ((and (not (eq apply-win root))
              apply-win-tag-p)
-        (setq win (window-next-sibling apply-win))
-        (if win
-            (split-window win nil 'right)
+        (setq apply-win (window-next-sibling apply-win))
+        (if apply-win
+            (let ((base-win apply-win))
+              (while (not (window-live-p base-win))
+                (setq base-win (window-child base-win)))
+              (with-selected-window base-win
+                (split-window apply-win nil 'right)))
           (message "Tag buffer window has no next sibling.")
           nil))
        ;; Case 4: otherwise -> traverse to first non-horizontal combo window and split apply-win there

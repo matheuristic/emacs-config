@@ -591,11 +591,17 @@ Example:
                             (call-interactively 'display-line-numbers-mode)))))"
   :type '(alist :key-type (string :tag "Key") :value-type (function :tag "Value")))
 
-(defcustom acme-mode-keyboard-chord-keylist '(("z" . 1) ("x" . 2) ("c" . 3))
-  "List of (KEY MOUSEBUTTON) pairs to specify keyboard chord keys.
+(defcustom acme-mode-keyboard-chord-keylist nil
+  "Association list ((KEY . MOUSEBUTTON) ...) to specify keyboard chord keys.
 
 When a mouse button is held down in Acme mode, each specified KEY
-will trigger a press-down and release of its associated MOUSEBUTTON."
+will trigger a press-down and release of its associated MOUSEBUTTON.
+
+Can be helpful when using a laptop trackpad.
+
+Example:
+
+  (setq acme-mode-keyboard-chord-keylist '((\"z\" . 1) (\"x\" . 2) (\"c\" . 3)))"
   :type '(alist :key-type (string :tag "Key") :value-type (integer :tag "Mouse button")))
 
 (defcustom acme-mode-no-warp-mouse nil

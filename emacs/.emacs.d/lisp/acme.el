@@ -25,19 +25,22 @@
 
 ;;; Commentary:
 
-;; Global minor mode for emulating the Plan 9 Acme interface.
+;; Global minor mode to emulate the Plan 9 Acme interface with some
+;; Emacs-specific adaptations.
 ;;
 ;; See http://acme.cat-v.org/mouse for more about the Acme mouse
 ;; interface.
 ;;
-;; For text execution, the following keywords are supported (those
-;; marked with [+] are not in Plan 9 Acme):
+;; For text execution, these keywords are supported (those marked with
+;; [+] are not in Plan 9 Acme and [-] have different behavior):
 ;;
-;; * Del (kill window but no the buffer)
+;; * Cut (cut selected buffer region into the kill-ring)
+;; * Del (kill window but not the buffer) [-]
 ;; * Delcol (deletes current column; note that Emacs has a notion of a
 ;;   window tree where each step changes combination direction between
 ;;   vertical and horizontal, so this actually deletes the nearest
-;;   ancestor vertical combination window)
+;;   ancestor vertical combination window) [-]
+;; * Delete (kill buffer and window) [-]
 ;; * Dir (set tag buffer `default-directory' to current buffer's) [+]
 ;; * Dump (if provided an arg that is a directory, calls `desktop-save'
 ;;   to save the desktop to that directory, or if no arg is provided
@@ -59,7 +62,9 @@
 ;;   direction between vertical and horizontal, so the new window
 ;;   column is actually the nearest ancestor non-vertical-combination
 ;;   window split horizontally with special handling when the selected
-;;   window displays the tag buffer)
+;;   window displays the tag buffer) [-]
+;; * Paste (if provided a numeric arg yank the arg-th kill-ring entry,
+;;   or if no arg provided then yank the first kill-ring entry)
 ;; * Put (save buffer)
 ;; * Putall (save all modified buffers)
 ;; * Redo (requires undo-tree-mode, takes an optional numeric argument
@@ -238,7 +243,15 @@
 ;;   to `markdown-enter-key')
 ;; * Dir, Rename and Spaces keywords
 ;; * Del keyword closes the window but not the buffer (in Plan 9 Acme,
-;;   when a file's last window is closed the file is closed too)
+;;   when a file's last window is closed the file is closed too if it
+;;   is not dirty)
+;; * Delete keyword kills the buffer and closes the window (this is
+;;   actually similar to Plan 9 Acme's Del keyword, whereas Delete in
+;;   Plan 9 Acme actually closes the window, and the file if the last
+;;   window for that file, without checking if the window is dirty)
+;; * Paste takes an optional argument to facilitate yanking entries
+;;   in the kill-ring other than the most recent one (in Plan 9 Acme,
+;;   there is no kill-ring and the snarf buffer only holds one entry)
 ;; * Redo and Undo optionally take integer arguments to repeat the
 ;;   action more than once
 ;; * Newcol and Delcol are attuned to how Emacs handles windows
@@ -262,14 +275,12 @@
 ;; Out-of-scope for now:
 ;;
 ;; * Edit (need to implement structural regexps)
-;; * Cut and Paste (use 1-2 and 1-3 chords)
-;; * Delete (keep to Emacs way of separating windows and buffers)
 ;; * Exit (close using the menubar or title bar close button)
 ;; * Font (use the menubar)
 ;; * ID (window IDs as strings are not helpful for the user)
 ;; * Kill (use `kill-process')
 ;; * Send (term implementations each have their own mechanism)
-;; * Sort (window management in Emacs is involved)
+;; * Sort (Emacs window management behaves differently from Acme's)
 ;;
 ;; Known bugs:
 ;;
@@ -297,7 +308,11 @@
 
 ;; Default command keywords
 (defvar acme-mode--builtin-command-keywords
-  '(("Del" . (lambda ()                 ; delete window but not buffer
+  '(("Cut" . (lambda ()
+               (if (region-active-p)
+                   (kill-region (mark) (point))
+                 (message "Cut command requires a selected buffer region."))))
+    ("Del" . (lambda ()          ; delete window but don't kill buffer
                (when (or (not (buffer-modified-p))
                          (or (acme-mode--tag-buffer-window-p)
                              (y-or-n-p "Buffer modified. Delete window anyway? ")))
@@ -315,6 +330,15 @@
                         (message "Not deleting column as there is only one in the window frame.")
                       (let ((parent-win (window-parent win)))
                         (delete-window win))))))
+    ("Delete" . (lambda ()             ; kill buffer and delete window
+                  (if (acme-mode--tag-buffer-window-p)
+                      (message "Tag buffer frames have to be killed manually using `kill-buffer' or \"C-x k\".")
+                    (when (or (not (buffer-modified-p))
+                              (y-or-n-p "Buffer modified. Kill buffer anyway? "))
+                      (let ((windows (seq-remove 'acme-mode--tag-buffer-window-p (window-list))))
+                        (if (> (length windows) 1)
+                            (kill-buffer-and-window)
+                          (kill-buffer)))))))
     ("Dir" . (lambda () (acme-mode-set-tag-buffer-default-directory-to-current)))
     ("Dump" . (lambda (&optional directory-path)
                 (let ((directory-path (or directory-path (car desktop-path))))
@@ -379,7 +403,8 @@
                     (when new-win
                       (select-window new-win)
                       (balance-windows (window-parent new-win))))))
-    ("Put" . (lambda () (save-buffer))) ; save buffer
+    ("Paste" . (lambda (&optional arg) (yank (when arg (string-to-number arg)))))
+    ("Put" . (lambda () (save-buffer)))          ; save buffer
     ("Putall" . (lambda () (save-some-buffers))) ; save all buffers
     ("Redo" . (lambda (&optional arg)
                 (if (fboundp 'undo-tree-redo)
@@ -391,7 +416,7 @@
                   (if (and file-name (> (length file-name) 0))
                       (acme-mode--rename-buffer-file file-name)
                     (message "Rename command requires a non-empty file name argument."))))
-    ("Snarf" . (lambda () ; copy selection into kill ring
+    ("Snarf" . (lambda ()              ; copy selection into kill ring
                  (if (region-active-p)
                      (progn (setq deactivate-mark nil)
                             (kill-ring-save (mark) (point)))
@@ -660,7 +685,7 @@ how to wrap/intercept commands bound to a given key in Emacs."
 
 ;;;###autoload
 (define-minor-mode acme-mode
-  "Acme mode, a global minor mode to replicate the Plan 9 Acme mouse interface.
+  "Global minor mode to emulate the Plan 9 Acme mouse interface.
 
 When called interactively, toggle `acme-mode'. With prefix ARG,
 enable `acme-mode' if ARG is positive, otherwise disable it.

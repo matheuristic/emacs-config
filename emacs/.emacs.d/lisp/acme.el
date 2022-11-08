@@ -615,13 +615,16 @@ Example:
 (defcustom acme-mode-exclude-major-modes '(compilation-mode
                                            completion-list-mode
                                            dired-mode
-                                           flymake-mode
+                                           flymake-diagnostics-buffer-mode
                                            ibuffer-mode
-                                           info-mode
+                                           Info-mode
                                            minibuffer-inactive-mode
                                            minibuffer-mode
-                                           occur-mode)
+                                           special-mode) ; help-mode and occur-mode are derived from special-mode
   "List of major modes for which to not use Acme mode mouse interace.
+
+Acme mode mouse mappings are also not used for any major modes derived
+from ones in this list.
 
 Leverages approach from https://emacs.stackexchange.com/a/59509
 for https://emacs.stackexchange.com/questions/59494 that shows
@@ -1408,7 +1411,7 @@ region (e.g., a click without dragging)."
 (defun acme-mode--down-mouse-1 (event)
   "Acme mode handler for left-button press EVENT."
   (interactive "e")
-  (cond ((member major-mode acme-mode-exclude-major-modes)
+  (cond ((apply 'derived-mode-p acme-mode-exclude-major-modes)
          (let ((acme-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -1446,7 +1449,7 @@ region (e.g., a click without dragging)."
 (defun acme-mode--double-mouse-1 (event)
   "Acme mode handler for double or triple left-click EVENT."
   (interactive "e")
-  (cond ((member major-mode acme-mode-exclude-major-modes)
+  (cond ((apply 'derived-mode-p acme-mode-exclude-major-modes)
          (let ((acme-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -1466,7 +1469,7 @@ region (e.g., a click without dragging)."
 (defun acme-mode--drag-mouse-1 (event)
   "Acme mode handler for left-button drag release EVENT."
   (interactive "e")
-  (cond ((member major-mode acme-mode-exclude-major-modes)
+  (cond ((apply 'derived-mode-p acme-mode-exclude-major-modes)
          (let ((acme-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -1485,7 +1488,7 @@ region (e.g., a click without dragging)."
 (defun acme-mode--down-mouse-2 (event)
   "Acme mode handler for middle-button press EVENT."
   (interactive "e")
-  (cond ((member major-mode acme-mode-exclude-major-modes)
+  (cond ((apply 'derived-mode-p acme-mode-exclude-major-modes)
          (let ((acme-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -1511,7 +1514,7 @@ region (e.g., a click without dragging)."
 (defun acme-mode--mouse-2 (event)
   "Acme mode handler for middle-button release EVENT."
   (interactive "e")
-  (cond ((member major-mode acme-mode-exclude-major-modes)
+  (cond ((apply 'derived-mode-p acme-mode-exclude-major-modes)
          (let ((acme-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -1531,7 +1534,7 @@ Specify a prefix ARG to insert a specific kill ring entry.
 For example, '<down-mouse-left> Control-u 3 <down-mouse-right>'
 will insert the 3rd most recent entry in the kill ring."
   (interactive "e\nP")
-  (cond ((member major-mode acme-mode-exclude-major-modes)
+  (cond ((apply 'derived-mode-p acme-mode-exclude-major-modes)
          (let ((acme-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t
@@ -1562,7 +1565,7 @@ will insert the 3rd most recent entry in the kill ring."
 (defun acme-mode--mouse-3 (event)
   "Acme mode handler for right-button release EVENT."
   (interactive "e")
-  (cond ((member major-mode acme-mode-exclude-major-modes)
+  (cond ((apply 'derived-mode-p acme-mode-exclude-major-modes)
          (let ((acme-mode nil))
            (call-interactively (key-binding (this-command-keys)))))
         (t

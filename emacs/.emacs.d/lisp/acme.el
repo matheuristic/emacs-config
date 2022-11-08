@@ -116,8 +116,8 @@
 ;; Recommended settings for above workflow, run after (require 'acme):
 ;;
 ;;   ;; mouse focus settings for better Acme mode tag buffer workflow
-;;   (setq mouse-autoselect-mode nil
-;;         focus-follows-mouse acme-mode-use-frames)
+;;   (setq mouse-autoselect-window nil
+;;         acme-mode-use-frames (not (null focus-focus-mouse)))
 ;;
 ;; On trackpads, clicks with modifier keys pressed can be used to
 ;; simulate middle- and right-clicks, and keyboard keys can be used to
@@ -145,6 +145,12 @@
 ;;   (setq acme-mode-plumbing-rules
 ;;         '(("https?://.*" . browse-url)
 ;;           (" *File \"[a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error))
+;;
+;; There is some support for using frames instead of window enabled by
+;; setting `acme-mode-use-frames' to t, but this is quite untested. It
+;; requires that the windowing system be set to focus follows mouse
+;; (otherwise the tag buffer frame does not work properly), and that
+;; `focus-focus-mouse' is appropriately set.
 ;;
 ;; Sample configuration:
 ;;
@@ -535,7 +541,14 @@ Examples:
 ;; CUSTOMIZATION VARIABLES
 
 (defcustom acme-mode-use-frames nil
-  "Use new frames instead of windows when popping to a tag file or plumbed file."
+  "Use new frames instead of windows when popping to a tag file or plumbed file.
+
+This should be enabled only if the windowing system is set to
+focus follows mouse. Additionally, `mouse-autoselect-window'
+should be set to nil and `focus-follows-mouse' is appropriate set
+to t or `auto-raise'.
+
+This is currently EXPERIMENTAL and quite untested."
   :type 'boolean)
 
 (defcustom acme-mode-plumbing-rules acme-mode-default-plumbing-rules

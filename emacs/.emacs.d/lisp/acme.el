@@ -1289,7 +1289,9 @@ And those that take an optional argument should have form:
                    (select-window win)))
                (with-current-buffer disp-buffer
                  (goto-char (point-max)))
-               (shell-command-on-region start end command disp-buffer nil))
+               (shell-command-on-region start end command disp-buffer nil)
+               (with-current-buffer disp-buffer
+                 (goto-char (point-max))))
               (t
                (unless (get-buffer-window disp-buffer)
                  (let ((win (selected-window)))
@@ -1297,7 +1299,9 @@ And those that take an optional argument should have form:
                    (select-window win)))
                (with-current-buffer disp-buffer
                  (goto-char (point-max)))
-               (shell-command command disp-buffer)))
+               (shell-command command disp-buffer)
+               (with-current-buffer disp-buffer
+                 (goto-char (point-max)))))
       (kill-buffer temp-buffer))))
 
 (defun acme-mode--execute (event &optional arg)

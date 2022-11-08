@@ -265,6 +265,9 @@
 ;;
 ;; * Redo is only supported when undo-tree-mode is enabled, see
 ;;   https://elpa.gnu.org/packages/undo-tree.html
+;; * Currently, there does not appear to be a way to keep the point
+;;   in the same location within the buffer (not the viewport) when
+;;   scrolling, see https://stackoverflow.com/a/72302778
 ;;
 ;; Maybe later:
 ;;

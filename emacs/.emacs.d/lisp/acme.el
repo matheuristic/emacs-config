@@ -876,13 +876,13 @@ the file window."
           (acme-mode--warp-mouse-to-point))
         t))))
 
-(defun acme-mode--find-file-or-search (seltext)
-  "Open SELTEXT if it is a file path, else search forward for next occurrence.
+(defun acme-mode--find-file-or-search (file-or-text)
+  "Open FILE-OR-TEXT if a file path, else search forward for next occurrence.
 
 When searching forward, the mouse is warped to the search result
 if one exists."
-  (or (acme-mode--find-file seltext acme-mode-no-warp-mouse)
-      (acme-mode--search seltext acme-mode-no-warp-mouse)))
+  (or (acme-mode--find-file file-or-text acme-mode-no-warp-mouse)
+      (acme-mode--search file-or-text acme-mode-no-warp-mouse)))
 
 (defun acme-mode--get-seltext (event thing)
   "Get text for plumbing based on EVENT, THING, and selections.
@@ -919,7 +919,7 @@ THING-at-point."
           (acme-mode--find-file-or-search text)))))
 
 (defun acme-mode--plumb-event (event)
-  "Plumb selected text or symbol at EVENT position."
+  "Plumb selected text or thing at EVENT position."
   (let ((seltext (acme-mode--get-seltext event 'filename)))
     (acme-mode--clear-secondary-selection)
     (acme-mode--plumb seltext)))
@@ -1023,7 +1023,7 @@ User command keywords are defined in `acme-mode-user-command-keywords'."
                  (if (>= (cdr (func-arity func)) 1)
                      (if (> (length arg) 0)
                          (funcall func arg)
-                       (message "Keyword `%s' called with empty argument."))
+                       (message "Keyword `%s' called with empty argument." keyword))
                    (message "Keyword `%s' function does not take an argument." keyword))
                  (funcall (cdr res) arg))))
         t))))
@@ -1063,10 +1063,10 @@ User command keywords are defined in `acme-mode-user-command-keywords'."
          (sleep-for 0.2)
          t)
         ((string-prefix-p "Dump " command)
-         (let ((seltext (string-trim (substring command 5))))
-           (if (> (length seltext) 0)
-               (desktop-save seltext)
-             (message "Dump desktop path is empty.")))
+         (let ((directory-path (string-trim (substring command 5))))
+           (if (> (length directory-path) 0)
+               (desktop-save directory-path)
+             (message "Dump desktop dir path is empty.")))
          (sleep-for 0.2)
          t)
         ((string-equal command "Get")
@@ -1102,10 +1102,10 @@ User command keywords are defined in `acme-mode-user-command-keywords'."
          (sleep-for 0.2)
          t)
         ((string-prefix-p "Load " command)
-         (let ((seltext (string-trim (substring command 5))))
-           (if (> (length seltext) 0)
-               (desktop-read seltext)
-             (message "Load desktop path is empty.")))
+         (let ((directory-path (string-trim (substring command 5))))
+           (if (> (length directory-path) 0)
+               (desktop-read directory-path)
+             (message "Load desktop dir path is empty.")))
          (sleep-for 0.2)
          t)
         ((string-equal command "Look")
@@ -1127,18 +1127,22 @@ User command keywords are defined in `acme-mode-user-command-keywords'."
          (sleep-for 0.2)
          t)
         ((string-prefix-p "New " command)
-         (let ((seltext (substring command 4))
+         (let ((file-name (substring command 4))
                (win (selected-window)))
-           (when (> (length seltext) 0)
-             (while (and win
-                         (acme-mode--tag-buffer-window-p win))
-               (setq win (window-next-sibling win)))
-             (when win
-               (let (new-win)
-                 (with-selected-window win
-                   (setq new-win (acme-mode--pop-file-window seltext acme-mode-use-frames)))
-                 (when new-win
-                   (select-window new-win))))))
+           (if (> (length file-name) 0)
+               (progn
+                 (while (and win
+                             (acme-mode--tag-buffer-window-p win))
+                   (setq win (window-next-sibling win)))
+                 (when win
+                   (let (new-win)
+                     (with-selected-window win
+                       (setq new-win (acme-mode--pop-file-window file-name acme-mode-use-frames)))
+                     (when new-win
+                       (select-window new-win)
+                       (unless acme-mode-no-warp-mouse
+                         (acme-mode--warp-mouse-to-point))))))
+             (message "New file name is empty.")))
          (sleep-for 0.2)
          t)
         ((string-equal command "Newcol") ; split horizontally on nearest ancestor vertical combination window
@@ -1168,10 +1172,10 @@ User command keywords are defined in `acme-mode-user-command-keywords'."
          (sleep-for 0.2)
          t)
         ((string-prefix-p "Rename " command)
-         (let ((seltext (string-trim (substring command 7))))
-           (if (> (length seltext) 0)
-               (acme-mode--rename-buffer-file seltext)
-             (message "New file name is empty.")))
+         (let ((file-name (string-trim (substring command 7))))
+           (if (> (length file-name) 0)
+               (acme-mode--rename-buffer-file file-name)
+             (message "Rename target file name is empty.")))
          (sleep-for 0.2)
          t)
         ((string-equal command "Snarf")
@@ -1218,7 +1222,11 @@ User command keywords are defined in `acme-mode-user-command-keywords'."
         ((string-equal command "Zerox")
          (if acme-mode-use-frames
              (make-frame-command)
-           (split-window-below))
+           (let ((new-win (split-window-below)))
+             (when new-win
+               (select-window new-win)
+               (unless acme-mode-no-warp-mouse
+                 (acme-mode--warp-mouse-to-point)))))
          (sleep-for 0.2)
          t)))
 

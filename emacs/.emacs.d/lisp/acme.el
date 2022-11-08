@@ -45,6 +45,7 @@
 ;; * Dump (if provided an arg that is a directory, calls `desktop-save'
 ;;   to save the desktop to that directory, or if no arg is provided
 ;;   saves the desktop to the first dir specified in `desktop-path')
+;; * Exit (quit Emacs)
 ;; * Get (revert the buffer to the saved version)
 ;; * Indent (needs to be called with an arg, which can be on or off to
 ;;   enable or disable `electric-indent-local-mode', or ON or OFF to
@@ -275,7 +276,6 @@
 ;; Out-of-scope for now:
 ;;
 ;; * Edit (need to implement structural regexps)
-;; * Exit (close using the menubar or title bar close button)
 ;; * Font (use the menubar)
 ;; * ID (window IDs as strings are not helpful for the user)
 ;; * Kill (use `kill-process')
@@ -347,6 +347,7 @@
                         (desktop-save directory-path)
                         (message "Saved desktop to directory `%s'" directory-path))
                     (message "Dump desktop dir path empty and none specified in `desktop-path'.")))))
+    ("Exit" . (lambda () (when (y-or-n-p "Quit Emacs? ") (save-buffers-kill-terminal))))
     ("Get" . (lambda () (revert-buffer)))
     ("Indent" . (lambda (&optional arg)
                   (if (and arg (> (length arg) 0))
@@ -633,7 +634,7 @@ how to wrap/intercept commands bound to a given key in Emacs."
   "Use a buffer per directory for Acme text execution shell output."
   :type 'boolean)
 
-(defcustom acme-mode-initial-tag-line "Dump Load Newcol Delcol Del Dir Snarf Get Undo Redo Put Zerox | Look "
+(defcustom acme-mode-initial-tag-line "Dump Load Exit | Newcol Delcol Del Dir Snarf Get Undo Redo Put Zerox | Look "
   "Initial tag line for new tag buffers."
   :type 'string)
 

@@ -38,10 +38,16 @@
 ;;   vertical and horizontal, so this actually deletes the nearest
 ;;   ancestor vertical combination window)
 ;; - Dir (set tag buffer `default-directory' to current buffer's) [*]
+;; - Dump (if provided an arg that is a directory, calls `desktop-save'
+;;   to save the desktop to that directory, or if no arg is provided
+;;   saves the desktop to the first dir specified in `desktop-path')
 ;; - Get (revert the buffer to the saved version)
 ;; - Indent (needs to be called with an arg, which can be on or off to
 ;;   enable or disable `electric-indent-local-mode', or ON or OFF to
 ;;   enable or disable `electric-indent-mode')
+;; - Load (if provided an arg that is a directory, calls `desktop-read'
+;;   to load the desktop from that directory, or if no arg is provided
+;;   loads the desktop from the first dir specified in `desktop-path')
 ;; - Look (search for next occurrence optional arguments, treated as
 ;;   literal search strings, or if no arg then the highlighted region
 ;;   or word at point)
@@ -104,6 +110,25 @@
 ;; `acme-mode-map' and customizing `acme-mode-keyboard-chord-keylist'
 ;; prior to enabling Acme mode (see sample configuration below).
 ;;
+;; Basic plumbing support is implemented, by specifying the
+;; `acme-mode-plumbing-rules' customization variable, whose value
+;; should be an associative list of the form
+;; '((REGEXP1 . FUNCTION1) (REGEXP2 . FUNCTION2) ...)
+;; where plumbed text is matched against the regular expressions
+;; and the first match will have its function called with the
+;; plumbed text. Should no regular expression in the associative
+;; list keys match the plumbed text, the plumbed text is checked
+;; to see if it is the path to an existing file and opened in a
+;; new buffer window if so, or used to do a forward search in the
+;; buffer otherwise. See the code for `acme-mode--plumb-python-error'
+;; and the definition of `acme-mode-default-plumbing-rules' for
+;; examples of plumbing regexps and functions. The default rules
+;; include plumbing website URLs and Python error locations. Example:
+;;
+;;   (setq acme-mode-plumbing-rules
+;;         '(("https?://.*" . browse-url)
+;;           (" *File \"[a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error))
+;;
 ;; Sample configuration:
 ;;
 ;;   (require 'acme)
@@ -112,8 +137,31 @@
 ;;     (setq acme-mode-use-frames nil
 ;;           acme-mode-per-dir-shell-output nil
 ;;           mouse-autoselect-window nil)
+;;     (setq acme-mode-user-command-keywords
+;;           '(("Commentcol" . (lambda (arg) (comment-set-column (string-to-number arg))))
+;;             ("Expand" . (lambda () (call-interactively 'er/expand-region)))          ; requires expand-region
+;;             ("Fillcol" . (lambda (&optional arg) (if arg (setq fill-column (string-to-number arg)) (setq fill-column 70))))
+;;             ("Fontlock" . (lambda () (call-interactively 'font-lock-mode)))
+;;             ("Imenu" . (lambda () (save-selected-window (imenu-list-smart-toggle)))) ; requires imenu-list
+;;             ("Lnumbers" . (lambda () (call-interactively 'display-line-numbers-mode)))))
+;;     (setq acme-mode-initial-tag-line (concat acme-mode-initial-tag-line "\n"
+;;                                              "Expand Fontlock Imenu Lnumbers Fillcol "))
+;;     (setq acme-mode-plumbing-rules
+;;           (append '(("^\\(gemini\\|gopher\\)://[^ |{};]*[^/]/?$" . (lambda (url) (elpher-go url))) ; requires elpher
+;;                     ("^PEP-?[0-9]+$" . (lambda (pep-line)
+;;                                          (save-match-data
+;;                                            (and (string-match "PEP-?\\([0-9]+\\)" pep-line)
+;;                                                 (acme-mode--plumb
+;;                                                  (concat "https://www.python.org/dev/peps/pep-"
+;;                                                          (format "%04d"
+;;                                                                  (string-to-number (match-string 1 pep-line)))
+;;                                                          "/")))))))
+;;                   acme-mode-plumbing-rules))
+;;     (push 'imenu-list-major-mode acme-mode-exclude-major-modes)
+;;     (push 'rg-mode acme-mode-exclude-major-modes)
 ;;     ;; Open tag buffer key binding
-;;     (define-key acme-mode-map [C-M-return] #'acme-mode-pop-tag-buffer)
+;;     (define-key acme-mode-map [C-s-return] #'acme-mode-pop-tag-buffer)
+;;     (define-key acme-mode-map [s-return] #'acme-mode-set-tag-buffer-default-directory-to-current)
 ;;     ;; Trackpad support
 ;;     (cond ((eq system-type 'darwin)
 ;;            ;; middle-click
@@ -154,26 +202,7 @@
 ;;     ;; enable `acme-mode'
 ;;     (acme-mode 1))
 ;;
-;; Basic plumbing support is implemented, by specifying the
-;; `acme-mode-plumbing-rules' customization variable, whose value
-;; should be an associative list of the form
-;; '((REGEXP1 . FUNCTION1) (REGEXP2 . FUNCTION2) ...)
-;; where plumbed text is matched against the regular expressions
-;; and the first match will have its function called with the
-;; plumbed text. Should no regular expression in the associative
-;; list keys match the plumbed text, the plumbed text is checked
-;; to see if it is the path to an existing file and opened in a
-;; new buffer window if so, or used to do a forward search in the
-;; buffer otherwise. See the code for `acme-mode--plumb-python-error'
-;; and the definition of `acme-mode-default-plumbing-rules' for
-;; examples of plumbing regexps and functions. The default rules
-;; include plumbing website URLs and Python error locations. Example:
-;;
-;;   (setq acme-mode-plumbing-rules
-;;         '(("https?://.*" . browse-url)
-;;           (" *File \"[a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error))
-;;
-;; Original chording and file finding code is from
+;; Originally based on chording and file finding code from
 ;; https://github.com/akrito/acme-mouse/blob/master/acme-mouse.el
 ;; (which incorporates code for Acme-like search from Dan McCarthy's
 ;; https://www.emacswiki.org/emacs/acme-search.el) that was adapted
@@ -217,7 +246,6 @@
 ;; - Edit (need to implement structural regexps)
 ;; - Cut and Paste (use 1-2 and 1-3 chords)
 ;; - Delete (keep to Emacs way of separating windows and buffers)
-;; - Dump and Load (use `desktop-save' and `desktop-load-file')
 ;; - Exit (close using the menubar or title bar close button)
 ;; - Font (use the menubar)
 ;; - ID (window IDs as strings are not helpful for the user)
@@ -236,6 +264,7 @@
 ;;; Code:
 
 (require 'cl-extra)
+(require 'desktop)
 (require 'ring)
 (require 'subr-x)
 
@@ -249,13 +278,13 @@
 
 ;; Default plumbing rules
 (defvar acme-mode-default-plumbing-rules
-  '(("https?://.*" . browse-url)
+  '(("^https?://[^ ]*$" . browse-url)
     ;; Python error locations
-    (" *File \"[~a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error)
+    ("^ *File \"[~a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error)
     ;; EPUB files (open generically)
-    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Ee][Pp][Uu][Bb]" . acme-mode--plumb-file-system-open)
+    ("^[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Ee][Pp][Uu][Bb]$" . acme-mode--plumb-file-system-open)
     ;; PDF files (open generically)
-    ("[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Pp][Dd][Ff]" . acme-mode--plumb-file-system-open))
+    ("^[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Pp][Dd][Ff]$" . acme-mode--plumb-file-system-open))
   "Default plumbing rules for Acme mode.
 
 See `acme-mode-plumbing-rules'.")
@@ -332,6 +361,50 @@ If there is no key that regexp-matches the plumbed string, it
 is instead dispatched to `acme-mode--find-file-or-search'."
   :type '(alist :key-type (string :tag "Key") :value-type (function :tag "Value")))
 
+(defcustom acme-mode-user-command-keywords nil
+  "Association list ((KEYWORD . FUNCTION) ...) of user-defined command keywords.
+
+When executing text, if the first word of the text matches
+a key in this association list, the corresponding function
+is called with the appropriate arity:
+
+* If the text has only one word (i.e., the keyword) then FUNCTION
+  is called with no arguments, that is, (FUNCTION) is called.
+
+* If the text has more than one word, then FUNCTION is called
+  with the substring of the text after the first word and
+  whitespace as an argument, that is (FUNCTION ARG) is called.
+  E.g., if the text is \"abc def ghi\" then (abc \"def ghi\") is
+  called.
+
+Functions that take no arguments should have form:
+  (lambda () body)
+
+Those must take an argument should have form:
+  (lambda (arg) body)
+
+And those that take an optional argument should have form:
+  (lambda (&optional arg) body)
+
+Command keywords in this association list take precedence over
+the built-in command keywords, so the keywords in the latter
+group by be shadowed by user-defined ones as desired.
+
+Example:
+
+  (setq acme-mode-user-command-keywords
+        '((\"Commentcol\" . (lambda (arg)
+                              (comment-set-column (string-to-number arg))))
+          (\"Fillcol\" . (lambda (&optional arg)
+                            (if arg
+                                (setq fill-column (string-to-number arg))
+                              (setq fill-column 70))))
+          (\"Fontlock\" . (lambda ()
+                            (call-interactively 'font-lock-mode)))
+          (\"Lnumbers\" . (lambda ()
+                            (call-interactively 'display-line-numbers-mode)))))"
+  :type '(alist :key-type (string :tag "Key") :value-type (function :tag "Value")))
+
 (defcustom acme-mode-keyboard-chord-keylist '(("z" . 1) ("x" . 2) ("c" . 3))
   "List of (KEY MOUSEBUTTON) pairs to specify keyboard chord keys.
 
@@ -343,13 +416,15 @@ will trigger a press-down and release of its associated MOUSEBUTTON."
   "Don't warp the mouse when searching and opening files by plumbing in Acme mode."
   :type 'boolean)
 
-(defcustom acme-mode-exclude-major-modes '(completion-list-mode
+(defcustom acme-mode-exclude-major-modes '(compilation-mode
+                                           completion-list-mode
                                            dired-mode
                                            flymake-mode
                                            ibuffer-mode
                                            info-mode
                                            minibuffer-inactive-mode
-                                           minibuffer-mode)
+                                           minibuffer-mode
+                                           occur-mode)
   "List of major modes for which to not use Acme mode mouse interace.
 
 Leverages approach from https://emacs.stackexchange.com/a/59509
@@ -365,6 +440,10 @@ how to wrap/intercept commands bound to a given key in Emacs."
 (defcustom acme-mode-per-dir-shell-output nil
   "Use a buffer per directory for Acme text execution shell output."
   :type 'boolean)
+
+(defcustom acme-mode-initial-tag-line "Dump Load Newcol Delcol Del Dir Snarf Get Undo Redo Put Zerox | Look "
+  "Initial tag line for new tag buffers."
+  :type 'string)
 
 ;; MODE DEFINITIONS AND FUNCTIONS
 
@@ -630,28 +709,25 @@ To hide the tag buffer after, right-click on its modeline if it
 is in a frame with two windows or more, or close the frame if it
 occupies a frame by itself."
   (interactive "P")
-  (let* ((this-frame (selected-frame))
-         (this-win (selected-window))
-         (buffer-name (concat acme-mode-tag-buffer-name
+  (let* ((buffer-name (concat acme-mode-tag-buffer-name
                               (when (integerp arg)
                                 (concat "<" (number-to-string arg) ">"))))
          (maybe-buffer (get-buffer buffer-name))
          (buffer (or maybe-buffer
                      (generate-new-buffer buffer-name))))
-    ;; Pop tag buffer in a small window and dedicate it to the tag buffer
-    (let ((tag-win (acme-mode--pop-buffer-window buffer
-                                                 acme-mode-use-frames
-                                                 -3
-                                                 'above
-                                                 (frame-root-window))))
-      (unless (window-dedicated-p tag-win)
-        (set-window-dedicated-p tag-win t)))
-    ;; Insert base tag keywords for new tag buffers
-    (unless maybe-buffer
-      (with-current-buffer buffer
-        (insert "Newcol Delcol Del Dir Snarf Get Undo Redo Put Zerox | Look ")))
-    (when (eq this-frame (selected-frame))
-      (select-window this-win))))
+    (save-selected-window
+      ;; Pop tag buffer in a small window and dedicate it to the tag buffer
+      (let ((tag-win (acme-mode--pop-buffer-window buffer
+                                                   acme-mode-use-frames
+                                                   -3
+                                                   'above
+                                                   (frame-root-window))))
+        (unless (window-dedicated-p tag-win)
+          (set-window-dedicated-p tag-win t)))
+      ;; Insert base tag keywords for new tag buffers
+      (unless maybe-buffer
+        (with-current-buffer buffer
+          (insert acme-mode-initial-tag-line))))))
 
 (defun acme-mode--tag-buffer-window-p (&optional window)
   "Return t if the current window displays a tag buffer, else nil.
@@ -677,15 +753,15 @@ specifically numbered tag buffer instead of the generic one."
     (cond (tag-buffer
            (with-current-buffer tag-buffer
              (setq default-directory directory)
-             (message (concat "Set default-directory to '"
+             (message (concat "Set default-directory to `"
                               directory
-                              "' in tag buffer '"
+                              "' in tag buffer `"
                               tag-buffer-name
                               "'"))))
           (t
-           (message (concat "Tag buffer "
+           (message (concat "Tag buffer `"
                             tag-buffer-name
-                            " does not exist"))))))
+                            "' does not exist"))))))
 
 (defun acme-mode--shell-output-buffer ()
   "Get the output buffer for displaying shell execution output."
@@ -833,16 +909,20 @@ THING-at-point."
                (mouse-set-point restorepointevent)
                seltext))))))
 
-(defun acme-mode--plumb (event)
+(defun acme-mode--plumb (text)
+  "Plumb TEXT."
+  (when text
+      ;; See https://emacs.stackexchange.com/questions/69743/use-regex-as-key-car-in-alist
+      (let ((res (assoc text acme-mode-plumbing-rules 'string-match-p)))
+        (if res
+            (funcall (cdr res) text)
+          (acme-mode--find-file-or-search text)))))
+
+(defun acme-mode--plumb-event (event)
   "Plumb selected text or symbol at EVENT position."
   (let ((seltext (acme-mode--get-seltext event 'filename)))
     (acme-mode--clear-secondary-selection)
-    (when seltext
-      ;; See https://emacs.stackexchange.com/questions/69743/use-regex-as-key-car-in-alist
-      (let ((res (assoc seltext acme-mode-plumbing-rules 'string-match-p)))
-        (if res
-            (funcall (cdr res) seltext)
-          (acme-mode--find-file-or-search seltext))))))
+    (acme-mode--plumb seltext)))
 
 (defun acme-mode--pop-new-column ()
   "Pop open a new column. Used for Newcol keyword."
@@ -912,22 +992,44 @@ Return value is non-nil if renaming was done, and nil if not."
   (let* ((current-buffer-name (buffer-name))
          (current-file-name (buffer-file-name)))
     (cond ((not current-file-name)
-           (message "Buffer '%s' is not a file buffer" current-buffer-name)
+           (message "Buffer `%s' is not a file buffer" current-buffer-name)
            nil)
           ((buffer-modified-p)
-           (message "Buffer '%s' file is modified, save before renaming" current-buffer-name)
+           (message "Buffer `%s' file is modified, save before renaming" current-buffer-name)
            nil)
           ((file-exists-p file-name)
-           (message "Target file '%s' already exists" file-name))
+           (message "Target file `%s' already exists" file-name))
           (t
            (rename-file current-file-name file-name nil)
            (set-visited-file-name file-name)
            (set-buffer-modified-p nil)
-           (message "Renamed file to '%s'" (buffer-file-name))
+           (message "Renamed file to `%s'" (buffer-file-name))
            t))))
 
-(defun acme-mode--execute-special-command (command)
-  "Acme mode executor for special COMMAND keywords."
+(defun acme-mode--execute-user-command-keyword (command)
+  "Acme mode executor for user COMMAND keywords.
+
+User command keywords are defined in `acme-mode-user-command-keywords'."
+  (let* ((keyword (car (split-string command)))
+         (res (assoc keyword acme-mode-user-command-keywords)))
+    (when res
+      (let ((func (cdr res)))
+        (cond ((string-equal command keyword)
+               (if (= (car (func-arity func)) 0)
+                   (funcall func)
+                 (message "Keyword `%s' function requires an argument." keyword)))
+              (t                      ; command has more characters than keyword
+               (let ((arg (substring command (1+ (length keyword)))))
+                 (if (>= (cdr (func-arity func)) 1)
+                     (if (> (length arg) 0)
+                         (funcall func arg)
+                       (message "Keyword `%s' called with empty argument."))
+                   (message "Keyword `%s' function does not take an argument." keyword))
+                 (funcall (cdr res) arg))))
+        t))))
+
+(defun acme-mode--execute-builtin-command-keyword (command)
+  "Acme mode executor for built-in COMMAND keywords."
   (cond ((string-equal command "Del")   ; delete window but not buffer
          (when (or (not (buffer-modified-p))
                    (y-or-n-p "Buffer modified. Delete window anyway? "))
@@ -949,6 +1051,22 @@ Return value is non-nil if renaming was done, and nil if not."
          t)
         ((string-equal command "Dir")
          (acme-mode-set-tag-buffer-default-directory-to-current)
+         (sleep-for 0.2)
+         t)
+        ((string-equal command "Dump")
+         (let ((directory-path (car desktop-path)))
+           (if directory-path
+               (progn
+                 (desktop-save directory-path)
+                 (message "Saved desktop to directory `%s'" directory-path))
+             (message "No directory paths specified in `desktop-path'.")))
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "Dump " command)
+         (let ((seltext (string-trim (substring command 5))))
+           (if (> (length seltext) 0)
+               (desktop-save seltext)
+             (message "Dump desktop path is empty.")))
          (sleep-for 0.2)
          t)
         ((string-equal command "Get")
@@ -974,6 +1092,22 @@ Return value is non-nil if renaming was done, and nil if not."
                     (electric-indent-mode 0))))
            (sleep-for 0.2)
            t))
+        ((string-equal command "Load")
+         (let ((directory-path (car desktop-path)))
+           (if directory-path
+               (progn
+                 (desktop-read directory-path)
+                 (message "Loaded desktop from directory `%s'" directory-path))
+             (message "No directory paths specified in `desktop-path'.")))
+         (sleep-for 0.2)
+         t)
+        ((string-prefix-p "Load " command)
+         (let ((seltext (string-trim (substring command 5))))
+           (if (> (length seltext) 0)
+               (desktop-read seltext)
+             (message "Load desktop path is empty.")))
+         (sleep-for 0.2)
+         t)
         ((string-equal command "Look")
          (let ((event (list 'mouse-3 (posn-at-point))))
            (let ((seltext (acme-mode--get-seltext event 'filename)))
@@ -1088,11 +1222,16 @@ Return value is non-nil if renaming was done, and nil if not."
          (sleep-for 0.2)
          t)))
 
+(defun acme-mode--execute-command-keyword (command)
+  "Acme mode executor for COMMAND keywords."
+  (or (acme-mode--execute-user-command-keyword command)
+      (acme-mode--execute-builtin-command-keyword command)))
+
 (defun acme-mode--execute-dispatch (command)
   "Acme mode dispatcher for executing a given COMMAND."
   ;; Priority order: special command, execute in an external shell
   (let ((command (string-trim command)))
-    (unless (acme-mode--execute-special-command command)
+    (unless (acme-mode--execute-command-keyword command)
       (let* ((seltext (acme-mode--get-active-region-text))
              (end (point))
              (start (if seltext (mark) end))
@@ -1267,7 +1406,8 @@ region (e.g., a click without dragging)."
              (cond ((eq acme-mode--state 'textselect)
                     (setq deactivate-mark nil)
                     (mouse-set-point event)
-                    (setq transient-mark-mode (cons 'only t))
+                    (unless transient-mark-mode
+                      (setq transient-mark-mode (cons 'only t)))
                     (acme-mode--update-argtext)))
            (acme-mode--maybe-reset-state)))))
 
@@ -1286,7 +1426,8 @@ region (e.g., a click without dragging)."
                     (setq deactivate-mark nil)
                     (mouse-set-point event)
                     (acme-mode--select-region)
-                    (setq transient-mark-mode (cons 'only t))
+                    (unless transient-mark-mode
+                      (setq transient-mark-mode (cons 'only t)))
                     (acme-mode--update-argtext)))
            (acme-mode--maybe-reset-state)))))
 
@@ -1304,7 +1445,8 @@ region (e.g., a click without dragging)."
              (cond ((eq acme-mode--state 'textselect)
                     (setq deactivate-mark nil)
                     (mouse-set-region event)
-                    (setq transient-mark-mode (cons 'only t))
+                    (unless transient-mark-mode
+                      (setq transient-mark-mode (cons 'only t)))
                     (acme-mode--update-argtext)))
            (acme-mode--maybe-reset-state)))))
 
@@ -1397,7 +1539,7 @@ will insert the 3rd most recent entry in the kill ring."
          (acme-mode--button-up acme-mode--rbutton)
          (unwind-protect
              (cond ((eq acme-mode--state 'textselect3)
-                    (acme-mode--plumb event)))
+                    (acme-mode--plumb-event event)))
            (acme-mode--maybe-reset-state)))))
 
 ;; PLUMBING FUNCTIONS

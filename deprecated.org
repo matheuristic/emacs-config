@@ -6441,6 +6441,28 @@ There are two modes:
       (prism-blend color "white" 0.5))))
 #+end_src
 
+** Pulse modified region                                              :melpa:
+
+[[https://github.com/minad/goggles][goggles.el]] provides a minor mode that pulses modified buffer regions.
+
+#+name: goggles
+#+begin_src emacs-lisp
+;; pulse modified region
+(use-package goggles
+  :init (setq goggles-pulse-delay 0.07)
+  :config
+  (goggles-mode) ; enable mode
+  (add-to-list 'my-mode-lighter-abbrev-alist '(goggles-mode . ""))) ; hide mode line lighter
+#+end_src
+
+*** init.el tangle code
+
+Add to tangle code for ~init.el~
+
+#+begin_src emacs-lisp
+<<goggles>>
+#+end_src
+
 * Web
 
 ** Browsing

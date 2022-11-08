@@ -2,7 +2,7 @@
 
 ;; Author: matheuristic
 ;; URL: https://github.com/matheuristic/emacs-config
-;; Generated: Mon Nov  7 18:04:38 2022
+;; Generated: Mon Nov  7 22:36:06 2022
 
 ;;; Commentary:
 
@@ -1664,13 +1664,6 @@ Formatting a selected region only works on top-level objects."
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
-
-;; pulse modified region
-(use-package goggles
-  :init (setq goggles-pulse-delay 0.07)
-  :config
-  (goggles-mode) ; enable mode
-  (add-to-list 'my-mode-lighter-abbrev-alist '(goggles-mode . ""))) ; hide mode line lighter
 
 ;; add internal frame border
 (add-to-list 'default-frame-alist

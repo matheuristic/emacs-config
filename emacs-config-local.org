@@ -453,18 +453,39 @@ if [ "$INSIDE_EMACS" = "vterm" ]
 end
 #+end_example
 
-* Acme mouse emulation
+* Acme interface emulation
 
-Emulate Acme mouse behavior.
+Emulate Acme user interface.
 
 #+begin_src emacs-lisp
-;; emulate Acme mouse interface (buttons 1, 2, 3; chords 1-2, 1-3, 2-1)
+;; emulate Acme interface
 (with-eval-after-load 'acme
-  ;; customize options
-  (setq acme-mode-use-frames nil
-        acme-mode-per-dir-shell-output nil)
+  (setq acme-mode-no-warp-mouse t)
+  (setq acme-mode-user-command-keywords
+        '(("Commentcol" . (lambda (arg) (comment-set-column (string-to-number arg))))
+          ("Expand" . (lambda () (call-interactively 'er/expand-region))) ; requires expand-region
+          ("Fillcol" . (lambda (&optional arg) (if arg (setq fill-column (string-to-number arg)) (setq fill-column 70))))
+          ("Fontlock" . (lambda () (call-interactively 'font-lock-mode)))
+          ("Imenu" . (lambda () (save-selected-window (imenu-list-smart-toggle)))) ; requires imenu-list
+          ("Lnumbers" . (lambda () (call-interactively 'display-line-numbers-mode)))))
+  (setq acme-mode-initial-tag-line (concat acme-mode-initial-tag-line "\n"
+                                           "Expand Fontlock Imenu Lnumbers Fillcol "))
+  (setq acme-mode-plumbing-rules
+        (append '(("^\\(gemini\\|gopher\\)://[^ |{};]*[^/]/?$" . (lambda (url) (elpher-go url))) ; requires elpher
+                  ("^PEP-?[0-9]+$" . (lambda (pep-line)
+                                     (save-match-data
+                                       (and (string-match "PEP-?\\([0-9]+\\)" pep-line)
+                                            (acme-mode--plumb
+                                             (concat "https://www.python.org/dev/peps/pep-"
+                                                     (format "%04d"
+                                                             (string-to-number (match-string 1 pep-line)))
+                                                     "/")))))))
+                acme-mode-plumbing-rules))
+  (push 'imenu-list-major-mode acme-mode-exclude-major-modes)
+  (push 'rg-mode acme-mode-exclude-major-modes)
   ;; open tag buffer key binding
-  (define-key acme-mode-map [C-M-return] #'acme-mode-pop-tag-buffer)
+  (define-key acme-mode-map [C-s-return] #'acme-mode-pop-tag-buffer)
+  (define-key acme-mode-map [s-return] #'acme-mode-set-tag-buffer-default-directory-to-current)
   ;; trackpad support
   (cond ((eq system-type 'darwin)
          ;; middle-click

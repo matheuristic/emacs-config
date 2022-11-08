@@ -3486,6 +3486,14 @@ Have Imenu automatically rescan whenever the content changes.
 (setq imenu-auto-rescan t)
 #+end_src
 
+Something like the following can be configured to automatically add an
+Imenu-based index to the menu bar for specific modes, replacing
+~some-mode-hook~ as appropriate:
+
+#+begin_src emacs-lisp
+(add-hook 'some-mode-hook 'imenu-add-menubar-index)
+#+end_src
+
 *** Imenu extension to all open buffers using imenu-anywhere          :melpa:
 
 [[https://github.com/vspinu/imenu-anywhere][imenu-anywhere]] provides an Imenu extension that lists major
@@ -3650,20 +3658,6 @@ Show matching parentheses while editing without delay.
 ;; show matching parentheses with no delay
 (setq show-paren-delay 0)
 (show-paren-mode 1)
-#+end_src
-
-** Pulse modified region                                              :melpa:
-
-[[https://github.com/minad/goggles][goggles.el]] provides a minor mode that pulses modified buffer regions.
-
-#+name: goggles
-#+begin_src emacs-lisp
-;; pulse modified region
-(use-package goggles
-  :init (setq goggles-pulse-delay 0.07)
-  :config
-  (goggles-mode) ; enable mode
-  (add-to-list 'my-mode-lighter-abbrev-alist '(goggles-mode . ""))) ; hide mode line lighter
 #+end_src
 
 ** Add frame internal border
@@ -7073,8 +7067,6 @@ The main configuration file.
 <<show-column-number>>
 
 <<show-matching-parentheses>>
-
-<<goggles>>
 
 <<add-frame-internal-border>>
 

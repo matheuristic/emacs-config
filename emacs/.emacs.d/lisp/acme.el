@@ -633,7 +633,8 @@ Example:
                                            Info-mode
                                            minibuffer-inactive-mode
                                            minibuffer-mode
-                                           special-mode) ; help-mode and occur-mode are derived from special-mode
+                                           special-mode ; help-mode and occur-mode are derived from special-mode
+                                           undo-tree-visualizer-mode)
   "List of major modes for which to not use Acme mode mouse interace.
 
 Acme mode mouse mappings are also not used for any major modes derived

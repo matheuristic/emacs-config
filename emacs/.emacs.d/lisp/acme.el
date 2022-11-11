@@ -417,10 +417,11 @@
     ("Put" . (lambda () (save-buffer)))          ; save buffer
     ("Putall" . (lambda () (save-some-buffers))) ; save all buffers
     ("Redo" . (lambda (&optional arg)
-                (if (fboundp 'undo-tree-redo)
+                (if (and (boundp 'undo-tree-mode) undo-tree-mode)
                     (progn
                       (deactivate-mark)
-                      (undo-tree-redo (when arg (string-to-number arg))))
+                      (and (fboundp 'undo-tree-redo)
+                           (undo-tree-redo (when arg (string-to-number arg)))))
                   (message "Redo is supported only when undo-tree-mode is enabled."))))
     ("Rename" . (lambda (&optional file-name)
                   (if (and file-name (> (length file-name) 0))
@@ -457,10 +458,11 @@
                      (message "Tab width set to `%s'" arg))
                  (message "Tab command requires a integer argument."))))
     ("Undo" . (lambda (&optional arg)
-                (if (fboundp 'undo-tree-undo)
+                (if (and (boundp 'undo-tree-mode) undo-tree-mode)
                     (progn
                       (deactivate-mark)
-                      (undo-tree-undo (when arg (string-to-number arg))))
+                      (and (fboundp 'undo-tree-undo)
+                           (undo-tree-undo (when arg (string-to-number arg)))))
                   (undo-only (string-to-number arg)))))
     ("Zerox" . (lambda ()
                  (if acme-mode-use-frames
@@ -537,6 +539,11 @@ Examples:
 
 (defvar acme-mode--prior-transient-mark-mode nil
   "Whether Transient Mark mode was enabled prior to Acme mode.")
+
+(defvar acme-mode--textselect-cut-or-paste-first nil
+  "Whether cut or paste action was done first during current textselect.
+
+Possible values: 'cut or 'paste or nil")
 
 ;; CUSTOMIZATION VARIABLES
 
@@ -1433,6 +1440,7 @@ region (e.g., a click without dragging)."
          (acme-mode--button-down acme-mode--lbutton)
          (cond ((eq acme-mode--state 'noselect)
                 (setq acme-mode--state 'textselect)
+                (setq acme-mode--textselect-cut-or-paste-first nil)
                 (mouse-set-mark event)
                 (acme-mode--make-keyboard-chord-transient-map)
                 (mouse-drag-region event))
@@ -1514,12 +1522,19 @@ region (e.g., a click without dragging)."
                 (acme-mode--mouse-drag-secondary event))
                ((eq acme-mode--state 'textselect)
                 (setq acme-mode--state 'textselect-cut)
+                (setq acme-mode--textselect-cut-or-paste-first 'cut)
                 (mouse-set-point event)
                 (acme-mode--select-region)
                 (kill-region (mark) (point)))
                ((eq acme-mode--state 'textselect-paste)
                 (setq acme-mode--state 'textselect-cut)
-                (call-interactively 'undo))
+                (if (and (boundp 'undo-tree-mode) undo-tree-mode)
+                    (progn
+                      (cond ((eq acme-mode--textselect-cut-or-paste-first 'cut)
+                             (and (fboundp 'undo-tree-redo) (undo-tree-redo)))
+                            ((eq acme-mode--textselect-cut-or-paste-first 'paste)
+                             (and (fboundp 'undo-tree-undo) (undo-tree-undo)))))
+                  (call-interactively 'undo)))
                ((eq acme-mode--state 'textselect3)
                 (acme-mode--clear-secondary-selection)
                 (setq acme-mode--state 'donothing))))))
@@ -1560,6 +1575,7 @@ will insert the 3rd most recent entry in the kill ring."
                 (acme-mode--mouse-drag-secondary event))
                ((eq acme-mode--state 'textselect)
                 (setq acme-mode--state 'textselect-paste)
+                (setq acme-mode--textselect-cut-or-paste-first 'paste)
                 (mouse-set-point event)
                 (acme-mode--select-region)
                 (delete-region (mark) (point))
@@ -1568,7 +1584,12 @@ will insert the 3rd most recent entry in the kill ring."
                 (activate-mark))
                ((eq acme-mode--state 'textselect-cut)
                 (setq acme-mode--state 'textselect-paste)
-                (call-interactively 'undo)
+                (if (and (boundp 'undo-tree-mode) undo-tree-mode)
+                    (cond ((eq acme-mode--textselect-cut-or-paste-first 'cut)
+                           (and (fboundp 'undo-tree-undo) (undo-tree-undo)))
+                          ((eq acme-mode--textselect-cut-or-paste-first 'paste)
+                           (and (fboundp 'undo-tree-redo) (undo-tree-redo))))
+                  (call-interactively 'undo))
                 (set-mark acme-mode--region-start)
                 (goto-char acme-mode--region-end))
                ((eq acme-mode--state 'textselect2)

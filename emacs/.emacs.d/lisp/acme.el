@@ -26,7 +26,31 @@
 ;;; Commentary:
 
 ;; Global minor mode to emulate the Plan 9 Acme interface with some
-;; Emacs-specific adaptations.
+;; Emacs-specific adaptations. When the mode is enabled, the following
+;; modes of operation are supported.
+;;
+;; Keyboard bindings:
+;; * C-S-f will complete file names (like C-f in Plan 9 Acme)
+;; * C-escape will cut the selected text into the kill-ring (i.e., the
+;;   snarf buffer), or if there is no selection it will select just
+;;   inserted text if that was the most recent text operation (like
+;;   escape in Plan 9 Acme)
+;;
+;; Mouse bindings:
+;; * Button-1 (normally left-click) selects
+;; * Button-2 (normally middle-click) will execute selected text or
+;;   the word under the mouse cursor if no text is selected
+;; * Button-3 (normally right-click) will plumb the selected text or
+;;   word at the mouse cursor according to `acme-mode-plumbing-rules'.
+;;   If the text does it not match any plumbing rules it will open a
+;;   file if it is the path of an existing file, else it will search
+;;   for the next occurrence of the text (for more info, see
+;;   http://doc.cat-v.org/plan_9/4th_edition/papers/plumb)
+;; * 1-2 chord (press and hold button-1, then press button-2) will
+;;   cut selected text into the kill-ring (i.e., the snarf buffer)
+;; * 1-3 chord will paste the newest entry from the kill-ring
+;; * 2-1 chord will execute selected text or the word under the mouse
+;;   cursor with the last selected text region as an argument
 ;;
 ;; See http://acme.cat-v.org/mouse for more about the Acme mouse
 ;; interface.
@@ -759,7 +783,7 @@ how to wrap/intercept commands bound to a given key in Emacs."
     ;; file name completion (like C-f in Plan 9 Acme)
     (define-key map (kbd "C-S-f") #'acme-mode--complete-file-name)
     ;; select last insertion (like ESC in Plan 9 Acme)
-    (define-key map [C-escape] #'acme-mode--select-insertion-if-last)
+    (define-key map [C-escape] #'acme-mode--kill-region-or-select-last-insertion)
     ;; left-click
     (define-key map [down-mouse-1] #'acme-mode--down-mouse-1)
     (define-key map [mouse-1] #'acme-mode--mouse-1)
@@ -1550,19 +1574,24 @@ mode is enabled."
       (setq acme-mode--last-non-tag-buffer-window
             (ring-remove acme-mode--older-non-tag-buffer-window-ring 0)))))
 
-(defun acme-mode--select-insertion-if-last ()
-  "Select region that is the newest insertion if it's the last text operation."
+(defun acme-mode--kill-region-or-select-last-insertion ()
+  "Kill selected region or select newest inserted text if no region is selected.
+
+Note that the newest inserted text is selected only if it was
+the last text operation."
   (interactive)
-  (let ((reg (catch 'exit-loop
-               (dolist (op buffer-undo-list)
-                 (when op               ; skip nil entries
-                   (if (and (number-or-marker-p (car op))
-                            (number-or-marker-p (cdr op)))
-                       (throw 'exit-loop op)
-                     (throw 'exit-loop nil)))))))
-    (when reg
-      (set-mark (car reg))
-      (goto-char (cdr reg)))))
+  (if (region-active-p)
+      (kill-region (mark) (point))
+    (let ((reg (catch 'exit-loop
+                 (dolist (op buffer-undo-list)
+                   (when op             ; skip nil entries
+                     (if (and (number-or-marker-p (car op))
+                              (number-or-marker-p (cdr op)))
+                         (throw 'exit-loop op)
+                       (throw 'exit-loop nil)))))))
+      (when reg
+        (set-mark (car reg))
+        (goto-char (cdr reg))))))
 
 ;; MOUSE FUNCTIONS
 

@@ -35,13 +35,16 @@
 ;; [+] are not in Plan 9 Acme and [-] have different behavior):
 ;;
 ;; * Cut (cut selected buffer region into the kill-ring)
-;; * Del (kill window but not the buffer) [-]
+;; * Del (kill window but not the buffer, except for eshell buffers
+;;   where it will also kill the buffer) [-]
 ;; * Delcol (deletes current column; note that Emacs has a notion of a
 ;;   window tree where each step changes combination direction between
 ;;   vertical and horizontal, so this actually deletes the nearest
 ;;   ancestor vertical combination window) [-]
 ;; * Delete (kill buffer and window) [-]
-;; * Dir (set tag buffer `default-directory' to current buffer's) [+]
+;; * Dir (set tag buffer `default-directory' to current buffer's,
+;;   mainly useful for using Emacs commands instead of button 3 text
+;;   execution from the tag buffer) [+]
 ;; * Dump (if provided an arg that is a directory, calls `desktop-save'
 ;;   to save the desktop to that directory, or if no arg is provided
 ;;   saves the desktop to the first dir specified in `desktop-path')
@@ -89,6 +92,13 @@
 ;; * Executing ",|tr '[abc]' '[123]'" to change all a, b and c chars
 ;;   in the buffer to 1, 2 and 3 will not work.
 ;;
+;; Some Plan 9 programs designed to work with Acme are implemented as
+;; command keywords here:
+;;
+;; * win (create new window and run an interactive shell, can be
+;;   called with an argument which will additionally run the given
+;;   argument as a command in the shell)
+;;
 ;; There is a limited tag implementation, in the form of a global tag
 ;; buffer that can be opened with the minor mode menu or by calling
 ;; `acme-mode-pop-buffer' (optionally with a prefix numeric argument
@@ -98,20 +108,17 @@
 ;; designed to be used in the following manner: select a target window
 ;; (where the operations are to be applied) and click or highlight in
 ;; in it as needed, then mouse 2 (execute) or mouse 3 (search) a word
-;; or highlighted region in the global tag buffer without selecting
-;; its window to the apply the corresponding operation on the selected
-;; window. For example, if text "abcdef" is selected in a file window
-;; and after that "|sed -e 's/abc/123/g'" is executed in a tag buffer
-;; without selecting the tag buffer, then the text "abcdef" is changed
-;; to "123def". To 2-1 chord in the tag buffer but apply the operation
-;; on another selected window, highlight the argument text in the tag
-;; buffer, then select the target window by clicking on its _modeline_
-;; (important so argument text is not reset), then 2-1 chord the tag
-;; buffer keyword without selecting the tag buffer. Note that the
-;; above behavior holds for any buffer. It is just the tag buffer is
-;; more convenient (easy to open, transient and sized appropriately).
-;; For this particular workflow to work, `mouse-autoselect-window'
-;; should be set to nil.
+;; or highlighted region in the global tag buffer to the apply the
+;; corresponding operation on the selected window if run without
+;; selecting the tag buffer, or on the last selected non-tag buffer if
+;; the tag buffer is not selected. For example, if text "abcdef" is
+;; selected in a file window and after that "|sed -e 's/abc/123/g'" is
+;; executed in a tag buffer without selecting the tag buffer, then the
+;; text "abcdef" is changed to "123def". As another example, if text
+;; "xyz123" is selected in a file window, then a tag buffer is
+;; selected and "|sed -e 's/xyz/abc/g'" is executed, the text "xyz123"
+;; in the file window is changed to "abc123". There is no per-file
+;; tag like in Plan 9 Acme.
 ;;
 ;; Recommended settings for above workflow, run after (require 'acme):
 ;;
@@ -164,11 +171,12 @@
 ;;           '(("Commentcol" . (lambda (arg) (comment-set-column (string-to-number arg))))
 ;;             ("Expand" . (lambda () (call-interactively 'er/expand-region)))          ; requires expand-region
 ;;             ("Fillcol" . (lambda (&optional arg) (if arg (setq fill-column (string-to-number arg)) (setq fill-column 70))))
+;;             ("Fillpar" . (lambda () (call-interactively 'fill-paragraph)))
 ;;             ("Fontlock" . (lambda () (call-interactively 'font-lock-mode)))
 ;;             ("Imenu" . (lambda () (save-selected-window (imenu-list-smart-toggle)))) ; requires imenu-list
 ;;             ("Lnumbers" . (lambda () (call-interactively 'display-line-numbers-mode)))))
 ;;     (setq acme-mode-initial-tag-line (concat acme-mode-initial-tag-line "\n"
-;;                                              "Expand Fontlock Imenu Lnumbers Fillcol "))
+;;                                              "Expand (Fillcol 70) Fillpar Fontlock Imenu Lnumbers win"))
 ;;     (setq acme-mode-plumbing-rules
 ;;           (append '(("^\\(gemini\\|gopher\\)://[^ |{};]*[^/]/?$" . (lambda (url) (elpher-go url))) ; requires elpher
 ;;                     ("^PEP-?[0-9]+$" . (lambda (pep-line)
@@ -264,6 +272,8 @@
 ;; * Newcol and Delcol are attuned to how Emacs handles windows
 ;;   in frames, which is not the same as Plan 9 Acme which
 ;;   groups windows into columns
+;; * win always drops the user back into a shell (in Plan 9 this
+;;   program when given an argument does not use an interactive shell)
 ;; * No drag-and-drop to move or reorder windows
 ;; * Many others, in all likelihood
 ;;
@@ -318,37 +328,48 @@
 ;; Default command keywords
 (defvar acme-mode--builtin-command-keywords
   '(("Cut" . (lambda ()
-               (if (region-active-p)
-                   (kill-region (mark) (point))
-                 (message "Cut command requires a selected buffer region."))))
+               (acme-mode--with-last-non-tag-buffer-window
+                (if (region-active-p)
+                    (kill-region (mark) (point))
+                  (message "Cut command requires a selected buffer region.")))))
     ("Del" . (lambda ()          ; delete window but don't kill buffer
-               (when (or (not (buffer-modified-p))
-                         (or (acme-mode--tag-buffer-window-p)
-                             (y-or-n-p "Buffer modified. Delete window anyway? ")))
-                 (let ((windows (seq-remove 'acme-mode--tag-buffer-window-p (window-list))))
-                   (if (> (length windows) 1)
-                       (delete-window)
-                     (message "Cannot delete dedicated tag buffer frame or only non-tag buffer window."))))))
+               (acme-mode--with-last-non-tag-buffer-window
+                (when (or (not (buffer-modified-p))
+                          (or (acme-mode--tag-buffer-window-p)
+                              (y-or-n-p "Buffer modified. Delete window anyway? ")))
+                  (let ((eshell-buffer-p (eq major-mode 'eshell-mode))
+                        (windows (seq-remove 'acme-mode--tag-buffer-window-p (window-list))))
+                    (if (> (length windows) 1)
+                        (progn
+                          (when eshell-buffer-p
+                            (and (y-or-n-p "Window buffer is an eshell buffer. Kill it along with its window? ")
+                                 (kill-buffer)))
+                          (delete-window))
+                      (message "Cannot delete dedicated tag buffer frame or only non-tag buffer window.")))))))
     ("Delcol" . (lambda ()
-                  (let ((root (frame-root-window))
-                        (win (selected-window)))
-                    (while (and (not (eq win root))
-                                (not (window-combined-p win t)))
-                      (setq win (window-parent win)))
-                    (if (eq win root)
-                        (message "Not deleting column as there is only one in the window frame.")
-                      (let ((parent-win (window-parent win)))
-                        (delete-window win))))))
+                  (acme-mode--with-last-non-tag-buffer-window
+                   (let ((root (frame-root-window))
+                         (win (selected-window)))
+                     (while (and (not (eq win root))
+                                 (not (window-combined-p win t)))
+                       (setq win (window-parent win)))
+                     (if (eq win root)
+                         (message "Not deleting column as there is only one in the window frame.")
+                       (let ((parent-win (window-parent win)))
+                         (delete-window win)))))))
     ("Delete" . (lambda ()             ; kill buffer and delete window
-                  (if (acme-mode--tag-buffer-window-p)
-                      (message "Tag buffer frames have to be killed manually using `kill-buffer' or \"C-x k\".")
-                    (when (or (not (buffer-modified-p))
-                              (y-or-n-p "Buffer modified. Kill buffer anyway? "))
-                      (let ((windows (seq-remove 'acme-mode--tag-buffer-window-p (window-list))))
-                        (if (> (length windows) 1)
-                            (kill-buffer-and-window)
-                          (kill-buffer)))))))
-    ("Dir" . (lambda () (acme-mode-set-tag-buffer-default-directory-to-current)))
+                  (acme-mode--with-last-non-tag-buffer-window
+                   (if (acme-mode--tag-buffer-window-p)
+                       (message "Tag buffer frames have to be killed manually using `kill-buffer' or \"C-x k\".")
+                     (when (or (not (buffer-modified-p))
+                               (y-or-n-p "Buffer modified. Kill buffer anyway? "))
+                       (let ((windows (seq-remove 'acme-mode--tag-buffer-window-p (window-list))))
+                         (if (> (length windows) 1)
+                             (kill-buffer-and-window)
+                           (kill-buffer))))))))
+    ("Dir" . (lambda ()
+               (acme-mode--with-last-non-tag-buffer-window
+                (acme-mode-set-tag-buffer-default-directory-to-current))))
     ("Dump" . (lambda (&optional directory-path)
                 (let ((directory-path (or directory-path (car desktop-path))))
                   (if (and directory-path (> (length directory-path) 0))
@@ -357,26 +378,27 @@
                         (message "Saved desktop to directory `%s'" directory-path))
                     (message "Dump desktop dir path empty and none specified in `desktop-path'.")))))
     ("Exit" . (lambda () (when (y-or-n-p "Quit Emacs? ") (save-buffers-kill-terminal))))
-    ("Get" . (lambda () (revert-buffer)))
+    ("Get" . (lambda () (acme-mode--with-last-non-tag-buffer-window (revert-buffer))))
     ("Indent" . (lambda (&optional arg)
-                  (if (and arg (> (length arg) 0))
-                      (cond ((string-equal arg "on")
-                             (electric-indent-local-mode 1)
-                             (message "Indent set to `%s'" arg))
-                            ((string-equal arg "ON")
-                             (electric-indent-local-mode 1)
-                             (electric-indent-mode 1)
-                             (message "Indent set to `%s'" arg))
-                            ((string-equal arg "off")
-                             (electric-indent-local-mode 0)
-                             (message "Indent set to `%s'" arg))
-                            ((string-equal arg "OFF")
-                             (electric-indent-local-mode 0)
-                             (electric-indent-mode 0)
-                             (message "Indent set to `%s'" arg))
-                            (t
-                             (message "Insert command argument `%s' unknown." arg)))
-                    (message "Indent command requires an argument (on, off, ON or OFF)."))))
+                  (acme-mode--with-last-non-tag-buffer-window
+                   (if (and arg (> (length arg) 0))
+                       (cond ((string-equal arg "on")
+                              (electric-indent-local-mode 1)
+                              (message "Indent set to `%s'" arg))
+                             ((string-equal arg "ON")
+                              (electric-indent-local-mode 1)
+                              (electric-indent-mode 1)
+                              (message "Indent set to `%s'" arg))
+                             ((string-equal arg "off")
+                              (electric-indent-local-mode 0)
+                              (message "Indent set to `%s'" arg))
+                             ((string-equal arg "OFF")
+                              (electric-indent-local-mode 0)
+                              (electric-indent-mode 0)
+                              (message "Indent set to `%s'" arg))
+                             (t
+                              (message "Insert command argument `%s' unknown." arg)))
+                     (message "Indent command requires an argument (on, off, ON or OFF).")))))
     ("Load" . (lambda (&optional directory-path)
                 (let ((directory-path (or directory-path (car desktop-path))))
                   (if (and directory-path (> (length directory-path) 0))
@@ -385,93 +407,126 @@
                         (message "Loaded desktop from directory `%s'" directory-path))
                     (message "Load desktop dir path empty and none specified in `desktop-path'.")))))
     ("Look" . (lambda (&optional text)
-                (unless text
-                  (let* ((event (list 'mouse-3 (posn-at-point)))
-                         (seltext (acme-mode--get-seltext event 'filename)))
-                    (acme-mode--clear-secondary-selection)
-                    (setq text seltext)))
-                (if (and text (> (length text) 0))
-                    (acme-mode--search text t)
-                  (message "Look argument empty or nothing at point."))))
+                (acme-mode--with-last-non-tag-buffer-window
+                 (unless text
+                   (let* ((event (list 'mouse-3 (posn-at-point)))
+                          (seltext (acme-mode--get-seltext event 'filename)))
+                     (acme-mode--clear-secondary-selection)
+                     (setq text seltext)))
+                 (if (and text (> (length text) 0))
+                     (acme-mode--search text t)
+                   (message "Look argument empty or nothing at point.")))))
     ("New" . (lambda (&optional file-name)
                (if (and file-name (> (length file-name) 0))
-                   (let ((win (selected-window)))
-                     (while (and win
-                                 (acme-mode--tag-buffer-window-p win))
-                       (setq win (window-next-sibling win)))
-                     (when win
-                       (let (new-win)
-                         (with-selected-window win
-                           (setq new-win (acme-mode--pop-file-window file-name acme-mode-use-frames)))
-                         (when new-win
-                           (select-window new-win)
-                           (unless acme-mode-no-warp-mouse
-                             (acme-mode--warp-mouse-to-point))))))
-                 (message "New command requires a non-empty file name argument."))))
-    ("Newcol" . (lambda () ; split horizontally on nearest ancestor vertical combination window
-                  (let ((new-win (acme-mode--pop-new-column)))
-                    (when new-win
-                      (select-window new-win)
-                      (balance-windows (window-parent new-win))))))
-    ("Paste" . (lambda (&optional arg) (yank (when arg (string-to-number arg)))))
-    ("Put" . (lambda () (save-buffer)))          ; save buffer
-    ("Putall" . (lambda () (save-some-buffers))) ; save all buffers
-    ("Redo" . (lambda (&optional arg)
-                (if (and (boundp 'undo-tree-mode) undo-tree-mode)
-                    (progn
-                      (deactivate-mark)
-                      (and (fboundp 'undo-tree-redo)
-                           (undo-tree-redo (when arg (string-to-number arg)))))
-                  (message "Redo is supported only when undo-tree-mode is enabled."))))
-    ("Rename" . (lambda (&optional file-name)
-                  (if (and file-name (> (length file-name) 0))
-                      (acme-mode--rename-buffer-file file-name)
-                    (message "Rename command requires a non-empty file name argument."))))
-    ("Snarf" . (lambda ()              ; copy selection into kill ring
-                 (if (region-active-p)
-                     (progn (setq deactivate-mark nil)
-                            (kill-ring-save (mark) (point)))
-                   (message "Snarf command requires a selected buffer region."))))
-    ("Spaces" . (lambda (&optional arg)
-                  (if (and arg (> (length arg) 0))
-                      (cond ((string-equal arg "on")
-                             (setq indent-tabs-mode nil)
-                             (message "Spaces set to `%s'" arg))
-                            ((string-equal arg "ON")
-                             (setq indent-tabs-mode nil)
-                             (setq-default indent-tabs-mode nil)
-                             (message "Spaces set to `%s'" arg))
-                            ((string-equal arg "off")
-                             (setq indent-tabs-mode t)
-                             (message "Spaces set to `%s'" arg))
-                            ((string-equal arg "OFF")
-                             (setq indent-tabs-mode t)
-                             (setq-default indent-tabs-mode nil)
-                             (message "Spaces set to `%s'" arg))
-                            (t
-                             (message "Spaces command argument `%s' unknown." arg)))
-                    (message "Spaces command requires an argument (on, off, ON or OFF)."))))
-    ("Tab" . (lambda (&optional arg)
-               (if (and arg (> (length arg) 0))
-                   (progn
-                     (setq tab-width (string-to-number arg))
-                     (message "Tab width set to `%s'" arg))
-                 (message "Tab command requires a integer argument."))))
-    ("Undo" . (lambda (&optional arg)
-                (if (and (boundp 'undo-tree-mode) undo-tree-mode)
-                    (progn
-                      (deactivate-mark)
-                      (and (fboundp 'undo-tree-undo)
-                           (undo-tree-undo (when arg (string-to-number arg)))))
-                  (undo-only (string-to-number arg)))))
-    ("Zerox" . (lambda ()
-                 (if acme-mode-use-frames
-                     (make-frame-command)
-                   (let ((new-win (split-window-below)))
+                   (let (new-win)
+                     (acme-mode--with-last-non-tag-buffer-window
+                      (let ((win (selected-window)))
+                        ;; If calling from tag, open shell from the last non-tag buffer window
+                        (when (acme-mode--tag-buffer-window-p win)
+                          (setq win acme-mode--last-non-tag-buffer-window))
+                        (with-selected-window win
+                          (setq new-win (acme-mode--pop-file-window file-name acme-mode-use-frames)))))
                      (when new-win
                        (select-window new-win)
                        (unless acme-mode-no-warp-mouse
-                         (acme-mode--warp-mouse-to-point))))))))
+                         (acme-mode--warp-mouse-to-point))))
+                 (message "New command requires a non-empty file name argument."))))
+    ("Newcol" . (lambda () ; split horizontally on nearest ancestor vertical combination window
+                  (let (new-win)
+                    (acme-mode--with-last-non-tag-buffer-window
+                     (setq new-win (acme-mode--pop-new-column)))
+                    (when new-win
+                      (select-window new-win)
+                      (balance-windows (window-parent new-win))))))
+    ("Paste" . (lambda (&optional arg)
+                 (acme-mode--with-last-non-tag-buffer-window
+                  (yank (when arg (string-to-number arg))))))
+    ("Put" . (lambda ()                 ; save buffer
+               (acme-mode--with-last-non-tag-buffer-window
+                (save-buffer))))
+    ("Putall" . (lambda () (save-some-buffers))) ; save all buffers
+    ("Redo" . (lambda (&optional arg)
+                (acme-mode--with-last-non-tag-buffer-window
+                 (if (and (boundp 'undo-tree-mode) undo-tree-mode)
+                     (progn
+                       (deactivate-mark)
+                       (and (fboundp 'undo-tree-redo)
+                            (undo-tree-redo (when arg (string-to-number arg)))))
+                   (message "Redo is supported only when undo-tree-mode is enabled.")))))
+    ("Rename" . (lambda (&optional file-name)
+                  (acme-mode--with-last-non-tag-buffer-window
+                   (if (and file-name (> (length file-name) 0))
+                       (acme-mode--rename-buffer-file file-name)
+                     (message "Rename command requires a non-empty file name argument.")))))
+    ("Snarf" . (lambda ()              ; copy selection into kill ring
+                 (acme-mode--with-last-non-tag-buffer-window
+                  (if (region-active-p)
+                      (progn (setq deactivate-mark nil)
+                             (kill-ring-save (mark) (point)))
+                    (message "Snarf command requires a selected buffer region.")))))
+    ("Spaces" . (lambda (&optional arg)
+                  (acme-mode--with-last-non-tag-buffer-window
+                   (if (and arg (> (length arg) 0))
+                       (cond ((string-equal arg "on")
+                              (setq indent-tabs-mode nil)
+                              (message "Spaces set to `%s'" arg))
+                             ((string-equal arg "ON")
+                              (setq indent-tabs-mode nil)
+                              (setq-default indent-tabs-mode nil)
+                              (message "Spaces set to `%s'" arg))
+                             ((string-equal arg "off")
+                              (setq indent-tabs-mode t)
+                              (message "Spaces set to `%s'" arg))
+                             ((string-equal arg "OFF")
+                              (setq indent-tabs-mode t)
+                              (setq-default indent-tabs-mode nil)
+                              (message "Spaces set to `%s'" arg))
+                             (t
+                              (message "Spaces command argument `%s' unknown." arg)))
+                     (message "Spaces command requires an argument (on, off, ON or OFF).")))))
+    ("Tab" . (lambda (&optional arg)
+               (acme-mode--with-last-non-tag-buffer-window
+                (if (and arg (> (length arg) 0))
+                    (progn
+                      (setq tab-width (string-to-number arg))
+                      (message "Tab width set to `%s'" arg))
+                  (message "Tab command requires a integer argument.")))))
+    ("Undo" . (lambda (&optional arg)
+                (acme-mode--with-last-non-tag-buffer-window
+                 (if (and (boundp 'undo-tree-mode) undo-tree-mode)
+                     (progn
+                       (deactivate-mark)
+                       (and (fboundp 'undo-tree-undo)
+                            (undo-tree-undo (when arg (string-to-number arg)))))
+                   (undo-only (string-to-number arg))))))
+    ("Zerox" . (lambda ()
+                 (let (new-win)
+                   (acme-mode--with-last-non-tag-buffer-window
+                    (if acme-mode-use-frames
+                        (make-frame-command)
+                      (setq new-win (split-window-below))))
+                   (when new-win
+                     (select-window new-win)
+                     (unless acme-mode-no-warp-mouse
+                       (acme-mode--warp-mouse-to-point))))))
+    ("win" . (lambda (&optional arg)
+               (let (shell-buf win)
+                 (acme-mode--with-last-non-tag-buffer-window
+                  (save-window-excursion
+                    (setq shell-buf (eshell t)))
+                  ;; If calling from tag, open shell from the last non-tag buffer window
+                  (when (acme-mode--tag-buffer-window-p win)
+                    (setq win acme-mode--last-non-tag-buffer-window))
+                  (setq win (acme-mode--pop-buffer-window shell-buf acme-mode-use-frames nil 'below win)))
+                 (when win
+                   (select-window win)
+                   (unless acme-mode-no-warp-mouse
+                     (acme-mode--warp-mouse-to-point))
+                   (when arg
+                     (with-current-buffer shell-buf
+                       (eshell-return-to-prompt)
+                       (insert arg)
+                       (eshell-send-input))))))))
   "Default command keywords association list for Acme mode.")
 
 ;; Default plumbing rules
@@ -539,6 +594,14 @@ Examples:
 
 (defvar acme-mode--prior-transient-mark-mode nil
   "Whether Transient Mark mode was enabled prior to Acme mode.")
+
+(defvar acme-mode--last-non-tag-buffer-window nil
+  "Last non-tag buffer window selected.")
+
+(defvar acme-mode--older-non-tag-buffer-window-ring (make-ring 16)
+  "Selected non-tag buffer windows previous to the last.
+
+Used mainly for chained Del text executions from the tag buffer.")
 
 (defvar acme-mode--textselect-cut-or-paste-first nil
   "Whether cut or paste action was done first during current textselect.
@@ -661,7 +724,7 @@ how to wrap/intercept commands bound to a given key in Emacs."
   "Use a buffer per directory for Acme text execution shell output."
   :type 'boolean)
 
-(defcustom acme-mode-initial-tag-line "Dump Load Exit | Newcol Delcol Del Dir Snarf Get Undo Redo Put Zerox | Look "
+(defcustom acme-mode-initial-tag-line "Dump Load Exit | Newcol Delcol Del Snarf Get Undo Redo Put Zerox | Look "
   "Initial tag line for new tag buffers."
   :type 'string)
 
@@ -679,17 +742,24 @@ how to wrap/intercept commands bound to a given key in Emacs."
         acme-mode--buttons acme-mode--nobuttons
         acme-mode--region-start nil
         acme-mode--last-mouse-event nil
-        acme-mode--argtext nil))
+        acme-mode--argtext nil)
+  (add-hook 'post-command-hook 'acme-mode--update-last-non-tag-buffer-window)
+  (acme-mode--update-last-non-tag-buffer-window))
 
 (defun acme-mode--disable ()
   "Teardown for Acme mode."
-  (delete-selection-mode acme-mode--prior-delete-selection-mode)
+  (remove-hook 'post-command-hook 'acme-mode--update-last-non-tag-buffer-window)
   (setq highlight-nonselected-windows acme-mode--prior-highlight-nonselected-windows)
-  (transient-mark-mode acme-mode--prior-transient-mark-mode))
+  (transient-mark-mode acme-mode--prior-transient-mark-mode)
+  (delete-selection-mode acme-mode--prior-delete-selection-mode))
 
 ;; See https://emacs.stackexchange.com/questions/64964/difference-between-mouse-1-and-down-mouse-1
 (defvar acme-mode-map
   (let ((map (make-sparse-keymap)))
+    ;; file name completion (like C-f in Plan 9 Acme)
+    (define-key map (kbd "C-S-f") #'acme-mode--complete-file-name)
+    ;; select last insertion (like ESC in Plan 9 Acme)
+    (define-key map [C-escape] #'acme-mode--select-insertion-if-last)
     ;; left-click
     (define-key map [down-mouse-1] #'acme-mode--down-mouse-1)
     (define-key map [mouse-1] #'acme-mode--mouse-1)
@@ -737,6 +807,18 @@ nil or positive. If ARG is `toggle', toggle `acme-mode'.
     (acme-mode--disable)))
 
 ;; HELPER FUNCTIONS
+
+(defmacro acme-mode--with-last-non-tag-buffer-window (&rest body)
+  "Execute forms in BODY with the last non-tag buffer as the selected window.
+The value returned is the value of the last form in BODY.
+
+This macro is otherwise similar to `with-selected-window', most
+notably that after the forms in BODY are run, the selected window
+is set back to the window and buffer at the time of calling."
+  `(let ((non-tagbuf-win (if (acme-mode--tag-buffer-window-p)
+                           acme-mode--last-non-tag-buffer-window
+                         (selected-window))))
+     (with-selected-window non-tagbuf-win ,@body)))
 
 (defun acme-mode--down-p (&rest buttons)
   "Check `acme-mode-buttons' if exactly the given BUTTONS are pressed."
@@ -936,14 +1018,18 @@ occupies a frame by itself."
          (buffer (or maybe-buffer
                      (generate-new-buffer buffer-name))))
     (save-selected-window
-      ;; Pop tag buffer in a small window and dedicate it to the tag buffer
-      (let ((tag-win (acme-mode--pop-buffer-window buffer
-                                                   acme-mode-use-frames
-                                                   -3
-                                                   'above
-                                                   (frame-root-window))))
+      ;; Pop tag buffer in a small window, dedicate it to the tag buffer,
+      ;; and preserve its size
+      (let* ((tag-height 3)
+             (tag-win (acme-mode--pop-buffer-window buffer
+                                                    acme-mode-use-frames
+                                                    (- tag-height)
+                                                    'above
+                                                    (frame-root-window))))
         (unless (window-dedicated-p tag-win)
-          (set-window-dedicated-p tag-win t)))
+          (set-window-dedicated-p tag-win t))
+        (unless (window-preserved-size tag-win nil)
+          (window-preserve-size tag-win nil t)))
       ;; Insert base tag keywords for new tag buffers
       (unless maybe-buffer
         (with-current-buffer buffer
@@ -1276,57 +1362,61 @@ And those that take an optional argument should have form:
 
 (defun acme-mode--execute-command-shell (command)
   "Acme mode dispatcher for executing a given COMMAND in an external shell."
-  (let* ((command (string-trim command))
-         (seltext (acme-mode--get-active-region-text))
-         (end (point))
-         (start (if seltext (mark) end))
-         (command-type (cond ((string-prefix-p "<" command) 'insert)
-                             ((string-prefix-p "|" command) 'replace)
-                             ((string-prefix-p ">" command) 'pipe)
-                             (t nil)))
-         (command (if command-type
-                      (string-trim (substring command 1))
-                    command))
-         ;; Append to instead of overwriting output buffer
-         (shell-command-dont-erase-buffer t)
-         ;; Make sure shell command output does resize the minibuffer
-         (max-mini-window-height 0.01)
-         ;; Shell output display buffer
-         (disp-buffer (acme-mode--shell-output-buffer))
-         ;; Use a temp buffer to cache output for insert or replace region
-         (temp-buffer (generate-new-buffer "*Acme mode temp buffer*")))
-    (unwind-protect
-        (cond ((eq command-type 'insert)
-               (when seltext
-                 (let ((left (min start end))
-                       (right (max start end)))
-                   (setq start left)
-                   (setq end right)))
-               (delete-region start end)
-               (shell-command-on-region start start command temp-buffer t disp-buffer t))
-              ((eq command-type 'replace)
-               (shell-command-on-region start end command temp-buffer t disp-buffer t))
-              ((eq command-type 'pipe)
-               (unless (get-buffer-window disp-buffer)
-                 (let ((win (selected-window)))
-                   (acme-mode-pop-shell-output-buffer disp-buffer)
-                   (select-window win)))
-               (with-current-buffer disp-buffer
-                 (goto-char (point-max)))
-               (shell-command-on-region start end command disp-buffer nil)
-               (with-current-buffer disp-buffer
-                 (goto-char (point-max))))
-              (t
-               (unless (get-buffer-window disp-buffer)
-                 (let ((win (selected-window)))
-                   (acme-mode-pop-shell-output-buffer disp-buffer)
-                   (select-window win)))
-               (with-current-buffer disp-buffer
-                 (goto-char (point-max)))
-               (shell-command command disp-buffer)
-               (with-current-buffer disp-buffer
-                 (goto-char (point-max)))))
-      (kill-buffer temp-buffer))))
+  (let ((win (if (acme-mode--tag-buffer-window-p)
+                 acme-mode--last-non-tag-buffer-window
+               (selected-window))))
+    (with-selected-window win
+      (let* ((command (string-trim command))
+             (seltext (acme-mode--get-active-region-text))
+             (end (point))
+             (start (if seltext (mark) end))
+             (command-type (cond ((string-prefix-p "<" command) 'insert)
+                                 ((string-prefix-p "|" command) 'replace)
+                                 ((string-prefix-p ">" command) 'pipe)
+                                 (t nil)))
+             (command (if command-type
+                          (string-trim (substring command 1))
+                        command))
+             ;; Append to instead of overwriting output buffer
+             (shell-command-dont-erase-buffer t)
+             ;; Make sure shell command output does resize the minibuffer
+             (max-mini-window-height 0.01)
+             ;; Shell output display buffer
+             (disp-buffer (acme-mode--shell-output-buffer))
+             ;; Use a temp buffer to cache output for insert or replace region
+             (temp-buffer (generate-new-buffer "*Acme mode temp buffer*")))
+        (unwind-protect
+            (cond ((eq command-type 'insert)
+                   (when seltext
+                     (let ((left (min start end))
+                           (right (max start end)))
+                       (setq start left)
+                       (setq end right)))
+                   (delete-region start end)
+                   (shell-command-on-region start start command temp-buffer t disp-buffer t))
+                  ((eq command-type 'replace)
+                   (shell-command-on-region start end command temp-buffer t disp-buffer t))
+                  ((eq command-type 'pipe)
+                   (unless (get-buffer-window disp-buffer)
+                     (let ((win (selected-window)))
+                       (acme-mode-pop-shell-output-buffer disp-buffer)
+                       (select-window win)))
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max)))
+                   (shell-command-on-region start end command disp-buffer nil)
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max))))
+                  (t
+                   (unless (get-buffer-window disp-buffer)
+                     (let ((win (selected-window)))
+                       (acme-mode-pop-shell-output-buffer disp-buffer)
+                       (select-window win)))
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max)))
+                   (shell-command command disp-buffer)
+                   (with-current-buffer disp-buffer
+                     (goto-char (point-max)))))
+          (kill-buffer temp-buffer))))))
 
 (defun acme-mode--execute (event &optional arg)
   "Execute selected text or sexp at EVENT posn, with optional ARG."
@@ -1425,6 +1515,54 @@ region (e.g., a click without dragging)."
               'SECONDARY
               (buffer-substring (overlay-start mouse-secondary-overlay)
                                 (overlay-end mouse-secondary-overlay))))))))))
+
+(defun acme-mode--complete-file-name ()
+  "File name completion at point.
+
+Used to emulate Plan 9 Acme Control-f file name completion when Acme
+mode is enabled."
+  (interactive)
+  (let ((completion-at-point-functions (list 'comint-filename-completion)))
+    (call-interactively 'completion-at-point)))
+
+(defun acme-mode--update-last-non-tag-buffer-window ()
+  "Update `acme-mode--last-non-tag-buffer-window' if current buffer is not a tag buffer."
+  (let ((win (selected-window)))
+    (unless (or (not (window-live-p win))
+                (acme-mode--tag-buffer-window-p win)
+                (eq acme-mode--last-non-tag-buffer-window win)
+                (window-minibuffer-p win))
+      (when acme-mode--last-non-tag-buffer-window
+        (ring-insert acme-mode--older-non-tag-buffer-window-ring
+                     acme-mode--last-non-tag-buffer-window))
+      ;; Remove current window from older selected non-tag buffer
+      ;; window ring, if present
+      (let ((remove-idx
+             (cl-some
+              (lambda (k)
+                (and (eq (ring-ref acme-mode--older-non-tag-buffer-window-ring k) win) k))
+              (number-sequence 0 (1- (ring-length acme-mode--older-non-tag-buffer-window-ring))))))
+        (when remove-idx
+          (ring-remove acme-mode--older-non-tag-buffer-window-ring remove-idx)))
+      (setq acme-mode--last-non-tag-buffer-window win))
+    (while (and (not (window-live-p acme-mode--last-non-tag-buffer-window))
+                (not (ring-empty-p acme-mode--older-non-tag-buffer-window-ring)))
+      (setq acme-mode--last-non-tag-buffer-window
+            (ring-remove acme-mode--older-non-tag-buffer-window-ring 0)))))
+
+(defun acme-mode--select-insertion-if-last ()
+  "Select region that is the newest insertion if it's the last text operation."
+  (interactive)
+  (let ((reg (catch 'exit-loop
+               (dolist (op buffer-undo-list)
+                 (when op               ; skip nil entries
+                   (if (and (number-or-marker-p (car op))
+                            (number-or-marker-p (cdr op)))
+                       (throw 'exit-loop op)
+                     (throw 'exit-loop nil)))))))
+    (when reg
+      (set-mark (car reg))
+      (goto-char (cdr reg)))))
 
 ;; MOUSE FUNCTIONS
 

@@ -141,14 +141,20 @@
 ;; text "abcdef" is changed to "123def". As another example, if text
 ;; "xyz123" is selected in a file window, then a tag buffer is
 ;; selected and "|sed -e 's/xyz/abc/g'" is executed, the text "xyz123"
-;; in the file window is changed to "abc123". There is no per-file
-;; tag like in Plan 9 Acme.
+;; in the file window is changed to "abc123". There is no per-file tag
+;; like in Plan 9 Acme.
+
+;; When tag buffer windows are created by `acme-mode-pop-tag-buffer',
+;; they are fixed to a height of 3 lines. If more lines are desired,
+;; resize them using the menu by dragging the its modeline, then call
+;; `acme-mode-pop-tag-buffer' again (using the minor mode menu or M-x
+;; or some binding) to fix the height to the new size.
 ;;
-;; Recommended settings for above workflow, run after (require 'acme):
+;; Recommended settings for the above tag workflow:
 ;;
 ;;   ;; mouse focus settings for better Acme mode tag buffer workflow
 ;;   (setq mouse-autoselect-window nil
-;;         acme-mode-use-frames (not (null focus-focus-mouse)))
+;;         acme-mode-use-frames (not (null focus-follows-mouse)))
 ;;
 ;; On trackpads, clicks with modifier keys pressed can be used to
 ;; simulate middle- and right-clicks, and keyboard keys can be used to
@@ -198,9 +204,14 @@
 ;;             ("Fillpar" . (lambda () (call-interactively 'fill-paragraph)))
 ;;             ("Fontlock" . (lambda () (call-interactively 'font-lock-mode)))
 ;;             ("Imenu" . (lambda () (save-selected-window (imenu-list-smart-toggle)))) ; requires imenu-list
-;;             ("Lnumbers" . (lambda () (call-interactively 'display-line-numbers-mode)))))
+;;             ("Lnumbers" . (lambda () (call-interactively 'display-line-numbers-mode)))
+;;             ("TRAMPCleanup" . (lambda ()
+;;                                 (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
+;;                                   (tramp-cleanup-all-buffers))))
+;;             ("term" . (lambda () (call-interactively 'ansi-term)))))
 ;;     (setq acme-mode-initial-tag-line (concat acme-mode-initial-tag-line "\n"
-;;                                              "Expand (Fillcol 70) Fillpar Fontlock Imenu Lnumbers win"))
+;;                                              "Expand (Fillcol 70) Fillpar Fontlock "
+;;                                              "Imenu Lnumbers TRAMPCleanup term win "))
 ;;     (setq acme-mode-plumbing-rules
 ;;           (append '(("^\\(gemini\\|gopher\\)://[^ |{};]*[^/]/?$" . (lambda (url) (elpher-go url))) ; requires elpher
 ;;                     ("^PEP-?[0-9]+$" . (lambda (pep-line)
@@ -555,13 +566,21 @@
 
 ;; Default plumbing rules
 (defvar acme-mode-default-plumbing-rules
-  '(("^https?://[^ ]*$" . browse-url)
+  '(;; HTTP and HTTPS URLs
+    ("^https?://[^ ]*$" . browse-url)
     ;; Python error locations
     ("^ *File \"[~a-zA-Z¡-￿0-9_./-]+\", line [0-9]+.*" . acme-mode--plumb-python-error)
     ;; EPUB files (open generically)
     ("^[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Ee][Pp][Uu][Bb]$" . acme-mode--plumb-file-system-open)
     ;; PDF files (open generically)
-    ("^[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Pp][Dd][Ff]$" . acme-mode--plumb-file-system-open))
+    ("^[a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\.[Pp][Dd][Ff]$" . acme-mode--plumb-file-system-open)
+    ;; TRAMP file or directory, format is
+    ;; /method:user@host:/path/to/dir/or/file (e.g., "/ssh:dotsshconfighost:.") or
+    ;; /method1:user1@host1|method2:user2@host2:/path/to/dir/or/file (e.g. "/ssh:dotsshconfighost|sudo::.")
+    ;; For more info on the second format, see
+    ;; https://www.gnu.org/software/emacs/manual/html_node/tramp/Ad_002dhoc-multi_002dhops.html and
+    ;; https://stackoverflow.com/questions/2177687/open-file-via-ssh-and-sudo-with-emacs
+    ("^/[a-zA-Z0-9._-]+:[a-zA-Z0-9._@-]*\\(|[a-zA-Z0-9._-]+:[a-zA-Z0-9._@-]*\\)*:\\([a-zA-Z¡-￿0-9_./\\(\\)&-][ a-zA-Z¡-￿0-9_./\\(\\)&-]*\\)" . find-file))
   "Default plumbing rules for Acme mode.
 
 See `acme-mode-plumbing-rules'.")
@@ -740,7 +759,7 @@ how to wrap/intercept commands bound to a given key in Emacs."
   :type '(list :tag "Major modes"
            (symbol :tag "Major mode")))
 
-(defcustom acme-mode-tag-buffer-name "*Acme tag buffer*"
+(defcustom acme-mode-tag-buffer-name "*AcmeTag*"
   "Base name of Acme mode tag buffer."
   :type 'string)
 
@@ -1050,10 +1069,8 @@ occupies a frame by itself."
                                                     (- tag-height)
                                                     'above
                                                     (frame-root-window))))
-        (unless (window-dedicated-p tag-win)
-          (set-window-dedicated-p tag-win t))
-        (unless (window-preserved-size tag-win nil)
-          (window-preserve-size tag-win nil t)))
+        (set-window-dedicated-p tag-win t)
+        (window-preserve-size tag-win nil t))
       ;; Insert base tag keywords for new tag buffers
       (unless maybe-buffer
         (with-current-buffer buffer
@@ -1166,7 +1183,11 @@ if one exists, unless NO-WARP is non-nil."
     (recenter))
   ;; warp the mouse to the result
   (unless no-warp
-    (acme-mode--warp-mouse-to-point)))
+    (acme-mode--warp-mouse-to-point))
+  ;; when using Look from the tag buffer, if the next result is in the
+  ;; same viewport highlighting may not update if the screen does not
+  ;; redraw, so force it to
+  (redraw-frame))
 
 (defun acme-mode--find-file (filename &optional no-warp)
   "Find given FILENAME in another window if it exists.
@@ -1252,7 +1273,8 @@ THING-at-point."
   "Plumb selected text or thing at EVENT position."
   (let ((seltext (acme-mode--get-seltext event 'filename)))
     (acme-mode--clear-secondary-selection)
-    (acme-mode--plumb seltext)))
+    (acme-mode--with-last-non-tag-buffer-window
+     (acme-mode--plumb seltext))))
 
 (defun acme-mode--pop-new-column ()
   "Pop open a new column. Used for Newcol keyword."

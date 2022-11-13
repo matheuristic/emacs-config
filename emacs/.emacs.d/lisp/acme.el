@@ -763,6 +763,10 @@ how to wrap/intercept commands bound to a given key in Emacs."
   "Base name of Acme mode tag buffer."
   :type 'string)
 
+(defcustom acme-mode-shell-output-buffer-name "*AcmeOutput*"
+  "Base name of Acme mode shell output buffer."
+  :type 'string)
+
 (defcustom acme-mode-per-dir-shell-output nil
   "Use a buffer per directory for Acme text execution shell output."
   :type 'boolean)
@@ -1116,11 +1120,12 @@ specifically numbered tag buffer instead of the generic one."
          (let ((bname (buffer-name))
                (fname (buffer-file-name)))
            (cond ((and acme-mode-per-dir-shell-output fname)
-                  (concat "*Acme Shell Output*<" (file-name-directory fname) ">"))
-                 ((string-prefix-p "*Acme Shell Output*" bname)
+                  (concat acme-mode-shell-output-buffer-name
+                          "<" (file-name-directory fname) ">"))
+                 ((string-prefix-p acme-mode-shell-output-buffer-name bname)
                   bname)
                  (t
-                  "*Acme Shell Output*")))))
+                  acme-mode-shell-output-buffer-name)))))
     (or (get-buffer buffer-name)
         (generate-new-buffer buffer-name))))
 
@@ -1428,41 +1433,37 @@ And those that take an optional argument should have form:
              ;; Make sure shell command output does resize the minibuffer
              (max-mini-window-height 0.01)
              ;; Shell output display buffer
-             (disp-buffer (acme-mode--shell-output-buffer))
-             ;; Use a temp buffer to cache output for insert or replace region
-             (temp-buffer (generate-new-buffer "*Acme mode temp buffer*")))
-        (unwind-protect
-            (cond ((eq command-type 'insert)
-                   (when seltext
-                     (let ((left (min start end))
-                           (right (max start end)))
-                       (setq start left)
-                       (setq end right)))
-                   (delete-region start end)
-                   (shell-command-on-region start start command temp-buffer t disp-buffer t))
-                  ((eq command-type 'replace)
-                   (shell-command-on-region start end command temp-buffer t disp-buffer t))
-                  ((eq command-type 'pipe)
-                   (unless (get-buffer-window disp-buffer)
-                     (let ((win (selected-window)))
-                       (acme-mode-pop-shell-output-buffer disp-buffer)
-                       (select-window win)))
-                   (with-current-buffer disp-buffer
-                     (goto-char (point-max)))
-                   (shell-command-on-region start end command disp-buffer nil)
-                   (with-current-buffer disp-buffer
-                     (goto-char (point-max))))
-                  (t
-                   (unless (get-buffer-window disp-buffer)
-                     (let ((win (selected-window)))
-                       (acme-mode-pop-shell-output-buffer disp-buffer)
-                       (select-window win)))
-                   (with-current-buffer disp-buffer
-                     (goto-char (point-max)))
-                   (shell-command command disp-buffer)
-                   (with-current-buffer disp-buffer
-                     (goto-char (point-max)))))
-          (kill-buffer temp-buffer))))))
+             (disp-buffer (acme-mode--shell-output-buffer)))
+        (cond ((eq command-type 'insert)
+               (when seltext
+                 (let ((left (min start end))
+                       (right (max start end)))
+                   (setq start left)
+                   (setq end right)))
+               (delete-region start end)
+               (call-process-shell-command command nil t nil))
+              ((eq command-type 'replace)
+               (call-shell-region start end command t t))
+              ((eq command-type 'pipe)
+               (unless (get-buffer-window disp-buffer)
+                 (let ((win (selected-window)))
+                   (acme-mode-pop-shell-output-buffer disp-buffer)
+                   (select-window win)))
+               (with-current-buffer disp-buffer
+                 (goto-char (point-max)))
+               (call-shell-region start end command nil disp-buffer)
+               (with-current-buffer disp-buffer
+                 (goto-char (point-max))))
+              (t
+               (unless (get-buffer-window disp-buffer)
+                 (let ((win (selected-window)))
+                   (acme-mode-pop-shell-output-buffer disp-buffer)
+                   (select-window win)))
+               (with-current-buffer disp-buffer
+                 (goto-char (point-max)))
+               (call-process-shell-command command nil disp-buffer t)
+               (with-current-buffer disp-buffer
+                 (goto-char (point-max)))))))))
 
 (defun acme-mode--execute (event &optional arg)
   "Execute selected text or sexp at EVENT posn, with optional ARG."

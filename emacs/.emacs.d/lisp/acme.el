@@ -143,7 +143,7 @@
 ;; selected and "|sed -e 's/xyz/abc/g'" is executed, the text "xyz123"
 ;; in the file window is changed to "abc123". There is no per-file tag
 ;; like in Plan 9 Acme.
-
+;;
 ;; When tag buffer windows are created by `acme-mode-pop-tag-buffer',
 ;; they are fixed to a height of 3 lines. If more lines are desired,
 ;; resize them using the menu by dragging the its modeline, then call
@@ -198,17 +198,33 @@
 ;;           acme-mode-per-dir-shell-output nil
 ;;           mouse-autoselect-window nil)
 ;;     (setq acme-mode-user-command-keywords
-;;           '(("Commentcol" . (lambda (arg) (comment-set-column (string-to-number arg))))
-;;             ("Expand" . (lambda () (call-interactively 'er/expand-region)))          ; requires expand-region
-;;             ("Fillcol" . (lambda (&optional arg) (if arg (setq fill-column (string-to-number arg)) (setq fill-column 70))))
-;;             ("Fillpar" . (lambda () (call-interactively 'fill-paragraph)))
-;;             ("Fontlock" . (lambda () (call-interactively 'font-lock-mode)))
-;;             ("Imenu" . (lambda () (save-selected-window (imenu-list-smart-toggle)))) ; requires imenu-list
-;;             ("Lnumbers" . (lambda () (call-interactively 'display-line-numbers-mode)))
+;;           '(("Commentcol" . (lambda (arg)
+;;                               (acme-mode--with-last-non-tag-buffer-window
+;;                                (comment-set-column (string-to-number arg)))))
+;;             ("Expand" . (lambda ()
+;;                           (acme-mode--with-last-non-tag-buffer-window
+;;                            (call-interactively 'er/expand-region)))) ; requires expand-region
+;;             ("Fillcol" . (lambda (&optional arg)
+;;                            (acme-mode--with-last-non-tag-buffer-window
+;;                             (if arg (setq fill-column (string-to-number arg)) (setq fill-column 70)))))
+;;             ("Fillpar" . (lambda ()
+;;                            (acme-mode--with-last-non-tag-buffer-window
+;;                             (call-interactively 'fill-paragraph))))
+;;             ("Fontlock" . (lambda ()
+;;                             (acme-mode--with-last-non-tag-buffer-window
+;;                              (call-interactively 'font-lock-mode))))
+;;             ("Imenu" . (lambda ()
+;;                          (acme-mode--with-last-non-tag-buffer-window
+;;                           (save-selected-window (imenu-list-smart-toggle))))) ; requires imenu-list
+;;             ("Lnumbers" . (lambda ()
+;;                             (acme-mode--with-last-non-tag-buffer-window
+;;                              (call-interactively 'display-line-numbers-mode))))
 ;;             ("TRAMPCleanup" . (lambda ()
 ;;                                 (when (y-or-n-p "Cleanup all TRAMP buffers and connections? ")
 ;;                                   (tramp-cleanup-all-buffers))))
-;;             ("term" . (lambda () (call-interactively 'ansi-term)))))
+;;             ("term" . (lambda ()
+;;                         (acme-mode--with-last-non-tag-buffer-window
+;;                          (call-interactively 'ansi-term))))))
 ;;     (setq acme-mode-initial-tag-line (concat acme-mode-initial-tag-line "\n"
 ;;                                              "Expand (Fillcol 70) Fillpar Fontlock "
 ;;                                              "Imenu Lnumbers TRAMPCleanup term win "))
@@ -1094,7 +1110,11 @@ If WINDOW is non-null, check that window's buffer instead."
   "Set `default-directory' of tag buffer to the current buffer's.
 
 If prefix ARG is an integer, set the `default-directory' of the
-specifically numbered tag buffer instead of the generic one."
+specifically numbered tag buffer instead of the generic one.
+
+Generally only needed for Meta-x and Elisp commands, as button 2
+text execution when the tag buffer is selected is uses the
+context of the last selected non-tag buffer."
   (interactive "P")
   (let* ((directory default-directory)
          (tag-buffer-name (concat acme-mode-tag-buffer-name

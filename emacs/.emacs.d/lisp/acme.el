@@ -807,7 +807,11 @@ how to wrap/intercept commands bound to a given key in Emacs."
         acme-mode--last-mouse-event nil
         acme-mode--argtext nil)
   (add-hook 'post-command-hook 'acme-mode--update-last-non-tag-buffer-window)
-  (acme-mode--update-last-non-tag-buffer-window))
+  (acme-mode--update-last-non-tag-buffer-window)
+  (unless (display-graphic-p)
+    (message (concat "Note that Acme mode is mainly designed for and tested "
+                     "with graphical Emacs, it may not work as intended in the "
+                     "terminal."))))
 
 (defun acme-mode--disable ()
   "Teardown for Acme mode."

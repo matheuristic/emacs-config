@@ -1063,6 +1063,8 @@ occupies a frame by itself."
                                                     'above
                                                     (frame-root-window))))
         (set-window-dedicated-p tag-win t)
+        (set-window-parameter tag-win 'no-other-window t)
+        (set-window-parameter tag-win 'window-atom t)
         (window-preserve-size tag-win nil t))
       ;; Insert base tag keywords for new tag buffers
       (unless maybe-buffer
